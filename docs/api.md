@@ -1,6 +1,6 @@
 # API Documentation
 
-[Back to Documentation Index](README.md) | Previous: [Development Guide](development.md)
+[Back to Documentation Index](README.md) | Previous: [Database](database.md)
 
 No public API endpoints are currently implemented.
 
@@ -40,4 +40,4 @@ Remove unused status codes from each endpoint section as APIs are documented.
 ## Navigation
 
 - [Back to Documentation Index](README.md)
-- [Previous: Development Guide](development.md)
+- [Previous: Database](database.md)

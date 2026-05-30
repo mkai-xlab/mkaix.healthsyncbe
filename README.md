@@ -109,7 +109,8 @@ Read the docs in this order:
 3. [Authentication Workflow](docs/authentication.md)
 4. [Package Diagram](docs/package-diagram.md)
 5. [Development Guide](docs/development.md)
-6. [API Documentation](docs/api.md)
+6. [Database](docs/database.md)
+7. [API Documentation](docs/api.md)
 
 Additional assets:
 

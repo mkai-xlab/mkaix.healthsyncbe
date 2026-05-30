@@ -8,7 +8,8 @@ This folder contains backend documentation for the Capstone project.
 2. [Authentication Workflow](authentication.md)
 3. [Package Diagram](package-diagram.md)
 4. [Development Guide](development.md)
-5. [API Documentation](api.md)
+5. [Database](database.md)
+6. [API Documentation](api.md)
 
 ## Assets
 
