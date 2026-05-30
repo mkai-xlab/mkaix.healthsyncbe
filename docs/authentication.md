@@ -1,6 +1,6 @@
 # Authentication Workflow
 
-[Back to Documentation Index](README.md) | Previous: [Backend Architecture](architecture.md) | Next: [Development Guide](development.md)
+[Back to Documentation Index](README.md) | Previous: [Backend Architecture](architecture.md) | Next: [Package Diagram](package-diagram.md)
 
 This document describes the expected authentication flow between a client application, Keycloak, and the Spring backend.
 
@@ -50,4 +50,4 @@ sequenceDiagram
 
 - [Back to Documentation Index](README.md)
 - [Previous: Backend Architecture](architecture.md)
-- [Next: Development Guide](development.md)
+- [Next: Package Diagram](package-diagram.md)

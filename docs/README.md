@@ -6,8 +6,9 @@ This folder contains backend documentation for the Capstone project.
 
 1. [Backend Architecture](architecture.md)
 2. [Authentication Workflow](authentication.md)
-3. [Development Guide](development.md)
-4. [API Documentation](api.md)
+3. [Package Diagram](package-diagram.md)
+4. [Development Guide](development.md)
+5. [API Documentation](api.md)
 
 ## Assets
 
@@ -15,10 +16,14 @@ This folder contains backend documentation for the Capstone project.
 
 ![Authentication workflow](diagrams/authentication-workflow.png)
 
+![Backend package diagram](diagrams/package-diagram.png)
+
 - [Editable Architecture Diagram](diagrams/be-architecture.drawio)
 - [Architecture Diagram Image](diagrams/be-architecture.png)
 - [Editable Authentication Workflow Diagram](diagrams/authentication-workflow.drawio)
 - [Authentication Workflow Image](diagrams/authentication-workflow.png)
+- [Editable Package Diagram](diagrams/package-diagram.drawio)
+- [Package Diagram Image](diagrams/package-diagram.png)
 
 ## Current State
 

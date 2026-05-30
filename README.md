@@ -107,8 +107,9 @@ Read the docs in this order:
 1. [Documentation Index](docs/README.md)
 2. [Backend Architecture](docs/architecture.md)
 3. [Authentication Workflow](docs/authentication.md)
-4. [Development Guide](docs/development.md)
-5. [API Documentation](docs/api.md)
+4. [Package Diagram](docs/package-diagram.md)
+5. [Development Guide](docs/development.md)
+6. [API Documentation](docs/api.md)
 
 Additional assets:
 
@@ -116,6 +117,8 @@ Additional assets:
 - [Architecture Diagram Image](docs/diagrams/be-architecture.png)
 - [Authentication Workflow Diagram Source](docs/diagrams/authentication-workflow.drawio)
 - [Authentication Workflow Diagram Image](docs/diagrams/authentication-workflow.png)
+- [Package Diagram Source](docs/diagrams/package-diagram.drawio)
+- [Package Diagram Image](docs/diagrams/package-diagram.png)
 
 ## Notes
 
