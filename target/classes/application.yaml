@@ -1,0 +1,4 @@
+# yaml-language-server: $schema=none
+spring:
+  application:
+    name: be
