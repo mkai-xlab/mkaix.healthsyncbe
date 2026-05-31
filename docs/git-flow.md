@@ -1,5 +1,7 @@
 # Standard Git Flow
 
+[Back to Documentation Index](README.md) | Previous: [Package Diagram](package-diagram.md) | Next: [Development Guide](development.md)
+
 This project can use a simplified Git Flow model to keep feature work, development integration, production releases, and urgent fixes separated.
 
 ## Branches
@@ -39,3 +41,9 @@ Editable diagram: [Git Flow draw.io](diagrams/git-flow.drawio)
 Image diagram:
 
 ![Standard Git Flow](diagrams/git-flow.png)
+
+## Navigation
+
+- [Back to Documentation Index](README.md)
+- [Previous: Package Diagram](package-diagram.md)
+- [Next: Development Guide](development.md)

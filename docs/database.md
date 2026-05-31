@@ -1,6 +1,6 @@
 # Database
 
-[Back to Documentation Index](README.md) | Previous: [Development Guide](development.md) | Next: [API Documentation](api.md)
+[Back to Documentation Index](README.md) | Previous: [Environment Configuration](environment.md) | Next: [API Documentation](api.md)
 
 The backend uses MySQL for persistence. Local development runs MySQL through Docker Compose from the backend folder.
 
@@ -84,5 +84,5 @@ set -a && source ../env/be.env && set +a && mvn spring-boot:run
 ## Navigation
 
 - [Back to Documentation Index](README.md)
-- [Previous: Development Guide](development.md)
+- [Previous: Environment Configuration](environment.md)
 - [Next: API Documentation](api.md)

@@ -2,7 +2,7 @@
 
 [Back to Documentation Index](README.md) | Previous: [Backend Architecture](architecture.md) | Next: [Package Diagram](package-diagram.md)
 
-This document describes the expected authentication flow between a client application, Keycloak, and the Spring backend.
+This document describes the expected Authorization Code Flow between a client application, Keycloak, and the Spring backend.
 
 ![Authentication workflow sequence](diagrams/authentication-workflow.png)
 
@@ -18,7 +18,7 @@ sequenceDiagram
     Client->>Client: User opens protected route
     Client->>Keycloak: Redirect to login
     Keycloak->>Client: Return authorization code
-    Client->>Keycloak: Exchange code + PKCE verifier for tokens
+    Client->>Keycloak: Exchange authorization code for tokens
     Keycloak->>Client: Return access token and ID token
     Client->>Spring: API request with Authorization: Bearer token
     Spring->>Keycloak: Fetch JWKS / issuer metadata when needed
@@ -34,10 +34,11 @@ sequenceDiagram
 
 1. The client opens a protected route or sends a request that requires authentication.
 2. The client redirects the user to Keycloak for login.
-3. Keycloak authenticates the user and issues tokens.
-4. The client sends API requests to the Spring app with `Authorization: Bearer <access-token>`.
-5. The Spring app validates the JWT using Keycloak issuer metadata and signing keys.
-6. The Spring app returns the protected resource, `401 Unauthorized`, or `403 Forbidden`.
+3. Keycloak authenticates the user and returns an authorization code.
+4. The authorization code is exchanged for tokens.
+5. The client sends API requests to the Spring app with `Authorization: Bearer <access-token>`.
+6. The Spring app validates the JWT using Keycloak issuer metadata and signing keys.
+7. The Spring app returns the protected resource, `401 Unauthorized`, or `403 Forbidden`.
 
 ## Spring Responsibilities
 

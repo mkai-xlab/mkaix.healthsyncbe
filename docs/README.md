@@ -9,8 +9,21 @@ This folder contains backend documentation for the Capstone project.
 3. [Package Diagram](package-diagram.md)
 4. [Standard Git Flow](git-flow.md)
 5. [Development Guide](development.md)
-6. [Database](database.md)
-7. [API Documentation](api.md)
+6. [Environment Configuration](environment.md)
+7. [Database](database.md)
+8. [API Documentation](api.md)
+9. [Deployment Guide](deployment.md)
+10. [Testing Strategy](testing.md)
+11. [Error Handling](error-handling.md)
+12. [Security Guide](security.md)
+13. [API Design Guidelines](api-design-guidelines.md)
+14. [Code Style](code-style.md)
+15. [Database Migration](database-migration.md)
+16. [Observability](observability.md)
+17. [Runbook](runbook.md)
+18. [Release Process](release-process.md)
+19. [Contributing Guide](contributing.md)
+20. [Architecture Decision Records](adr/README.md)
 
 ## Assets
 
@@ -33,7 +46,7 @@ This folder contains backend documentation for the Capstone project.
 
 ## Current State
 
-The backend is currently a minimal Spring Boot application with no implemented controllers, persistence layer, external integrations, or API routes.
+The backend is currently a Spring Boot application with MySQL datasource configuration and no implemented public controllers or API routes yet.
 
 Keep these docs updated whenever new modules are added, especially when introducing:
 
@@ -43,6 +56,10 @@ Keep these docs updated whenever new modules are added, especially when introduc
 - authentication or authorization
 - external integrations
 - deployment configuration
+
+## Maintenance Rule
+
+When code, configuration, database schema, authentication, deployment, or API behavior changes, update the relevant documentation in the same change.
 
 ## Navigation
 

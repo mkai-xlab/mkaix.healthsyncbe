@@ -7,6 +7,8 @@ Spring Boot backend service for the Capstone project.
 - Java 21
 - Spring Boot 4.0.6
 - Spring Web MVC
+- Spring Data JPA
+- MySQL Connector/J
 - Maven
 - Lombok
 
@@ -23,7 +25,11 @@ Spring Boot backend service for the Capstone project.
 │   ├── architecture.md
 │   ├── authentication.md
 │   ├── development.md
+│   ├── environment.md
+│   ├── deployment.md
+│   ├── testing.md
 │   ├── api.md
+│   ├── git-flow.md
 │   └── diagrams
 │       ├── be-architecture.drawio
 │       ├── be-architecture.png
@@ -64,6 +70,8 @@ Current configuration:
 spring:
   application:
     name: be
+  datasource:
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:capstone}
 ```
 
 Add environment-specific settings through Spring profiles when needed, for example:
@@ -109,8 +117,12 @@ Read the docs in this order:
 3. [Authentication Workflow](docs/authentication.md)
 4. [Package Diagram](docs/package-diagram.md)
 5. [Development Guide](docs/development.md)
-6. [Database](docs/database.md)
-7. [API Documentation](docs/api.md)
+6. [Environment Configuration](docs/environment.md)
+7. [Database](docs/database.md)
+8. [API Documentation](docs/api.md)
+9. [Deployment Guide](docs/deployment.md)
+10. [Testing Strategy](docs/testing.md)
+11. [Contributing Guide](docs/contributing.md)
 
 Additional assets:
 
@@ -120,6 +132,12 @@ Additional assets:
 - [Authentication Workflow Diagram Image](docs/diagrams/authentication-workflow.png)
 - [Package Diagram Source](docs/diagrams/package-diagram.drawio)
 - [Package Diagram Image](docs/diagrams/package-diagram.png)
+- [Git Flow Diagram Source](docs/diagrams/git-flow.drawio)
+- [Git Flow Diagram Image](docs/diagrams/git-flow.png)
+
+## Documentation Maintenance
+
+When code, configuration, database schema, authentication, deployment, or API behavior changes, update the relevant files under `docs/` and `CHANGELOG.md`.
 
 ## Notes
 
