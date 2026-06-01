@@ -1,0 +1,212 @@
+Project capstone_ai_knee_xray_diagnosis {
+  database_type: "MySQL"
+  note: "Database schema for AI-assisted knee X-ray diagnosis system"
+}
+
+Enum user_status {
+  ACTIVE
+  INACTIVE
+}
+
+Enum user_role {
+  DOCTOR
+  ADMIN
+}
+
+Enum examination_status {
+  CREATED
+  AI_PROCESSING
+  AI_COMPLETED
+  REVIEWED
+  REPORT_GENERATED
+  CANCELLED
+}
+
+Enum ai_job_status {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+Enum gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+Table users {
+  id bigint [pk, increment]
+  keycloak_id varchar(100) [unique]
+  full_name varchar(150) [not null]
+  email varchar(150) [not null, unique]
+  phone varchar(30)
+  role user_role [not null]
+  status user_status [not null, default: 'ACTIVE']
+  created_at datetime [not null]
+  updated_at datetime
+
+  Note: "Shared account identity for doctors and administrators. Only two roles are supported: DOCTOR and ADMIN. Authentication is handled by Keycloak."
+}
+
+Table doctors {
+  id bigint [pk, increment]
+  user_id bigint [not null, unique]
+  doctor_code varchar(50) [not null, unique]
+  license_number varchar(100)
+  specialization varchar(150)
+  department varchar(150)
+  hospital_name varchar(200)
+  years_of_experience int
+  academic_title varchar(100)
+  degree varchar(100)
+  bio text
+  created_at datetime [not null]
+  updated_at datetime
+
+  Note: "Doctor profile with clinical and professional information."
+}
+
+Table admins {
+  id bigint [pk, increment]
+  user_id bigint [not null, unique]
+  admin_code varchar(50) [not null, unique]
+  position varchar(100)
+  department varchar(150)
+  created_at datetime [not null]
+  updated_at datetime
+
+  Note: "Administrator profile with lightweight management information."
+}
+
+Table patients {
+  id bigint [pk, increment]
+  patient_code varchar(50) [not null, unique]
+  full_name varchar(150) [not null]
+  date_of_birth date
+  gender gender
+  phone varchar(30)
+  address varchar(255)
+  created_at datetime [not null]
+  updated_at datetime
+}
+
+Table examinations {
+  id bigint [pk, increment]
+  patient_id bigint [not null]
+  doctor_id bigint [not null]
+  status examination_status [not null, default: 'CREATED']
+  clinical_note text
+  final_diagnosis text
+  examined_at datetime [not null]
+  created_at datetime [not null]
+  updated_at datetime
+
+  Note: "A patient examination handled by a doctor. One examination can contain multiple X-ray images."
+}
+
+Table xray_images {
+  id bigint [pk, increment]
+  examination_id bigint [not null]
+  file_name varchar(255) [not null]
+  file_url varchar(500) [not null]
+  body_side varchar(20)
+  view_position varchar(50)
+  uploaded_at datetime [not null]
+
+  Note: "Uploaded knee X-ray image belonging to an examination."
+}
+
+Table ai_analysis_jobs {
+  id bigint [pk, increment]
+  examination_id bigint [not null]
+  status ai_job_status [not null, default: 'PENDING']
+  started_at datetime
+  completed_at datetime
+  error_message text
+  created_at datetime [not null]
+
+  Note: "AI processing job for an examination."
+}
+
+Table ai_analysis_results {
+  id bigint [pk, increment]
+  job_id bigint [not null]
+  xray_image_id bigint [not null]
+  predicted_kl_grade int [not null]
+  confidence decimal(5,4)
+  gradcam_url varchar(500)
+  interpretation text
+  created_at datetime [not null]
+
+  Note: "AI result for one X-ray image, including KL grade prediction and Grad-CAM output."
+}
+
+Table diagnosis_reviews {
+  id bigint [pk, increment]
+  examination_id bigint [not null]
+  doctor_id bigint [not null]
+  ai_result_id bigint
+  confirmed_kl_grade int
+  doctor_diagnosis text
+  review_note text
+  reviewed_at datetime [not null]
+
+  Note: "Doctor review and clinical validation of AI-generated diagnosis results."
+}
+
+Table clinical_reports {
+  id bigint [pk, increment]
+  examination_id bigint [not null]
+  doctor_id bigint [not null]
+  report_code varchar(50) [not null, unique]
+  report_content text
+  file_url varchar(500)
+  generated_at datetime [not null]
+
+  Note: "Generated/exported clinical report for an examination."
+}
+
+Table notifications {
+  id bigint [pk, increment]
+  user_id bigint [not null]
+  title varchar(150) [not null]
+  message text [not null]
+  type varchar(50)
+  is_read boolean [not null, default: false]
+  created_at datetime [not null]
+  read_at datetime
+}
+
+Table audit_logs {
+  id bigint [pk, increment]
+  user_id bigint
+  action varchar(100) [not null]
+  entity_type varchar(100)
+  entity_id bigint
+  description text
+  ip_address varchar(100)
+  created_at datetime [not null]
+}
+
+Ref: doctors.user_id - users.id [delete: cascade, update: cascade]
+Ref: admins.user_id - users.id [delete: cascade, update: cascade]
+
+Ref: examinations.patient_id > patients.id [delete: restrict, update: cascade]
+Ref: examinations.doctor_id > doctors.id [delete: restrict, update: cascade]
+
+Ref: xray_images.examination_id > examinations.id [delete: cascade, update: cascade]
+
+Ref: ai_analysis_jobs.examination_id > examinations.id [delete: cascade, update: cascade]
+Ref: ai_analysis_results.job_id > ai_analysis_jobs.id [delete: cascade, update: cascade]
+Ref: ai_analysis_results.xray_image_id > xray_images.id [delete: cascade, update: cascade]
+
+Ref: diagnosis_reviews.examination_id > examinations.id [delete: cascade, update: cascade]
+Ref: diagnosis_reviews.doctor_id > doctors.id [delete: restrict, update: cascade]
+Ref: diagnosis_reviews.ai_result_id > ai_analysis_results.id [delete: set null, update: cascade]
+
+Ref: clinical_reports.examination_id > examinations.id [delete: cascade, update: cascade]
+Ref: clinical_reports.doctor_id > doctors.id [delete: restrict, update: cascade]
+
+Ref: notifications.user_id > users.id [delete: cascade, update: cascade]
+Ref: audit_logs.user_id > users.id [delete: set null, update: cascade]

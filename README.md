@@ -110,6 +110,8 @@ Project documentation is stored in `docs`:
 
 ![Authentication workflow](docs/diagrams/authentication-workflow.png)
 
+![Database ERD](docs/diagrams/database.png)
+
 Read the docs in this order:
 
 1. [Documentation Index](docs/README.md)
@@ -134,6 +136,8 @@ Additional assets:
 - [Package Diagram Image](docs/diagrams/package-diagram.png)
 - [Git Flow Diagram Source](docs/diagrams/git-flow.drawio)
 - [Git Flow Diagram Image](docs/diagrams/git-flow.png)
+- [Database ERD Image](docs/diagrams/database.png)
+- [Database Schema DBML](docs/database-schema.dbml)
 
 ## Documentation Maintenance
 

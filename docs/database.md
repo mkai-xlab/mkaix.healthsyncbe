@@ -4,6 +4,10 @@
 
 The backend uses MySQL for persistence. Local development runs MySQL through Docker Compose from the backend folder.
 
+## Database ERD
+
+<img src="diagrams/database.png" alt="Database ERD" width="100%" />
+
 ## Docker Compose
 
 The Compose file is located in the backend folder:
@@ -16,6 +20,12 @@ The MySQL service uses this image:
 
 ```text
 dhi.io/mysql:9
+```
+
+The DBML source used to generate the database diagram is available at:
+
+```text
+docs/database-schema.dbml
 ```
 
 Environment files are stored in:
@@ -80,6 +90,16 @@ set -a && source ../env/be.env && set +a && mvn spring-boot:run
 ## Connection Check
 
 `spring-boot-starter-data-jpa` and the MySQL JDBC driver are included so the application opens a datasource connection during startup.
+
+## Proposed Schema
+
+The proposed database schema is documented in DBML format for dbdiagram/dbdraw:
+
+```text
+docs/database-schema.dbml
+```
+
+Use this file to generate the ERD visually in a DBML-compatible diagram tool.
 
 ## Navigation
 

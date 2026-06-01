@@ -35,6 +35,8 @@ This folder contains backend documentation for the Capstone project.
 
 ![Standard Git Flow](diagrams/git-flow.png)
 
+![Database ERD](diagrams/database.png)
+
 - [Editable Architecture Diagram](diagrams/be-architecture.drawio)
 - [Architecture Diagram Image](diagrams/be-architecture.png)
 - [Editable Authentication Workflow Diagram](diagrams/authentication-workflow.drawio)
@@ -43,6 +45,8 @@ This folder contains backend documentation for the Capstone project.
 - [Package Diagram Image](diagrams/package-diagram.png)
 - [Editable Git Flow Diagram](diagrams/git-flow.drawio)
 - [Git Flow Diagram Image](diagrams/git-flow.png)
+- [Database Schema DBML](database-schema.dbml)
+- [Database ERD Image](diagrams/database.png)
 
 ## Current State
 
