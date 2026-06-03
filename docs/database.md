@@ -101,8 +101,26 @@ docs/database-schema.dbml
 
 Use this file to generate the ERD visually in a DBML-compatible diagram tool.
 
+## JPA Entities and Inheritance Mapping
+
+The project maps tables to JPA Entities under `com.g93.be.entity` and repositories under `com.g93.be.repository`.
+
+### User & Authentication Inheritance (JOINED Strategy)
+To avoid duplicating fields (like timestamps and user properties) while preserving a clean relational structure, the database uses the **JPA JOINED inheritance strategy**:
+
+* **`User`** (`com.g93.be.entity.User`): The parent entity mapping to the `users` table. Contains shared account credentials, profile details (`avatar_url`), audit status, and audit timestamps.
+* **`Doctor`** (`com.g93.be.entity.Doctor`): Extends `User` mapping to the `doctors` table via `@PrimaryKeyJoinColumn(name = "id")`. Contains clinical details.
+* **`Admin`** (`com.g93.be.entity.Admin`): Extends `User` mapping to the `admins` table via `@PrimaryKeyJoinColumn(name = "id")`. Contains administrative configuration.
+
+### Notification and Audit Logging
+* **`Notification`** (`com.g93.be.entity.Notification`): Maps to `notifications` with a lazy reference (`@ManyToOne`) back to the `User`.
+* **`AuditLog`** (`com.g93.be.entity.AuditLog`): Maps to `audit_logs`. It tracks security context fields including `user_agent`, client `ip_address`, transaction `payload` (JSON), and execution `is_success`.
+
+---
+
 ## Navigation
 
 - [Back to Documentation Index](README.md)
 - [Previous: Environment Configuration](environment.md)
 - [Next: API Documentation](api.md)
+
