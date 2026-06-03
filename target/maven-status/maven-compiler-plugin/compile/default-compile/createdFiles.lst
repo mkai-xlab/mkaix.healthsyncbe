@@ -4,9 +4,13 @@ com\g93\be\entity\UserRole.class
 com\g93\be\entity\DoctorPosition.class
 com\g93\be\repository\DoctorRepository.class
 com\g93\be\repository\AdminRepository.class
+com\g93\be\config\SecurityConfig.class
 com\g93\be\entity\User.class
+com\g93\be\security\CustomUserDetails.class
+com\g93\be\common\util\JwtUtil.class
 com\g93\be\entity\Doctor.class
 com\g93\be\entity\Notification.class
+com\g93\be\security\CustomUserDetailsService.class
 com\g93\be\entity\UserStatus.class
 com\g93\be\repository\AuditLogRepository.class
 com\g93\be\entity\Admin.class

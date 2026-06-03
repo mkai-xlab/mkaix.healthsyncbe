@@ -13,3 +13,12 @@ spring:
     open-in-view: false
     properties:
       hibernate:
+
+app:
+  jwt:
+    issuer: capstone-ai-knee-diagnosis
+    # 256-bit keys encoded in Base64 (using values for testing/local development fallback)
+    access-secret: ${JWT_ACCESS_SECRET:dGVzdC1hY2Nlc3Mtc2VjcmV0LWtleS1tdXN0LWJlLWF0LWxlYXN0LTI1Ni1iaXRzLWxvbmc=}
+    refresh-secret: ${JWT_REFRESH_SECRET:dGVzdC1yZWZyZXNoLXNlY3JldC1rZXktbXVzdC1iZS1hdC1sZWFzdC0yNTYtYml0cy1sb25n}
+    access-expiration-ms: 900000 # 15 minutes
+    refresh-expiration-ms: 604800000 # 7 days

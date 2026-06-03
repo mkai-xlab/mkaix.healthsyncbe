@@ -1,4 +1,6 @@
 D:\FPT\9\Capstone\source\mkaix.healthsyncbe\src\main\java\com\g93\be\BeApplication.java
+D:\FPT\9\Capstone\source\mkaix.healthsyncbe\src\main\java\com\g93\be\common\util\JwtUtil.java
+D:\FPT\9\Capstone\source\mkaix.healthsyncbe\src\main\java\com\g93\be\config\SecurityConfig.java
 D:\FPT\9\Capstone\source\mkaix.healthsyncbe\src\main\java\com\g93\be\entity\Admin.java
 D:\FPT\9\Capstone\source\mkaix.healthsyncbe\src\main\java\com\g93\be\entity\AuditLog.java
 D:\FPT\9\Capstone\source\mkaix.healthsyncbe\src\main\java\com\g93\be\entity\Doctor.java
@@ -12,3 +14,5 @@ D:\FPT\9\Capstone\source\mkaix.healthsyncbe\src\main\java\com\g93\be\repository\
 D:\FPT\9\Capstone\source\mkaix.healthsyncbe\src\main\java\com\g93\be\repository\DoctorRepository.java
 D:\FPT\9\Capstone\source\mkaix.healthsyncbe\src\main\java\com\g93\be\repository\NotificationRepository.java
 D:\FPT\9\Capstone\source\mkaix.healthsyncbe\src\main\java\com\g93\be\repository\UserRepository.java
+D:\FPT\9\Capstone\source\mkaix.healthsyncbe\src\main\java\com\g93\be\security\CustomUserDetails.java
+D:\FPT\9\Capstone\source\mkaix.healthsyncbe\src\main\java\com\g93\be\security\CustomUserDetailsService.java
