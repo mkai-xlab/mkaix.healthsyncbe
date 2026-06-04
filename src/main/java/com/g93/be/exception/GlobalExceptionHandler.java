@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -15,19 +16,36 @@ public class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
-    /**
-     * Xử lý ngoại lệ khi người dùng đăng nhập lần đầu tiên mà chưa đổi mật khẩu.
-     * Chỉ ghi nhận log thông báo ngắn gọn, tuyệt đối không in ra stack trace lỗi lên màn hình/console.
-     */
     @ExceptionHandler(FirstTimeLoginException.class)
     public ResponseEntity<Map<String, Object>> handleFirstTimeLogin(FirstTimeLoginException ex) {
-        // Ghi log ngắn gọn mức độ WARN/INFO, không in toàn bộ stack trace (ex)
         log.warn("Đăng nhập thất bại: {}", ex.getMessage());
 
         Map<String, Object> response = new HashMap<>();
         response.put("error", "FIRST_TIME_LOGIN_REQUIRED");
         response.put("message", ex.getMessage());
-        
+
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ErrorResponse> handleIllegalArgumentException(IllegalArgumentException ex) {
+        ErrorResponse error = new ErrorResponse(
+                HttpStatus.BAD_REQUEST.value(),
+                HttpStatus.BAD_REQUEST.getReasonPhrase(),
+                ex.getMessage(),
+                LocalDateTime.now()
+        );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ErrorResponse> handleGeneralException(Exception ex) {
+        ErrorResponse error = new ErrorResponse(
+                HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                HttpStatus.INTERNAL_SERVER_ERROR.getReasonPhrase(),
+                ex.getMessage(),
+                LocalDateTime.now()
+        );
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
     }
 }
