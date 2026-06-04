@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
  * Controller tiếp nhận các yêu cầu REST API liên quan đến xác thực.
  */
 @RestController
-@RequestMapping("/api/v1/auth")
+@RequestMapping("/auth")
 public class AuthController {
 
     private final AuthService authService;

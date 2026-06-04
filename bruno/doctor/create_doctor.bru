@@ -1,0 +1,34 @@
+meta {
+  name: Create Doctor
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/doctors
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "fullName": "Nguyen Van A",
+    "email": "doctor.a@healthsync.com",
+    "phone": "0987654321",
+    "avatarUrl": "http://example.com/avatar.png",
+    "doctorCode": "DOC001",
+    "licenseNumber": "12345/BYT-CCHN",
+    "specialization": "Cardiology",
+    "hospitalName": "Bach Mai Hospital",
+    "yearsOfExperience": 10,
+    "academicTitle": "M.Sc",
+    "degree": "Doctor of Medicine",
+    "signatureUrl": "http://example.com/signature.png",
+    "bio": "Expert in Cardiology with 10 years of experience.",
+    "position": "NORMAL"
+  }
+}
