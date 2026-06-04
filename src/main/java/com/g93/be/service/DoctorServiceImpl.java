@@ -84,16 +84,14 @@ public class DoctorServiceImpl implements DoctorService {
             doctor.setLicenseNumber(request.getLicenseNumber());
         if (request.getSpecialization() != null)
             doctor.setSpecialization(request.getSpecialization());
-        if (request.getHospitalName() != null)
-            doctor.setHospitalName(request.getHospitalName());
+
         if (request.getYearsOfExperience() != null)
             doctor.setYearsOfExperience(request.getYearsOfExperience());
         if (request.getAcademicTitle() != null)
             doctor.setAcademicTitle(request.getAcademicTitle());
         if (request.getDegree() != null)
             doctor.setDegree(request.getDegree());
-        if (request.getSignatureUrl() != null)
-            doctor.setSignatureUrl(request.getSignatureUrl());
+
         if (request.getBio() != null)
             doctor.setBio(request.getBio());
         if (request.getPosition() != null)
@@ -138,10 +136,11 @@ public class DoctorServiceImpl implements DoctorService {
         }
         if (request.getLicenseNumber() != null && !request.getLicenseNumber().isBlank()) {
             if (doctorRepository.findByLicenseNumber(request.getLicenseNumber()).isPresent()) {
-                throw new IllegalArgumentException("License number '" + request.getLicenseNumber() + "' is already used");
+                throw new IllegalArgumentException(
+                        "License number '" + request.getLicenseNumber() + "' is already used");
             }
         }
-        
+
         // 3. Create Doctor entity
         Doctor doctor = new Doctor();
         // Base user fields
@@ -162,7 +161,7 @@ public class DoctorServiceImpl implements DoctorService {
         doctor.setYearsOfExperience(request.getYearsOfExperience());
         doctor.setAcademicTitle(request.getAcademicTitle());
         doctor.setDegree(request.getDegree());
-        doctor.setSignatureUrl(request.getSignatureUrl());
+
         doctor.setBio(request.getBio());
         doctor.setPosition(request.getPosition());
 
@@ -258,11 +257,10 @@ public class DoctorServiceImpl implements DoctorService {
         response.setDoctorCode(doctor.getDoctorCode());
         response.setLicenseNumber(doctor.getLicenseNumber());
         response.setSpecialization(doctor.getSpecialization());
-        response.setHospitalName(doctor.getHospitalName());
         response.setYearsOfExperience(doctor.getYearsOfExperience());
         response.setAcademicTitle(doctor.getAcademicTitle());
         response.setDegree(doctor.getDegree());
-        response.setSignatureUrl(doctor.getSignatureUrl());
+
         response.setBio(doctor.getBio());
         response.setPosition(doctor.getPosition());
         response.setCreatedAt(doctor.getCreatedAt());
