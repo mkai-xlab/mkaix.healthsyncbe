@@ -9,5 +9,7 @@ import java.util.List;
 @Repository
 public interface DoctorRepository extends JpaRepository<Doctor, Long> {
     Optional<Doctor> findByDoctorCode(String doctorCode);
+    Optional<Doctor> findByLicenseNumber(String licenseNumber);
     List<Doctor> findAllByStatus(com.g93.be.entity.UserStatus status);
 }
+

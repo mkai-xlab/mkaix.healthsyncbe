@@ -130,8 +130,18 @@ public class DoctorServiceImpl implements DoctorService {
         String tempUsername = generateUniqueUsername(request.getEmail());
         String tempPassword = generateSecurePassword();
 
-        log.info("Generated temporary username: {}", tempUsername);
-
+        // 3. Validate unique phone and license number
+        if (request.getPhone() != null && !request.getPhone().isBlank()) {
+            if (userRepository.findByPhone(request.getPhone()).isPresent()) {
+                throw new IllegalArgumentException("Phone '" + request.getPhone() + "' is already registered");
+            }
+        }
+        if (request.getLicenseNumber() != null && !request.getLicenseNumber().isBlank()) {
+            if (doctorRepository.findByLicenseNumber(request.getLicenseNumber()).isPresent()) {
+                throw new IllegalArgumentException("License number '" + request.getLicenseNumber() + "' is already used");
+            }
+        }
+        
         // 3. Create Doctor entity
         Doctor doctor = new Doctor();
         // Base user fields
@@ -148,7 +158,7 @@ public class DoctorServiceImpl implements DoctorService {
         doctor.setDoctorCode(request.getDoctorCode());
         doctor.setLicenseNumber(request.getLicenseNumber());
         doctor.setSpecialization(request.getSpecialization());
-        doctor.setHospitalName(request.getHospitalName());
+        // Hospital name removed (single hospital project)
         doctor.setYearsOfExperience(request.getYearsOfExperience());
         doctor.setAcademicTitle(request.getAcademicTitle());
         doctor.setDegree(request.getDegree());
