@@ -9,10 +9,20 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     hibernate:
-      ddl-auto: none
+      ddl-auto: update
     open-in-view: false
     properties:
       hibernate:
+
+  mail:
+    host: ${SPRING_MAIL_HOST:localhost}
+    port: ${SPRING_MAIL_PORT:1025}
+    properties:
+      mail:
+        smtp:
+          auth: false
+          starttls:
+            enable: false
 
 app:
   jwt:
@@ -22,3 +32,8 @@ app:
     refresh-secret: ${JWT_REFRESH_SECRET:dGVzdC1yZWZyZXNoLXNlY3JldC1rZXktbXVzdC1iZS1hdC1sZWFzdC0yNTYtYml0cy1sb25n}
     access-expiration-ms: 900000 # 15 minutes
     refresh-expiration-ms: 604800000 # 7 days
+
+logging:
+  level:
+    org.springframework.security.config.annotation.authentication.configuration.InitializeUserDetailsBeanManagerConfigurer: ERROR
+    org.springframework.security.config.annotation.authentication.configuration.InitializeUserDetailsManagerConfigurer: ERROR

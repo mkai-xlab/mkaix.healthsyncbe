@@ -22,6 +22,9 @@ Do not commit real secrets. Keep local environment files outside Git or use igno
 | `DB_NAME` | No | `capstone` | Database name. |
 | `DB_USERNAME` | No | `root` | Database username. |
 | `DB_PASSWORD` | No | `capstone_root_password` | Database password. |
+| `SPRING_MAIL_HOST` | No | `localhost` | SMTP mail server host. |
+| `SPRING_MAIL_PORT` | No | `1025` | SMTP mail server port (MailDev default is 1025). |
+
 
 ## Database Variables
 

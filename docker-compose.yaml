@@ -18,5 +18,14 @@ services:
       retries: 10
       start_period: 30s
 
+  maildev:
+    image: maildev/maildev:2.1.0
+    container_name: capstone-maildev
+    restart: unless-stopped
+    ports:
+      - "1080:1080" # Web UI
+      - "1025:1025" # SMTP Port
+
 volumes:
   mysql_data:
+
