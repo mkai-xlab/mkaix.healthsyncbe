@@ -12,7 +12,7 @@ Use this format:
 
 ```text
 0001-short-decision-title.md
-0002-use-keycloak-for-authentication.md
+0002-use-jwt-for-authentication.md
 ```
 
 ## ADR Template
@@ -41,7 +41,7 @@ What are the benefits, tradeoffs, and risks?
 
 - Use Spring Boot for backend service.
 - Use MySQL for persistence.
-- Use Keycloak for authentication.
+- Use Custom Username/Password & JWT for authentication.
 - Use simplified Git Flow for branch management.
 
 ## Navigation

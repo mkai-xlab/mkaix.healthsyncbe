@@ -20,8 +20,11 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "keycloak_id", length = 100, unique = true)
-    private String keycloakId;
+    @Column(name = "username", length = 50, nullable = false, unique = true)
+    private String username;
+
+    @Column(name = "password", length = 100, nullable = false)
+    private String password;
 
     @Column(name = "full_name", length = 150, nullable = false)
     private String fullName;

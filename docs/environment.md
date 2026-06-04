@@ -64,7 +64,7 @@ set -a && source ../env/be.env && set +a && mvn spring-boot:run
 
 ## Secret Rules
 
-- Never commit database passwords, Keycloak client secrets, tokens, or private keys.
+- Never commit database passwords, JWT signing secrets, tokens, or private keys.
 - Prefer environment variables for local development.
 - Prefer deployment secrets or secret managers in production.
 - Keep example files safe by using fake values only.

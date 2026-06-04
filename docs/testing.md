@@ -52,7 +52,7 @@ Recommended checks:
 - repository/database behavior
 - transaction behavior
 - full request-to-database flows
-- Keycloak/JWT integration when security is implemented
+- Spring Security & JWT integration when security is implemented
 
 ## Naming Convention
 

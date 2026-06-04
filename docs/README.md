@@ -30,8 +30,6 @@ This folder contains backend documentation for the Capstone project.
 
 ![Backend architecture](diagrams/be-architecture.png)
 
-![Authentication workflow](diagrams/authentication-workflow.png)
-
 ![Backend package diagram](diagrams/package-diagram.png)
 
 ![Standard Git Flow](diagrams/git-flow.png)
@@ -40,8 +38,6 @@ This folder contains backend documentation for the Capstone project.
 
 - [Editable Architecture Diagram](diagrams/be-architecture.drawio)
 - [Architecture Diagram Image](diagrams/be-architecture.png)
-- [Editable Authentication Workflow Diagram](diagrams/authentication-workflow.drawio)
-- [Authentication Workflow Image](diagrams/authentication-workflow.png)
 - [Editable Package Diagram](diagrams/package-diagram.drawio)
 - [Package Diagram Image](diagrams/package-diagram.png)
 - [Editable Git Flow Diagram](diagrams/git-flow.drawio)

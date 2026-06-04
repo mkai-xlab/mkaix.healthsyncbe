@@ -6,31 +6,31 @@ This document records security expectations for the backend service.
 
 ## Current Status
 
-The documentation describes Keycloak-based authentication, but Spring Security configuration has not been implemented in the current backend code yet.
+The backend uses Spring Security configured for JWT-based stateless authentication and authorization.
 
 ## Authentication
 
-The intended authentication provider is Keycloak using Authorization Code Flow.
+Authentication is handled locally using:
+- **Credentials**: Standard `username` and `password` credentials.
+- **Hashing**: BCryptPasswordEncoder is used to secure passwords before storing them in the database.
+- **JWT**: A stateless JWT authentication filter parses the `Authorization: Bearer <token>` header from incoming requests.
 
 See [Authentication Workflow](authentication.md) for the high-level flow.
 
 ## Token Validation
 
-When Spring Security is added, the backend should validate:
-
-- token signature
+The stateless JWT filter validates:
+- token signature using a HMAC-256 secret key
 - issuer
 - expiry time
-- audience, if configured
-- roles or scopes required by each endpoint
+- roles / authority claims stored in the JWT payload
 
 ## Authorization
 
 Recommended approach:
-
-- Use endpoint-level authorization for coarse access control.
+- Use endpoint-level authorization (`@PreAuthorize` or `SecurityFilterChain` rules) for coarse access control.
 - Use service-level checks for business permissions.
-- Keep role names consistent with Keycloak realm or client roles.
+- Keep role names consistent with the `UserRole` enum (`ROLE_DOCTOR`, `ROLE_ADMIN`).
 - Deny access by default for protected resources.
 
 ## CORS

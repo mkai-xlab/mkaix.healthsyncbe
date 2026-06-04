@@ -2,50 +2,57 @@
 
 [Back to Documentation Index](README.md) | Previous: [Backend Architecture](architecture.md) | Next: [Package Diagram](package-diagram.md)
 
-This document describes the expected Authorization Code Flow between a client application, Keycloak, and the Spring backend.
+This document describes the direct stateless authentication flow between a client application (Flutter) and the Spring Boot backend using username/password and JSON Web Tokens (JWT).
 
-![Authentication workflow sequence](diagrams/authentication-workflow.png)
-
-The editable draw.io diagram is available at [diagrams/authentication-workflow.drawio](diagrams/authentication-workflow.drawio).
 
 ```mermaid
 sequenceDiagram
     autonumber
     participant Client as Client App
-    participant Keycloak as Keycloak
-    participant Spring as Spring App
+    participant Spring as Spring App (Backend)
+    participant Database as MySQL Database
 
-    Client->>Client: User opens protected route
-    Client->>Keycloak: Redirect to login
-    Keycloak->>Client: Return authorization code
-    Client->>Keycloak: Exchange authorization code for tokens
-    Keycloak->>Client: Return access token and ID token
-    Client->>Spring: API request with Authorization: Bearer token
-    Spring->>Keycloak: Fetch JWKS / issuer metadata when needed
-    Spring->>Spring: Validate issuer, signature, expiry, and roles
+    Note over Client,Spring: Initial Login
+    Client->>Spring: POST /api/v1/auth/login (username, password)
+    Spring->>Database: Query user by username or email
+    Database->>Spring: Return user record (hashed password)
+    Spring->>Spring: Verify BCrypt password match
+    alt Credentials are valid
+        Spring->>Spring: Generate Access Token & Refresh Token
+        Spring->>Client: Return 200 OK (access_token, refresh_token)
+    else Invalid credentials
+        Spring->>Client: Return 401 Unauthorized
+    end
+
+    Note over Client,Spring: Accessing Protected Resource
+    Client->>Spring: GET /api/v1/protected (Authorization: Bearer <access-token>)
+    Spring->>Spring: JWT Filter validates signature, expiry, and roles
     alt Token is valid and authorized
-        Spring->>Client: Return protected resource
-    else Token invalid or forbidden
+        Spring->>Client: Return 200 OK (Protected Resource)
+    else Token invalid or expired
         Spring->>Client: Return 401 Unauthorized or 403 Forbidden
     end
 ```
 
 ## Steps
 
-1. The client opens a protected route or sends a request that requires authentication.
-2. The client redirects the user to Keycloak for login.
-3. Keycloak authenticates the user and returns an authorization code.
-4. The authorization code is exchanged for tokens.
-5. The client sends API requests to the Spring app with `Authorization: Bearer <access-token>`.
-6. The Spring app validates the JWT using Keycloak issuer metadata and signing keys.
-7. The Spring app returns the protected resource, `401 Unauthorized`, or `403 Forbidden`.
+### Login Phase
+1. The client sends a login request with `username` (or `email`) and `password` to `/api/v1/auth/login`.
+2. The Spring app loads user details, verifies the BCrypt hashed password, and generates JWT access and refresh tokens.
+3. The client receives and stores the tokens securely.
+
+### Access Phase
+4. The client includes the access token in the `Authorization: Bearer <token>` header of subsequent API requests.
+5. Spring Security filters intercept the request, extract the token, and validate its signature and expiry.
+6. If the token is valid, Spring populates the Security Context with the user's details and authorities.
+7. The API endpoint executes and returns the resource.
 
 ## Spring Responsibilities
 
-- Validate JWT issuer, signature, expiry, and audience when configured.
-- Map token roles or claims to Spring Security authorities.
-- Reject missing, expired, invalid, or insufficiently privileged tokens.
-- Keep business endpoints independent from Keycloak login UI concerns.
+- **Password Hashing**: Encode user passwords using BCrypt when users register or update their credentials.
+- **JWT Generation & Parsing**: Generate secure, signed tokens containing username and roles, and validate them on every API request.
+- **Stateless Session Management**: Configure Spring Security to not create HTTP sessions (`SessionCreationPolicy.STATELESS`).
+- **Error Handling**: Properly handle authentication entry points to return standard JSON responses for `401 Unauthorized` and `403 Forbidden`.
 
 ## Navigation
 

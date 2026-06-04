@@ -37,7 +37,8 @@ Enum gender {
 
 Table users {
   id bigint [pk, increment]
-  keycloak_id varchar(100) [unique]
+  username varchar(50) [not null, unique]
+  password varchar(100) [not null]
   full_name varchar(150) [not null]
   email varchar(150) [not null, unique]
   phone varchar(30)
@@ -47,7 +48,7 @@ Table users {
   created_at datetime [not null]
   updated_at datetime
 
-  Note: "Parent table in the JPA JOINED inheritance hierarchy. Shared account identity for doctors and administrators. Only two roles are supported: DOCTOR and ADMIN. Authentication is handled by Keycloak."
+  Note: "Parent table in the JPA JOINED inheritance hierarchy. Shared account identity for doctors and administrators. Only two roles are supported: DOCTOR and ADMIN. Authentication uses standard username/password and JWT tokens."
 }
 
 Table doctors {
