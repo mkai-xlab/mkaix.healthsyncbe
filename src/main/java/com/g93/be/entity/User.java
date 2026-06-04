@@ -46,6 +46,9 @@ public class User {
     @Column(name = "status", nullable = false)
     private UserStatus status = UserStatus.ACTIVE;
 
+    @Column(name = "is_first_activated", nullable = false)
+    private Boolean isFirstActivated = true;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
