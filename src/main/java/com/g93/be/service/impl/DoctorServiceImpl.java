@@ -1,4 +1,4 @@
-package com.g93.be.service;
+package com.g93.be.service.impl;
 
 import com.g93.be.common.util.MailUtil;
 import com.g93.be.dto.CreateDoctorRequest;
@@ -8,12 +8,15 @@ import com.g93.be.entity.UserRole;
 import com.g93.be.entity.UserStatus;
 import com.g93.be.repository.DoctorRepository;
 import com.g93.be.repository.UserRepository;
+import com.g93.be.service.DoctorService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import com.g93.be.mapper.DoctorMapper;
 
 import java.security.SecureRandom;
 import java.util.List;
@@ -30,6 +33,7 @@ public class DoctorServiceImpl implements DoctorService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final MailUtil mailUtil;
+    private final DoctorMapper doctorMapper;
 
     @Value("${app.login-url:http://localhost:3000/login}")
     private String loginUrl;
@@ -37,7 +41,7 @@ public class DoctorServiceImpl implements DoctorService {
     @Override
     public List<DoctorResponse> getAllDoctors() {
         return doctorRepository.findAll().stream()
-                .map(this::mapToResponse)
+                .map(doctorMapper::toResponse)
                 .collect(Collectors.toList());
     }
 
@@ -45,7 +49,7 @@ public class DoctorServiceImpl implements DoctorService {
     public List<DoctorResponse> getActiveDoctors() {
         return doctorRepository.findAllByStatus(com.g93.be.entity.UserStatus.ACTIVE)
                 .stream()
-                .map(this::mapToResponse)
+                .map(doctorMapper::toResponse)
                 .collect(Collectors.toList());
     }
 
@@ -98,7 +102,7 @@ public class DoctorServiceImpl implements DoctorService {
             doctor.setPosition(request.getPosition());
         Doctor saved = doctorRepository.save(doctor);
         log.info("Edited doctor with id {}", saved.getId());
-        return mapToResponse(saved);
+        return doctorMapper.toResponse(saved);
     }
 
     @Override
@@ -173,7 +177,7 @@ public class DoctorServiceImpl implements DoctorService {
         sendWelcomeEmail(savedDoctor, tempPassword);
 
         // 5. Map to response
-        return mapToResponse(savedDoctor);
+        return doctorMapper.toResponse(savedDoctor);
     }
 
     private String generateUniqueUsername(String email) {
@@ -242,29 +246,5 @@ public class DoctorServiceImpl implements DoctorService {
             // Do not abort doctor registration due to email failure
             // Optionally, you could schedule a retry or add to a notification queue
         }
-    }
-
-    private DoctorResponse mapToResponse(Doctor doctor) {
-        DoctorResponse response = new DoctorResponse();
-        response.setId(doctor.getId());
-        response.setUsername(doctor.getUsername());
-        response.setFullName(doctor.getFullName());
-        response.setEmail(doctor.getEmail());
-        response.setPhone(doctor.getPhone());
-        response.setAvatarUrl(doctor.getAvatarUrl());
-        response.setRole(doctor.getRole().name());
-        response.setStatus(doctor.getStatus());
-        response.setDoctorCode(doctor.getDoctorCode());
-        response.setLicenseNumber(doctor.getLicenseNumber());
-        response.setSpecialization(doctor.getSpecialization());
-        response.setYearsOfExperience(doctor.getYearsOfExperience());
-        response.setAcademicTitle(doctor.getAcademicTitle());
-        response.setDegree(doctor.getDegree());
-
-        response.setBio(doctor.getBio());
-        response.setPosition(doctor.getPosition());
-        response.setCreatedAt(doctor.getCreatedAt());
-        response.setUpdatedAt(doctor.getUpdatedAt());
-        return response;
     }
 }

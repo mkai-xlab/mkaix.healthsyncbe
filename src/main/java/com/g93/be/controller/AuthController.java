@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * Controller tiếp nhận các yêu cầu REST API liên quan đến xác thực.
+ * Controller for handling authentication-related REST API requests.
  */
 @RestController
 @RequestMapping("/auth")
@@ -23,14 +23,14 @@ public class AuthController {
     }
 
     /**
-     * Endpoint đăng nhập hệ thống.
+     * Endpoint for user login.
      * 
-     * @param request dữ liệu gồm username và password của người dùng.
-     * @return ResponseEntity chứa thông tin token, role và username.
+     * @param request The login request containing username and password.
+     * @return ResponseEntity containing token information, role, and username.
      */
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest request) {
-        // Thực hiện đăng nhập qua AuthService
+        // Perform login via AuthService
         LoginResponse response = authService.login(request);
         return ResponseEntity.ok(response);
     }
