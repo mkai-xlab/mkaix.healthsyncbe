@@ -2,9 +2,14 @@ package com.g93.be.controller;
 
 import com.g93.be.dto.CreateDoctorRequest;
 import com.g93.be.dto.DoctorResponse;
+import com.g93.be.dto.PageResponse;
+import com.g93.be.entity.UserStatus;
 import com.g93.be.service.DoctorService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -36,13 +41,24 @@ public class DoctorController {
     }
 
     /**
-     * Retrieves all doctors in the system.
+     * Retrieves doctors with pagination, search, sorting, and filtering.
      *
-     * @return A list of DoctorResponse objects representing all doctors.
+     * @param keyword Optional search term (code, name, email, phone, specialization).
+     * @param specialization Optional exact or partial match for specialization.
+     * @param status Optional filter by status.
+     * @param pageable Pagination and sorting properties.
+     * @return A paginated list of DoctorResponse.
      */
     @GetMapping
-    public List<DoctorResponse> getAllDoctors() {
-        return doctorService.getAllDoctors();
+    public ResponseEntity<PageResponse<DoctorResponse>> getDoctors(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String specialization,
+            @RequestParam(required = false) UserStatus status,
+            @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        
+        log.info("Fetching doctors with keyword: {}, specialization: {}, status: {}", keyword, specialization, status);
+        PageResponse<DoctorResponse> response = doctorService.searchDoctors(keyword, specialization, status, pageable);
+        return ResponseEntity.ok(response);
     }
 
     /**
