@@ -13,7 +13,6 @@ import java.time.LocalDate;
 @NoArgsConstructor
 @AllArgsConstructor
 public class EditPatientRequest {
-    private String identityCardNumber;
     private String fullName;
     private LocalDate dateOfBirth;
     private Gender gender;

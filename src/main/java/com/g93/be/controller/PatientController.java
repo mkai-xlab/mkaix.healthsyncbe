@@ -10,8 +10,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+import com.g93.be.dto.PageResponse;
+import com.g93.be.dto.PatientFilterRequest;
 
-import java.util.List;
 
 /**
  * Controller for managing patient-related operations.
@@ -38,13 +41,17 @@ public class PatientController {
     }
 
     /**
-     * Retrieves all patients in the system.
+     * Retrieves patients with filtering and pagination.
      *
-     * @return A list of PatientResponse objects representing all patients.
+     * @param filter   The filter criteria.
+     * @param pageable The pagination parameters (default 10 per page).
+     * @return A paginated list of patients.
      */
     @GetMapping
-    public ResponseEntity<List<PatientResponse>> getAllPatients() {
-        return ResponseEntity.ok(patientService.getAllPatients());
+    public ResponseEntity<PageResponse<PatientResponse>> getAllPatients(
+            @ModelAttribute PatientFilterRequest filter,
+            @PageableDefault(size = 10) Pageable pageable) {
+        return ResponseEntity.ok(patientService.getAllPatients(filter, pageable));
     }
 
     /**

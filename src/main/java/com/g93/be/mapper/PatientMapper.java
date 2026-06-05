@@ -24,7 +24,6 @@ public class PatientMapper {
         return new PatientResponse(
                 patient.getId(),
                 patient.getPatientCode(),
-                patient.getIdentityCardNumber(),
                 patient.getFullName(),
                 patient.getDateOfBirth(),
                 patient.getGender(),
