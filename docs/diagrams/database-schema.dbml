@@ -191,6 +191,15 @@ Table audit_logs {
   created_at datetime [not null]
 }
 
+Table password_reset_tokens {
+  id bigint [pk, increment]
+  user_id bigint [not null]
+  token varchar(6) [not null]
+  expiry_date datetime [not null]
+
+  Note: "Stores 6-digit OTP tokens for password reset functionality."
+}
+
 Ref: doctors.id - users.id [delete: cascade, update: cascade]
 Ref: admins.id - users.id [delete: cascade, update: cascade]
 
@@ -212,3 +221,4 @@ Ref: clinical_reports.doctor_id > doctors.id [delete: restrict, update: cascade]
 
 Ref: notifications.user_id > users.id [delete: cascade, update: cascade]
 Ref: audit_logs.user_id > users.id [delete: set null, update: cascade]
+Ref: password_reset_tokens.user_id > users.id [delete: cascade, update: cascade]

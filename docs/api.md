@@ -30,6 +30,55 @@ Password changed successfully
 - `400 Bad Request`: Invalid input or incorrect credentials
 - `500 Internal Server Error`: Unexpected server error
 
+## `POST /auth/forgot-password`
+
+Endpoint to initiate the forgot password flow. Generates a 6-digit OTP and sends it via email.
+
+### Request
+
+```json
+{
+  "email": "admin@example.com"
+}
+```
+
+### Response
+
+```text
+If the email exists, a password reset token has been sent.
+```
+
+### Status Codes
+
+- `200 OK`: Request processed successfully
+- `400 Bad Request`: Invalid email format
+
+## `POST /auth/reset-password`
+
+Endpoint to reset the password using the 6-digit OTP sent to the user's email.
+
+### Request
+
+```json
+{
+  "email": "admin@example.com",
+  "token": "123456",
+  "newPassword": "newPassword123"
+}
+```
+
+### Response
+
+```text
+Password reset successfully
+```
+
+### Status Codes
+
+- `200 OK`: Password reset successfully
+- `400 Bad Request`: Invalid input, incorrect token, or expired token
+- `500 Internal Server Error`: Unexpected server error
+
 When controllers are added, document each endpoint using this format:
 
 ## `METHOD /path`

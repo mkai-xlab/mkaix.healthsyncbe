@@ -1,8 +1,10 @@
 package com.g93.be.controller;
 
 import com.g93.be.dto.ChangePasswordRequest;
+import com.g93.be.dto.ForgotPasswordRequest;
 import com.g93.be.dto.LoginRequest;
 import com.g93.be.dto.LoginResponse;
+import com.g93.be.dto.ResetPasswordRequest;
 import com.g93.be.service.AuthService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -47,5 +49,30 @@ public class AuthController {
     public ResponseEntity<String> changePassword(@Valid @RequestBody ChangePasswordRequest request) {
         authService.changePassword(request);
         return ResponseEntity.ok("Password changed successfully");
+    }
+
+    /**
+     * Endpoint to initiate the forgot password flow.
+     * Generates an OTP and sends it via email.
+     * 
+     * @param request The forgot password request containing the email.
+     * @return A success message.
+     */
+    @PostMapping("/forgot-password")
+    public ResponseEntity<String> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        authService.forgotPassword(request);
+        return ResponseEntity.ok("If the email exists, a password reset token has been sent.");
+    }
+
+    /**
+     * Endpoint to reset the password using the OTP.
+     * 
+     * @param request The reset password request containing email, token, and new password.
+     * @return A success message.
+     */
+    @PostMapping("/reset-password")
+    public ResponseEntity<String> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        authService.resetPassword(request);
+        return ResponseEntity.ok("Password reset successfully");
     }
 }
