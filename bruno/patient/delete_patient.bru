@@ -1,0 +1,15 @@
+meta {
+  name: Soft Delete Patient
+  type: http
+  seq: 6
+}
+
+delete {
+  url: http://localhost:8080/api/v1/patients/1
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
