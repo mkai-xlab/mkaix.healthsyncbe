@@ -1,5 +1,6 @@
 package com.g93.be.controller;
 
+import com.g93.be.dto.ChangePasswordRequest;
 import com.g93.be.dto.LoginRequest;
 import com.g93.be.dto.LoginResponse;
 import com.g93.be.service.AuthService;
@@ -34,5 +35,17 @@ public class AuthController {
         // Perform login via AuthService
         LoginResponse response = authService.login(request);
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Endpoint for changing user password.
+     * 
+     * @param request The change password request containing old and new passwords.
+     * @return A success message.
+     */
+    @PostMapping("/change-password")
+    public ResponseEntity<String> changePassword(@Valid @RequestBody ChangePasswordRequest request) {
+        authService.changePassword(request);
+        return ResponseEntity.ok("Password changed successfully");
     }
 }

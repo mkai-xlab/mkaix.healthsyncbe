@@ -2,7 +2,33 @@
 
 [Back to Documentation Index](README.md) | Previous: [Database](database.md) | Next: [Deployment Guide](deployment.md)
 
-No public API endpoints are currently implemented.
+No public API endpoints are currently implemented, except for authentication endpoints.
+
+## `POST /auth/change-password`
+
+Endpoint for users to change their password. This is required for first-time login activation and can be used to update passwords securely.
+
+### Request
+
+```json
+{
+  "username": "admin",
+  "oldPassword": "oldPassword123",
+  "newPassword": "newPassword456"
+}
+```
+
+### Response
+
+```text
+Password changed successfully
+```
+
+### Status Codes
+
+- `200 OK`: Password changed successfully
+- `400 Bad Request`: Invalid input or incorrect credentials
+- `500 Internal Server Error`: Unexpected server error
 
 When controllers are added, document each endpoint using this format:
 
