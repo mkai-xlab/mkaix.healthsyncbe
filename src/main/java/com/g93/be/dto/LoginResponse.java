@@ -3,8 +3,8 @@ package com.g93.be.dto;
 import com.g93.be.entity.UserRole;
 
 /**
- * DTO trả về thông tin đăng nhập thành công.
- * Bao gồm access token, refresh token, role và username.
+ * Data Transfer Object for successful login response.
+ * Contains access token, refresh token, role, and username.
  */
 public record LoginResponse(
     String accessToken,

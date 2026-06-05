@@ -7,6 +7,9 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
+/**
+ * Data Transfer Object representing doctor details returned to the client.
+ */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

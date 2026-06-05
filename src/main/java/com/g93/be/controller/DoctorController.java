@@ -8,6 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import jakarta.validation.Valid;
 import java.util.List;
 
 /**
@@ -28,7 +29,7 @@ public class DoctorController {
      * @return The created DoctorResponse.
      */
     @PostMapping
-    public ResponseEntity<DoctorResponse> createDoctor(@RequestBody CreateDoctorRequest request) {
+    public ResponseEntity<DoctorResponse> createDoctor(@Valid @RequestBody CreateDoctorRequest request) {
         log.info("Received request to register a new doctor with code: {}", request.getDoctorCode());
         DoctorResponse response = doctorService.createDoctor(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
