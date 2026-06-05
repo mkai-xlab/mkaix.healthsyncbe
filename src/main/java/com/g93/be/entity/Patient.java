@@ -24,9 +24,6 @@ public class Patient {
     @Column(name = "patient_code", length = 50, nullable = false, unique = true)
     private String patientCode;
 
-    @Column(name = "identity_card_number", length = 50, unique = true)
-    private String identityCardNumber;
-
     @Column(name = "full_name", length = 150, nullable = false)
     private String fullName;
 

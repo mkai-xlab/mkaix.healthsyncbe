@@ -2,18 +2,22 @@ package com.g93.be.service.impl;
 
 import com.g93.be.dto.CreatePatientRequest;
 import com.g93.be.dto.EditPatientRequest;
+import com.g93.be.dto.PageResponse;
+import com.g93.be.dto.PatientFilterRequest;
 import com.g93.be.dto.PatientResponse;
 import com.g93.be.entity.Patient;
 import com.g93.be.mapper.PatientMapper;
 import com.g93.be.repository.PatientRepository;
+import com.g93.be.repository.specification.PatientSpecification;
 import com.g93.be.service.PatientService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -24,10 +28,21 @@ public class PatientServiceImpl implements PatientService {
     private final PatientMapper patientMapper;
 
     @Override
-    public List<PatientResponse> getAllPatients() {
-        return patientRepository.findAll().stream()
+    @Transactional(readOnly = true)
+    public PageResponse<PatientResponse> getAllPatients(PatientFilterRequest filter, Pageable pageable) {
+        Page<Patient> patientPage = patientRepository.findAll(PatientSpecification.filter(filter), pageable);
+        List<PatientResponse> content = patientPage.getContent().stream()
                 .map(patientMapper::toResponse)
-                .collect(Collectors.toList());
+                .toList();
+        
+        return new PageResponse<>(
+                content,
+                patientPage.getNumber(),
+                patientPage.getSize(),
+                patientPage.getTotalElements(),
+                patientPage.getTotalPages(),
+                patientPage.isLast()
+        );
     }
 
     @Override
@@ -46,12 +61,16 @@ public class PatientServiceImpl implements PatientService {
         Patient patient = patientRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Patient with id " + id + " not found"));
 
-        if (request.getIdentityCardNumber() != null) patient.setIdentityCardNumber(request.getIdentityCardNumber());
         if (request.getFullName() != null) patient.setFullName(request.getFullName());
         if (request.getDateOfBirth() != null) patient.setDateOfBirth(request.getDateOfBirth());
         if (request.getGender() != null) patient.setGender(request.getGender());
         if (request.getPhone() != null) patient.setPhone(request.getPhone());
-        if (request.getEmail() != null) patient.setEmail(request.getEmail());
+        if (request.getEmail() != null && !request.getEmail().isBlank()) {
+            if (patientRepository.existsByEmailAndIdNot(request.getEmail(), id)) {
+                throw new IllegalArgumentException("Email '" + request.getEmail() + "' is already registered");
+            }
+            patient.setEmail(request.getEmail());
+        }
         if (request.getAddress() != null) patient.setAddress(request.getAddress());
         if (request.getEmergencyContactName() != null) patient.setEmergencyContactName(request.getEmergencyContactName());
         if (request.getEmergencyContactPhone() != null) patient.setEmergencyContactPhone(request.getEmergencyContactPhone());
@@ -73,19 +92,18 @@ public class PatientServiceImpl implements PatientService {
             throw new IllegalArgumentException("Full name is required");
         }
 
-        if (patientRepository.findByPatientCode(request.getPatientCode()).isPresent()) {
+        if (patientRepository.existsByPatientCode(request.getPatientCode())) {
             throw new IllegalArgumentException("Patient code '" + request.getPatientCode() + "' is already in use");
         }
 
-        if (request.getIdentityCardNumber() != null && !request.getIdentityCardNumber().isBlank()) {
-            if (patientRepository.findByIdentityCardNumber(request.getIdentityCardNumber()).isPresent()) {
-                throw new IllegalArgumentException("Identity card number '" + request.getIdentityCardNumber() + "' is already registered");
+        if (request.getEmail() != null && !request.getEmail().isBlank()) {
+            if (patientRepository.existsByEmail(request.getEmail())) {
+                throw new IllegalArgumentException("Email '" + request.getEmail() + "' is already registered");
             }
         }
 
         Patient patient = new Patient();
         patient.setPatientCode(request.getPatientCode());
-        patient.setIdentityCardNumber(request.getIdentityCardNumber());
         patient.setFullName(request.getFullName());
         patient.setDateOfBirth(request.getDateOfBirth());
         patient.setGender(request.getGender());

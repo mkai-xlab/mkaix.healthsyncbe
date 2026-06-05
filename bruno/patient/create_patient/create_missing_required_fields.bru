@@ -1,7 +1,7 @@
 meta {
-  name: Create Patient
+  name: Create Missing Required Fields
   type: http
-  seq: 1
+  seq: 5
 }
 
 post {
@@ -16,15 +16,12 @@ auth:bearer {
 
 body:json {
   {
-    "patientCode": "PAT001",
-    "identityCardNumber": "012345678912",
-    "fullName": "Patient A",
-    "email": "patient.a@healthsync.com",
-    "phone": "0123456789",
     "dateOfBirth": "1990-01-01",
     "gender": "MALE",
+    "phone": "0123456789",
+    "email": "patient.missing@healthsync.com",
     "address": "123 Main St",
-    "emergencyContactName": "Wife",
+    "emergencyContactName": "Wife Name",
     "emergencyContactPhone": "9876543210"
   }
 }

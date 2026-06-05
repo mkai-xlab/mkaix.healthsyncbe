@@ -16,7 +16,6 @@ import java.time.LocalDateTime;
 public class PatientResponse {
     private Long id;
     private String patientCode;
-    private String identityCardNumber;
     private String fullName;
     private LocalDate dateOfBirth;
     private Gender gender;

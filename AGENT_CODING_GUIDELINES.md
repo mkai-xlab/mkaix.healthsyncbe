@@ -32,3 +32,8 @@ This document outlines the standard coding rules and project-specific convention
 ## 6. Language & Comments
 - **English Only**: All code comments, JavaDocs, commit messages, and API documentation MUST be written in **English**.
 - **Clarity**: Keep comments clear and descriptive, focusing on the "why" rather than the "what" for complex business logic.
+
+## 7. API Testing (Bruno)
+- **Always Update Tests**: Whenever you modify an API endpoint, its payload, or its validation logic, you MUST simultaneously update the corresponding Bruno (`.bru`) test files in the `bruno/` directory.
+- **Test Structure**: Group tests logically into folders by feature and action (e.g., `bruno/patient/create_patient/`).
+- **Comprehensive Scenarios**: Ensure both success and failure test cases (e.g., missing required fields, duplicate data) are written or updated so the user can immediately test the changes.
