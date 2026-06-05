@@ -1,14 +1,18 @@
 package com.g93.be.service.impl;
 
+import com.g93.be.dto.ChangePasswordRequest;
 import com.g93.be.dto.LoginRequest;
 import com.g93.be.dto.LoginResponse;
+import com.g93.be.entity.User;
 import com.g93.be.exception.FirstTimeLoginException;
+import com.g93.be.repository.UserRepository;
 import com.g93.be.security.CustomUserDetails;
 import com.g93.be.security.JwtTokenProvider;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import com.g93.be.service.AuthService;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 /**
@@ -19,10 +23,14 @@ public class AuthServiceImpl implements AuthService {
 
     private final AuthenticationManager authenticationManager;
     private final JwtTokenProvider jwtTokenProvider;
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    public AuthServiceImpl(AuthenticationManager authenticationManager, JwtTokenProvider jwtTokenProvider) {
+    public AuthServiceImpl(AuthenticationManager authenticationManager, JwtTokenProvider jwtTokenProvider, UserRepository userRepository, PasswordEncoder passwordEncoder) {
         this.authenticationManager = authenticationManager;
         this.jwtTokenProvider = jwtTokenProvider;
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     /**
@@ -61,5 +69,32 @@ public class AuthServiceImpl implements AuthService {
                 userDetails.getUser().getRole(),
                 userDetails.getUsername()
         );
+    }
+
+    /**
+     * Changes the user's password. Requires verification of the old password.
+     * 
+     * @param request Contains username, old password, and new password.
+     */
+    @Override
+    public void changePassword(ChangePasswordRequest request) {
+        // 1. Find user by username
+        User user = userRepository.findByUsername(request.username())
+                .orElseThrow(() -> new IllegalArgumentException("Invalid username or password"));
+
+        // 2. Verify old password
+        if (!passwordEncoder.matches(request.oldPassword(), user.getPassword())) {
+            throw new IllegalArgumentException("Invalid username or password");
+        }
+
+        // 3. Update password
+        user.setPassword(passwordEncoder.encode(request.newPassword()));
+        
+        // 4. If first time login, activate account
+        if (Boolean.TRUE.equals(user.getIsFirstActivated())) {
+            user.setIsFirstActivated(false);
+        }
+        
+        userRepository.save(user);
     }
 }
