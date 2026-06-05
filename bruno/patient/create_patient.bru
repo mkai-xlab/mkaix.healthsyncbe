@@ -1,0 +1,30 @@
+meta {
+  name: Create Patient
+  type: http
+  seq: 1
+}
+
+post {
+  url: http://localhost:8080/api/v1/patients
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "patientCode": "PAT001",
+    "identityCardNumber": "012345678912",
+    "fullName": "Patient A",
+    "email": "patient.a@healthsync.com",
+    "phone": "0123456789",
+    "dateOfBirth": "1990-01-01",
+    "gender": "MALE",
+    "address": "123 Main St",
+    "emergencyContactName": "Wife",
+    "emergencyContactPhone": "9876543210"
+  }
+}

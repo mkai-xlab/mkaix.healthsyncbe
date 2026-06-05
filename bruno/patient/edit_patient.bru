@@ -1,0 +1,29 @@
+meta {
+  name: Edit Patient
+  type: http
+  seq: 4
+}
+
+put {
+  url: http://localhost:8080/api/v1/patients/1
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "identityCardNumber": "012345678912",
+    "fullName": "Patient A Updated",
+    "dateOfBirth": "1990-01-01",
+    "gender": "MALE",
+    "phone": "0987654321",
+    "email": "patient.a.updated@healthsync.com",
+    "address": "456 Updated St",
+    "emergencyContactName": "Brother",
+    "emergencyContactPhone": "111222333"
+  }
+}
