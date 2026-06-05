@@ -38,8 +38,15 @@ sequenceDiagram
 
 ### Login Phase
 1. The client sends a login request with `username` (or `email`) and `password` to `/api/v1/auth/login`.
-2. The Spring app loads user details, verifies the BCrypt hashed password, and generates JWT access and refresh tokens.
-3. The client receives and stores the tokens securely.
+2. The Spring app loads user details, verifies the BCrypt hashed password.
+3. If it is the user's first login (`isFirstActivated == true`), a `403 Forbidden` (`FIRST_TIME_LOGIN_REQUIRED`) is returned, preventing token generation.
+4. If activated, generates JWT access and refresh tokens.
+5. The client receives and stores the tokens securely.
+
+### Change Password Phase
+1. If the user receives a `FIRST_TIME_LOGIN_REQUIRED` or wants to change their password, the client sends a request to `POST /auth/change-password` with `username`, `oldPassword`, and `newPassword`.
+2. The Spring app verifies the `oldPassword` and updates the password using BCrypt. It also sets `isFirstActivated` to `false`.
+3. The client can now proceed to the Login Phase.
 
 ### Access Phase
 4. The client includes the access token in the `Authorization: Bearer <token>` header of subsequent API requests.
