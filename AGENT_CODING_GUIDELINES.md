@@ -32,3 +32,6 @@ This document outlines the standard coding rules and project-specific convention
 ## 6. Language & Comments
 - **English Only**: All code comments, JavaDocs, commit messages, and API documentation MUST be written in **English**.
 - **Clarity**: Keep comments clear and descriptive, focusing on the "why" rather than the "what" for complex business logic.
+
+## 7. Database Changes & Documentation
+- **Keep DBML Synced**: Whenever a new JPA entity or database table is created, modified, or deleted, you MUST proactively update the `docs/diagrams/database-schema.dbml` file to reflect the new table, fields, and relationships.

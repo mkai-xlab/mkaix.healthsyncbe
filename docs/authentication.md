@@ -48,6 +48,13 @@ sequenceDiagram
 2. The Spring app verifies the `oldPassword` and updates the password using BCrypt. It also sets `isFirstActivated` to `false`.
 3. The client can now proceed to the Login Phase.
 
+### Forgot Password Phase
+1. If the user forgets their password, the client sends a `POST /auth/forgot-password` request with their `email`.
+2. The Spring app verifies the email. If found, it generates a 6-digit OTP, saves it with a 10-minute expiry, and emails it to the user.
+3. The user retrieves the OTP from their email and submits it via `POST /auth/reset-password` along with their `email` and `newPassword`.
+4. The Spring app verifies the OTP and expiry. If valid, the password is reset using BCrypt, and `isFirstActivated` is set to `false`.
+5. The client can now proceed to the Login Phase.
+
 ### Access Phase
 4. The client includes the access token in the `Authorization: Bearer <token>` header of subsequent API requests.
 5. Spring Security filters intercept the request, extract the token, and validate its signature and expiry.
