@@ -1,10 +1,15 @@
 package com.g93.be.dto;
 
+import jakarta.validation.constraints.NotBlank;
+
 /**
- * DTO chứa thông tin đăng nhập của người dùng.
- * username ở đây tương ứng với email đăng ký.
+ * Data Transfer Object for user login.
+ * The username field corresponds to the registered email or username.
  */
 public record LoginRequest(
+    @NotBlank(message = "Username cannot be blank")
     String username,
+    
+    @NotBlank(message = "Password cannot be blank")
     String password
 ) {}
