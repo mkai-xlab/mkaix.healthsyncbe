@@ -1,0 +1,23 @@
+meta {
+  name: Get Doctors Paginated and Searched
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/doctors
+  body: none
+  auth: bearer
+}
+
+query {
+  page: 0
+  size: 5
+  keyword: doctor
+  status: ACTIVE
+  sort: fullName,asc
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
