@@ -8,10 +8,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import java.util.List;
 
+/**
+ * Controller for managing doctor-related operations.
+ */
 @RestController
 @RequestMapping("/doctors")
 @RequiredArgsConstructor
@@ -20,6 +21,12 @@ public class DoctorController {
 
     private final DoctorService doctorService;
 
+    /**
+     * Registers a new doctor.
+     *
+     * @param request The doctor creation request payload.
+     * @return The created DoctorResponse.
+     */
     @PostMapping
     public ResponseEntity<DoctorResponse> createDoctor(@RequestBody CreateDoctorRequest request) {
         log.info("Received request to register a new doctor with code: {}", request.getDoctorCode());
@@ -27,32 +34,33 @@ public class DoctorController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    // Get all doctor
-    @GetMapping()
+    /**
+     * Retrieves all doctors in the system.
+     *
+     * @return A list of DoctorResponse objects representing all doctors.
+     */
+    @GetMapping
     public List<DoctorResponse> getAllDoctors() {
         return doctorService.getAllDoctors();
     }
 
-    // Get active doctors
+    /**
+     * Retrieves only active doctors.
+     *
+     * @return A list of DoctorResponse objects for active doctors.
+     */
     @GetMapping("/active")
     public List<DoctorResponse> getActiveDoctors() {
         return doctorService.getActiveDoctors();
     }
 
-    // Activate doctor
+    /**
+     * Activates a doctor by ID.
+     *
+     * @param id The ID of the doctor to activate.
+     */
     @PostMapping("/{id}/activate")
     public void activateDoctor(@PathVariable Long id) {
         doctorService.activateDoctor(id);
     }
-
-
-    // Update doctor
-    // @PutMapping("/{id}")
-    // public ResponseEntity<DoctorResponse> updateDoctor(@PathVariable Long id,
-    // @RequestBody CreateDoctorRequest request) {
-    // log.info("Received request to update doctor with id: {}", id);
-    // DoctorResponse response = doctorService.editDoctor(id, request);
-    // return ResponseEntity.status(HttpStatus.OK).body(response);
-    // }
-
 }
