@@ -26,6 +26,22 @@ services:
       - "1080:1080" # Web UI
       - "1025:1025" # SMTP Port
 
+  be:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: capstone-be
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    env_file:
+      - ../env/be.env
+    depends_on:
+      mysql:
+        condition: service_healthy
+      maildev:
+        condition: service_started
+
 volumes:
   mysql_data:
 
