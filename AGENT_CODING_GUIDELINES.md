@@ -33,5 +33,7 @@ This document outlines the standard coding rules and project-specific convention
 - **English Only**: All code comments, JavaDocs, commit messages, and API documentation MUST be written in **English**.
 - **Clarity**: Keep comments clear and descriptive, focusing on the "why" rather than the "what" for complex business logic.
 
-## 7. Database Changes & Documentation
-- **Keep DBML Synced**: Whenever a new JPA entity or database table is created, modified, or deleted, you MUST proactively update the `docs/diagrams/database-schema.dbml` file to reflect the new table, fields, and relationships.
+## 7. API Testing (Bruno)
+- **Always Update Tests**: Whenever you modify an API endpoint, its payload, or its validation logic, you MUST simultaneously update the corresponding Bruno (`.bru`) test files in the `bruno/` directory.
+- **Test Structure**: Group tests logically into folders by feature and action (e.g., `bruno/patient/create_patient/`).
+- **Comprehensive Scenarios**: Ensure both success and failure test cases (e.g., missing required fields, duplicate data) are written or updated so the user can immediately test the changes.

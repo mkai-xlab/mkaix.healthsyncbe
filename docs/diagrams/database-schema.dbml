@@ -77,7 +77,6 @@ Table admins {
 Table patients {
   id bigint [pk, increment]
   patient_code varchar(50) [not null, unique]
-  identity_card_number varchar(50) [unique]
   full_name varchar(150) [not null]
   date_of_birth date
   gender gender

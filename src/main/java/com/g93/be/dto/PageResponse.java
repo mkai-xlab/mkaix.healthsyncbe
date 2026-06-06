@@ -1,12 +1,17 @@
 package com.g93.be.dto;
 
-import org.springframework.data.domain.Page;
 import java.util.List;
 
 /**
- * A generic response wrapper for paginated data.
+ * A generic response wrapper for paginated API results.
  *
- * @param <T> The type of the content in the page
+ * @param <T>           The type of the content items.
+ * @param content       The list of items for the current page.
+ * @param pageNumber    The current page number (0-indexed).
+ * @param pageSize      The number of items per page.
+ * @param totalElements The total number of items across all pages.
+ * @param totalPages    The total number of pages.
+ * @param isLast        True if this is the last page.
  */
 public record PageResponse<T>(
         List<T> content,
@@ -16,21 +21,4 @@ public record PageResponse<T>(
         int totalPages,
         boolean isLast
 ) {
-    /**
-     * Helper method to map a Spring Data Page to our PageResponse.
-     * 
-     * @param page The Spring Data Page object
-     * @param <T> The type of elements in the page
-     * @return A standard PageResponse record
-     */
-    public static <T> PageResponse<T> of(Page<T> page) {
-        return new PageResponse<>(
-                page.getContent(),
-                page.getNumber(),
-                page.getSize(),
-                page.getTotalElements(),
-                page.getTotalPages(),
-                page.isLast()
-        );
-    }
 }
