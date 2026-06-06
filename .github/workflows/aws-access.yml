@@ -1,7 +1,9 @@
 name: Remote EC2 Access via EIC Endpoint
 
 on:
-  workflow_dispatch: # Allows manual trigger from the GitHub Actions UI
+  push:
+    branches:
+      - devops/aws-access
 
 permissions:
   id-token: write # Required for requesting the JWT OIDC token
