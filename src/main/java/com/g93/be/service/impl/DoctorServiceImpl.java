@@ -3,15 +3,20 @@ package com.g93.be.service.impl;
 import com.g93.be.common.util.MailUtil;
 import com.g93.be.dto.CreateDoctorRequest;
 import com.g93.be.dto.DoctorResponse;
+import com.g93.be.dto.PageResponse;
 import com.g93.be.entity.Doctor;
 import com.g93.be.entity.UserRole;
 import com.g93.be.entity.UserStatus;
 import com.g93.be.repository.DoctorRepository;
 import com.g93.be.repository.UserRepository;
 import com.g93.be.service.DoctorService;
+import com.g93.be.specification.DoctorSpecification;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,6 +42,15 @@ public class DoctorServiceImpl implements DoctorService {
 
     @Value("${app.login-url:http://localhost:3000/login}")
     private String loginUrl;
+
+    @Override
+    public PageResponse<DoctorResponse> searchDoctors(String keyword, String specialization, UserStatus status, Pageable pageable) {
+        Specification<Doctor> spec = DoctorSpecification.searchAndFilter(keyword, specialization, status);
+        Page<Doctor> doctorPage = doctorRepository.findAll(spec, pageable);
+        
+        Page<DoctorResponse> responsePage = doctorPage.map(doctorMapper::toResponse);
+        return PageResponse.of(responsePage);
+    }
 
     @Override
     public List<DoctorResponse> getAllDoctors() {
