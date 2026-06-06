@@ -1,0 +1,52 @@
+#!/bin/bash
+set -e
+
+# Redirect output to log file so the user can easily debug if anything fails
+exec > >(tee -i /var/log/user_data.log) 2>&1
+
+echo "=== START USER DATA BOOTSTRAP SCRIPT ==="
+
+# 1. Update OS and install basic packages
+echo "Updating apt repositories and installing basic tools..."
+sudo apt-get update -y
+sudo apt-get install -y ca-certificates curl gnupg lsb-release
+
+# 2. Install Docker
+echo "Installing Docker Engine..."
+sudo mkdir -m 0755 -p /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor --yes -o /etc/apt/keyrings/docker.gpg
+
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+  $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+sudo apt-get update -y
+sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+# 3. Start and enable Docker service
+echo "Enabling and starting Docker service..."
+sudo systemctl enable docker
+sudo systemctl start docker
+
+# Add ubuntu user to docker group to allow running docker without sudo
+sudo usermod -aG docker ubuntu
+
+# 4. Install docker-compose CLI helper symlink
+echo "Configuring docker-compose helper symlink..."
+sudo ln -sf /usr/libexec/docker/cli-plugins/docker-compose /usr/local/bin/docker-compose
+
+# 5. Install Nginx
+echo "Installing Nginx..."
+sudo apt-get install -y nginx
+
+# 6. Apply custom Nginx configuration
+echo "Applying custom Nginx configuration..."
+cat << 'EOF' > /etc/nginx/nginx.conf
+${nginx_config}
+EOF
+
+# Enable and restart Nginx
+echo "Enabling and restarting Nginx..."
+sudo systemctl enable nginx
+sudo systemctl restart nginx
+
+echo "=== USER DATA BOOTSTRAP SCRIPT FINISHED SUCCESSFULLY ==="
