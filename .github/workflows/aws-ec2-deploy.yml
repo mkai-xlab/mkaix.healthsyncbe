@@ -39,7 +39,7 @@ jobs:
           # AWS CLI will automatically generate a temporary SSH key pair,
           # push the public key to EC2, and establish the SSH connection
           # via the EIC Endpoint. No static SSH private key is required in secrets.
-          echo "echo 'Connected successfully!' && uname -a" | aws ec2-instance-connect ssh \
+          echo "cd capstone/mkaix.healthsyncbe/ && git pull && docker compose up -d --build" | aws ec2-instance-connect ssh \
             --instance-id $INSTANCE_ID \
             --os-user $INSTANCE_USER \
             --connection-type eice
