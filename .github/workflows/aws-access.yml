@@ -3,10 +3,10 @@ name: Remote EC2 Access via EIC Endpoint
 on:
   push:
     branches:
-      - devops/aws-access
+      - dev
 
 permissions:
-  id-token: write # Required for requesting the JWT OIDC token
+  id-token: write
   contents: read
 
 jobs:
