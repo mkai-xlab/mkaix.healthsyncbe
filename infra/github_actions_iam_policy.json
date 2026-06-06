@@ -3,17 +3,25 @@
     "Statement": [
         {
             "Effect": "Allow",
+            "Action": "ec2-instance-connect:OpenTunnel",
+            "Resource": "arn:aws:ec2:ap-southeast-1:819109476069:instance-connect-endpoint/eice-067a6efbd0ffd9c84"
+        },
+        {
+            "Effect": "Allow",
             "Action": "ec2-instance-connect:SendSSHPublicKey",
             "Resource": "arn:aws:ec2:ap-southeast-1:819109476069:instance/i-05fe1a04d343e1ce5",
             "Condition": {
                 "StringEquals": {
-                    "ec2-instance-connect:openTunnel": "arn:aws:ec2:ap-southeast-1:819109476069:instance-connect-endpoint/eice-067a6efbd0ffd9c84"
+                    "ec2:osuser": "ubuntu"
                 }
             }
         },
         {
             "Effect": "Allow",
-            "Action": "ec2:DescribeInstances",
+            "Action": [
+                "ec2:DescribeInstances",
+                "ec2:DescribeInstanceConnectEndpoints"
+            ],
             "Resource": "*"
         }
     ]

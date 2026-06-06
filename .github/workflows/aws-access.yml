@@ -33,4 +33,5 @@ jobs:
           echo "echo 'Connected successfully!' && uname -a" | aws ec2-instance-connect ssh \
             --instance-id $INSTANCE_ID \
             --os-user $INSTANCE_USER \
-            --connection-type eice
+            --connection-type eice \
+            -- -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null
