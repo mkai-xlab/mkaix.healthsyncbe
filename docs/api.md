@@ -30,6 +30,108 @@ Password changed successfully
 - `400 Bad Request`: Invalid input or incorrect credentials
 - `500 Internal Server Error`: Unexpected server error
 
+## `POST /auth/forgot-password`
+
+Endpoint to initiate the forgot password flow. Generates a 6-digit OTP and sends it via email.
+
+### Request
+
+```json
+{
+  "email": "admin@example.com"
+}
+```
+
+### Response
+
+```text
+If the email exists, a password reset token has been sent.
+```
+
+### Status Codes
+
+- `200 OK`: Request processed successfully
+- `400 Bad Request`: Invalid email format
+
+## `POST /auth/reset-password`
+
+Endpoint to reset the password using the 6-digit OTP sent to the user's email.
+
+### Request
+
+```json
+{
+  "email": "admin@example.com",
+  "token": "123456",
+  "newPassword": "newPassword123"
+}
+```
+
+### Response
+
+```text
+Password reset successfully
+```
+
+### `GET /doctors`
+
+Retrieves a paginated list of all doctors. Supports search, filter, and sorting.
+
+### Query Parameters
+
+- `keyword` (Optional): Search term for code, name, email, phone, or specialization.
+- `specialization` (Optional): Filter by specialization.
+- `status` (Optional): Filter by status (e.g., `ACTIVE`, `INACTIVE`).
+- `page` (Optional): Page index (0-based, default: `0`).
+- `size` (Optional): Items per page (default: `10`).
+- `sort` (Optional): Sort criteria in the format `property,direction` (default: `createdAt,desc`).
+
+### Request
+
+```http
+GET /doctors?page=0&size=5&keyword=Nguyen&status=ACTIVE&sort=fullName,asc
+```
+
+### Response
+
+```json
+{
+  "content": [
+    {
+      "id": 1,
+      "username": "doctor.b",
+      "email": "doctor.b@example.com",
+      "fullName": "Nguyen Van B",
+      "phone": "0987654321",
+      "role": "DOCTOR",
+      "status": "ACTIVE",
+      "doctorCode": "DR12345",
+      "licenseNumber": "LIC98765",
+      "specialization": "Orthopedics",
+      "yearsOfExperience": 10,
+      "academicTitle": "PhD",
+      "degree": "MD",
+      "bio": "Expert in knee joints",
+      "position": "Head of Orthopedics",
+      "avatarUrl": "http://example.com/avatar.jpg"
+    }
+  ],
+  "pageNumber": 0,
+  "pageSize": 5,
+  "totalElements": 1,
+  "totalPages": 1,
+  "isLast": true
+}
+```
+
+### Status Codes
+
+- `200 OK`: Request successful
+- `401 Unauthorized`: authentication is required
+- `403 Forbidden`: authenticated user is not allowed
+- `404 Not Found`: resource does not exist
+- `500 Internal Server Error`: unexpected server error
+
 When controllers are added, document each endpoint using this format:
 
 ## `METHOD /path`
