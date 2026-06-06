@@ -23,3 +23,9 @@ Thumbs.db
 .env
 .env.*
 !.env.example
+
+# Maven Wrapper
+mvnw
+mvnw.cmd
+.mvn/
+

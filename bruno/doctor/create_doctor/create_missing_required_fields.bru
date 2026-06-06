@@ -1,0 +1,23 @@
+meta {
+  name: Create Missing Required Fields
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/doctors
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "fullName": "",
+    "email": "",
+    "doctorCode": ""
+  }
+}

@@ -1,4 +1,8 @@
 # yaml-language-server: $schema=none
+server:
+  servlet:
+    context-path: /api/v1
+
 spring:
   application:
     name: be

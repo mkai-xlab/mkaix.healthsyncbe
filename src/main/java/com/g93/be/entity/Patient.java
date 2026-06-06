@@ -5,49 +5,49 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "users")
-@Inheritance(strategy = InheritanceType.JOINED)
+@Table(name = "patients")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class User {
+public class Patient {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "username", length = 50, nullable = false, unique = true)
-    private String username;
-
-    @Column(name = "password", length = 100, nullable = false)
-    private String password;
+    @Column(name = "patient_code", length = 50, nullable = false, unique = true)
+    private String patientCode;
 
     @Column(name = "full_name", length = 150, nullable = false)
     private String fullName;
 
-    @Column(name = "email", length = 150, nullable = false, unique = true)
-    private String email;
+    @Column(name = "date_of_birth")
+    private LocalDate dateOfBirth;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "gender", length = 10)
+    private Gender gender;
 
     @Column(name = "phone", length = 30)
     private String phone;
 
-    @Column(name = "avatar_url", length = 500)
-    private String avatarUrl;
+    @Column(name = "email", length = 150)
+    private String email;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "role", nullable = false)
-    private UserRole role;
+    @Column(name = "address", length = 255)
+    private String address;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false)
-    private UserStatus status = UserStatus.ACTIVE;
+    @Column(name = "emergency_contact_name", length = 150)
+    private String emergencyContactName;
 
-    @Column(name = "is_first_activated", nullable = false)
-    private Boolean isFirstActivated = true;
+    @Column(name = "emergency_contact_phone", length = 30)
+    private String emergencyContactPhone;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
