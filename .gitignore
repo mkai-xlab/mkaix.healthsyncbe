@@ -29,3 +29,8 @@ mvnw
 mvnw.cmd
 .mvn/
 
+
+#Terraform
+.terraform
+.terraform/**
+.terraform.lock.hcl
