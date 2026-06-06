@@ -1,0 +1,15 @@
+meta {
+  name: Activate Doctor Not Found
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/doctors/99999/activate
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}

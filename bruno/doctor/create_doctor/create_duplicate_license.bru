@@ -1,0 +1,24 @@
+meta {
+  name: Create Duplicate License
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/doctors
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "fullName": "Nguyen Van E",
+    "email": "doctor.e@healthsync.com",
+    "doctorCode": "DOC004",
+    "licenseNumber": "12346/BYT-CCHN"
+  }
+}

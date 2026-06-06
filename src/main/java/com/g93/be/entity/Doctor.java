@@ -24,9 +24,6 @@ public class Doctor extends User {
     @Column(name = "specialization", length = 150)
     private String specialization;
 
-    @Column(name = "hospital_name", length = 200)
-    private String hospitalName;
-
     @Column(name = "years_of_experience")
     private Integer yearsOfExperience;
 
@@ -36,8 +33,7 @@ public class Doctor extends User {
     @Column(name = "degree", length = 100)
     private String degree;
 
-    @Column(name = "signature_url", length = 500)
-    private String signatureUrl;
+
 
     @Column(name = "bio", columnDefinition = "TEXT")
     private String bio;

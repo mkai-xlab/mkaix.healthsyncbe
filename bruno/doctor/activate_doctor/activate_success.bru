@@ -1,0 +1,15 @@
+meta {
+  name: Activate Doctor Success
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/doctors/1/activate
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}

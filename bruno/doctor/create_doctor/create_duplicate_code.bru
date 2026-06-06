@@ -1,0 +1,23 @@
+meta {
+  name: Create Duplicate Code
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/doctors
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "fullName": "Nguyen Van C",
+    "email": "doctor.c@healthsync.com",
+    "doctorCode": "DOC002"
+  }
+}
