@@ -1,5 +1,6 @@
 package com.g93.be.dto;
 
+import org.springframework.data.domain.Page;
 import java.util.List;
 
 /**
@@ -21,4 +22,14 @@ public record PageResponse<T>(
         int totalPages,
         boolean isLast
 ) {
+    public static <T> PageResponse<T> of(Page<T> page) {
+        return new PageResponse<>(
+                page.getContent(),
+                page.getNumber(),
+                page.getSize(),
+                page.getTotalElements(),
+                page.getTotalPages(),
+                page.isLast()
+        );
+    }
 }
