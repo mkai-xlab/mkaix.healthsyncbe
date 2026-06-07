@@ -37,3 +37,6 @@ mvnw.cmd
 
 # DICOM Files
 *.dcm
+
+# Temp Data Folders
+src/main/java/com/g93/be/datatemp/

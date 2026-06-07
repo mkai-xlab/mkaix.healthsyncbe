@@ -132,6 +132,39 @@ GET /doctors?page=0&size=5&keyword=Nguyen&status=ACTIVE&sort=fullName,asc
 - `404 Not Found`: resource does not exist
 - `500 Internal Server Error`: unexpected server error
 
+## `POST /dicom/upload`
+
+Uploads a DICOM (`.dcm`) file to the server. The server parses the file, extracts the patient metadata into a JSON response, and automatically creates a folder in `src/main/java/com/g93/be/datatemp` to save the patient's information (`info.txt`) and a converted PNG image (`image.png`).
+
+### Request
+
+- **Content-Type**: `multipart/form-data`
+- **Body**: 
+  - `file`: The `.dcm` file to upload.
+
+### Response
+
+```json
+[
+  {
+    "tagId": "0010,0010",
+    "tagName": "PatientName",
+    "value": "John Doe"
+  },
+  {
+    "tagId": "0010,0020",
+    "tagName": "PatientID",
+    "value": "12345"
+  }
+]
+```
+
+### Status Codes
+
+- `200 OK`: File processed successfully.
+- `400 Bad Request`: File is empty or malformed.
+- `500 Internal Server Error`: Maximum upload size exceeded or parsing failed.
+
 When controllers are added, document each endpoint using this format:
 
 ## `METHOD /path`

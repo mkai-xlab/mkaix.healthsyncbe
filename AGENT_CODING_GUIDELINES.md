@@ -37,3 +37,6 @@ This document outlines the standard coding rules and project-specific convention
 - **Always Update Tests**: Whenever you modify an API endpoint, its payload, or its validation logic, you MUST simultaneously update the corresponding Bruno (`.bru`) test files in the `bruno/` directory.
 - **Test Structure**: Group tests logically into folders by feature and action (e.g., `bruno/patient/create_patient/`).
 - **Comprehensive Scenarios**: Ensure both success and failure test cases (e.g., missing required fields, duplicate data) are written or updated so the user can immediately test the changes.
+
+## 8. Documentation Maintenance
+- **Update Documentation**: Whenever a new feature is added (e.g., file uploads, new endpoints, background processing), you MUST immediately update the corresponding documentation files (such as `docs/api.md` or `README.md`) to reflect the changes. AI agents must proactively follow this rule without being reminded.
