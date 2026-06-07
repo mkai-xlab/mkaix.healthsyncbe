@@ -34,3 +34,6 @@ mvnw.cmd
 .terraform
 .terraform/**
 .terraform.lock.hcl
+
+# DICOM Files
+*.dcm
