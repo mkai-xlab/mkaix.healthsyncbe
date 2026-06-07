@@ -7,6 +7,7 @@ import com.g93.be.dto.PageResponse;
 import com.g93.be.entity.Doctor;
 import com.g93.be.entity.UserRole;
 import com.g93.be.entity.UserStatus;
+import com.g93.be.entity.AvatarImage;
 import com.g93.be.repository.DoctorRepository;
 import com.g93.be.repository.UserRepository;
 import com.g93.be.service.DoctorService;
@@ -96,8 +97,17 @@ public class DoctorServiceImpl implements DoctorService {
             doctor.setEmail(request.getEmail());
         if (request.getPhone() != null)
             doctor.setPhone(request.getPhone());
-        if (request.getAvatarUrl() != null)
-            doctor.setAvatarUrl(request.getAvatarUrl());
+        if (request.getAvatarUrl() != null) {
+            if (doctor.getAvatar() == null) {
+                AvatarImage avatar = new AvatarImage();
+                avatar.setUser(doctor);
+                avatar.setFileName("avatar_" + doctor.getUsername());
+                avatar.setFileUrl(request.getAvatarUrl());
+                doctor.setAvatar(avatar);
+            } else {
+                doctor.getAvatar().setFileUrl(request.getAvatarUrl());
+            }
+        }
         if (request.getLicenseNumber() != null)
             doctor.setLicenseNumber(request.getLicenseNumber());
         if (request.getSpecialization() != null)
@@ -167,7 +177,13 @@ public class DoctorServiceImpl implements DoctorService {
         doctor.setFullName(request.getFullName());
         doctor.setEmail(request.getEmail());
         doctor.setPhone(request.getPhone());
-        doctor.setAvatarUrl(request.getAvatarUrl());
+        if (request.getAvatarUrl() != null) {
+            AvatarImage avatar = new AvatarImage();
+            avatar.setUser(doctor);
+            avatar.setFileName("avatar_" + tempUsername);
+            avatar.setFileUrl(request.getAvatarUrl());
+            doctor.setAvatar(avatar);
+        }
         doctor.setRole(UserRole.DOCTOR);
         doctor.setStatus(UserStatus.ACTIVE);
 
