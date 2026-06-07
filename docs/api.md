@@ -132,6 +132,72 @@ GET /doctors?page=0&size=5&keyword=Nguyen&status=ACTIVE&sort=fullName,asc
 - `404 Not Found`: resource does not exist
 - `500 Internal Server Error`: unexpected server error
 
+## `GET /notifications/unread`
+
+Retrieves all unread notifications for the currently authenticated user.
+
+### Request
+
+No request body.
+
+### Response
+
+```json
+[
+  {
+    "id": 1,
+    "title": "Welcome to HealthSync",
+    "message": "This is a real-time STOMP notification test.",
+    "type": "SYSTEM",
+    "isRead": false,
+    "createdAt": "2026-06-07T10:00:00"
+  }
+]
+```
+
+## `PUT /notifications/{id}/read`
+
+Marks a specific notification as read.
+
+### Request
+
+No request body. Replace `{id}` with the notification ID.
+
+### Response
+
+```text
+Notification marked as read
+```
+
+## `POST /notifications/send`
+
+Trigger a test notification to a specific user.
+
+### Request
+
+```json
+{
+  "userId": 1,
+  "title": "New Appointment",
+  "message": "You have a new appointment at 10 AM.",
+  "type": "APPOINTMENT"
+}
+```
+
+### Response
+
+```text
+Notification sent successfully
+```
+
+## WebSocket Connection (STOMP)
+
+Clients can connect to the real-time notification server using STOMP over WebSocket.
+
+- **Endpoint**: `ws://localhost:8080/ws`
+- **Authentication**: Pass the JWT token in the `CONNECT` frame headers (`Authorization: Bearer <token>`).
+- **Subscription**: Subscribe to `/user/queue/notifications` to receive events.
+
 When controllers are added, document each endpoint using this format:
 
 ## `METHOD /path`

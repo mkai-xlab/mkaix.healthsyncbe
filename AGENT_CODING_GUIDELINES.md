@@ -37,3 +37,10 @@ This document outlines the standard coding rules and project-specific convention
 - **Always Update Tests**: Whenever you modify an API endpoint, its payload, or its validation logic, you MUST simultaneously update the corresponding Bruno (`.bru`) test files in the `bruno/` directory.
 - **Test Structure**: Group tests logically into folders by feature and action (e.g., `bruno/patient/create_patient/`).
 - **Comprehensive Scenarios**: Ensure both success and failure test cases (e.g., missing required fields, duplicate data) are written or updated so the user can immediately test the changes.
+
+## 8. WebSockets & Real-Time Notifications
+- **Technology Stack**: Use STOMP over WebSockets (`spring-boot-starter-websocket`). Avoid SockJS fallback unless strictly required for backward compatibility.
+- **Security Integration**: WebSocket connections MUST be authenticated. Implement `ChannelInterceptor` in the `security` package (e.g., `WebSocketChannelInterceptor`) to intercept the STOMP `CONNECT` frame and validate the JWT from the `Authorization: Bearer <token>` header.
+- **Broker Config**: Register standard `/topic` (broadcast) and `/queue` (user-specific) brokers in a `WebSocketConfig` class located in the `config` package.
+- **Payload & DTOs**: Always use DTOs (e.g., `NotificationDto`) when sending messages via `SimpMessagingTemplate`. Do not send raw Entities to avoid exposing sensitive internal state.
+- **Client Testing**: Maintain an HTML test client (e.g., `src/main/resources/static/test-stomp.html`) to allow quick local verification of real-time events. Ensure the client connects using the correct context path (`/api/v1/ws`).
