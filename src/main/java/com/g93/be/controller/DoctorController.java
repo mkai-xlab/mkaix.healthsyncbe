@@ -64,20 +64,50 @@ public class DoctorController {
     /**
      * Retrieves only active doctors.
      *
-     * @return A list of DoctorResponse objects for active doctors.
+     * @return A list of DoctorResponse objects for active doctors wrapped in ResponseEntity.
      */
     @GetMapping("/active")
-    public List<DoctorResponse> getActiveDoctors() {
-        return doctorService.getActiveDoctors();
+    public ResponseEntity<List<DoctorResponse>> getActiveDoctors() {
+        log.info("Received request to fetch active doctors");
+        return ResponseEntity.ok(doctorService.getActiveDoctors());
     }
 
     /**
      * Activates a doctor by ID.
      *
      * @param id The ID of the doctor to activate.
+     * @return A response signaling completion.
      */
     @PostMapping("/{id}/activate")
-    public void activateDoctor(@PathVariable Long id) {
+    public ResponseEntity<Void> activateDoctor(@PathVariable Long id) {
+        log.info("Received request to activate doctor with ID: {}", id);
         doctorService.activateDoctor(id);
+        return ResponseEntity.ok().build();
+    }
+
+    /**
+     * Deactivates a doctor by ID via POST.
+     *
+     * @param id The ID of the doctor to deactivate.
+     * @return A response signaling completion.
+     */
+    @PostMapping("/{id}/deactivate")
+    public ResponseEntity<Void> deactivateDoctorPost(@PathVariable Long id) {
+        log.info("Received request to deactivate doctor with ID via POST: {}", id);
+        doctorService.softDeleteDoctor(id);
+        return ResponseEntity.ok().build();
+    }
+
+    /**
+     * Deactivates (soft-deletes) a doctor by ID.
+     *
+     * @param id The ID of the doctor to deactivate.
+     * @return A response signaling completion.
+     */
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deactivateDoctor(@PathVariable Long id) {
+        log.info("Received request to deactivate doctor with ID via DELETE: {}", id);
+        doctorService.softDeleteDoctor(id);
+        return ResponseEntity.ok().build();
     }
 }
