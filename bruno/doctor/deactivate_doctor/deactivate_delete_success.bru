@@ -1,0 +1,15 @@
+meta {
+  name: Deactivate Doctor via DELETE Success
+  type: http
+  seq: 3
+}
+
+delete {
+  url: {{baseUrl}}/doctors/1
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}​

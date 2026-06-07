@@ -132,6 +132,98 @@ GET /doctors?page=0&size=5&keyword=Nguyen&status=ACTIVE&sort=fullName,asc
 - `404 Not Found`: resource does not exist
 - `500 Internal Server Error`: unexpected server error
 
+## `GET /doctors/active`
+
+Retrieves a list of all active doctors.
+
+### Request
+
+No request body.
+
+### Response
+
+```json
+[
+  {
+    "id": 1,
+    "username": "doctor.b",
+    "email": "doctor.b@example.com",
+    "fullName": "Nguyen Van B",
+    "phone": "0987654321",
+    "role": "DOCTOR",
+    "status": "ACTIVE",
+    "doctorCode": "DR12345",
+    "licenseNumber": "LIC98765",
+    "specialization": "Orthopedics",
+    "yearsOfExperience": 10,
+    "academicTitle": "PhD",
+    "degree": "MD",
+    "bio": "Expert in knee joints",
+    "position": "Head of Orthopedics",
+    "avatarUrl": "http://example.com/avatar.jpg"
+  }
+]
+```
+
+### Status Codes
+
+- `200 OK`: Request successful
+- `401 Unauthorized`: Authentication is required
+
+## `POST /doctors/{id}/activate`
+
+Activates a doctor by ID.
+
+### Request
+
+No request body. Replace `{id}` with the doctor ID.
+
+### Response
+
+No response body.
+
+### Status Codes
+
+- `200 OK`: Doctor activated successfully
+- `400 Bad Request`: Doctor with the given ID not found
+- `401 Unauthorized`: Authentication is required
+
+## `POST /doctors/{id}/deactivate`
+
+Deactivates a doctor by ID.
+
+### Request
+
+No request body. Replace `{id}` with the doctor ID.
+
+### Response
+
+No response body.
+
+### Status Codes
+
+- `200 OK`: Doctor deactivated successfully
+- `400 Bad Request`: Doctor with the given ID not found
+- `401 Unauthorized`: Authentication is required
+
+## `DELETE /doctors/{id}`
+
+Deactivates (soft deletes) a doctor by ID.
+
+### Request
+
+No request body. Replace `{id}` with the doctor ID.
+
+### Response
+
+No response body.
+
+### Status Codes
+
+- `200 OK`: Doctor deactivated successfully
+- `400 Bad Request`: Doctor with the given ID not found
+- `401 Unauthorized`: Authentication is required
+
 ## `GET /notifications/unread`
 
 Retrieves all unread notifications for the currently authenticated user.
