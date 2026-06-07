@@ -13,6 +13,11 @@ Enum user_role {
   ADMIN
 }
 
+Enum doctor_position {
+  DEPARTMENT_HEAD
+  NORMAL
+}
+
 Enum examination_status {
   CREATED
   AI_PROCESSING
@@ -45,6 +50,7 @@ Table users {
   avatar_url varchar(500)
   role user_role [not null]
   status user_status [not null, default: 'ACTIVE']
+  is_first_activated boolean [not null, default: true]
   created_at datetime [not null]
   updated_at datetime
 
@@ -56,12 +62,11 @@ Table doctors {
   doctor_code varchar(50) [not null, unique]
   license_number varchar(100)
   specialization varchar(150)
-  hospital_name varchar(200)
   years_of_experience int
   academic_title varchar(100)
   degree varchar(100)
-  signature_url varchar(500)
   bio text
+  position doctor_position [not null]
 
   Note: "Child table in the JPA JOINED inheritance hierarchy representing doctors. The primary key `id` is a foreign key referencing `users.id`. Contains clinical and professional information."
 }
