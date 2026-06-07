@@ -4,22 +4,28 @@
 
 ## Overview
 
-The backend is a Spring Boot 4 application using Java 21 and Maven. The current codebase contains the application entry point and base Spring configuration only.
+The backend is a Spring Boot application using Java 21 and Maven. It follows a modular, layered architecture to support the AI-assisted knee X-ray diagnosis system.
 
 ![Backend architecture diagram](diagrams/be-architecture.png)
 
-## Current Runtime Flow
+## Runtime Flow
 
 ```text
-Client request
-  -> Spring Boot embedded server
-  -> Spring Web MVC dispatcher
-  -> Controller layer, when implemented
-  -> Service layer, when implemented
-  -> Repository or integration layer, when implemented
+Client request (REST / HTTP)
+  -> Spring Security (JWT Authentication Filters)
+  -> Spring Web MVC DispatcherServlet
+  -> Controller layer (e.g., AuthController, PatientController, NotificationController)
+  -> Service layer (Business Logic & Transactions)
+  -> Repository layer (Spring Data JPA / Specifications)
+  -> Database (MySQL)
+
+Client request (STOMP WebSocket)
+  -> Spring WebSocket Message Broker (/api/v1/ws)
+  -> WebSocketChannelInterceptor (JWT Token Validation on CONNECT)
+  -> STOMP Destinations (/topic or /user/queue)
 ```
 
-At the moment, no controllers are registered, so the service does not expose application-specific routes yet.
+The application now actively exposes various RESTful API endpoints securely under the `/api/v1` context path and supports real-time, authenticated STOMP WebSocket connections.
 
 ## Application Entry Point
 

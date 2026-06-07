@@ -1,0 +1,25 @@
+meta {
+  name: Send Test Notification
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/notifications/send
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "userId": 2,
+    "title": "Welcome to HealthSync",
+    "message": "This is a real-time STOMP notification test.",
+    "type": "SYSTEM"
+  }
+}
+​
