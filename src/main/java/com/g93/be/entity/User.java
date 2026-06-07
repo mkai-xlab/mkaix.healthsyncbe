@@ -35,8 +35,8 @@ public class User {
     @Column(name = "phone", length = 30)
     private String phone;
 
-    @Column(name = "avatar_url", length = 500)
-    private String avatarUrl;
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private AvatarImage avatar;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "role", nullable = false)
