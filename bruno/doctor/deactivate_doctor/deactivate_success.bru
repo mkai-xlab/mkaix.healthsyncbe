@@ -1,11 +1,11 @@
 meta {
-  name: Activate Doctor Success
+  name: Deactivate Doctor Success
   type: http
   seq: 1
 }
 
 post {
-  url: {{baseUrl}}/doctors/1/activate
+  url: {{baseUrl}}/doctors/1/deactivate
   body: none
   auth: bearer
 }
@@ -13,4 +13,3 @@ post {
 auth:bearer {
   token: {{accessToken}}
 }
-​
