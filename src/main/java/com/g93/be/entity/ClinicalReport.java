@@ -39,11 +39,20 @@ public class ClinicalReport {
     @Column(name = "file_url", length = 500)
     private String fileUrl;
 
+    @Column(name = "is_confirmed", nullable = false)
+    private Boolean isConfirmed = false;
+
+    @Column(name = "confirmed_at")
+    private LocalDateTime confirmedAt;
+
     @Column(name = "generated_at", nullable = false)
     private LocalDateTime generatedAt;
 
     @PrePersist
     protected void onCreate() {
         generatedAt = LocalDateTime.now();
+        if (isConfirmed == null) {
+            isConfirmed = false;
+        }
     }
 }

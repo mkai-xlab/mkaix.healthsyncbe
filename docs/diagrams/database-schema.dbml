@@ -165,6 +165,8 @@ Table clinical_reports {
   report_code varchar(50) [not null, unique]
   report_content text
   file_url varchar(500)
+  is_confirmed boolean [not null, default: false]
+  confirmed_at datetime
   generated_at datetime [not null]
 
   Note: "Generated/exported clinical report for an examination."
