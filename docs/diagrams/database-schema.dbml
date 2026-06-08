@@ -13,6 +13,11 @@ Enum user_role {
   ADMIN
 }
 
+Enum doctor_position {
+  DEPARTMENT_HEAD
+  NORMAL
+}
+
 Enum examination_status {
   CREATED
   AI_PROCESSING
@@ -42,9 +47,9 @@ Table users {
   full_name varchar(150) [not null]
   email varchar(150) [not null, unique]
   phone varchar(30)
-  avatar_url varchar(500)
   role user_role [not null]
   status user_status [not null, default: 'ACTIVE']
+  is_first_activated boolean [not null, default: true]
   created_at datetime [not null]
   updated_at datetime
 
@@ -56,12 +61,11 @@ Table doctors {
   doctor_code varchar(50) [not null, unique]
   license_number varchar(100)
   specialization varchar(150)
-  hospital_name varchar(200)
   years_of_experience int
   academic_title varchar(100)
   degree varchar(100)
-  signature_url varchar(500)
   bio text
+  position doctor_position [not null]
 
   Note: "Child table in the JPA JOINED inheritance hierarchy representing doctors. The primary key `id` is a foreign key referencing `users.id`. Contains clinical and professional information."
 }
@@ -108,11 +112,12 @@ Table xray_images {
   examination_id bigint [not null]
   file_name varchar(255) [not null]
   file_url varchar(500) [not null]
+  dicom_url varchar(500)
   body_side varchar(20)
   view_position varchar(50)
   uploaded_at datetime [not null]
 
-  Note: "Uploaded knee X-ray image belonging to an examination."
+  Note: "Uploaded knee X-ray image belonging to an examination. `file_url` stores the web-viewable PNG format link, while `dicom_url` stores the raw DICOM file link."
 }
 
 Table ai_analysis_jobs {
@@ -160,6 +165,8 @@ Table clinical_reports {
   report_code varchar(50) [not null, unique]
   report_content text
   file_url varchar(500)
+  is_confirmed boolean [not null, default: false]
+  confirmed_at datetime
   generated_at datetime [not null]
 
   Note: "Generated/exported clinical report for an examination."
@@ -199,6 +206,34 @@ Table password_reset_tokens {
   Note: "Stores 6-digit OTP tokens for password reset functionality."
 }
 
+Table avatar_images {
+  id bigint [pk, increment]
+  user_id bigint [not null, unique]
+  file_name varchar(255) [not null]
+  file_url varchar(500) [not null]
+  uploaded_at datetime [not null]
+
+  Note: "User avatar image. Inherits from BaseImage."
+}
+
+Table dicom_informations {
+  id bigint [pk, increment]
+  xray_image_id bigint [not null, unique]
+  sop_instance_uid varchar(150) [not null, unique]
+  series_instance_uid varchar(150)
+  study_instance_uid varchar(150)
+  patient_name varchar(150)
+  patient_id varchar(100)
+  patient_birth_date date
+  patient_sex varchar(10)
+  modality varchar(50)
+  manufacturer varchar(150)
+  institution_name varchar(200)
+  instance_number int
+
+  Note: "Stores parsed clinical DICOM metadata tags for an X-ray image."
+}
+
 Ref: doctors.id - users.id [delete: cascade, update: cascade]
 Ref: admins.id - users.id [delete: cascade, update: cascade]
 
@@ -221,3 +256,5 @@ Ref: clinical_reports.doctor_id > doctors.id [delete: restrict, update: cascade]
 Ref: notifications.user_id > users.id [delete: cascade, update: cascade]
 Ref: audit_logs.user_id > users.id [delete: set null, update: cascade]
 Ref: password_reset_tokens.user_id > users.id [delete: cascade, update: cascade]
+Ref: dicom_informations.xray_image_id - xray_images.id [delete: cascade, update: cascade]
+Ref: avatar_images.user_id - users.id [delete: cascade, update: cascade]
