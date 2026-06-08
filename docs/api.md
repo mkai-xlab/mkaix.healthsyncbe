@@ -286,9 +286,27 @@ Notification sent successfully
 
 Clients can connect to the real-time notification server using STOMP over WebSocket.
 
-- **Endpoint**: `ws://localhost:8080/ws`
+- **Endpoint**: `ws://localhost:8080/api/v1/ws`
 - **Authentication**: Pass the JWT token in the `CONNECT` frame headers (`Authorization: Bearer <token>`).
 - **Subscription**: Subscribe to `/user/queue/notifications` to receive events.
+
+## `POST /s3/test-upload`
+
+Uploads a test file to the configured AWS S3 bucket.
+
+### Request
+
+- **Content-Type**: `multipart/form-data`
+- **Parameters**:
+  - `folderName` (Text): The destination folder name in S3.
+  - `fileName` (Text): The desired file name in S3.
+  - `file` (File): The actual file/image to upload.
+
+### Response
+
+```text
+Successfully uploaded to S3: s3://test-bucket-819109476069-ap-southeast-1-an/test-folder/sample.txt
+```
 
 When controllers are added, document each endpoint using this format:
 

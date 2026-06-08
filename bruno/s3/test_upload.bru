@@ -1,0 +1,22 @@
+meta {
+  name: S3 Test Upload
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/s3/test-upload
+  body: multipartForm
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:multipart-form {
+  folderName: test-folder
+  fileName: knee-xray.png
+  file: @file(test-image.png)
+}
+​
