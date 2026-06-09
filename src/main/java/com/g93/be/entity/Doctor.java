@@ -33,8 +33,6 @@ public class Doctor extends User {
     @Column(name = "degree", length = 100)
     private String degree;
 
-
-
     @Column(name = "bio", columnDefinition = "TEXT")
     private String bio;
 
