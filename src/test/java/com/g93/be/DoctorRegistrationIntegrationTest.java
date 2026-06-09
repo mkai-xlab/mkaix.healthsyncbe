@@ -159,7 +159,7 @@ class DoctorRegistrationIntegrationTest {
     }
 
     @Test
-    void testSearchDoctors_SpaceInsensitiveMatch() {
+    void testSearchDoctors_UsernameMatch() {
         // Given
         CreateDoctorRequest request = new CreateDoctorRequest(
                 "Nguyễn Hoàng Duy",
@@ -176,18 +176,12 @@ class DoctorRegistrationIntegrationTest {
         );
         doctorService.createDoctor(request);
 
-        // When searching "hoangduy" (without space)
-        var responseNoSpace = doctorService.searchDoctors("hoangduy", null, null, org.springframework.data.domain.PageRequest.of(0, 10));
-
-        // When searching "hoang duy" (with space)
-        var responseWithSpace = doctorService.searchDoctors("hoang duy", null, null, org.springframework.data.domain.PageRequest.of(0, 10));
+        // When searching "hoangduy" (matches username "hoangduy2")
+        var response = doctorService.searchDoctors("hoangduy", null, null, org.springframework.data.domain.PageRequest.of(0, 10));
 
         // Then
-        assertFalse(responseNoSpace.content().isEmpty());
-        assertEquals("Nguyễn Hoàng Duy", responseNoSpace.content().get(0).getFullName());
-
-        assertFalse(responseWithSpace.content().isEmpty());
-        assertEquals("Nguyễn Hoàng Duy", responseWithSpace.content().get(0).getFullName());
+        assertFalse(response.content().isEmpty());
+        assertEquals("Nguyễn Hoàng Duy", response.content().get(0).getFullName());
     }
 }
 

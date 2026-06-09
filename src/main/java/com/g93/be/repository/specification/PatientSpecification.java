@@ -2,7 +2,6 @@ package com.g93.be.repository.specification;
 
 import com.g93.be.dto.PatientFilterRequest;
 import com.g93.be.entity.Patient;
-import jakarta.persistence.criteria.Expression;
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.jpa.domain.Specification;
 
@@ -22,15 +21,7 @@ public class PatientSpecification {
                 predicates.add(cb.like(cb.lower(root.get("patientCode")), "%" + request.getPatientCode().trim().toLowerCase() + "%"));
             }
             if (request.getFullName() != null && !request.getFullName().isBlank()) {
-                String cleanKeyword = request.getFullName().trim().toLowerCase();
-                String keywordNoSpaces = cleanKeyword.replace(" ", "");
-                
-                Predicate standardMatch = cb.like(cb.lower(root.get("fullName")), "%" + cleanKeyword + "%");
-                
-                Expression<String> dbNameNoSpaces = cb.function("REPLACE", String.class, root.get("fullName"), cb.literal(" "), cb.literal(""));
-                Predicate noSpaceMatch = cb.like(cb.lower(dbNameNoSpaces), "%" + keywordNoSpaces + "%");
-                
-                predicates.add(cb.or(standardMatch, noSpaceMatch));
+                predicates.add(cb.like(cb.lower(root.get("fullName")), "%" + request.getFullName().trim().toLowerCase() + "%"));
             }
             if (request.getDateOfBirth() != null) {
                 predicates.add(cb.equal(root.get("dateOfBirth"), request.getDateOfBirth()));

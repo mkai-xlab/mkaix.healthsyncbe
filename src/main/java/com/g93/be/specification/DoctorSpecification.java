@@ -2,7 +2,6 @@ package com.g93.be.specification;
 
 import com.g93.be.entity.Doctor;
 import com.g93.be.entity.UserStatus;
-import jakarta.persistence.criteria.Expression;
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.jpa.domain.Specification;
 
@@ -27,17 +26,9 @@ public class DoctorSpecification {
             if (keyword != null && !keyword.trim().isEmpty()) {
                 String cleanKeyword = keyword.trim().toLowerCase();
                 String likePattern = "%" + cleanKeyword + "%";
-                String keywordNoSpaces = cleanKeyword.replace(" ", "");
 
                 Predicate codeMatch = criteriaBuilder.like(criteriaBuilder.lower(root.get("doctorCode")), likePattern);
-                
-                // standard name match
-                Predicate nameMatchStandard = criteriaBuilder.like(criteriaBuilder.lower(root.get("fullName")), likePattern);
-                // name match ignoring spaces
-                Expression<String> dbNameNoSpaces = criteriaBuilder.function("REPLACE", String.class, root.get("fullName"), criteriaBuilder.literal(" "), criteriaBuilder.literal(""));
-                Predicate nameMatchNoSpaces = criteriaBuilder.like(criteriaBuilder.lower(dbNameNoSpaces), "%" + keywordNoSpaces + "%");
-                Predicate nameMatch = criteriaBuilder.or(nameMatchStandard, nameMatchNoSpaces);
-
+                Predicate nameMatch = criteriaBuilder.like(criteriaBuilder.lower(root.get("fullName")), likePattern);
                 Predicate emailMatch = criteriaBuilder.like(criteriaBuilder.lower(root.get("email")), likePattern);
                 Predicate phoneMatch = criteriaBuilder.like(criteriaBuilder.lower(root.get("phone")), likePattern);
                 Predicate specMatch = criteriaBuilder.like(criteriaBuilder.lower(root.get("specialization")), likePattern);
