@@ -5,11 +5,17 @@ meta {
 }
 
 get {
-  url: {{baseUrl}}/patients?page=0&size=10&fullName=Nguyen
+  url: {{baseUrl}}/patients
   body: none
   auth: bearer
 }
 
+query {
+  page: 0
+  size: 10
+  fullName: Nguyen
+}
+
 auth:bearer {
   token: {{accessToken}}
-}
+}​

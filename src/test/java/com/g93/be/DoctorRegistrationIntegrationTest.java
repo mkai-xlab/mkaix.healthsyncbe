@@ -131,4 +131,57 @@ class DoctorRegistrationIntegrationTest {
         });
         assertTrue(exception.getMessage().contains("already in use"));
     }
+
+    @Test
+    void testSearchDoctors_SubstringMatch() {
+        // Given
+        CreateDoctorRequest request = new CreateDoctorRequest(
+                "Nguyễn Hoàng Duy",
+                "hoangduy@hospital.com",
+                "123456789",
+                null,
+                "DOC002",
+                "LIC999",
+                "Cardiology",
+                null,
+                5,
+                null, null, null, null,
+                DoctorPosition.NORMAL
+        );
+        doctorService.createDoctor(request);
+
+        // When
+        var response = doctorService.searchDoctors("du", null, null, org.springframework.data.domain.PageRequest.of(0, 10));
+
+        // Then
+        assertFalse(response.content().isEmpty());
+        assertEquals("Nguyễn Hoàng Duy", response.content().get(0).getFullName());
+    }
+
+    @Test
+    void testSearchDoctors_UsernameMatch() {
+        // Given
+        CreateDoctorRequest request = new CreateDoctorRequest(
+                "Nguyễn Hoàng Duy",
+                "hoangduy2@hospital.com",
+                "987654321",
+                null,
+                "DOC003",
+                "LIC888",
+                "Cardiology",
+                null,
+                5,
+                null, null, null, null,
+                DoctorPosition.NORMAL
+        );
+        doctorService.createDoctor(request);
+
+        // When searching "hoangduy" (matches username "hoangduy2")
+        var response = doctorService.searchDoctors("hoangduy", null, null, org.springframework.data.domain.PageRequest.of(0, 10));
+
+        // Then
+        assertFalse(response.content().isEmpty());
+        assertEquals("Nguyễn Hoàng Duy", response.content().get(0).getFullName());
+    }
 }
+

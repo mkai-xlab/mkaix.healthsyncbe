@@ -5,9 +5,15 @@ meta {
 }
 
 get {
-  url: {{baseUrl}}/patients?page=0&size=10&patientCode=PAT
+  url: {{baseUrl}}/patients
   body: none
   auth: bearer
+}
+
+query {
+  page: 0
+  size: 10
+  patientCode: PAT
 }
 
 auth:bearer {

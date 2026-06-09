@@ -24,14 +24,17 @@ public class DoctorSpecification {
 
             // Search by Keyword
             if (keyword != null && !keyword.trim().isEmpty()) {
-                String likePattern = "%" + keyword.trim().toLowerCase() + "%";
+                String cleanKeyword = keyword.trim().toLowerCase();
+                String likePattern = "%" + cleanKeyword + "%";
+
                 Predicate codeMatch = criteriaBuilder.like(criteriaBuilder.lower(root.get("doctorCode")), likePattern);
                 Predicate nameMatch = criteriaBuilder.like(criteriaBuilder.lower(root.get("fullName")), likePattern);
                 Predicate emailMatch = criteriaBuilder.like(criteriaBuilder.lower(root.get("email")), likePattern);
                 Predicate phoneMatch = criteriaBuilder.like(criteriaBuilder.lower(root.get("phone")), likePattern);
                 Predicate specMatch = criteriaBuilder.like(criteriaBuilder.lower(root.get("specialization")), likePattern);
+                Predicate usernameMatch = criteriaBuilder.like(criteriaBuilder.lower(root.get("username")), likePattern);
                 
-                predicates.add(criteriaBuilder.or(codeMatch, nameMatch, emailMatch, phoneMatch, specMatch));
+                predicates.add(criteriaBuilder.or(codeMatch, nameMatch, emailMatch, phoneMatch, specMatch, usernameMatch));
             }
 
             // Filter by Specialization

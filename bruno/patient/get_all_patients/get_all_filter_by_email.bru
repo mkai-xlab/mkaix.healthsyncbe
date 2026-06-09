@@ -5,9 +5,15 @@ meta {
 }
 
 get {
-  url: {{baseUrl}}/patients?page=0&size=10&email=healthsync
+  url: {{baseUrl}}/patients
   body: none
   auth: bearer
+}
+
+query {
+  page: 0
+  size: 10
+  email: healthsync
 }
 
 auth:bearer {
