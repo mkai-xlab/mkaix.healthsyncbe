@@ -5,9 +5,16 @@ meta {
 }
 
 get {
-  url: {{baseUrl}}/patients?page=0&size=10&gender=MALE&phone=09
+  url: {{baseUrl}}/patients
   body: none
   auth: bearer
+}
+
+query {
+  page: 0
+  size: 10
+  gender: MALE
+  phone: 09
 }
 
 auth:bearer {

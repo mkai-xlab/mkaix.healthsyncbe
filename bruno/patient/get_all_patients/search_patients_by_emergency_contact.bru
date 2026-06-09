@@ -1,7 +1,7 @@
 meta {
-  name: Get All Filter By Name
+  name: Search Patients By Emergency Contact
   type: http
-  seq: 3
+  seq: 11
 }
 
 get {
@@ -11,9 +11,8 @@ get {
 }
 
 query {
-  page: 0
-  size: 10
-  fullName: Nguyen
+  emergencyContactName: Nguyen
+  emergencyContactPhone: 09
 }
 
 auth:bearer {

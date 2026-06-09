@@ -1,7 +1,7 @@
 meta {
-  name: Get All Filter By Name
+  name: Search Patients By Address
   type: http
-  seq: 3
+  seq: 10
 }
 
 get {
@@ -11,9 +11,7 @@ get {
 }
 
 query {
-  page: 0
-  size: 10
-  fullName: Nguyen
+  address: Hanoi
 }
 
 auth:bearer {
