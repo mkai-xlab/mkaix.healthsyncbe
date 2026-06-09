@@ -1,21 +1,19 @@
 meta {
-  name: Get All Patients
+  name: Search Doctors By Status
   type: http
-  seq: 2
+  seq: 5
 }
 
 get {
-  url: {{baseUrl}}/patients
+  url: {{baseUrl}}/doctors
   body: none
   auth: bearer
 }
 
 query {
-  page: 0
-  size: 10
+  status: ACTIVE
 }
 
 auth:bearer {
   token: {{accessToken}}
 }
-​

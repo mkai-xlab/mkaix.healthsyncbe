@@ -18,10 +18,10 @@ public class PatientSpecification {
             List<Predicate> predicates = new ArrayList<>();
 
             if (request.getPatientCode() != null && !request.getPatientCode().isBlank()) {
-                predicates.add(cb.like(cb.lower(root.get("patientCode")), "%" + request.getPatientCode().toLowerCase() + "%"));
+                predicates.add(cb.like(cb.lower(root.get("patientCode")), "%" + request.getPatientCode().trim().toLowerCase() + "%"));
             }
             if (request.getFullName() != null && !request.getFullName().isBlank()) {
-                predicates.add(cb.like(cb.lower(root.get("fullName")), "%" + request.getFullName().toLowerCase() + "%"));
+                predicates.add(cb.like(cb.lower(root.get("fullName")), "%" + request.getFullName().trim().toLowerCase() + "%"));
             }
             if (request.getDateOfBirth() != null) {
                 predicates.add(cb.equal(root.get("dateOfBirth"), request.getDateOfBirth()));
@@ -30,19 +30,19 @@ public class PatientSpecification {
                 predicates.add(cb.equal(root.get("gender"), request.getGender()));
             }
             if (request.getPhone() != null && !request.getPhone().isBlank()) {
-                predicates.add(cb.like(cb.lower(root.get("phone")), "%" + request.getPhone().toLowerCase() + "%"));
+                predicates.add(cb.like(cb.lower(root.get("phone")), "%" + request.getPhone().trim().toLowerCase() + "%"));
             }
             if (request.getEmail() != null && !request.getEmail().isBlank()) {
-                predicates.add(cb.like(cb.lower(root.get("email")), "%" + request.getEmail().toLowerCase() + "%"));
+                predicates.add(cb.like(cb.lower(root.get("email")), "%" + request.getEmail().trim().toLowerCase() + "%"));
             }
             if (request.getAddress() != null && !request.getAddress().isBlank()) {
-                predicates.add(cb.like(cb.lower(root.get("address")), "%" + request.getAddress().toLowerCase() + "%"));
+                predicates.add(cb.like(cb.lower(root.get("address")), "%" + request.getAddress().trim().toLowerCase() + "%"));
             }
             if (request.getEmergencyContactName() != null && !request.getEmergencyContactName().isBlank()) {
-                predicates.add(cb.like(cb.lower(root.get("emergencyContactName")), "%" + request.getEmergencyContactName().toLowerCase() + "%"));
+                predicates.add(cb.like(cb.lower(root.get("emergencyContactName")), "%" + request.getEmergencyContactName().trim().toLowerCase() + "%"));
             }
             if (request.getEmergencyContactPhone() != null && !request.getEmergencyContactPhone().isBlank()) {
-                predicates.add(cb.like(cb.lower(root.get("emergencyContactPhone")), "%" + request.getEmergencyContactPhone().toLowerCase() + "%"));
+                predicates.add(cb.like(cb.lower(root.get("emergencyContactPhone")), "%" + request.getEmergencyContactPhone().trim().toLowerCase() + "%"));
             }
 
             return cb.and(predicates.toArray(new Predicate[0]));

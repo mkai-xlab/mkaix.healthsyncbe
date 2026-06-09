@@ -1,7 +1,7 @@
 meta {
-  name: Get All Patients
+  name: Search Patients By Emergency Contact
   type: http
-  seq: 2
+  seq: 11
 }
 
 get {
@@ -11,11 +11,10 @@ get {
 }
 
 query {
-  page: 0
-  size: 10
+  emergencyContactName: Nguyen
+  emergencyContactPhone: 09
 }
 
 auth:bearer {
   token: {{accessToken}}
 }
-​

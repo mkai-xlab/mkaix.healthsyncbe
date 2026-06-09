@@ -1,7 +1,7 @@
 meta {
-  name: Get Doctors Paginated and Searched
+  name: Search Doctors Combined
   type: http
-  seq: 2
+  seq: 6
 }
 
 get {
@@ -11,10 +11,11 @@ get {
 }
 
 query {
-  page: 0
-  size: 5
-  keyword: doctor
+  keyword: John
+  specialization: Pediatrics
   status: ACTIVE
+  page: 0
+  size: 10
   sort: fullName,asc
 }
 

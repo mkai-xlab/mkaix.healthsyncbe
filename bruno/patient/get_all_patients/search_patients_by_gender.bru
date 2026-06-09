@@ -1,7 +1,7 @@
 meta {
-  name: Get All Patients
+  name: Search Patients By Gender
   type: http
-  seq: 2
+  seq: 9
 }
 
 get {
@@ -11,11 +11,9 @@ get {
 }
 
 query {
-  page: 0
-  size: 10
+  gender: MALE
 }
 
 auth:bearer {
   token: {{accessToken}}
 }
-​
