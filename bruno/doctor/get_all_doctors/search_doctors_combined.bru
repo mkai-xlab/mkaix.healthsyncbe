@@ -1,0 +1,24 @@
+meta {
+  name: Search Doctors Combined
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/doctors
+  body: none
+  auth: bearer
+}
+
+query {
+  keyword: John
+  specialization: Pediatrics
+  status: ACTIVE
+  page: 0
+  size: 10
+  sort: fullName,asc
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}

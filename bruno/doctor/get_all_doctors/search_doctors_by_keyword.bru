@@ -1,19 +1,17 @@
 meta {
-  name: Get All Filter By Name
+  name: Search Doctors By Keyword
   type: http
   seq: 3
 }
 
 get {
-  url: {{baseUrl}}/patients
+  url: {{baseUrl}}/doctors
   body: none
   auth: bearer
 }
 
 query {
-  page: 0
-  size: 10
-  fullName: Nguyen
+  keyword: doctor
 }
 
 auth:bearer {
