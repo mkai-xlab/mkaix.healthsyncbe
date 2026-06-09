@@ -31,7 +31,7 @@ erDiagram
     ai_analysis_jobs ||--o{ ai_analysis_results : "job_id"
 
     doctors ||--o{ diagnosis_reviews : "doctor_id"
-    ai_analysis_results ||--o| diagnosis_reviews : "ai_result_id"
+    ai_analysis_results ||--o{ diagnosis_reviews : "ai_result_id"
 
     doctors ||--o{ clinical_reports : "doctor_id"
 
