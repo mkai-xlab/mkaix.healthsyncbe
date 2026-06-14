@@ -24,7 +24,8 @@ This folder contains backend documentation for the Capstone project.
 18. [Runbook](runbook.md)
 19. [Release Process](release-process.md)
 20. [Contributing Guide](contributing.md)
-21. [Architecture Decision Records](adr/README.md)
+21. [DICOM to PNG Processing Pipeline](dicom-processor.md)
+22. [Architecture Decision Records](adr/README.md)
 
 ## Assets
 
