@@ -48,7 +48,7 @@ resource "aws_eip_association" "server_ip_assoc" {
 
 resource "aws_key_pair" "server_key" {
   key_name   = "${var.environment}-server-key"
-  public_key = file(var.key_path)
+  public_key = file(pathexpand(var.key_path))
   tags = {
     Environment = var.environment
   }
