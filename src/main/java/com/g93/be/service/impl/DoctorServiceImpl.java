@@ -5,11 +5,12 @@ import com.g93.be.dto.CreateDoctorRequest;
 import com.g93.be.dto.DoctorResponse;
 import com.g93.be.dto.PageResponse;
 import com.g93.be.entity.Doctor;
-import com.g93.be.entity.UserRole;
 import com.g93.be.entity.UserStatus;
-import com.g93.be.entity.AvatarImage;
+import com.g93.be.entity.Image;
+import com.g93.be.entity.Role;
 import com.g93.be.repository.DoctorRepository;
 import com.g93.be.repository.UserRepository;
+import com.g93.be.repository.RoleRepository;
 import com.g93.be.service.DoctorService;
 import com.g93.be.specification.DoctorSpecification;
 import lombok.RequiredArgsConstructor;
@@ -37,6 +38,7 @@ public class DoctorServiceImpl implements DoctorService {
 
     private final DoctorRepository doctorRepository;
     private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
     private final MailUtil mailUtil;
     private final DoctorMapper doctorMapper;
@@ -99,31 +101,19 @@ public class DoctorServiceImpl implements DoctorService {
             doctor.setPhone(request.getPhone());
         if (request.getAvatarUrl() != null) {
             if (doctor.getAvatar() == null) {
-                AvatarImage avatar = new AvatarImage();
-                avatar.setUser(doctor);
-                avatar.setFileName("avatar_" + doctor.getUsername());
-                avatar.setFileUrl(request.getAvatarUrl());
+                Image avatar = new Image();
+                avatar.setExtension("png");
+                avatar.setS3BucketId("default");
+                avatar.setS3BucketKey(request.getAvatarUrl());
                 doctor.setAvatar(avatar);
             } else {
-                doctor.getAvatar().setFileUrl(request.getAvatarUrl());
+                doctor.getAvatar().setS3BucketKey(request.getAvatarUrl());
             }
         }
-        if (request.getLicenseNumber() != null)
-            doctor.setLicenseNumber(request.getLicenseNumber());
-        if (request.getSpecialization() != null)
-            doctor.setSpecialization(request.getSpecialization());
 
         if (request.getYearsOfExperience() != null)
             doctor.setYearsOfExperience(request.getYearsOfExperience());
-        if (request.getAcademicTitle() != null)
-            doctor.setAcademicTitle(request.getAcademicTitle());
-        if (request.getDegree() != null)
-            doctor.setDegree(request.getDegree());
 
-        if (request.getBio() != null)
-            doctor.setBio(request.getBio());
-        if (request.getPosition() != null)
-            doctor.setPosition(request.getPosition());
         Doctor saved = doctorRepository.save(doctor);
         log.info("Edited doctor with id {}", saved.getId());
         return doctorMapper.toResponse(saved);
@@ -132,12 +122,9 @@ public class DoctorServiceImpl implements DoctorService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public DoctorResponse createDoctor(CreateDoctorRequest request) {
-        log.info("Starting registration for doctor code: {}", request.getDoctorCode());
+        log.info("Starting registration for doctor email: {}", request.getEmail());
 
         // 1. Validation
-        if (request.getDoctorCode() == null || request.getDoctorCode().isBlank()) {
-            throw new IllegalArgumentException("Doctor code is required");
-        }
         if (request.getEmail() == null || request.getEmail().isBlank()) {
             throw new IllegalArgumentException("Email is required");
         }
@@ -145,9 +132,6 @@ public class DoctorServiceImpl implements DoctorService {
             throw new IllegalArgumentException("Full name is required");
         }
 
-        if (doctorRepository.findByDoctorCode(request.getDoctorCode()).isPresent()) {
-            throw new IllegalArgumentException("Doctor code '" + request.getDoctorCode() + "' is already in use");
-        }
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
             throw new IllegalArgumentException("Email '" + request.getEmail() + "' is already registered");
         }
@@ -156,16 +140,10 @@ public class DoctorServiceImpl implements DoctorService {
         String tempUsername = generateUniqueUsername(request.getEmail());
         String tempPassword = generateSecurePassword();
 
-        // 3. Validate unique phone and license number
+        // 3. Validate unique phone
         if (request.getPhone() != null && !request.getPhone().isBlank()) {
             if (userRepository.findByPhone(request.getPhone()).isPresent()) {
                 throw new IllegalArgumentException("Phone '" + request.getPhone() + "' is already registered");
-            }
-        }
-        if (request.getLicenseNumber() != null && !request.getLicenseNumber().isBlank()) {
-            if (doctorRepository.findByLicenseNumber(request.getLicenseNumber()).isPresent()) {
-                throw new IllegalArgumentException(
-                        "License number '" + request.getLicenseNumber() + "' is already used");
             }
         }
 
@@ -178,26 +156,25 @@ public class DoctorServiceImpl implements DoctorService {
         doctor.setEmail(request.getEmail());
         doctor.setPhone(request.getPhone());
         if (request.getAvatarUrl() != null) {
-            AvatarImage avatar = new AvatarImage();
-            avatar.setUser(doctor);
-            avatar.setFileName("avatar_" + tempUsername);
-            avatar.setFileUrl(request.getAvatarUrl());
+            Image avatar = new Image();
+            avatar.setExtension("png");
+            avatar.setS3BucketId("default");
+            avatar.setS3BucketKey(request.getAvatarUrl());
             doctor.setAvatar(avatar);
         }
-        doctor.setRole(UserRole.DOCTOR);
+
+        Role doctorRole = roleRepository.findByName("DOCTOR")
+                .orElseGet(() -> {
+                    Role r = new Role();
+                    r.setName("DOCTOR");
+                    return roleRepository.save(r);
+                });
+        doctor.setRole(doctorRole);
+        doctor.setUserType("DOCTOR");
         doctor.setStatus(UserStatus.ACTIVE);
 
         // Doctor specific fields
-        doctor.setDoctorCode(request.getDoctorCode());
-        doctor.setLicenseNumber(request.getLicenseNumber());
-        doctor.setSpecialization(request.getSpecialization());
-        // Hospital name removed (single hospital project)
         doctor.setYearsOfExperience(request.getYearsOfExperience());
-        doctor.setAcademicTitle(request.getAcademicTitle());
-        doctor.setDegree(request.getDegree());
-
-        doctor.setBio(request.getBio());
-        doctor.setPosition(request.getPosition());
 
         // Save to database
         Doctor savedDoctor = doctorRepository.save(doctor);
@@ -273,8 +250,6 @@ public class DoctorServiceImpl implements DoctorService {
             log.info("Welcome email sent successfully to {}", doctor.getEmail());
         } catch (Exception e) {
             log.error("Failed to send welcome email to {}", doctor.getEmail(), e);
-            // Do not abort doctor registration due to email failure
-            // Optionally, you could schedule a retry or add to a notification queue
         }
     }
 }

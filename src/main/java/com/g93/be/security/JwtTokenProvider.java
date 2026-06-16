@@ -45,7 +45,7 @@ public class JwtTokenProvider {
      */
     public String generateAccessToken(CustomUserDetails userDetails) {
         Map<String, Object> extraClaims = new HashMap<>();
-        extraClaims.put("role", userDetails.getUser().getRole().name());
+        extraClaims.put("role", userDetails.getUser().getRole() != null ? userDetails.getUser().getRole().getName() : "");
         extraClaims.put("fullName", userDetails.getUser().getFullName());
         return buildToken(extraClaims, userDetails.getUsername(), accessExpirationMs, accessKey);
     }

@@ -7,14 +7,17 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
-@Table(name = "doctors")
-@PrimaryKeyJoinColumn(name = "id")
+@Table(name = "features")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class Doctor extends User {
+public class Feature {
 
-    @Column(name = "years_of_experience")
-    private Integer yearsOfExperience;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(name = "name", length = 100, nullable = false, unique = true)
+    private String name;
 }
