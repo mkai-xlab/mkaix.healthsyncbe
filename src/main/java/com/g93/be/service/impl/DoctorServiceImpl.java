@@ -217,8 +217,8 @@ public class DoctorServiceImpl implements DoctorService {
         sb.append(digits.charAt(random.nextInt(digits.length())));
         sb.append(specials.charAt(random.nextInt(specials.length())));
 
-        // Fill the rest to 10 characters
-        for (int i = 4; i < 10; i++) {
+        // Fill the rest to 12 characters
+        for (int i = 4; i < 12; i++) {
             sb.append(all.charAt(random.nextInt(all.length())));
         }
 

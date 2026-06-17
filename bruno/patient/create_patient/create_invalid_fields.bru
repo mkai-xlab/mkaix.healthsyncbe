@@ -1,0 +1,29 @@
+meta {
+  name: Create Patient Invalid Fields
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/patients
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "patientCode": "PAT123",
+    "fullName": "This name is way too long and will definitely exceed the one hundred characters limit because I just keep typing and typing and typing...",
+    "dateOfBirth": "1990-01-01",
+    "gender": "MALE",
+    "phone": "091234abc",
+    "email": "invalid-email-format",
+    "address": "123 Main St",
+    "emergencyContactName": "Nguyen Van A",
+    "emergencyContactPhone": "0987654321"
+  }
+}
