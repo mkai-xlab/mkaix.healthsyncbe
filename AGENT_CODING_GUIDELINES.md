@@ -44,3 +44,9 @@ This document outlines the standard coding rules and project-specific convention
 - **Broker Config**: Register standard `/topic` (broadcast) and `/queue` (user-specific) brokers in a `WebSocketConfig` class located in the `config` package.
 - **Payload & DTOs**: Always use DTOs (e.g., `NotificationDto`) when sending messages via `SimpMessagingTemplate`. Do not send raw Entities to avoid exposing sensitive internal state.
 - **Client Testing**: Maintain an HTML test client (e.g., `src/main/resources/static/test-stomp.html`) to allow quick local verification of real-time events. Ensure the client connects using the correct context path (`/api/v1/ws`).
+
+## 9. Unit Testing (JUnit + Mockito)
+- **Immediate Testing**: After developing each new feature (Service layer logic, Controller endpoints, Custom Mappers), you MUST write Unit Tests using JUnit 5 and Mockito immediately before considering the task complete.
+- **Test Isolation**: Tests should be fully isolated. Use `@ExtendWith(MockitoExtension.class)` and `@InjectMocks` / `@Mock` annotations to mock dependencies.
+- **Naming Conventions**: Test classes should follow the `<ClassName>Test` convention. Test methods should be descriptively named following the `methodName_stateUnderTest_expectedBehavior` convention (e.g., `createPatient_validRequest_success`).
+- **Assertion and Verification**: Verify both the returned outputs and that the expected methods on mocked dependencies were called using `verify()`.

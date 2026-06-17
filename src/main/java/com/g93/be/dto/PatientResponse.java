@@ -15,15 +15,11 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class PatientResponse {
     private Long id;
-    private String patientCode;
     private String fullName;
     private LocalDate dateOfBirth;
     private Gender gender;
     private String phone;
     private String email;
-    private String address;
-    private String emergencyContactName;
-    private String emergencyContactPhone;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

@@ -14,9 +14,6 @@ import java.time.LocalDate;
 @NoArgsConstructor
 @AllArgsConstructor
 public class CreatePatientRequest {
-    @NotBlank(message = "Patient code cannot be blank")
-    private String patientCode;
-    
     @NotBlank(message = "Full name cannot be blank")
     private String fullName;
     
@@ -24,7 +21,4 @@ public class CreatePatientRequest {
     private Gender gender;
     private String phone;
     private String email;
-    private String address;
-    private String emergencyContactName;
-    private String emergencyContactPhone;
 }

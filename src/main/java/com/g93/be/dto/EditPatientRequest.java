@@ -18,7 +18,4 @@ public class EditPatientRequest {
     private Gender gender;
     private String phone;
     private String email;
-    private String address;
-    private String emergencyContactName;
-    private String emergencyContactPhone;
 }

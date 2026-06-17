@@ -35,7 +35,7 @@ public class PatientController {
      */
     @PostMapping
     public ResponseEntity<PatientResponse> createPatient(@Valid @RequestBody CreatePatientRequest request) {
-        log.info("Received request to register a new patient with code: {}", request.getPatientCode());
+        log.info("Received request to register a new patient with email: {}", request.getEmail());
         PatientResponse response = patientService.createPatient(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
