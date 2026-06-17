@@ -29,6 +29,7 @@ public class DataInitializer implements CommandLineRunner {
         Role adminRole = getOrCreateRole("ADMIN");
         getOrCreateRole("DOCTOR");
         getOrCreateRole("PATIENT");
+        getOrCreateRole("HEAD_OF_DEPARTMENT");
 
         // Kiểm tra nếu tài khoản admin chưa tồn tại thì khởi tạo
         if (userRepository.findByUsername("admin").isEmpty()) {
