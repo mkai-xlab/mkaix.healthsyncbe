@@ -28,7 +28,7 @@ public class DoctorMapper {
         response.setEmail(doctor.getEmail());
         response.setPhone(doctor.getPhone());
         response.setAvatarUrl(doctor.getAvatar() != null ? doctor.getAvatar().getFileUrl() : null);
-        response.setRole(doctor.getRole() != null ? doctor.getRole().name() : null);
+        response.setRole(doctor.getRole() != null ? doctor.getRole().getName() : null);
         response.setStatus(doctor.getStatus());
         response.setDoctorCode(doctor.getDoctorCode());
         response.setLicenseNumber(doctor.getLicenseNumber());

@@ -1,0 +1,22 @@
+meta {
+  name: Update Feature
+  type: http
+  seq: 2
+}
+
+put {
+  url: {{baseUrl}}/features/1
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "name": "UPDATED_FEATURE",
+    "description": "This is an updated feature"
+  }
+}
