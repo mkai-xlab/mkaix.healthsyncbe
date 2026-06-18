@@ -8,11 +8,6 @@ Enum user_status {
   INACTIVE
 }
 
-Enum user_role {
-  DOCTOR
-  ADMIN
-}
-
 Enum doctor_position {
   DEPARTMENT_HEAD
   NORMAL
@@ -47,7 +42,7 @@ Table users {
   full_name varchar(150) [not null]
   email varchar(150) [not null, unique]
   phone varchar(30)
-  role user_role [not null]
+  role_id bigint [not null]
   status user_status [not null, default: 'ACTIVE']
   is_first_activated boolean [not null, default: true]
   created_at datetime [not null]
@@ -255,6 +250,40 @@ Ref: clinical_reports.doctor_id > doctors.id [delete: restrict, update: cascade]
 
 Ref: notifications.user_id > users.id [delete: cascade, update: cascade]
 Ref: audit_logs.user_id > users.id [delete: set null, update: cascade]
+Ref: users.role_id > roles.id [delete: restrict, update: cascade]
 Ref: password_reset_tokens.user_id > users.id [delete: cascade, update: cascade]
 Ref: dicom_informations.xray_image_id - xray_images.id [delete: cascade, update: cascade]
 Ref: avatar_images.user_id - users.id [delete: cascade, update: cascade]
+
+Table roles {
+  id bigint [pk, increment]
+  name varchar(50) [not null, unique]
+  description text
+  created_at datetime [not null]
+  updated_at datetime
+}
+
+Table features {
+  id bigint [pk, increment]
+  name varchar(100) [not null, unique]
+  description text
+}
+
+Table permissions {
+  id bigint [pk, increment]
+  feature_id bigint [not null]
+  requires_permission_id bigint
+  name varchar(100) [not null, unique]
+  description text
+}
+
+Table role_permissions {
+  id bigint [pk, increment]
+  role_id bigint [not null]
+  permission_id bigint [not null]
+}
+
+Ref: permissions.feature_id > features.id [delete: cascade, update: cascade]
+Ref: permissions.requires_permission_id > permissions.id [delete: cascade, update: cascade]
+Ref: role_permissions.role_id > roles.id [delete: cascade, update: cascade]
+Ref: role_permissions.permission_id > permissions.id [delete: cascade, update: cascade]

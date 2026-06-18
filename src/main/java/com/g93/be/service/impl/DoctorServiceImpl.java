@@ -5,11 +5,11 @@ import com.g93.be.dto.CreateDoctorRequest;
 import com.g93.be.dto.DoctorResponse;
 import com.g93.be.dto.PageResponse;
 import com.g93.be.entity.Doctor;
-import com.g93.be.entity.UserRole;
 import com.g93.be.entity.UserStatus;
 import com.g93.be.entity.AvatarImage;
 import com.g93.be.repository.DoctorRepository;
 import com.g93.be.repository.UserRepository;
+import com.g93.be.repository.RoleRepository;
 import com.g93.be.service.DoctorService;
 import com.g93.be.specification.DoctorSpecification;
 import lombok.RequiredArgsConstructor;
@@ -37,6 +37,7 @@ public class DoctorServiceImpl implements DoctorService {
 
     private final DoctorRepository doctorRepository;
     private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
     private final MailUtil mailUtil;
     private final DoctorMapper doctorMapper;
@@ -184,7 +185,8 @@ public class DoctorServiceImpl implements DoctorService {
             avatar.setFileUrl(request.getAvatarUrl());
             doctor.setAvatar(avatar);
         }
-        doctor.setRole(UserRole.DOCTOR);
+        doctor.setRole(roleRepository.findByName("DOCTOR")
+                .orElseThrow(() -> new IllegalStateException("DOCTOR role not found in database")));
         doctor.setStatus(UserStatus.ACTIVE);
 
         // Doctor specific fields
