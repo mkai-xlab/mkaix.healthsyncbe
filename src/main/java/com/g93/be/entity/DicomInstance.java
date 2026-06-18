@@ -1,0 +1,62 @@
+package com.g93.be.entity;
+
+import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import java.time.LocalDateTime;
+
+@Entity
+@Table(name = "dicom_instances")
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+public class DicomInstance {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(name = "study_date")
+    private LocalDateTime studyDate;
+
+    @Column(name = "study_description", length = 255)
+    private String studyDescription;
+
+    @Column(name = "modality", length = 50)
+    private String modality;
+
+    @Column(name = "study_instance_uid", length = 150)
+    private String studyInstanceUid;
+
+    @Column(name = "series_instance_uid", length = 150)
+    private String seriesInstanceUid;
+
+    @Column(name = "instance_uid", length = 150)
+    private String instanceUid;
+
+    @Column(name = "seri_id", length = 100)
+    private String seriId;
+
+    @Column(name = "created_at", nullable = false)
+    private LocalDateTime createdAt;
+
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "dicom_image_id")
+    private Image dicomImage;
+
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "png_image_id")
+    private Image pngImage;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "examination_id", nullable = false)
+    private Examination examination;
+
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+    }
+}

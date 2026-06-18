@@ -7,9 +7,6 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import java.time.LocalDateTime;
 
-/**
- * Entity representing a patient examination.
- */
 @Entity
 @Table(name = "examinations")
 @Getter
@@ -30,24 +27,30 @@ public class Examination {
     @JoinColumn(name = "doctor_id", nullable = false)
     private Doctor doctor;
 
+    @Column(name = "encounter_code", length = 100)
+    private String encounterCode;
+
+    @Column(name = "visit_time")
+    private LocalDateTime visitTime;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
     private ExaminationStatus status = ExaminationStatus.CREATED;
 
-    @Column(name = "clinical_note", columnDefinition = "TEXT")
-    private String clinicalNote;
+    @Column(name = "chief_complaint", columnDefinition = "TEXT")
+    private String chiefComplaint;
 
-    @Column(name = "final_diagnosis", columnDefinition = "TEXT")
-    private String finalDiagnosis;
+    @Column(name = "clinical_notes", columnDefinition = "TEXT")
+    private String clinicalNotes;
 
-    @Column(name = "examined_at", nullable = false)
-    private LocalDateTime examinedAt;
+    @Column(name = "priority", length = 50)
+    private String priority;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
+    @Column(name = "final_diagnosis", columnDefinition = "TEXT")
+    private String finalDiagnosis;
 
     @PrePersist
     protected void onCreate() {
@@ -55,10 +58,5 @@ public class Examination {
         if (status == null) {
             status = ExaminationStatus.CREATED;
         }
-    }
-
-    @PreUpdate
-    protected void onUpdate() {
-        updatedAt = LocalDateTime.now();
     }
 }

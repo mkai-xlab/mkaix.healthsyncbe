@@ -138,4 +138,13 @@ public class DataInitializer implements CommandLineRunner {
             System.out.println(">>> Đã khởi tạo tài khoản admin mặc định (admin/admin)");
         }
     }
+
+    private Role getOrCreateRole(String name) {
+        return roleRepository.findByName(name)
+                .orElseGet(() -> {
+                    Role r = new Role();
+                    r.setName(name);
+                    return roleRepository.save(r);
+                });
+    }
 }
