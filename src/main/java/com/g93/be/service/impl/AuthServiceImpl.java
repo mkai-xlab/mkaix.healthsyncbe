@@ -126,19 +126,20 @@ public class AuthServiceImpl implements AuthService {
             return;
         }
 
-        // Delete existing token if any
-        passwordResetTokenRepository.deleteByUser(user);
-
+        // Retrieve existing token or create a new one
+        PasswordResetToken resetToken = passwordResetTokenRepository.findByUser(user)
+                .orElse(new PasswordResetToken());
+        
         // Generate 6-digit OTP
         SecureRandom random = new SecureRandom();
         int num = random.nextInt(1000000);
         String token = String.format("%06d", num);
 
-        // Save token
-        PasswordResetToken resetToken = new PasswordResetToken();
+        // Update properties
         resetToken.setUser(user);
         resetToken.setToken(token);
         resetToken.setExpiryDate(LocalDateTime.now().plusMinutes(10));
+        
         passwordResetTokenRepository.save(resetToken);
 
         // Send email

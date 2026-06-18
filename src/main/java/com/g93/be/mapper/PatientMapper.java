@@ -23,15 +23,15 @@ public class PatientMapper {
 
         return new PatientResponse(
                 patient.getId(),
-                patient.getPatientCode(),
+                null, // patientCode is deleted in ERD
                 patient.getFullName(),
-                patient.getDateOfBirth(),
+                patient.getDob(),
                 patient.getGender(),
                 patient.getPhone(),
                 patient.getEmail(),
-                patient.getAddress(),
-                patient.getEmergencyContactName(),
-                patient.getEmergencyContactPhone(),
+                null, // address is deleted in ERD
+                null, // emergencyContactName is deleted in ERD
+                null, // emergencyContactPhone is deleted in ERD
                 patient.getCreatedAt(),
                 patient.getUpdatedAt()
         );

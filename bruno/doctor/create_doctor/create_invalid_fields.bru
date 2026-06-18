@@ -1,0 +1,30 @@
+meta {
+  name: Create Doctor Invalid Fields
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/doctors
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "fullName": "This name is way too long and will definitely exceed the one hundred characters limit because I just keep typing and typing and typing...",
+    "email": "invalid-email",
+    "phone": "091234abc",
+    "avatarUrl": "http://example.com/avatar.png",
+    "doctorCode": "DOC003",
+    "licenseNumber": "12347/BYT-CCHN",
+    "specialization": "Cardiology",
+    "hospitalName": "Bach Mai Hospital",
+    "yearsOfExperience": 5,
+    "position": "NORMAL"
+  }
+}

@@ -30,15 +30,17 @@ public class DoctorMapper {
         response.setAvatarUrl(doctor.getAvatar() != null ? doctor.getAvatar().getFileUrl() : null);
         response.setRole(doctor.getRole() != null ? doctor.getRole().getName() : null);
         response.setStatus(doctor.getStatus());
-        response.setDoctorCode(doctor.getDoctorCode());
-        response.setLicenseNumber(doctor.getLicenseNumber());
-        response.setSpecialization(doctor.getSpecialization());
-        response.setYearsOfExperience(doctor.getYearsOfExperience());
-        response.setAcademicTitle(doctor.getAcademicTitle());
-        response.setDegree(doctor.getDegree());
+        
+        // These fields are deleted in the ERD; map to null to preserve contract
+        response.setDoctorCode(null);
+        response.setLicenseNumber(null);
+        response.setSpecialization(null);
+        response.setAcademicTitle(null);
+        response.setDegree(null);
+        response.setBio(null);
+        response.setPosition(null);
 
-        response.setBio(doctor.getBio());
-        response.setPosition(doctor.getPosition());
+        response.setYearsOfExperience(doctor.getYearsOfExperience());
         response.setCreatedAt(doctor.getCreatedAt());
         response.setUpdatedAt(doctor.getUpdatedAt());
         return response;

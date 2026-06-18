@@ -75,7 +75,7 @@ class DoctorRegistrationIntegrationTest {
         assertEquals("John Doe", response.getFullName());
         assertEquals("john.doe@hospital.com", response.getEmail());
         assertEquals(UserStatus.ACTIVE, response.getStatus());
-        assertEquals("Orthopedics", response.getSpecialization());
+        assertEquals(10, response.getYearsOfExperience());
 
         // Verify entity in DB
         Optional<Doctor> savedDocOpt = doctorRepository.findById(response.getId());
@@ -102,7 +102,7 @@ class DoctorRegistrationIntegrationTest {
     }
 
     @Test
-    void testCreateDoctor_DuplicateDoctorCode() {
+    void testCreateDoctor_DuplicateEmail() {
         // Given
         CreateDoctorRequest request1 = new CreateDoctorRequest(
                 "John Doe",
@@ -117,10 +117,10 @@ class DoctorRegistrationIntegrationTest {
 
         CreateDoctorRequest request2 = new CreateDoctorRequest(
                 "Jane Doe",
-                "jane.doe@hospital.com",
+                "john.doe@hospital.com", // Duplicate email
                 "987654321",
                 null,
-                "DOC001", // Duplicate code
+                "DOC002",
                 null, null, null, null, null, null, null, null,
                 DoctorPosition.NORMAL
         );
@@ -129,7 +129,7 @@ class DoctorRegistrationIntegrationTest {
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
             doctorService.createDoctor(request2);
         });
-        assertTrue(exception.getMessage().contains("already in use"));
+        assertTrue(exception.getMessage().contains("already registered"));
     }
 
     @Test
@@ -184,4 +184,3 @@ class DoctorRegistrationIntegrationTest {
         assertEquals("Nguyễn Hoàng Duy", response.content().get(0).getFullName());
     }
 }
-

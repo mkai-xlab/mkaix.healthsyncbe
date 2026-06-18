@@ -6,18 +6,24 @@ import com.g93.be.dto.PageResponse;
 import com.g93.be.dto.PatientFilterRequest;
 import com.g93.be.dto.PatientResponse;
 import com.g93.be.entity.Patient;
+import com.g93.be.entity.Role;
+import com.g93.be.entity.UserStatus;
 import com.g93.be.mapper.PatientMapper;
 import com.g93.be.repository.PatientRepository;
+import com.g93.be.repository.UserRepository;
+import com.g93.be.repository.RoleRepository;
 import com.g93.be.repository.specification.PatientSpecification;
 import com.g93.be.service.PatientService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -25,6 +31,9 @@ import java.util.List;
 public class PatientServiceImpl implements PatientService {
 
     private final PatientRepository patientRepository;
+    private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
+    private final PasswordEncoder passwordEncoder;
     private final PatientMapper patientMapper;
 
     @Override
@@ -62,18 +71,16 @@ public class PatientServiceImpl implements PatientService {
                 .orElseThrow(() -> new IllegalArgumentException("Patient with id " + id + " not found"));
 
         if (request.getFullName() != null) patient.setFullName(request.getFullName());
-        if (request.getDateOfBirth() != null) patient.setDateOfBirth(request.getDateOfBirth());
+        if (request.getDateOfBirth() != null) patient.setDob(request.getDateOfBirth());
         if (request.getGender() != null) patient.setGender(request.getGender());
         if (request.getPhone() != null) patient.setPhone(request.getPhone());
         if (request.getEmail() != null && !request.getEmail().isBlank()) {
-            if (patientRepository.existsByEmailAndIdNot(request.getEmail(), id)) {
+            if (userRepository.findByEmail(request.getEmail()).isPresent() && 
+                !patient.getEmail().equals(request.getEmail())) {
                 throw new IllegalArgumentException("Email '" + request.getEmail() + "' is already registered");
             }
             patient.setEmail(request.getEmail());
         }
-        if (request.getAddress() != null) patient.setAddress(request.getAddress());
-        if (request.getEmergencyContactName() != null) patient.setEmergencyContactName(request.getEmergencyContactName());
-        if (request.getEmergencyContactPhone() != null) patient.setEmergencyContactPhone(request.getEmergencyContactPhone());
 
         Patient saved = patientRepository.save(patient);
         log.info("Edited patient with id {}", saved.getId());
@@ -83,39 +90,65 @@ public class PatientServiceImpl implements PatientService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public PatientResponse createPatient(CreatePatientRequest request) {
-        log.info("Starting registration for patient code: {}", request.getPatientCode());
+        log.info("Starting registration for patient name: {}", request.getFullName());
 
-        if (request.getPatientCode() == null || request.getPatientCode().isBlank()) {
-            throw new IllegalArgumentException("Patient code is required");
-        }
         if (request.getFullName() == null || request.getFullName().isBlank()) {
             throw new IllegalArgumentException("Full name is required");
         }
 
-        if (patientRepository.existsByPatientCode(request.getPatientCode())) {
-            throw new IllegalArgumentException("Patient code '" + request.getPatientCode() + "' is already in use");
+        String tempUsername = generateUniqueUsername(request.getEmail(), request.getFullName());
+        String tempPassword = UUID.randomUUID().toString().substring(0, 12);
+
+        String email = request.getEmail();
+        if (email == null || email.isBlank()) {
+            email = tempUsername + "@healthsync.com";
         }
 
-        if (request.getEmail() != null && !request.getEmail().isBlank()) {
-            if (patientRepository.existsByEmail(request.getEmail())) {
-                throw new IllegalArgumentException("Email '" + request.getEmail() + "' is already registered");
-            }
+        if (userRepository.findByEmail(email).isPresent()) {
+            throw new IllegalArgumentException("Email '" + email + "' is already registered");
         }
 
         Patient patient = new Patient();
-        patient.setPatientCode(request.getPatientCode());
+        patient.setUsername(tempUsername);
+        patient.setPassword(passwordEncoder.encode(tempPassword));
         patient.setFullName(request.getFullName());
-        patient.setDateOfBirth(request.getDateOfBirth());
+        patient.setDob(request.getDateOfBirth());
         patient.setGender(request.getGender());
         patient.setPhone(request.getPhone());
-        patient.setEmail(request.getEmail());
-        patient.setAddress(request.getAddress());
-        patient.setEmergencyContactName(request.getEmergencyContactName());
-        patient.setEmergencyContactPhone(request.getEmergencyContactPhone());
+        patient.setEmail(email);
+        patient.setStatus(UserStatus.ACTIVE);
+        patient.setUserType("PATIENT");
+
+        Role patientRole = roleRepository.findByName("PATIENT")
+                .orElseGet(() -> {
+                    Role r = new Role();
+                    r.setName("PATIENT");
+                    return roleRepository.save(r);
+                });
+        patient.setRole(patientRole);
 
         Patient savedPatient = patientRepository.save(patient);
         log.info("Patient saved successfully with ID: {}", savedPatient.getId());
 
         return patientMapper.toResponse(savedPatient);
+    }
+
+    private String generateUniqueUsername(String email, String fullName) {
+        String base = "patient";
+        if (email != null && !email.isBlank()) {
+            base = email.split("@")[0].replaceAll("[^a-zA-Z0-9._]", "").toLowerCase();
+        } else if (fullName != null && !fullName.isBlank()) {
+            base = fullName.split(" ")[0].replaceAll("[^a-zA-Z0-9._]", "").toLowerCase();
+        }
+        if (base.isBlank()) {
+            base = "patient";
+        }
+        String username = base;
+        int suffix = 1;
+        while (userRepository.findByUsername(username).isPresent()) {
+            username = base + suffix;
+            suffix++;
+        }
+        return username;
     }
 }
