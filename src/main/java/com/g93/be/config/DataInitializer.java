@@ -131,9 +131,6 @@ public class DataInitializer implements CommandLineRunner {
             admin.setStatus(UserStatus.ACTIVE);
             admin.setIsFirstActivated(false);
 
-            admin.setAdminCode("ADMIN_001");
-            admin.setPosition("System Manager");
-
             adminRepository.save(admin);
             System.out.println(">>> Đã khởi tạo tài khoản admin mặc định (admin/admin)");
         }
