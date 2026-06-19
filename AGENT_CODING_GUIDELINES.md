@@ -44,3 +44,6 @@ This document outlines the standard coding rules and project-specific convention
 - **Broker Config**: Register standard `/topic` (broadcast) and `/queue` (user-specific) brokers in a `WebSocketConfig` class located in the `config` package.
 - **Payload & DTOs**: Always use DTOs (e.g., `NotificationDto`) when sending messages via `SimpMessagingTemplate`. Do not send raw Entities to avoid exposing sensitive internal state.
 - **Client Testing**: Maintain an HTML test client (e.g., `src/main/resources/static/test-stomp.html`) to allow quick local verification of real-time events. Ensure the client connects using the correct context path (`/api/v1/ws`).
+
+## 9. API Documentation (Docs)
+- **Always Update API Docs**: Whenever you create or modify an API endpoint, you MUST update the corresponding API documentation in the `docs/` folder so the Frontend (FE) team can use it immediately.
