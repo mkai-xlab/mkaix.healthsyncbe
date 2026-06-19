@@ -41,7 +41,7 @@ public class User {
     private Image avatar;
 
     @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "role_id")
+    @JoinColumn(name = "role_id", nullable = false)
     private Role role;
 
     @Enumerated(EnumType.STRING)

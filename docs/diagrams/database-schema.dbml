@@ -3,9 +3,23 @@ Project capstone_ai_knee_xray_diagnosis {
   note: "Database schema based on new ERD"
 }
 
-Table roles {
-  id bigint [pk, increment]
-  name varchar(50)
+Enum user_status {
+  ACTIVE
+  INACTIVE
+}
+
+Enum doctor_position {
+  DEPARTMENT_HEAD
+  NORMAL
+}
+
+Enum examination_status {
+  CREATED
+  AI_PROCESSING
+  AI_COMPLETED
+  REVIEWED
+  REPORT_GENERATED
+  CANCELLED
 }
 
 Table features {
@@ -26,15 +40,27 @@ Table users {
   username varchar(50)
   password varchar(100)
   phone varchar(30)
-  full_name varchar(150)
-  dob date
-  user_type varchar(50)
-  avatar_image_id bigint
-  status varchar(50)
-  gender varchar(20)
-  create_at datetime
-  update_at datetime
-  role_id bigint
+  role_id bigint [not null]
+  status user_status [not null, default: 'ACTIVE']
+  is_first_activated boolean [not null, default: true]
+  created_at datetime [not null]
+  updated_at datetime
+
+  Note: "Parent table in the JPA JOINED inheritance hierarchy. Shared account identity for doctors and administrators. Only two roles are supported: DOCTOR and ADMIN. Authentication uses standard username/password and JWT tokens."
+}
+
+Table doctors {
+  id bigint [pk]
+  doctor_code varchar(50) [not null, unique]
+  license_number varchar(100)
+  specialization varchar(150)
+  years_of_experience int
+  academic_title varchar(100)
+  degree varchar(100)
+  bio text
+  position doctor_position [not null]
+
+  Note: "Child table in the JPA JOINED inheritance hierarchy representing doctors. The primary key `id` is a foreign key referencing `users.id`. Contains clinical and professional information."
 }
 
 Table admins {
@@ -121,26 +147,42 @@ Table ai_analyses {
   created_at datetime
 }
 
-Table result_attachments {
+Ref: notifications.user_id > users.id [delete: cascade, update: cascade]
+Ref: audit_logs.user_id > users.id [delete: set null, update: cascade]
+Ref: users.role_id > roles.id [delete: restrict, update: cascade]
+Ref: password_reset_tokens.user_id > users.id [delete: cascade, update: cascade]
+Ref: dicom_informations.xray_image_id - xray_images.id [delete: cascade, update: cascade]
+Ref: avatar_images.user_id - users.id [delete: cascade, update: cascade]
+
+Table roles {
   id bigint [pk, increment]
-  dicom_study_id bigint
-  KL_level varchar(50)
-  diagnosis text
-  accuracy_rate decimal(5,4)
+  name varchar(50) [not null, unique]
+  description text
+  created_at datetime [not null]
+  updated_at datetime
 }
 
-Ref: permissions.feature_id > features.id
-Ref: permissions.role_id > roles.id
-Ref: users.role_id > roles.id
-Ref: users.avatar_image_id > images.id
-Ref: admins.id - users.id
-Ref: doctors.id - users.id
-Ref: notifications.user_id > users.id
-Ref: audit_logs.user_id > users.id
-Ref: examinations.patient_id > patients.id
-Ref: examinations.doctor_id > doctors.id
-Ref: dicom_instances.examination_id > examinations.id
-Ref: dicom_instances.dicom_image_id > images.id
-Ref: dicom_instances.png_image_id > images.id
-Ref: ai_analyses.examination_id > examinations.id
-Ref: result_attachments.dicom_study_id > dicom_instances.id
+Table features {
+  id bigint [pk, increment]
+  name varchar(100) [not null, unique]
+  description text
+}
+
+Table permissions {
+  id bigint [pk, increment]
+  feature_id bigint [not null]
+  requires_permission_id bigint
+  name varchar(100) [not null, unique]
+  description text
+}
+
+Table role_permissions {
+  id bigint [pk, increment]
+  role_id bigint [not null]
+  permission_id bigint [not null]
+}
+
+Ref: permissions.feature_id > features.id [delete: cascade, update: cascade]
+Ref: permissions.requires_permission_id > permissions.id [delete: cascade, update: cascade]
+Ref: role_permissions.role_id > roles.id [delete: cascade, update: cascade]
+Ref: role_permissions.permission_id > permissions.id [delete: cascade, update: cascade]
