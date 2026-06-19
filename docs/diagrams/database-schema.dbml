@@ -1,6 +1,6 @@
 Project capstone_ai_knee_xray_diagnosis {
   database_type: "MySQL"
-  note: "Database schema for AI-assisted knee X-ray diagnosis system"
+  note: "Database schema based on new ERD"
 }
 
 Enum user_status {
@@ -22,25 +22,23 @@ Enum examination_status {
   CANCELLED
 }
 
-Enum ai_job_status {
-  PENDING
-  PROCESSING
-  COMPLETED
-  FAILED
+Table features {
+  id bigint [pk, increment]
+  name varchar(100)
 }
 
-Enum gender {
-  MALE
-  FEMALE
-  OTHER
+Table permissions {
+  id bigint [pk, increment]
+  name varchar(100)
+  feature_id bigint
+  role_id bigint
 }
 
 Table users {
   id bigint [pk, increment]
-  username varchar(50) [not null, unique]
-  password varchar(100) [not null]
-  full_name varchar(150) [not null]
-  email varchar(150) [not null, unique]
+  email varchar(150)
+  username varchar(50)
+  password varchar(100)
   phone varchar(30)
   role_id bigint [not null]
   status user_status [not null, default: 'ACTIVE']
@@ -67,186 +65,87 @@ Table doctors {
 
 Table admins {
   id bigint [pk]
-  admin_code varchar(50) [not null, unique]
-  position varchar(100)
-
-  Note: "Child table in the JPA JOINED inheritance hierarchy representing administrators. The primary key `id` is a foreign key referencing `users.id`. Contains lightweight management information."
 }
 
-Table patients {
-  id bigint [pk, increment]
-  patient_code varchar(50) [not null, unique]
-  full_name varchar(150) [not null]
-  date_of_birth date
-  gender gender
-  phone varchar(30)
-  email varchar(150)
-  address varchar(255)
-  emergency_contact_name varchar(150)
-  emergency_contact_phone varchar(30)
-  created_at datetime [not null]
-  updated_at datetime
-}
-
-Table examinations {
-  id bigint [pk, increment]
-  patient_id bigint [not null]
-  doctor_id bigint [not null]
-  status examination_status [not null, default: 'CREATED']
-  clinical_note text
-  final_diagnosis text
-  examined_at datetime [not null]
-  created_at datetime [not null]
-  updated_at datetime
-
-  Note: "A patient examination handled by a doctor. One examination can contain multiple X-ray images."
-}
-
-Table xray_images {
-  id bigint [pk, increment]
-  examination_id bigint [not null]
-  file_name varchar(255) [not null]
-  file_url varchar(500) [not null]
-  dicom_url varchar(500)
-  body_side varchar(20)
-  view_position varchar(50)
-  uploaded_at datetime [not null]
-
-  Note: "Uploaded knee X-ray image belonging to an examination. `file_url` stores the web-viewable PNG format link, while `dicom_url` stores the raw DICOM file link."
-}
-
-Table ai_analysis_jobs {
-  id bigint [pk, increment]
-  examination_id bigint [not null]
-  status ai_job_status [not null, default: 'PENDING']
-  started_at datetime
-  completed_at datetime
-  error_message text
-  created_at datetime [not null]
-
-  Note: "AI processing job for an examination."
-}
-
-Table ai_analysis_results {
-  id bigint [pk, increment]
-  job_id bigint [not null]
-  xray_image_id bigint [not null]
-  predicted_kl_grade int [not null]
-  confidence decimal(5,4)
-  gradcam_url varchar(500)
-  interpretation text
-  created_at datetime [not null]
-
-  Note: "AI result for one X-ray image, including KL grade prediction and Grad-CAM output."
-}
-
-Table diagnosis_reviews {
-  id bigint [pk, increment]
-  examination_id bigint [not null]
-  doctor_id bigint [not null]
-  ai_result_id bigint
-  confirmed_kl_grade int
-  doctor_diagnosis text
-  review_note text
-  reviewed_at datetime [not null]
-
-  Note: "Doctor review and clinical validation of AI-generated diagnosis results."
-}
-
-Table clinical_reports {
-  id bigint [pk, increment]
-  examination_id bigint [not null]
-  doctor_id bigint [not null]
-  report_code varchar(50) [not null, unique]
-  report_content text
-  file_url varchar(500)
-  is_confirmed boolean [not null, default: false]
-  confirmed_at datetime
-  generated_at datetime [not null]
-
-  Note: "Generated/exported clinical report for an examination."
+Table doctors {
+  id bigint [pk]
+  years_of_experience int
 }
 
 Table notifications {
   id bigint [pk, increment]
-  user_id bigint [not null]
-  title varchar(150) [not null]
-  message text [not null]
+  user_id bigint
+  title varchar(150)
+  message text
   type varchar(50)
-  is_read boolean [not null, default: false]
-  created_at datetime [not null]
+  is_read boolean
+  create_at datetime
   read_at datetime
 }
 
 Table audit_logs {
   id bigint [pk, increment]
   user_id bigint
-  action varchar(100) [not null]
-  entity_type varchar(100)
-  entity_id bigint
+  title varchar(150)
   description text
-  payload text
   ip_address varchar(100)
   user_agent varchar(255)
-  is_success boolean [not null, default: true]
-  created_at datetime [not null]
+  time_stamp datetime
 }
 
-Table password_reset_tokens {
+Table images {
   id bigint [pk, increment]
-  user_id bigint [not null]
-  token varchar(6) [not null]
-  expiry_date datetime [not null]
-
-  Note: "Stores 6-digit OTP tokens for password reset functionality."
+  extension varchar(10)
+  s3_bucket_id varchar(255)
+  s3_bucket_key varchar(255)
 }
 
-Table avatar_images {
+Table patients {
   id bigint [pk, increment]
-  user_id bigint [not null, unique]
-  file_name varchar(255) [not null]
-  file_url varchar(500) [not null]
-  uploaded_at datetime [not null]
-
-  Note: "User avatar image. Inherits from BaseImage."
 }
 
-Table dicom_informations {
+Table examinations {
   id bigint [pk, increment]
-  xray_image_id bigint [not null, unique]
-  sop_instance_uid varchar(150) [not null, unique]
-  series_instance_uid varchar(150)
-  study_instance_uid varchar(150)
-  patient_name varchar(150)
-  patient_id varchar(100)
-  patient_birth_date date
-  patient_sex varchar(10)
+  patient_id bigint
+  doctor_id bigint
+  encounter_code varchar(100)
+  visit_time datetime
+  status varchar(50)
+  chief_complaint text
+  clinical_notes text
+  priority varchar(50)
+  created_at datetime
+  final_diagnosis text
+}
+
+Table dicom_instances {
+  id bigint [pk, increment]
+  study_date datetime
+  study_description varchar(255)
   modality varchar(50)
-  manufacturer varchar(150)
-  institution_name varchar(200)
-  instance_number int
-
-  Note: "Stores parsed clinical DICOM metadata tags for an X-ray image."
+  study_instance_uid varchar(150)
+  series_instance_uid varchar(150)
+  instance_uid varchar(150)
+  seri_id varchar(150)
+  created_at datetime
+  dicom_image_id bigint
+  png_image_id bigint
+  examination_id bigint
 }
 
-Ref: doctors.id - users.id [delete: cascade, update: cascade]
-Ref: admins.id - users.id [delete: cascade, update: cascade]
-
-Ref: examinations.patient_id > patients.id [delete: restrict, update: cascade]
-Ref: examinations.doctor_id > doctors.id [delete: restrict, update: cascade]
-
-Ref: xray_images.examination_id > examinations.id [delete: cascade, update: cascade]
-
-Ref: ai_analysis_jobs.examination_id > examinations.id [delete: cascade, update: cascade]
-Ref: ai_analysis_results.job_id > ai_analysis_jobs.id [delete: cascade, update: cascade]
-Ref: ai_analysis_results.xray_image_id > xray_images.id [delete: cascade, update: cascade]
-
-Ref: diagnosis_reviews.examination_id > examinations.id [delete: cascade, update: cascade]
-Ref: diagnosis_reviews.doctor_id > doctors.id [delete: restrict, update: cascade]
-Ref: diagnosis_reviews.ai_result_id > ai_analysis_results.id [delete: set null, update: cascade]
-
-Ref: clinical_reports.examination_id > examinations.id [delete: cascade, update: cascade]
-Ref: clinical_reports.doctor_id > doctors.id [delete: restrict, update: cascade]
+Table ai_analyses {
+  id bigint [pk, increment]
+  examination_id bigint
+  start_date datetime
+  duration int
+  status varchar(50)
+  token varchar(255)
+  average_level varchar(50)
+  final_diagnosis text
+  number_of_result int
+  accuracy_rate decimal(5,4)
+  created_at datetime
+}
 
 Ref: notifications.user_id > users.id [delete: cascade, update: cascade]
 Ref: audit_logs.user_id > users.id [delete: set null, update: cascade]
