@@ -51,3 +51,5 @@ This document outlines the standard coding rules and project-specific convention
   2. **Code**: Ensure all code is clean, properly formatted, commented in English, and adheres to the architecture rules.
   3. **Bruno / Tests**: Create or update Bruno collections and automated tests for the newly added or modified functionality.
   4. **AGENT GUIDELINES**: If the new feature introduces a new architectural pattern, rule, or systemic change, update `AGENT_CODING_GUIDELINES.md` to establish the new standard for future tasks.
+## 9. API Documentation (Docs)
+- **Always Update API Docs**: Whenever you create or modify an API endpoint, you MUST update the corresponding API documentation in the `docs/` folder so the Frontend (FE) team can use it immediately.

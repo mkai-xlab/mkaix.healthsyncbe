@@ -1,140 +1,65 @@
 erDiagram
-    users ||--|| doctors : "id"
-    users ||--|| admins : "id"
-    users ||--o{ notifications : "user_id"
-    users ||--o{ audit_logs : "user_id"
-    users ||--o{ password_reset_tokens : "user_id"
-    users ||--|| avatar_images : "user_id"
+    roles ||--o{ permissions : "has"
+    features ||--o{ permissions : "has"
+    roles ||--o{ users : "has"
+    
+    users ||--|| admins : "is"
+    users ||--|| doctors : "is"
+    users ||--o{ notifications : "Recivce"
+    users ||--o{ audit_logs : "Do"
+    users }|--|| images : "Has"
+    
+    patients ||--o{ examinations : "Has"
+    doctors ||--o{ examinations : "Request"
+    
+    examinations ||--o{ dicom_instances : "Contain"
+    examinations ||--o{ ai_analyses : "Request"
+    
+    images ||--o{ dicom_instances : "Has"
+    
+    dicom_instances ||--o{ result_attachments : "Return"
 
-    patients ||--o{ examinations : "patient_id"
-    doctors ||--o{ examinations : "doctor_id"
+    roles {
+        bigint id PK
+        varchar name
+    }
 
-    examinations ||--o{ xray_images : "examination_id"
-    examinations ||--o{ ai_analysis_jobs : "examination_id"
-    examinations ||--o{ diagnosis_reviews : "examination_id"
-    examinations ||--o{ clinical_reports : "examination_id"
+    features {
+        bigint id PK
+        varchar name
+    }
 
-    xray_images ||--|| dicom_informations : "xray_image_id"
-    xray_images ||--o{ ai_analysis_results : "xray_image_id"
-    ai_analysis_jobs ||--o{ ai_analysis_results : "job_id"
-
-    doctors ||--o{ diagnosis_reviews : "doctor_id"
-    ai_analysis_results ||--o{ diagnosis_reviews : "ai_result_id"
-
-    doctors ||--o{ clinical_reports : "doctor_id"
+    permissions {
+        bigint id PK
+        varchar name
+        bigint feature_id FK
+        bigint role_id FK
+    }
 
     users {
         bigint id PK
+        varchar email
         varchar username
         varchar password
-        varchar full_name
-        varchar email
         varchar phone
-        user_role role
-        user_status status
-        boolean is_first_activated
-        datetime created_at
-        datetime updated_at
-    }
-
-    doctors {
-        bigint id PK, FK
-        varchar doctor_code
-        varchar license_number
-        varchar specialization
-        int years_of_experience
-        varchar academic_title
-        varchar degree
-        text bio
-        doctor_position position
+        varchar full_name
+        date dob
+        varchar user_type
+        bigint avatar_image_id FK
+        varchar status
+        varchar gender
+        datetime create_at
+        datetime update_at
+        bigint role_id FK
     }
 
     admins {
         bigint id PK, FK
-        varchar admin_code
-        varchar position
     }
 
-    patients {
-        bigint id PK
-        varchar patient_code
-        varchar full_name
-        date date_of_birth
-        gender gender
-        varchar phone
-        varchar email
-        varchar address
-        varchar emergency_contact_name
-        varchar emergency_contact_phone
-        datetime created_at
-        datetime updated_at
-    }
-
-    examinations {
-        bigint id PK
-        bigint patient_id FK
-        bigint doctor_id FK
-        examination_status status
-        text clinical_note
-        text final_diagnosis
-        datetime examined_at
-        datetime created_at
-        datetime updated_at
-    }
-
-    xray_images {
-        bigint id PK
-        bigint examination_id FK
-        varchar file_name
-        varchar file_url
-        varchar dicom_url
-        varchar body_side
-        varchar view_position
-        datetime uploaded_at
-    }
-
-    ai_analysis_jobs {
-        bigint id PK
-        bigint examination_id FK
-        ai_job_status status
-        datetime started_at
-        datetime completed_at
-        text error_message
-        datetime created_at
-    }
-
-    ai_analysis_results {
-        bigint id PK
-        bigint job_id FK
-        bigint xray_image_id FK
-        int predicted_kl_grade
-        decimal confidence
-        varchar gradcam_url
-        text interpretation
-        datetime created_at
-    }
-
-    diagnosis_reviews {
-        bigint id PK
-        bigint examination_id FK
-        bigint doctor_id FK
-        bigint ai_result_id FK
-        int confirmed_kl_grade
-        text doctor_diagnosis
-        text review_note
-        datetime reviewed_at
-    }
-
-    clinical_reports {
-        bigint id PK
-        bigint examination_id FK
-        bigint doctor_id FK
-        varchar report_code
-        text report_content
-        varchar file_url
-        boolean is_confirmed
-        datetime confirmed_at
-        datetime generated_at
+    doctors {
+        bigint id PK, FK
+        int years_of_experience
     }
 
     notifications {
@@ -144,51 +69,78 @@ erDiagram
         text message
         varchar type
         boolean is_read
-        datetime created_at
+        datetime create_at
         datetime read_at
     }
 
     audit_logs {
         bigint id PK
         bigint user_id FK
-        varchar action
-        varchar entity_type
-        bigint entity_id
+        varchar title
         text description
-        text payload
         varchar ip_address
         varchar user_agent
-        boolean is_success
+        datetime time_stamp
+    }
+
+    images {
+        bigint id PK
+        varchar extension
+        varchar s3_bucket_id
+        varchar s3_bucket_key
+    }
+
+    patients {
+        bigint id PK
+    }
+
+    examinations {
+        bigint id PK
+        bigint patient_id FK
+        bigint doctor_id FK
+        varchar encounter_code
+        datetime visit_time
+        varchar status
+        text chief_complaint
+        text clinical_notes
+        varchar priority
+        datetime created_at
+        text final_diagnosis
+    }
+
+    dicom_instances {
+        bigint id PK
+        datetime study_date
+        varchar study_description
+        varchar modality
+        varchar study_instance_uid
+        varchar series_instance_uid
+        varchar instance_uid
+        varchar seri_id
+        datetime created_at
+        bigint dicom_image_id FK
+        bigint png_image_id FK
+        bigint examination_id FK
+    }
+
+    ai_analyses {
+        bigint id PK
+        bigint examination_id FK
+        datetime start_date
+        int duration
+        varchar status
+        varchar token
+        varchar average_level
+        text final_diagnosis
+        int number_of_result
+        decimal accuracy_rate
         datetime created_at
     }
 
-    password_reset_tokens {
+    result_attachments {
         bigint id PK
-        bigint user_id FK
-        varchar token
-        datetime expiry_date
-    }
-
-    avatar_images {
-        bigint id PK
-        bigint user_id FK, UK
-        varchar file_name
-        varchar file_url
-        datetime uploaded_at
-    }
-
-    dicom_informations {
-        bigint id PK
-        bigint xray_image_id FK, UK
-        varchar sop_instance_uid
-        varchar series_instance_uid
-        varchar study_instance_uid
-        varchar patient_name
-        varchar patient_id
-        date patient_birth_date
-        varchar patient_sex
-        varchar modality
-        varchar manufacturer
-        varchar institution_name
-        int instance_number
+        bigint dicom_study_id FK
+        varchar KL_level
+        text diagnosis
+        decimal accuracy_rate
     }
