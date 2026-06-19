@@ -1,0 +1,22 @@
+meta {
+  name: Create Feature
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/features
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "name": "NEW_FEATURE",
+    "description": "This is a dynamically created feature"
+  }
+}

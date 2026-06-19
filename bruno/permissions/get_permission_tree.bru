@@ -1,0 +1,15 @@
+meta {
+  name: get_permission_tree
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/permissions/tree
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: eyJhbGciOiJIUzM4NCJ9.eyJyb2xlIjoiRE9DVE9SIiwiZnVsbE5hbWUiOiJOZ3V5ZW4gVmFuIEJ1b2kiLCJzdWIiOiJkb2N0b3IuYnVvaSIsImlzcyI6ImNhcHN0b25lLWFpLWtuZWUtZGlhZ25vc2lzIiwiaWF0IjoxNzgxNzk4MDU3LCJleHAiOjE3ODE3OTg5NTd9.N6pCax9Qz4G6PWwUVmXx0XfrmiDGZFBhEas8DCwsfDymmRWdXIXWW8DQZc58D4Gp
+}

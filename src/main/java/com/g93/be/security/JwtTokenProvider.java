@@ -13,6 +13,8 @@ import javax.crypto.SecretKey;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.List;
+import java.util.ArrayList;
 import java.util.function.Function;
 
 /**
@@ -45,8 +47,9 @@ public class JwtTokenProvider {
      */
     public String generateAccessToken(CustomUserDetails userDetails) {
         Map<String, Object> extraClaims = new HashMap<>();
-        extraClaims.put("role", userDetails.getUser().getRole() != null ? userDetails.getUser().getRole().getName() : "");
+        extraClaims.put("role", userDetails.getUser().getRole().getName());
         extraClaims.put("fullName", userDetails.getUser().getFullName());
+        extraClaims.put("permissions", userDetails.getPermissions());
         return buildToken(extraClaims, userDetails.getUsername(), accessExpirationMs, accessKey);
     }
 
@@ -87,6 +90,29 @@ public class JwtTokenProvider {
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();
+    }
+
+    @SuppressWarnings("unchecked")
+    public List<String> extractPermissionsFromAccessToken(String token) {
+        return extractClaim(token, accessKey, claims -> {
+            Object perms = claims.get("permissions");
+            if (perms instanceof List) {
+                return (List<String>) perms;
+            }
+            return new ArrayList<>();
+        });
+    }
+
+    public String extractRoleFromAccessToken(String token) {
+        return extractClaim(token, accessKey, claims -> claims.get("role", String.class));
+    }
+
+    public boolean isAccessTokenValid(String token) {
+        try {
+            return !isTokenExpired(token, accessKey);
+        } catch (JwtException | IllegalArgumentException e) {
+            return false;
+        }
     }
 
     public boolean isAccessTokenValid(String token, UserDetails userDetails) {
