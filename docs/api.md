@@ -308,17 +308,16 @@ Uploads a test file to the configured AWS S3 bucket.
 Successfully uploaded to S3: s3://test-bucket-819109476069-ap-southeast-1-an/test-folder/sample.txt
 ```
 
-When controllers are added, document each endpoint using this format:
+## `POST /auth/login`
 
-## `METHOD /path`
-
-Purpose of the endpoint.
+Endpoint for user login.
 
 ### Request
 
 ```json
 {
-  "example": "value"
+  "username": "admin",
+  "password": "password123"
 }
 ```
 
@@ -326,20 +325,229 @@ Purpose of the endpoint.
 
 ```json
 {
-  "example": "value"
+  "token": "eyJhbGciOiJIUz...",
+  "username": "admin",
+  "role": "ADMIN"
+}
+```
+
+### Status Codes
+
+- `200 OK`: login successful
+- `401 Unauthorized`: incorrect credentials
+
+## `POST /users`
+
+Creates a generic user. Restricts assignment of the ADMIN role.
+
+### Request
+
+```json
+{
+  "fullName": "John Doe",
+  "email": "johndoe@example.com",
+  "phone": "0123456789",
+  "roleId": 2
+}
+```
+
+### Response
+
+```json
+{
+  "id": 1,
+  "fullName": "John Doe",
+  "email": "johndoe@example.com",
+  "phone": "0123456789",
+  "role": "DOCTOR",
+  "status": "ACTIVE",
+  "createdAt": "2026-06-19T10:00:00"
+}
+```
+
+### Status Codes
+
+- `201 Created`: User created successfully
+- `400 Bad Request`: Invalid input validation
+- `401 Unauthorized`: authentication is required
+- `403 Forbidden`: authenticated user is not allowed
+
+## `POST /patients`
+
+Registers a new patient.
+
+### Request
+
+```json
+{
+  "patientCode": "PT001",
+  "fullName": "Alice Smith",
+  "dateOfBirth": "1990-01-01",
+  "gender": "FEMALE",
+  "phone": "0987654321",
+  "email": "alice@example.com",
+  "address": "123 Main St",
+  "emergencyContactName": "Bob Smith",
+  "emergencyContactPhone": "0123456789"
+}
+```
+
+### Response
+
+```json
+{
+  "id": 1,
+  "patientCode": "PT001",
+  "fullName": "Alice Smith",
+  "dateOfBirth": "1990-01-01",
+  "gender": "FEMALE",
+  "phone": "0987654321",
+  "email": "alice@example.com",
+  "address": "123 Main St",
+  "emergencyContactName": "Bob Smith",
+  "emergencyContactPhone": "0123456789",
+  "createdAt": "2026-06-19T10:00:00",
+  "updatedAt": "2026-06-19T10:00:00"
+}
+```
+
+### Status Codes
+
+- `201 Created`: Patient created successfully
+- `400 Bad Request`: Invalid input validation
+- `401 Unauthorized`: authentication is required
+
+## `GET /patients`
+
+Retrieves a paginated list of patients with optional filtering.
+
+### Query Parameters
+
+- `patientCode` (Optional)
+- `fullName` (Optional)
+- `phone` (Optional)
+- `email` (Optional)
+- `page` (Optional): default 0
+- `size` (Optional): default 10
+
+### Response
+
+```json
+{
+  "content": [
+    {
+      "id": 1,
+      "patientCode": "PT001",
+      "fullName": "Alice Smith",
+      "dateOfBirth": "1990-01-01",
+      "gender": "FEMALE",
+      "phone": "0987654321",
+      "email": "alice@example.com",
+      "address": "123 Main St",
+      "emergencyContactName": "Bob Smith",
+      "emergencyContactPhone": "0123456789",
+      "createdAt": "2026-06-19T10:00:00",
+      "updatedAt": "2026-06-19T10:00:00"
+    }
+  ],
+  "pageNumber": 0,
+  "pageSize": 10,
+  "totalElements": 1,
+  "totalPages": 1,
+  "isLast": true
 }
 ```
 
 ### Status Codes
 
 - `200 OK`: request succeeded
-- `400 Bad Request`: invalid request input
 - `401 Unauthorized`: authentication is required
-- `403 Forbidden`: authenticated user is not allowed
-- `404 Not Found`: resource does not exist
-- `500 Internal Server Error`: unexpected server error
 
-Remove unused status codes from each endpoint section as APIs are documented.
+## `PUT /patients/{id}`
+
+Updates a patient's information.
+
+### Request
+
+```json
+{
+  "fullName": "Alice Johnson",
+  "address": "456 Elm St",
+  "phone": "0987654321",
+  "email": "alice@example.com"
+}
+```
+
+### Response
+
+```json
+{
+  "id": 1,
+  "patientCode": "PT001",
+  "fullName": "Alice Johnson",
+  "dateOfBirth": "1990-01-01",
+  "gender": "FEMALE",
+  "phone": "0987654321",
+  "email": "alice@example.com",
+  "address": "456 Elm St",
+  "emergencyContactName": "Bob Smith",
+  "emergencyContactPhone": "0123456789",
+  "createdAt": "2026-06-19T10:00:00",
+  "updatedAt": "2026-06-19T10:05:00"
+}
+```
+
+### Status Codes
+
+- `200 OK`: Patient updated successfully
+- `400 Bad Request`: Invalid input or patient not found
+- `401 Unauthorized`: authentication is required
+
+## `DELETE /patients/{id}`
+
+Deletes a patient by ID.
+
+### Request
+
+No request body. Replace `{id}` with the patient ID.
+
+### Response
+
+No response body.
+
+### Status Codes
+
+- `200 OK`: Patient deleted successfully
+- `400 Bad Request`: Patient not found
+- `401 Unauthorized`: authentication is required
+
+## `POST /dicom/upload`
+
+Uploads a DICOM file and returns its extracted metadata.
+
+### Request
+
+- **Content-Type**: `multipart/form-data`
+- **Parameters**:
+  - `file` (File): The multipart DICOM file.
+
+### Response
+
+```json
+[
+  {
+    "tagId": "0010,0010",
+    "tagName": "Patient's Name",
+    "value": "Doe^John"
+  }
+]
+```
+
+### Status Codes
+
+- `200 OK`: File parsed successfully
+- `400 Bad Request`: Uploaded file is empty or invalid
+- `401 Unauthorized`: authentication is required
 
 ## Navigation
 
