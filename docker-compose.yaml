@@ -36,7 +36,7 @@ services:
       - "8080:8080"
     env_file:
       - ../env/be.env
-    depends_on:
+      # depends_on:
       # mysql:
       #   condition: service_healthy
       # maildev:
