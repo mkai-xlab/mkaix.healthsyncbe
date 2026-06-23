@@ -12,7 +12,7 @@ services:
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+      test: [ "CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD --silent" ]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -37,10 +37,10 @@ services:
     env_file:
       - ../env/be.env
     depends_on:
-      mysql:
-        condition: service_healthy
-      maildev:
-        condition: service_started
+      # mysql:
+      #   condition: service_healthy
+      # maildev:
+      #   condition: service_started
 
 volumes:
   mysql_data:
