@@ -549,6 +549,158 @@ Uploads a DICOM file and returns its extracted metadata.
 - `400 Bad Request`: Uploaded file is empty or invalid
 - `401 Unauthorized`: authentication is required
 
+## `GET /permissions/tree`
+
+Retrieves the hierarchical tree of all features and their corresponding permissions. Used for rendering the role management UI.
+
+### Response
+
+```json
+[
+  {
+    "id": 1,
+    "name": "User & Account Management",
+    "description": "Quản lý Tài khoản",
+    "permissions": [
+      {
+        "id": 1,
+        "name": "READ_OWN_PROFILE",
+        "description": "Xem hồ sơ cá nhân",
+        "requiresPermissionId": null
+      }
+    ]
+  }
+]
+```
+
+### Status Codes
+
+- `200 OK`: Tree retrieved successfully
+- `401 Unauthorized`: Authentication is required
+- `403 Forbidden`: Admin role is required
+
+## `GET /permissions/role/{roleName}`
+
+Retrieves the list of permission IDs currently assigned to a specific role.
+
+### Request
+
+No request body. Replace `{roleName}` with the role name (e.g., `DOCTOR`, `ADMIN`).
+
+### Response
+
+```json
+[1, 2, 4, 5, 8]
+```
+
+### Status Codes
+
+- `200 OK`: List retrieved successfully
+- `401 Unauthorized`: Authentication is required
+- `403 Forbidden`: Admin role is required
+
+## `PUT /permissions/role/{roleName}`
+
+Updates the permissions assigned to a specific role. Replaces all existing permissions for that role.
+
+### Request
+
+```json
+{
+  "permissionIds": [1, 2, 3, 4, 5]
+}
+```
+
+### Status Codes
+
+- `200 OK`: Role permissions updated successfully
+- `400 Bad Request`: Invalid role name or permission ID
+- `401 Unauthorized`: Authentication is required
+- `403 Forbidden`: Admin role is required
+
+## `POST /features`
+
+Creates a new feature (module) to group permissions.
+
+### Request
+
+```json
+{
+  "name": "Reporting Module",
+  "description": "Module for generating system reports"
+}
+```
+
+### Status Codes
+
+- `201 Created`: Feature created successfully
+- `400 Bad Request`: Feature name already exists
+- `401 Unauthorized`: Authentication is required
+- `403 Forbidden`: Admin role is required
+
+## `PUT /features/{id}`
+
+Updates an existing feature's details.
+
+### Request
+
+```json
+{
+  "name": "Advanced Reporting",
+  "description": "Updated description"
+}
+```
+
+### Status Codes
+
+- `200 OK`: Feature updated successfully
+- `400 Bad Request`: Feature not found or name conflict
+- `401 Unauthorized`: Authentication is required
+- `403 Forbidden`: Admin role is required
+
+## `POST /permissions`
+
+Creates a new permission under a specific feature. Optionally links to a parent permission via `requiresPermissionId`.
+
+### Request
+
+```json
+{
+  "featureId": 1,
+  "requiresPermissionId": null,
+  "name": "EXPORT_REPORTS",
+  "description": "Export data to Excel"
+}
+```
+
+### Status Codes
+
+- `201 Created`: Permission created successfully
+- `400 Bad Request`: Invalid feature ID or parent permission ID
+- `401 Unauthorized`: Authentication is required
+- `403 Forbidden`: Admin role is required
+
+## `PUT /permissions/{id}`
+
+Updates an existing permission's details and dependencies.
+
+### Request
+
+```json
+{
+  "requiresPermissionId": 2,
+  "name": "EXPORT_PDF",
+  "description": "Export data to PDF"
+}
+```
+
+### Status Codes
+
+- `200 OK`: Permission updated successfully
+- `400 Bad Request`: Permission not found or circular dependency
+- `401 Unauthorized`: Authentication is required
+- `403 Forbidden`: Admin role is required
+
 ## Navigation
 
 - [Back to Documentation Index](README.md)
