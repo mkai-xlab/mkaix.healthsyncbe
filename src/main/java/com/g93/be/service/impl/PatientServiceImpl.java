@@ -101,4 +101,50 @@ public class PatientServiceImpl implements PatientService {
 
         return patientMapper.toResponse(savedPatient);
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PatientDetailsResponse getPatientDetailsWithImages(String patientId) {
+        Patient patient = patientRepository.findByPatientCode(patientId)
+                .orElseThrow(() -> new IllegalArgumentException("Patient with code " + patientId + " not found"));
+
+        PatientDetailsResponse pdr = new PatientDetailsResponse();
+        pdr.setPatient(patientMapper.toResponse(patient));
+
+        List<Examination> examinations = examinationRepository.findByPatientId(patient.getId());
+        List<ExaminationDto> examDtos = new ArrayList<>();
+
+        String baseUrl = org.springframework.web.servlet.support.ServletUriComponentsBuilder.fromCurrentContextPath().build().toUriString();
+
+        for (Examination ex : examinations) {
+            ExaminationDto ed = new ExaminationDto();
+            ed.setExaminationId(ex.getId());
+            ed.setEncounterCode(ex.getEncounterCode());
+            ed.setStatus(ex.getStatus().name());
+            ed.setStudyDate(ex.getStudyDate());
+            ed.setVisitTime(ex.getVisitTime());
+            ed.setBodyPart(ex.getBodyPart());
+            ed.setReferringPhysician(ex.getReferringPhysician());
+
+            List<com.g93.be.entity.DicomInstance> instances = dicomInstanceRepository.findByExaminationId(ex.getId());
+            if (instances != null && !instances.isEmpty()) {
+                ed.setThumbnailUrl(baseUrl + "/dicom/instances/" + instances.get(0).getId() + "/image");
+                List<ExaminationImageDto> imageDtos = new ArrayList<>();
+                for (com.g93.be.entity.DicomInstance instance : instances) {
+                    ExaminationImageDto img = new ExaminationImageDto();
+                    img.setExaminationId(ex.getId());
+                    img.setEncounterCode(ex.getEncounterCode());
+                    img.setStatus(ex.getStatus().name());
+                    img.setVisitTime(ex.getVisitTime());
+                    img.setImageUrl(baseUrl + "/dicom/instances/" + instance.getId() + "/image");
+                    imageDtos.add(img);
+                }
+                ed.setImages(imageDtos);
+            }
+            examDtos.add(ed);
+        }
+        pdr.setRecentExaminations(examDtos);
+
+        return pdr;
+    }
 }

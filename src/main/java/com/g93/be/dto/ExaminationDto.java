@@ -19,4 +19,5 @@ public class ExaminationDto {
     private String thumbnailUrl;
     private String bodyPart;
     private String referringPhysician;
+    private java.util.List<ExaminationImageDto> images;
 }

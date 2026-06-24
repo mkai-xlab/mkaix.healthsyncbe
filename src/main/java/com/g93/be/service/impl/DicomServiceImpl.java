@@ -113,7 +113,7 @@ public class DicomServiceImpl implements DicomService {
                     studyInstanceUid = attrs.getString(org.dcm4che3.data.Tag.StudyInstanceUID, "");
                     studyDate = attrs.getDate(org.dcm4che3.data.Tag.StudyDate);
                     studyTime = attrs.getDate(org.dcm4che3.data.Tag.StudyTime);
-                    bodyPart = attrs.getString(org.dcm4che3.data.Tag.BodyPartExamined, "");
+                    bodyPart = attrs.getString(org.dcm4che3.data.Tag.ProtocolName, "");
                     description = attrs.getString(org.dcm4che3.data.Tag.StudyDescription, "");
                     referringPhysician = attrs.getString(org.dcm4che3.data.Tag.ReferringPhysicianName, "");
 
@@ -133,7 +133,7 @@ public class DicomServiceImpl implements DicomService {
                     continue;
                 }
 
-                if (dicomInstanceRepository.existsByInstanceUid(sopInstanceUid)) {
+                if (dicomInstanceRepository.existsBySopInstanceUid(sopInstanceUid)) {
                     errors.add(new com.g93.be.dto.FileUploadError(originalFilename, "DICOM file already exists in database (duplicate SOPInstanceUID)"));
                     continue;
                 }
@@ -255,18 +255,16 @@ public class DicomServiceImpl implements DicomService {
                 // Save Instance
                 com.g93.be.entity.DicomInstance instance = new com.g93.be.entity.DicomInstance();
                 instance.setExamination(examination);
-                instance.setInstanceUid(sopInstanceUid);
+                instance.setSopInstanceUid(sopInstanceUid);
                 instance.setStudyInstanceUid(studyInstanceUid);
                 instance.setCreatedAt(java.time.LocalDateTime.now());
-                instance.setDicomImage(dcmImageEntity);
+
                 instance.setImageLaterality(imageLaterality);
                 instance.setImageRows(imageRows);
                 instance.setImageColumns(imageColumns);
                 instance.setStorageRawPath(dbDcmPath);
                 instance.setStoragePngPath(dbPngPath);
-                if (pngImageEntity != null) {
-                    instance.setPngImage(pngImageEntity);
-                }
+
                 dicomInstanceRepository.save(instance);
 
             } catch (Exception e) {
@@ -298,6 +296,17 @@ public class DicomServiceImpl implements DicomService {
                     List<com.g93.be.entity.DicomInstance> instances = dicomInstanceRepository.findByExaminationId(ex.getId());
                     if (!instances.isEmpty()) {
                         ed.setThumbnailUrl(baseUrl + "/dicom/instances/" + instances.get(0).getId() + "/image");
+                        List<com.g93.be.dto.ExaminationImageDto> imageDtos = new ArrayList<>();
+                        for (com.g93.be.entity.DicomInstance instance : instances) {
+                            com.g93.be.dto.ExaminationImageDto img = new com.g93.be.dto.ExaminationImageDto();
+                            img.setExaminationId(ex.getId());
+                            img.setEncounterCode(ex.getEncounterCode());
+                            img.setStatus(ex.getStatus().name());
+                            img.setVisitTime(ex.getVisitTime());
+                            img.setImageUrl(baseUrl + "/dicom/instances/" + instance.getId() + "/image");
+                            imageDtos.add(img);
+                        }
+                        ed.setImages(imageDtos);
                     }
                     examDtos.add(ed);
                 }
@@ -305,7 +314,6 @@ public class DicomServiceImpl implements DicomService {
             pdr.setRecentExaminations(examDtos);
             successfulPatients.add(pdr);
         }
-    }
 
         return new com.g93.be.dto.BatchDicomUploadResponse(errors, successfulPatients);
     }
