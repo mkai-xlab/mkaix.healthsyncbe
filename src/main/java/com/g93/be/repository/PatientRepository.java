@@ -9,4 +9,5 @@ import org.springframework.stereotype.Repository;
 public interface PatientRepository extends JpaRepository<Patient, Long>, JpaSpecificationExecutor<Patient> {
     boolean existsByEmail(String email);
     boolean existsByEmailAndIdNot(String email, Long id);
+    java.util.Optional<Patient> findByPatientCode(String patientCode);
 }

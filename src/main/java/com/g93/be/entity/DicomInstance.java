@@ -40,6 +40,21 @@ public class DicomInstance {
     @Column(name = "seri_id", length = 100)
     private String seriId;
 
+    @Column(name = "image_laterality", length = 10)
+    private String imageLaterality;
+
+    @Column(name = "image_rows")
+    private Integer imageRows;
+
+    @Column(name = "image_columns")
+    private Integer imageColumns;
+
+    @Column(name = "storage_raw_path", length = 512)
+    private String storageRawPath;
+
+    @Column(name = "storage_png_path", length = 512)
+    private String storagePngPath;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 

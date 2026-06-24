@@ -19,7 +19,8 @@ import java.util.List;
 @Slf4j
 public class DicomController {
 
-    private final DicomService dicomService;
+    private final com.g93.be.service.DicomService dicomService;
+    private final com.g93.be.repository.DicomInstanceRepository dicomInstanceRepository;
 
     /**
      * Uploads a DICOM file and returns its extracted metadata.
@@ -33,10 +34,50 @@ public class DicomController {
         if (file.isEmpty()) {
             throw new IllegalArgumentException("Uploaded file is empty");
         }
-        
+
         List<DicomTagResponse> metadata = dicomService.extractMetadata(file);
         log.info("Successfully extracted {} tags from DICOM file.", metadata.size());
-        
+
         return ResponseEntity.ok(metadata);
+    }
+
+    @PostMapping(value = "/upload/batch", consumes = "multipart/form-data")
+    public ResponseEntity<com.g93.be.dto.BatchDicomUploadResponse> uploadBatch(
+            @RequestParam("files") List<MultipartFile> files) {
+        log.info("Received request to upload batch of {} DICOM files", files.size());
+        if (files == null || files.isEmpty()) {
+            throw new IllegalArgumentException("Uploaded files list is empty");
+        }
+
+        com.g93.be.dto.BatchDicomUploadResponse response = dicomService.uploadBatch(files);
+        log.info("Successfully processed batch upload. Errors: {}, Successful Patients: {}",
+                response.getErrors().size(), response.getSuccessfulPatients().size());
+
+        return ResponseEntity.ok(response);
+    }
+
+    @org.springframework.beans.factory.annotation.Value("${app.storage.base-dir:D:/Capstone/data}")
+    private String storageBaseDir;
+
+    @GetMapping("/instances/{id}/image")
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
+    public ResponseEntity<org.springframework.core.io.Resource> getInstanceImage(@PathVariable Long id) {
+        com.g93.be.entity.DicomInstance instance = dicomInstanceRepository.findById(id).orElse(null);
+        if (instance != null && instance.getPngImage() != null) {
+            String imagePath = instance.getPngImage().getS3BucketKey();
+            try {
+                String relPath = imagePath.startsWith("/") ? imagePath.substring(1) : imagePath;
+                java.nio.file.Path path = java.nio.file.Paths.get(storageBaseDir, relPath);
+                org.springframework.core.io.Resource resource = new org.springframework.core.io.UrlResource(path.toUri());
+                if (resource.exists() || resource.isReadable()) {
+                    return ResponseEntity.ok()
+                            .header(org.springframework.http.HttpHeaders.CONTENT_TYPE, "image/png")
+                            .body(resource);
+                }
+            } catch (Exception e) {
+                log.error("Failed to read image", e);
+            }
+        }
+        return ResponseEntity.notFound().build();
     }
 }
