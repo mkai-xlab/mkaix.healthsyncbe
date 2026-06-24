@@ -1,14 +1,21 @@
 package com.g93.be.service.impl;
 
 import com.g93.be.dto.DicomTagResponse;
+import com.g93.be.dto.PatientDetailsResponse;
+import com.g93.be.entity.*;
+import com.g93.be.mapper.PatientMapper;
+import com.g93.be.repository.*;
 import com.g93.be.service.DicomService;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.dcm4che3.data.Attributes;
 import org.dcm4che3.data.ElementDictionary;
 import org.dcm4che3.data.VR;
 import org.dcm4che3.io.DicomInputStream;
-import org.dcm4che3.util.TagUtils;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.imageio.ImageIO;
@@ -19,13 +26,13 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.UUID;
+import java.util.Optional;
 
-/**
- * Implementation of DicomService using dcm4che library.
- */
 @Service
 @Slf4j
 @lombok.RequiredArgsConstructor
@@ -298,6 +305,7 @@ public class DicomServiceImpl implements DicomService {
             pdr.setRecentExaminations(examDtos);
             successfulPatients.add(pdr);
         }
+    }
 
         return new com.g93.be.dto.BatchDicomUploadResponse(errors, successfulPatients);
     }

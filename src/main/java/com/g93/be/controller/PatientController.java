@@ -76,4 +76,15 @@ public class PatientController {
         patientService.deletePatient(id);
         return ResponseEntity.ok().build();
     }
+
+    /**
+     * Retrieves a patient's details and their examination images.
+     *
+     * @param patientId The patient code.
+     * @return Patient details and image URLs.
+     */
+    @GetMapping("/{patientId}/details")
+    public ResponseEntity<com.g93.be.dto.PatientDetailsResponse> getPatientDetailsWithImages(@PathVariable String patientId) {
+        return ResponseEntity.ok(patientService.getPatientDetailsWithImages(patientId));
+    }
 }
