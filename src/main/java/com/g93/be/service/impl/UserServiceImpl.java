@@ -55,10 +55,6 @@ public class UserServiceImpl implements UserService {
             throw new IllegalArgumentException("Cannot create a user with the ADMIN role via this endpoint");
         }
 
-        if ("PATIENT".equalsIgnoreCase(role.getName())) {
-            throw new IllegalArgumentException("Cannot create a user with the PATIENT role via this endpoint. Patients are created automatically from DICOM files.");
-        }
-
         // Generate credentials
         String tempUsername = generateUniqueUsername(request.getEmail());
         String tempPassword = generateSecurePassword();
