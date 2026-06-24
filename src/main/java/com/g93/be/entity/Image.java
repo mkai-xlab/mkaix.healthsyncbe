@@ -26,4 +26,7 @@ public class Image {
 
     @Column(name = "s3_bucket_key", length = 500)
     private String s3BucketKey;
+
+    @Column(name = "file_path", length = 1000)
+    private String filePath;
 }

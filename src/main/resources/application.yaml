@@ -44,6 +44,8 @@ app:
     region: ${AWS_REGION:ap-southeast-1}
     s3:
       bucket: ${AWS_BUCKET_NAME:test-bucket-819109476069-ap-southeast-1-an}
+  storage:
+    local-dir: ${LOCAL_STORAGE_DIR:D:\Capstone\data}
 
 logging:
   level:

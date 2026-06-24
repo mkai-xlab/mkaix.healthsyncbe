@@ -20,11 +20,11 @@ public class Examination {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "patient_id", nullable = false)
+    @JoinColumn(name = "patient_id", referencedColumnName = "patient_code", nullable = false)
     private Patient patient;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "doctor_id", nullable = false)
+    @JoinColumn(name = "doctor_id", nullable = true)
     private Doctor doctor;
 
     @Column(name = "encounter_code", length = 100)
@@ -51,6 +51,24 @@ public class Examination {
 
     @Column(name = "final_diagnosis", columnDefinition = "TEXT")
     private String finalDiagnosis;
+
+    @Column(name = "image_path")
+    private String imagePath;
+
+    @Column(name = "study_date")
+    private java.time.LocalDate studyDate;
+
+    @Column(name = "study_time")
+    private java.time.LocalTime studyTime;
+
+    @Column(name = "body_part", length = 100)
+    private String bodyPart;
+
+    @Column(name = "description", columnDefinition = "TEXT")
+    private String description;
+
+    @Column(name = "referring_physician", length = 255)
+    private String referringPhysician;
 
     @PrePersist
     protected void onCreate() {

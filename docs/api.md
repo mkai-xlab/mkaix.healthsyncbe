@@ -523,7 +523,7 @@ No response body.
 
 ## `POST /dicom/upload`
 
-Uploads a DICOM file and returns its extracted metadata.
+Uploads a DICOM file, parses metadata, extracts the image, creates patient and examination records.
 
 ### Request
 
@@ -534,20 +534,56 @@ Uploads a DICOM file and returns its extracted metadata.
 ### Response
 
 ```json
-[
-  {
-    "tagId": "0010,0010",
-    "tagName": "Patient's Name",
-    "value": "Doe^John"
-  }
-]
+{
+  "patient": {
+    "id": 1,
+    "patientCode": null,
+    "fullName": "Nguyen Van A",
+    "email": "hn-2026-0099@healthsync.com"
+  },
+  "examinations": []
+}
 ```
 
 ### Status Codes
 
-- `200 OK`: File parsed successfully
+- `201 Created`: DICOM uploaded and processed successfully
 - `400 Bad Request`: Uploaded file is empty or invalid
 - `401 Unauthorized`: authentication is required
+
+## `GET /patients/{patientId}/details`
+
+Retrieves a patient's details and their examination images.
+
+### Request
+
+No request body. Replace `{patientId}` with the patient's username (which acts as PatientID from DICOM).
+
+### Response
+
+```json
+{
+  "patient": {
+    "id": 1,
+    "fullName": "Nguyen Van A"
+  },
+  "examinations": [
+    {
+      "examinationId": 1,
+      "status": "CREATED",
+      "base64Image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..."
+    }
+  ]
+}
+```
+
+### Status Codes
+
+- `200 OK`: Details retrieved successfully
+- `400 Bad Request`: Patient not found
+- `401 Unauthorized`: Authentication is required
+
+
 
 ## `GET /permissions/tree`
 
