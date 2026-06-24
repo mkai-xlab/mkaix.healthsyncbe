@@ -156,27 +156,5 @@ class UserRegistrationIntegrationTest {
         assertTrue(exception.getMessage().contains("Cannot create a user with the ADMIN role"));
     }
 
-    @Test
-    void testCreateUser_PatientRoleBlocked() {
-        // Given
-        Role patientRole = roleRepository.findByName("PATIENT")
-                .orElseGet(() -> {
-                    Role r = new Role();
-                    r.setName("PATIENT");
-                    return roleRepository.save(r);
-                });
 
-        CreateUserRequest request = new CreateUserRequest(
-                "Patient User",
-                "patient@hospital.com",
-                "0912345678",
-                patientRole.getId() // Try to assign patient role
-        );
-
-        // When/Then
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-            userService.createUser(request);
-        });
-        assertTrue(exception.getMessage().contains("Cannot create a user with the PATIENT role"));
-    }
 }

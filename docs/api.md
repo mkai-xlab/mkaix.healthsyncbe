@@ -523,7 +523,7 @@ No response body.
 
 ## `POST /dicom/upload`
 
-Uploads a DICOM file and returns its extracted metadata.
+Uploads a DICOM file, parses metadata, extracts the image, creates patient and examination records.
 
 ### Request
 
@@ -534,20 +534,56 @@ Uploads a DICOM file and returns its extracted metadata.
 ### Response
 
 ```json
-[
-  {
-    "tagId": "0010,0010",
-    "tagName": "Patient's Name",
-    "value": "Doe^John"
-  }
-]
+{
+  "patient": {
+    "id": 1,
+    "patientCode": null,
+    "fullName": "Nguyen Van A",
+    "email": "hn-2026-0099@healthsync.com"
+  },
+  "examinations": []
+}
 ```
 
 ### Status Codes
 
-- `200 OK`: File parsed successfully
+- `201 Created`: DICOM uploaded and processed successfully
 - `400 Bad Request`: Uploaded file is empty or invalid
 - `401 Unauthorized`: authentication is required
+
+## `GET /patients/{patientId}/details`
+
+Retrieves a patient's details and their examination images.
+
+### Request
+
+No request body. Replace `{patientId}` with the patient's username (which acts as PatientID from DICOM).
+
+### Response
+
+```json
+{
+  "patient": {
+    "id": 1,
+    "fullName": "Nguyen Van A"
+  },
+  "examinations": [
+    {
+      "examinationId": 1,
+      "status": "CREATED",
+      "base64Image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..."
+    }
+  ]
+}
+```
+
+### Status Codes
+
+- `200 OK`: Details retrieved successfully
+- `400 Bad Request`: Patient not found
+- `401 Unauthorized`: Authentication is required
+
+
 
 ## `GET /permissions/tree`
 
@@ -700,6 +736,66 @@ Updates an existing permission's details and dependencies.
 - `400 Bad Request`: Permission not found or circular dependency
 - `401 Unauthorized`: Authentication is required
 - `403 Forbidden`: Admin role is required
+
+# DICOM Operations
+
+Endpoints for handling DICOM files and imaging.
+
+## `POST /dicom/upload`
+
+Uploads a DICOM file, parses metadata, generates a PNG thumbnail, and associates it with a Patient and Examination. Duplicate files (same SOPInstanceUID) will be rejected.
+
+### Request
+
+`multipart/form-data`
+- `file`: The DICOM `.dcm` file.
+
+### Response
+
+```json
+{
+  "patient": {
+    "id": 1,
+    "patientCode": "...",
+    "fullName": "...",
+    "dateOfBirth": "...",
+    "gender": "..."
+  },
+  "examinations": [
+    {
+      "examinationId": 1,
+      "encounterCode": "...",
+      "status": "CREATED",
+      "visitTime": "...",
+      "imageUrl": "http://localhost:8080/api/v1/dicom/instances/1/image"
+    }
+  ]
+}
+```
+
+### Status Codes
+
+- `201 Created`: DICOM file uploaded and processed successfully
+- `400 Bad Request`: Invalid file or file already exists (duplicate SOPInstanceUID)
+- `401 Unauthorized`: Authentication is required
+
+## `GET /dicom/instances/{id}/image`
+
+Retrieves the PNG image associated with a specific DICOM instance.
+
+### Path Parameters
+
+- `id`: The ID of the DICOM instance.
+
+### Response
+
+Returns the image binary data with `Content-Type: image/png`.
+
+### Status Codes
+
+- `200 OK`: Image returned successfully
+- `404 Not Found`: Instance or image not found
+- `401 Unauthorized`: Authentication is required
 
 ## Navigation
 

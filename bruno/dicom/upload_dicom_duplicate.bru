@@ -1,7 +1,7 @@
 meta {
-  name: Upload DICOM File
+  name: Upload Duplicate DICOM File
   type: http
-  seq: 1
+  seq: 2
 }
 
 post {
@@ -12,4 +12,8 @@ post {
 
 body:multipart-form {
   file: @file(test_file2.dcm)
-}​
+}
+
+assert {
+  res.status: eq 400
+}

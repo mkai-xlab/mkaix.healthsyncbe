@@ -1,27 +1,22 @@
 package com.g93.be.service.impl;
 
-import com.g93.be.dto.CreatePatientRequest;
-import com.g93.be.dto.EditPatientRequest;
-import com.g93.be.dto.PageResponse;
-import com.g93.be.dto.PatientFilterRequest;
-import com.g93.be.dto.PatientResponse;
-import com.g93.be.entity.Patient;
-import com.g93.be.entity.Role;
-import com.g93.be.entity.UserStatus;
+import com.g93.be.dto.*;
+import com.g93.be.entity.*;
 import com.g93.be.mapper.PatientMapper;
-import com.g93.be.repository.PatientRepository;
-import com.g93.be.repository.UserRepository;
-import com.g93.be.repository.RoleRepository;
+import com.g93.be.repository.*;
 import com.g93.be.repository.specification.PatientSpecification;
 import com.g93.be.service.PatientService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -31,9 +26,8 @@ import java.util.UUID;
 public class PatientServiceImpl implements PatientService {
 
     private final PatientRepository patientRepository;
-    private final UserRepository userRepository;
-    private final RoleRepository roleRepository;
-    private final PasswordEncoder passwordEncoder;
+    private final ExaminationRepository examinationRepository;
+    private final DicomInstanceRepository dicomInstanceRepository;
     private final PatientMapper patientMapper;
 
     @Override

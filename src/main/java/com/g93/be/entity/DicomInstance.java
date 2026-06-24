@@ -34,8 +34,8 @@ public class DicomInstance {
     @Column(name = "series_instance_uid", length = 150)
     private String seriesInstanceUid;
 
-    @Column(name = "instance_uid", length = 150)
-    private String instanceUid;
+    @Column(name = "sop_instance_uid", length = 255)
+    private String sopInstanceUid;
 
     @Column(name = "seri_id", length = 100)
     private String seriId;
@@ -58,13 +58,20 @@ public class DicomInstance {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "dicom_image_id")
-    private Image dicomImage;
+    @Column(name = "image_laterality", length = 10)
+    private String imageLaterality;
 
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "png_image_id")
-    private Image pngImage;
+    @Column(name = "image_rows")
+    private Integer imageRows;
+
+    @Column(name = "image_columns")
+    private Integer imageColumns;
+
+    @Column(name = "storage_raw_path", length = 512)
+    private String storageRawPath;
+
+    @Column(name = "storage_png_path", length = 512)
+    private String storagePngPath;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "examination_id", nullable = false)
