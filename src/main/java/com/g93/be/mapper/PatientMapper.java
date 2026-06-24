@@ -29,9 +29,9 @@ public class PatientMapper {
                 patient.getGender(),
                 patient.getPhone(),
                 patient.getEmail(),
-                patient.getAddress(), // address
-                null, // emergencyContactName is deleted in ERD
-                null, // emergencyContactPhone is deleted in ERD
+                patient.getAddress(),
+                patient.getEmergencyContactName(),
+                patient.getEmergencyContactPhone(),
                 patient.getCreatedAt(),
                 patient.getUpdatedAt()
         );
