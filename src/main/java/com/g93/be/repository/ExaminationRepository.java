@@ -6,6 +6,9 @@ import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
 
+import java.util.List;
+
 @Repository
 public interface ExaminationRepository extends JpaRepository<Examination, Long> {
+    List<Examination> findByPatientId(Long patientId);
 }

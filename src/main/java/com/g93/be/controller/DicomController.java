@@ -14,6 +14,8 @@ import com.g93.be.entity.DicomInstance;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.Files;
+import java.util.List;
+import com.g93.be.dto.DicomTagResponse;
 
 /**
  * Controller for DICOM file operations.
@@ -34,7 +36,7 @@ public class DicomController {
      * @return A list of extracted DICOM tags.
      */
     @PostMapping(value = "/upload", consumes = "multipart/form-data")
-    public ResponseEntity<com.g93.be.dto.PatientDetailsResponse> uploadDicomFile(@RequestParam("file") MultipartFile file) {
+    public ResponseEntity<List<DicomTagResponse>> uploadDicomFile(@RequestParam("file") MultipartFile file) {
         log.info("Received request to upload DICOM file: {}", file.getOriginalFilename());
         if (file.isEmpty()) {
             throw new IllegalArgumentException("Uploaded file is empty");
@@ -68,8 +70,8 @@ public class DicomController {
     @org.springframework.transaction.annotation.Transactional(readOnly = true)
     public ResponseEntity<org.springframework.core.io.Resource> getInstanceImage(@PathVariable Long id) {
         com.g93.be.entity.DicomInstance instance = dicomInstanceRepository.findById(id).orElse(null);
-        if (instance != null && instance.getPngImage() != null) {
-            String imagePath = instance.getPngImage().getS3BucketKey();
+        if (instance != null && instance.getStoragePngPath() != null) {
+            String imagePath = instance.getStoragePngPath();
             try {
                 String relPath = imagePath.startsWith("/") ? imagePath.substring(1) : imagePath;
                 java.nio.file.Path path = java.nio.file.Paths.get(storageBaseDir, relPath);

@@ -9,5 +9,5 @@ import java.util.List;
 @Repository
 public interface DicomInstanceRepository extends JpaRepository<DicomInstance, Long> {
     List<DicomInstance> findByExaminationId(Long examinationId);
-    boolean existsByInstanceUid(String instanceUid);
+    boolean existsBySopInstanceUid(String sopInstanceUid);
 }
