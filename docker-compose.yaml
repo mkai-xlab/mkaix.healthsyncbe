@@ -43,6 +43,8 @@ services:
       #   condition: service_healthy
       # maildev:
       #   condition: service_started
+    volumes:
+      - ./data:/app/data
 
 volumes:
   mysql_data:
