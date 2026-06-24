@@ -100,7 +100,7 @@ mvn test
 
 ## API Status
 
-No controllers or public API endpoints are currently implemented. Add API documentation under `docs/api.md` as endpoints are introduced.
+Controllers and public API endpoints are actively being implemented (Auth, Patients, Permissions, DICOM). Full API documentation is available under `docs/api.md`.
 
 ## Documentation
 

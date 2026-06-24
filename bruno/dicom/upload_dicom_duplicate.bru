@@ -1,0 +1,19 @@
+meta {
+  name: Upload Duplicate DICOM File
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/dicom/upload
+  body: multipartForm
+  auth: inherit
+}
+
+body:multipart-form {
+  file: @file(test_file2.dcm)
+}
+
+assert {
+  res.status: eq 400
+}
