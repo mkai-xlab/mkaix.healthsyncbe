@@ -10,8 +10,8 @@ COPY src ./src
 
 RUN mvn package -DskipTests
 
-FROM dhi.io/amazoncorretto:21-alpine as final
-
+FROM dhi.io/amazoncorretto:21-alpine AS final
+VOLUME /tmp
 ARG JAR_FILE=/build/target/*.jar
 
 COPY --from=build ${JAR_FILE} app.jar
