@@ -1,27 +1,22 @@
 package com.g93.be.service.impl;
 
-import com.g93.be.dto.CreatePatientRequest;
-import com.g93.be.dto.EditPatientRequest;
-import com.g93.be.dto.PageResponse;
-import com.g93.be.dto.PatientFilterRequest;
-import com.g93.be.dto.PatientResponse;
-import com.g93.be.entity.Patient;
-import com.g93.be.entity.Role;
-import com.g93.be.entity.UserStatus;
+import com.g93.be.dto.*;
+import com.g93.be.entity.*;
 import com.g93.be.mapper.PatientMapper;
-import com.g93.be.repository.PatientRepository;
-import com.g93.be.repository.UserRepository;
-import com.g93.be.repository.RoleRepository;
+import com.g93.be.repository.*;
 import com.g93.be.repository.specification.PatientSpecification;
 import com.g93.be.service.PatientService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -31,9 +26,8 @@ import java.util.UUID;
 public class PatientServiceImpl implements PatientService {
 
     private final PatientRepository patientRepository;
-    private final UserRepository userRepository;
-    private final RoleRepository roleRepository;
-    private final PasswordEncoder passwordEncoder;
+    private final ExaminationRepository examinationRepository;
+    private final DicomInstanceRepository dicomInstanceRepository;
     private final PatientMapper patientMapper;
 
     @Override
@@ -75,8 +69,8 @@ public class PatientServiceImpl implements PatientService {
         if (request.getGender() != null) patient.setGender(request.getGender());
         if (request.getPhone() != null) patient.setPhone(request.getPhone());
         if (request.getEmail() != null && !request.getEmail().isBlank()) {
-            if (userRepository.findByEmail(request.getEmail()).isPresent() && 
-                !patient.getEmail().equals(request.getEmail())) {
+            if (patientRepository.findByEmail(request.getEmail()).isPresent() && 
+                (patient.getEmail() == null || !patient.getEmail().equals(request.getEmail()))) {
                 throw new IllegalArgumentException("Email '" + request.getEmail() + "' is already registered");
             }
             patient.setEmail(request.getEmail());
@@ -96,36 +90,21 @@ public class PatientServiceImpl implements PatientService {
             throw new IllegalArgumentException("Full name is required");
         }
 
-        String tempUsername = generateUniqueUsername(request.getEmail(), request.getFullName());
-        String tempPassword = UUID.randomUUID().toString().substring(0, 12);
-
         String email = request.getEmail();
-        if (email == null || email.isBlank()) {
-            email = tempUsername + "@healthsync.com";
-        }
-
-        if (userRepository.findByEmail(email).isPresent()) {
-            throw new IllegalArgumentException("Email '" + email + "' is already registered");
+        if (email != null && !email.isBlank()) {
+            if (patientRepository.findByEmail(email).isPresent()) {
+                throw new IllegalArgumentException("Email '" + email + "' is already registered");
+            }
         }
 
         Patient patient = new Patient();
-        patient.setUsername(tempUsername);
-        patient.setPassword(passwordEncoder.encode(tempPassword));
+        patient.setPatientCode(UUID.randomUUID().toString().substring(0, 8).toUpperCase());
         patient.setFullName(request.getFullName());
         patient.setDob(request.getDateOfBirth());
         patient.setGender(request.getGender());
         patient.setPhone(request.getPhone());
         patient.setEmail(email);
         patient.setStatus(UserStatus.ACTIVE);
-        patient.setUserType("PATIENT");
-
-        Role patientRole = roleRepository.findByName("PATIENT")
-                .orElseGet(() -> {
-                    Role r = new Role();
-                    r.setName("PATIENT");
-                    return roleRepository.save(r);
-                });
-        patient.setRole(patientRole);
 
         Patient savedPatient = patientRepository.save(patient);
         log.info("Patient saved successfully with ID: {}", savedPatient.getId());
@@ -133,22 +112,44 @@ public class PatientServiceImpl implements PatientService {
         return patientMapper.toResponse(savedPatient);
     }
 
-    private String generateUniqueUsername(String email, String fullName) {
-        String base = "patient";
-        if (email != null && !email.isBlank()) {
-            base = email.split("@")[0].replaceAll("[^a-zA-Z0-9._]", "").toLowerCase();
-        } else if (fullName != null && !fullName.isBlank()) {
-            base = fullName.split(" ")[0].replaceAll("[^a-zA-Z0-9._]", "").toLowerCase();
+    @Override
+    @Transactional(readOnly = true)
+    public PatientDetailsResponse getPatientDetailsWithImages(String patientId) {
+        Patient patient = patientRepository.findByPatientCode(patientId)
+                .orElseThrow(() -> new IllegalArgumentException("Patient with ID " + patientId + " not found"));
+
+        PatientDetailsResponse response = new PatientDetailsResponse();
+        response.setPatient(patientMapper.toResponse(patient));
+
+        List<Examination> examinations = examinationRepository.findByPatientIdOrderByCreatedAtDesc(patient.getId());
+        List<ExaminationImageDto> examDtos = new ArrayList<>();
+
+        for (Examination exam : examinations) {
+            ExaminationImageDto dto = new ExaminationImageDto();
+            dto.setExaminationId(exam.getId());
+            dto.setEncounterCode(exam.getEncounterCode());
+            dto.setStatus(exam.getStatus().name());
+            dto.setVisitTime(exam.getVisitTime());
+
+            List<DicomInstance> instances = dicomInstanceRepository.findByExaminationId(exam.getId());
+            if (!instances.isEmpty()) {
+                DicomInstance instance = instances.get(0); // Take the first one for simplicity
+                if (instance.getStoragePngPath() != null) {
+                    Path pngPath = Paths.get(instance.getStoragePngPath());
+                    if (Files.exists(pngPath)) {
+                        try {
+                            String baseUrl = org.springframework.web.servlet.support.ServletUriComponentsBuilder.fromCurrentContextPath().build().toUriString();
+                            dto.setImageUrl(baseUrl + "/api/v1/dicom/instances/" + instance.getId() + "/image");
+                        } catch (Exception e) {
+                            log.error("Failed to build image url for instance: " + instance.getId(), e);
+                        }
+                    }
+                }
+            }
+            examDtos.add(dto);
         }
-        if (base.isBlank()) {
-            base = "patient";
-        }
-        String username = base;
-        int suffix = 1;
-        while (userRepository.findByUsername(username).isPresent()) {
-            username = base + suffix;
-            suffix++;
-        }
-        return username;
+
+        response.setExaminations(examDtos);
+        return response;
     }
 }

@@ -51,7 +51,7 @@ public class User {
     @Column(name = "is_first_activated", nullable = false)
     private Boolean isFirstActivated = true;
 
-    @Column(name = "dob")
+    @Column(name = "birth_date")
     private LocalDate dob;
 
     @Enumerated(EnumType.STRING)

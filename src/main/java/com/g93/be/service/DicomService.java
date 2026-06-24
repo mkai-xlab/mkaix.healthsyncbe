@@ -17,4 +17,13 @@ public interface DicomService {
      * @return A list of extracted DICOM tags.
      */
     List<DicomTagResponse> extractMetadata(MultipartFile file);
+
+    /**
+     * Uploads a DICOM file, extracts metadata and image, creates patient/examination,
+     * and returns patient details.
+     *
+     * @param file The uploaded DICOM file.
+     * @return Patient details and examinations.
+     */
+    com.g93.be.dto.PatientDetailsResponse uploadAndProcessDicom(MultipartFile file);
 }
