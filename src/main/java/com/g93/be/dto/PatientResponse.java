@@ -26,4 +26,9 @@ public class PatientResponse {
     private String emergencyContactPhone;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+
+    @com.fasterxml.jackson.annotation.JsonProperty("patient_id")
+    public String getPatientId() {
+        return patientCode;
+    }
 }

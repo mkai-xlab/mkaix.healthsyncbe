@@ -1,0 +1,16 @@
+meta {
+  name: Upload Batch DICOM
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/dicom/upload/batch
+  body: multipartForm
+  auth: none
+}
+
+body:multipart-form {
+  files: @file(samples/sample1.dcm)
+  files: @file(samples/sample2.dcm)
+}
