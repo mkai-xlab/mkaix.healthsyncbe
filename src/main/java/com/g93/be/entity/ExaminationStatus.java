@@ -5,6 +5,7 @@ package com.g93.be.entity;
  */
 public enum ExaminationStatus {
     CREATED,
+    PENDING_REVIEW,
     AI_PROCESSING,
     AI_COMPLETED,
     REVIEWED,

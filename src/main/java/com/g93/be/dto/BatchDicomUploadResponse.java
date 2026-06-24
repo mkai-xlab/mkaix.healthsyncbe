@@ -8,7 +8,7 @@ import java.util.List;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class PatientDetailsResponse {
-    private PatientResponse patient;
-    private List<ExaminationDto> recentExaminations;
+public class BatchDicomUploadResponse {
+    private List<FileUploadError> errors;
+    private List<PatientDetailsResponse> successfulPatients;
 }
