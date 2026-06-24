@@ -1,4 +1,4 @@
-FROM dhi.io/maven:3-jdk25-alpine-dev AS build
+FROM dhi.io/maven:3-jdk21-alpine-dev AS build
 
 WORKDIR /build
 
