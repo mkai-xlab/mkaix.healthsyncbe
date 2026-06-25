@@ -570,8 +570,22 @@ No request body. Replace `{patientId}` with the patient's username (which acts a
   "examinations": [
     {
       "examinationId": 1,
+      "encounterCode": "...",
       "status": "CREATED",
-      "base64Image": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..."
+      "studyDate": "2023-10-15",
+      "visitTime": "2023-10-15T10:30:00",
+      "thumbnailUrl": "http://localhost:8080/api/v1/dicom/instances/1/thumbnail",
+      "bodyPart": "KNEE",
+      "referringPhysician": "Dr. Smith",
+      "images": [
+        {
+          "examinationId": 1,
+          "encounterCode": "...",
+          "status": "CREATED",
+          "visitTime": "2023-10-15T10:30:00",
+          "imageUrl": "http://localhost:8080/api/v1/dicom/instances/1/image"
+        }
+      ]
     }
   ]
 }
@@ -766,8 +780,20 @@ Uploads a DICOM file, parses metadata, generates a PNG thumbnail, and associates
       "examinationId": 1,
       "encounterCode": "...",
       "status": "CREATED",
+      "studyDate": "...",
       "visitTime": "...",
-      "imageUrl": "http://localhost:8080/api/v1/dicom/instances/1/image"
+      "thumbnailUrl": "http://localhost:8080/api/v1/dicom/instances/1/thumbnail",
+      "bodyPart": "KNEE",
+      "referringPhysician": "Dr. Smith",
+      "images": [
+        {
+          "examinationId": 1,
+          "encounterCode": "...",
+          "status": "CREATED",
+          "visitTime": "...",
+          "imageUrl": "http://localhost:8080/api/v1/dicom/instances/1/image"
+        }
+      ]
     }
   ]
 }
