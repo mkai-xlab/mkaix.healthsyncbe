@@ -8,6 +8,9 @@ This project can follow semantic versioning when formal releases start.
 
 ### Added
 
+- Support for batch uploading of multiple DICOM files (parsing multiple images for the same Examination).
+- Implemented `PatientServiceImpl.getPatientDetailsWithImages` to retrieve details of a patient alongside their related examinations and image instances.
+- Added docker volumes (`./data:/app/data`) for safely persisting uploaded DICOM files.
 - Direct backend DICOM file upload API (`POST /dicom/upload`).
 - Deduplication logic rejecting duplicate DICOM uploads based on `SOPInstanceUID`.
 - DICOM image retrieval API (`GET /dicom/instances/{id}/image`).
@@ -16,8 +19,13 @@ This project can follow semantic versioning when formal releases start.
 
 ### Changed
 
+- Refactored `ExaminationDto` to return a list of `images` (`ExaminationImageDto`) instead of a single `imageUrl`.
 - Documentation should be updated whenever backend behavior changes.
 
 ### Fixed
 
-- Nothing yet.
+- Resolved duplicate fields issue in `DicomInstance` entity.
+- Fixed Tomcat `/tmp` space issue in Docker environment by adding `VOLUME /tmp`.
+- Resolved compilation error due to mismatched JDK versions in Dockerfile.
+
+
