@@ -1,6 +1,5 @@
 package com.g93.be.dto;
 
-import com.g93.be.entity.DoctorPosition;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
@@ -30,22 +29,5 @@ public class CreateDoctorRequest {
     
     private String avatarUrl;
     
-    @NotBlank(message = "Doctor code cannot be blank")
-    private String doctorCode;
-    
-    @NotBlank(message = "License number cannot be blank")
-    private String licenseNumber;
-    
-    @NotBlank(message = "Specialization cannot be blank")
-    private String specialization;
-    
-    @NotBlank(message = "Hospital name cannot be blank")
-    private String hospitalName;
-    
     private Integer yearsOfExperience;
-    private String academicTitle;
-    private String degree;
-    private String signatureUrl;
-    private String bio;
-    private DoctorPosition position;
 }
