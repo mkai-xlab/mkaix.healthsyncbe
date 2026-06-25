@@ -31,14 +31,6 @@ public class DoctorMapper {
         response.setRole(doctor.getRole() != null ? doctor.getRole().getName() : null);
         response.setStatus(doctor.getStatus());
         
-        // These fields are deleted in the ERD; map to null to preserve contract
-        response.setDoctorCode(null);
-        response.setLicenseNumber(null);
-        response.setSpecialization(null);
-        response.setAcademicTitle(null);
-        response.setDegree(null);
-        response.setBio(null);
-        response.setPosition(null);
 
         response.setYearsOfExperience(doctor.getYearsOfExperience());
         response.setCreatedAt(doctor.getCreatedAt());
