@@ -4,7 +4,7 @@ import com.g93.be.common.util.MailUtil;
 import com.g93.be.dto.CreateDoctorRequest;
 import com.g93.be.dto.DoctorResponse;
 import com.g93.be.entity.Doctor;
-import com.g93.be.entity.DoctorPosition;
+
 import com.g93.be.entity.UserStatus;
 import com.g93.be.repository.DoctorRepository;
 import com.g93.be.service.DoctorService;
@@ -54,16 +54,7 @@ class DoctorRegistrationIntegrationTest {
                 "john.doe@hospital.com",
                 "123456789",
                 "http://avatar.url",
-                "DOC001",
-                "LIC12345",
-                "Orthopedics",
-                "General Hospital",
-                10,
-                "Prof",
-                "PhD",
-                "http://signature.url",
-                "Orthopedics expert",
-                DoctorPosition.DEPARTMENT_HEAD
+                10
         );
 
         // When
@@ -109,9 +100,7 @@ class DoctorRegistrationIntegrationTest {
                 "john.doe@hospital.com",
                 "123456789",
                 null,
-                "DOC001",
-                null, null, null, null, null, null, null, null,
-                DoctorPosition.NORMAL
+                null
         );
         doctorService.createDoctor(request1);
 
@@ -120,9 +109,7 @@ class DoctorRegistrationIntegrationTest {
                 "john.doe@hospital.com", // Duplicate email
                 "987654321",
                 null,
-                "DOC002",
-                null, null, null, null, null, null, null, null,
-                DoctorPosition.NORMAL
+                null
         );
 
         // When/Then
@@ -140,13 +127,7 @@ class DoctorRegistrationIntegrationTest {
                 "hoangduy@hospital.com",
                 "123456789",
                 null,
-                "DOC002",
-                "LIC999",
-                "Cardiology",
-                null,
-                5,
-                null, null, null, null,
-                DoctorPosition.NORMAL
+                5
         );
         doctorService.createDoctor(request);
 
@@ -166,13 +147,7 @@ class DoctorRegistrationIntegrationTest {
                 "hoangduy2@hospital.com",
                 "987654321",
                 null,
-                "DOC003",
-                "LIC888",
-                "Cardiology",
-                null,
-                5,
-                null, null, null, null,
-                DoctorPosition.NORMAL
+                5
         );
         doctorService.createDoctor(request);
 

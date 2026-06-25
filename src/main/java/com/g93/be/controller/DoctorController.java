@@ -35,7 +35,7 @@ public class DoctorController {
      */
     @PostMapping
     public ResponseEntity<DoctorResponse> createDoctor(@Valid @RequestBody CreateDoctorRequest request) {
-        log.info("Received request to register a new doctor with code: {}", request.getDoctorCode());
+        log.info("Received request to register a new doctor with email: {}", request.getEmail());
         DoctorResponse response = doctorService.createDoctor(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
