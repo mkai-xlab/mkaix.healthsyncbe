@@ -4,7 +4,6 @@ set -e
 # Redirect output to log file so the user can easily debug if anything fails
 exec > >(tee -i /var/log/user_data.log) 2>&1
 
-echo "=== START USER DATA BOOTSTRAP SCRIPT ==="
 
 # 1. Update OS and install basic packages
 echo "Updating apt repositories and installing basic tools..."
@@ -38,13 +37,7 @@ sudo ln -sf /usr/libexec/docker/cli-plugins/docker-compose /usr/local/bin/docker
 echo "Installing Nginx..."
 sudo apt-get install -y nginx
 
-# 6. Apply custom Nginx configuration
-echo "Applying custom Nginx configuration..."
-cat << 'EOF' > /etc/nginx/nginx.conf
-${nginx_config}
-EOF
-
-# Enable and restart Nginx
+# 6. Enable and restart Nginx
 echo "Enabling and restarting Nginx..."
 sudo systemctl enable nginx
 sudo systemctl restart nginx
@@ -53,4 +46,21 @@ sudo systemctl restart nginx
 echo "Installing Flutter via snap..."
 sudo snap install flutter --classic
 
-echo "=== USER DATA BOOTSTRAP SCRIPT FINISHED SUCCESSFULLY ==="
+# 8. Install MySQL Server
+echo "Installing MySQL Server..."
+sudo apt-get update -y
+sudo DEBIAN_FRONTEND=noninteractive apt-get install -y mysql-server
+
+# Enable and start MySQL service
+echo "Enabling and starting MySQL service..."
+sudo systemctl enable mysql
+sudo systemctl start mysql
+
+# Configure root user password and grant privileges for both local and remote access
+echo "Configuring MySQL root password and remote access..."
+sudo mysql -e "ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY '123456'; CREATE USER IF NOT EXISTS 'root'@'%' IDENTIFIED WITH mysql_native_password BY '123456'; GRANT ALL PRIVILEGES ON *.* TO 'root'@'%' WITH GRANT OPTION; FLUSH PRIVILEGES;"
+
+# Allow MySQL to listen on all interfaces
+sudo sed -i 's/bind-address\s*=\s*127.0.0.1/bind-address = 0.0.0.0/' /etc/mysql/mysql.conf.d/mysqld.cnf
+sudo systemctl restart mysql
+
