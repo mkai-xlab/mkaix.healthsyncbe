@@ -18,12 +18,4 @@ output "png_bucket_arn" {
   description = "The ARN of the PNG S3 bucket"
 }
 
-output "sqs_queue_url" {
-  value       = aws_sqs_queue.dicom_processed_queue.id
-  description = "The URL of the SQS queue"
-}
 
-output "sqs_queue_arn" {
-  value       = aws_sqs_queue.dicom_processed_queue.arn
-  description = "The ARN of the SQS queue"
-}
