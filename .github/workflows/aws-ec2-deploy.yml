@@ -19,4 +19,4 @@ jobs:
           username: ubuntu
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            cd capstone/mkaix.healthsyncbe/ && git pull && docker compose up -d --build
+            cd healthsync/mkaix.healthsyncbe/ && git pull && docker compose up -d --build be
