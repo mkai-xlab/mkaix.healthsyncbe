@@ -823,6 +823,91 @@ Returns the image binary data with `Content-Type: image/png`.
 - `404 Not Found`: Instance or image not found
 - `401 Unauthorized`: Authentication is required
 
+## `GET /examinations`
+
+Retrieves a paginated list of examinations.
+
+### Query Parameters
+
+- `page` (Optional): Page index (0-based, default: `0`).
+- `size` (Optional): Items per page (default: `10`).
+
+### Response
+
+```json
+{
+  "content": [
+    {
+      "examinationId": 1,
+      "encounterCode": "...",
+      "status": "CREATED",
+      "studyDate": "2023-10-15",
+      "visitTime": "2023-10-15T10:30:00",
+      "thumbnailUrl": "http://localhost:8080/api/v1/dicom/instances/1/thumbnail",
+      "bodyPart": "KNEE",
+      "referringPhysician": "Dr. Smith",
+      "patient": {
+        "id": 1,
+        "fullName": "Nguyen Van A"
+      },
+      "images": []
+    }
+  ],
+  "pageNumber": 0,
+  "pageSize": 10,
+  "totalElements": 1,
+  "totalPages": 1,
+  "isLast": true
+}
+```
+
+### Status Codes
+
+- `200 OK`: Request successful
+- `401 Unauthorized`: Authentication is required
+
+## `GET /examinations/{id}`
+
+Retrieves detailed information of an examination by ID, including patient details and associated DICOM images.
+
+### Path Parameters
+
+- `id`: The ID of the examination.
+
+### Response
+
+```json
+{
+  "examinationId": 1,
+  "encounterCode": "...",
+  "status": "CREATED",
+  "studyDate": "2023-10-15",
+  "visitTime": "2023-10-15T10:30:00",
+  "thumbnailUrl": "http://localhost:8080/api/v1/dicom/instances/1/thumbnail",
+  "bodyPart": "KNEE",
+  "referringPhysician": "Dr. Smith",
+  "patient": {
+    "id": 1,
+    "fullName": "Nguyen Van A"
+  },
+  "images": [
+    {
+      "examinationId": 1,
+      "encounterCode": "...",
+      "status": "CREATED",
+      "visitTime": "2023-10-15T10:30:00",
+      "imageUrl": "http://localhost:8080/api/v1/dicom/instances/1/image"
+    }
+  ]
+}
+```
+
+### Status Codes
+
+- `200 OK`: Request successful
+- `400 Bad Request`: Examination not found
+- `401 Unauthorized`: Authentication is required
+
 ## Navigation
 
 - [Back to Documentation Index](README.md)
