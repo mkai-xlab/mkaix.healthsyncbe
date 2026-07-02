@@ -8,6 +8,7 @@ This project can follow semantic versioning when formal releases start.
 
 ### Added
 
+- Added `GET /examinations` and `GET /examinations/{id}` endpoints to retrieve paginated examinations and detailed views (including patient information and DICOM images).
 - Support for batch uploading of multiple DICOM files (parsing multiple images for the same Examination).
 - Implemented `PatientServiceImpl.getPatientDetailsWithImages` to retrieve details of a patient alongside their related examinations and image instances.
 - Added docker volumes (`./data:/app/data`) for safely persisting uploaded DICOM files.
