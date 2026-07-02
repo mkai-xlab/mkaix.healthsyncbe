@@ -7,6 +7,11 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+/**
+ * Data Transfer Object for representing an Examination.
+ * Contains details such as encounter code, status, study date,
+ * referring physician, and associated patient information and images.
+ */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -19,5 +24,6 @@ public class ExaminationDto {
     private String thumbnailUrl;
     private String bodyPart;
     private String referringPhysician;
+    private PatientResponse patient;
     private java.util.List<ExaminationImageDto> images;
 }

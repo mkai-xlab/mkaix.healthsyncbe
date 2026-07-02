@@ -6,6 +6,10 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
+/**
+ * Data Transfer Object for representing an image associated with an Examination.
+ * Contains details such as the image URL and the context of the examination it belongs to.
+ */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
