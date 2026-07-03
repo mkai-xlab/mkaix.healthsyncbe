@@ -28,7 +28,7 @@ public class DoctorMapper {
         response.setEmail(doctor.getEmail());
         response.setPhone(doctor.getPhone());
         response.setAvatarUrl(null); // Image no longer has fileUrl, using S3 bucket key instead requires service logic
-        response.setRole(doctor.getRole() != null ? doctor.getRole().getName() : null);
+        response.setRole(doctor.getRole() != null ? doctor.getRole().getCode() : null);
         response.setStatus(doctor.getStatus());
         
 

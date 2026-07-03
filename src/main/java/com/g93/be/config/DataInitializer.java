@@ -25,7 +25,7 @@ public class DataInitializer implements CommandLineRunner {
     @Override
     public void run(String... args) throws Exception {
         // 1. Initialize Dynamic Roles and Permissions FIRST
-        if (roleRepository.findByName("ADMIN").isEmpty()) {
+        if (roleRepository.findByCode("ADMIN").isEmpty()) {
             Role adminRole = new Role(null, "ADMIN", "System Administrator", null, null);
             Role doctorRole = new Role(null, "DOCTOR", "Medical Doctor", null, null);
             roleRepository.saveAll(java.util.List.of(adminRole, doctorRole));
@@ -43,27 +43,27 @@ public class DataInitializer implements CommandLineRunner {
             featureRepository.saveAll(java.util.List.of(fUser, fPatient, fDicom, fAi, fHist, fRev, fRep, fDashDoc, fDashAdm));
 
             // Create Base Permissions (No Dependencies)
-            Permission pAuth01 = new Permission(null, "READ_OWN_PROFILE", "Read own profile", fUser, null);
-            Permission pAuth02 = new Permission(null, "REQUEST_PASSWORD_RESET", "Request password reset", fUser, null);
-            Permission pAuth03 = new Permission(null, "VIEW_USER_LIST", "View user list", fUser, null);
+            Permission pAuth01 = new Permission(null, "READ_OWN_PROFILE", "Read own profile", 1, null, fUser, null);
+            Permission pAuth02 = new Permission(null, "REQUEST_PASSWORD_RESET", "Request password reset", 2, null, fUser, null);
+            Permission pAuth03 = new Permission(null, "VIEW_USER_LIST", "View user list", 3, null, fUser, null);
             
-            Permission pPat01 = new Permission(null, "READ_PATIENT_LIST", "Read patient list", fPatient, null);
-            Permission pPat03 = new Permission(null, "CREATE_PATIENT_EXAM", "Create patient exam", fPatient, null);
+            Permission pPat01 = new Permission(null, "READ_PATIENT_LIST", "Read patient list", 4, null, fPatient, null);
+            Permission pPat03 = new Permission(null, "CREATE_PATIENT_EXAM", "Create patient exam", 5, null, fPatient, null);
             
-            Permission pImg01 = new Permission(null, "VIEW_IMAGE_LIST", "View image list", fDicom, null);
-            Permission pImg02 = new Permission(null, "UPLOAD_DICOM_IMAGE", "Upload DICOM image", fDicom, null);
+            Permission pImg01 = new Permission(null, "VIEW_IMAGE_LIST", "View image list", 6, null, fDicom, null);
+            Permission pImg02 = new Permission(null, "UPLOAD_DICOM_IMAGE", "Upload DICOM image", 7, null, fDicom, null);
             
-            Permission pAi01 = new Permission(null, "TRIGGER_AI_ANALYSIS", "Trigger AI analysis", fAi, null);
-            Permission pAi02 = new Permission(null, "VIEW_AI_RESULT", "View AI result", fAi, null);
+            Permission pAi01 = new Permission(null, "TRIGGER_AI_ANALYSIS", "Trigger AI analysis", 8, null, fAi, null);
+            Permission pAi02 = new Permission(null, "VIEW_AI_RESULT", "View AI result", 9, null, fAi, null);
             
-            Permission pHist01 = new Permission(null, "VIEW_ANALYTIC_HISTORY", "View analytic history", fHist, null);
+            Permission pHist01 = new Permission(null, "VIEW_ANALYTIC_HISTORY", "View analytic history", 10, null, fHist, null);
             
-            Permission pRev01 = new Permission(null, "VIEW_PENDING_DIAGNOSIS", "View pending diagnosis", fRev, null);
+            Permission pRev01 = new Permission(null, "VIEW_PENDING_DIAGNOSIS", "View pending diagnosis", 11, null, fRev, null);
             
-            Permission pRep01 = new Permission(null, "GENERATE_PDF_REPORT", "Generate PDF report", fRep, null);
+            Permission pRep01 = new Permission(null, "GENERATE_PDF_REPORT", "Generate PDF report", 12, null, fRep, null);
             
-            Permission pDash01 = new Permission(null, "VIEW_DOCTOR_DASHBOARD", "View doctor dashboard", fDashDoc, null);
-            Permission pAdm01 = new Permission(null, "VIEW_ADMIN_DASHBOARD", "View admin dashboard", fDashAdm, null);
+            Permission pDash01 = new Permission(null, "VIEW_DOCTOR_DASHBOARD", "View doctor dashboard", 13, null, fDashDoc, null);
+            Permission pAdm01 = new Permission(null, "VIEW_ADMIN_DASHBOARD", "View admin dashboard", 14, null, fDashAdm, null);
 
             permissionRepository.saveAll(java.util.List.of(
                     pAuth01, pAuth02, pAuth03, pPat01, pPat03, pImg01, pImg02,
@@ -71,14 +71,14 @@ public class DataInitializer implements CommandLineRunner {
             ));
 
             // Create Dependent Permissions
-            Permission pAuth04 = new Permission(null, "MANAGE_USER_ROLE", "Manage user role", fUser, pAuth03);
-            Permission pPat02 = new Permission(null, "VIEW_PATIENT_DETAIL", "View patient detail", fPatient, pPat01);
-            Permission pAi03 = new Permission(null, "COMPARE_XAI_SIDE_BY_SIDE", "Compare XAI side by side", fAi, pAi02);
-            Permission pRev02 = new Permission(null, "ADD_CLINICAL_COMMENT", "Add clinical comment", fRev, pRev01);
-            Permission pRev03 = new Permission(null, "OVERRIDE_AI_GRADE", "Override AI grade", fRev, pRev01);
-            Permission pRev04 = new Permission(null, "CONFIRM_CONCLUSION", "Confirm conclusion", fRev, pRev01);
-            Permission pRep02 = new Permission(null, "EXPORT_DOWNLOAD_PDF", "Export download PDF", fRep, pRep01);
-            Permission pAdm02 = new Permission(null, "GENERATE_OPERATIONAL_REP", "Generate operational report", fDashAdm, pAdm01);
+            Permission pAuth04 = new Permission(null, "MANAGE_USER_ROLE", "Manage user role", 15, null, fUser, pAuth03);
+            Permission pPat02 = new Permission(null, "VIEW_PATIENT_DETAIL", "View patient detail", 16, null, fPatient, pPat01);
+            Permission pAi03 = new Permission(null, "COMPARE_XAI_SIDE_BY_SIDE", "Compare XAI side by side", 17, null, fAi, pAi02);
+            Permission pRev02 = new Permission(null, "ADD_CLINICAL_COMMENT", "Add clinical comment", 18, null, fRev, pRev01);
+            Permission pRev03 = new Permission(null, "OVERRIDE_AI_GRADE", "Override AI grade", 19, null, fRev, pRev01);
+            Permission pRev04 = new Permission(null, "CONFIRM_CONCLUSION", "Confirm conclusion", 20, null, fRev, pRev01);
+            Permission pRep02 = new Permission(null, "EXPORT_DOWNLOAD_PDF", "Export download PDF", 21, null, fRep, pRep01);
+            Permission pAdm02 = new Permission(null, "GENERATE_OPERATIONAL_REP", "Generate operational report", 22, null, fDashAdm, pAdm01);
 
             permissionRepository.saveAll(java.util.List.of(
                     pAuth04, pPat02, pAi03, pRev02, pRev03, pRev04, pRep02, pAdm02
@@ -124,7 +124,7 @@ public class DataInitializer implements CommandLineRunner {
             admin.setEmail("admin@healthsync.com");
             admin.setPhone("0123456789");
 
-            Role adminRole = roleRepository.findByName("ADMIN")
+            Role adminRole = roleRepository.findByCode("ADMIN")
                     .orElseThrow(() -> new IllegalStateException("ADMIN role not found"));
             admin.setRole(adminRole);
 
@@ -137,9 +137,10 @@ public class DataInitializer implements CommandLineRunner {
     }
 
     private Role getOrCreateRole(String name) {
-        return roleRepository.findByName(name)
+        return roleRepository.findByCode(name)
                 .orElseGet(() -> {
                     Role r = new Role();
+                    r.setCode(name);
                     r.setName(name);
                     return roleRepository.save(r);
                 });

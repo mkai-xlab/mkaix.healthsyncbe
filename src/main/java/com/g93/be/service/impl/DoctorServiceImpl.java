@@ -162,7 +162,7 @@ public class DoctorServiceImpl implements DoctorService {
             avatar.setS3BucketKey(request.getAvatarUrl());
             doctor.setAvatar(avatar);
         }
-        doctor.setRole(roleRepository.findByName("DOCTOR")
+        doctor.setRole(roleRepository.findByCode("DOCTOR")
                 .orElseThrow(() -> new IllegalStateException("DOCTOR role not found in database")));
         doctor.setStatus(UserStatus.ACTIVE);
 

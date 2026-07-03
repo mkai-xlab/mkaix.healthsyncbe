@@ -21,6 +21,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -43,8 +44,9 @@ public class PermissionServiceImpl implements PermissionService {
         return features.stream().map(feature -> {
             List<PermissionResponse> permissionResponses = allPermissions.stream()
                     .filter(p -> p.getFeature().getId().equals(feature.getId()))
-                    .map(p -> new PermissionResponse(p.getId(), p.getName(), p.getDescription(),
+                    .map(p -> new PermissionResponse(p.getId(), p.getCode(), p.getName(), p.getPriority(), p.getPresentation(),
                             p.getRequiresPermission() != null ? p.getRequiresPermission().getId() : null))
+                    .sorted(Comparator.comparing(PermissionResponse::priority, Comparator.nullsLast(Comparator.naturalOrder())))
                     .collect(Collectors.toList());
             
             return new FeatureResponse(feature.getId(), feature.getName(), feature.getDescription(), permissionResponses);
@@ -53,9 +55,9 @@ public class PermissionServiceImpl implements PermissionService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<Long> getRolePermissions(String roleName) {
-        Role role = roleRepository.findByName(roleName)
-                .orElseThrow(() -> new IllegalArgumentException("Role not found: " + roleName));
+    public List<Long> getRolePermissions(String roleCode) {
+        Role role = roleRepository.findByCode(roleCode)
+                .orElseThrow(() -> new IllegalArgumentException("Role not found: " + roleCode));
         
         return rolePermissionRepository.findByRoleId(role.getId()).stream()
                 .map(rp -> rp.getPermission().getId())
@@ -64,9 +66,9 @@ public class PermissionServiceImpl implements PermissionService {
 
     @Override
     @Transactional
-    public void updateRolePermissions(String roleName, UpdateRolePermissionsRequest request) {
-        Role role = roleRepository.findByName(roleName)
-                .orElseThrow(() -> new IllegalArgumentException("Role not found: " + roleName));
+    public void updateRolePermissions(String roleCode, UpdateRolePermissionsRequest request) {
+        Role role = roleRepository.findByCode(roleCode)
+                .orElseThrow(() -> new IllegalArgumentException("Role not found: " + roleCode));
 
         // Delete existing permissions
         rolePermissionRepository.deleteByRoleId(role.getId());
@@ -82,7 +84,7 @@ public class PermissionServiceImpl implements PermissionService {
         }).collect(Collectors.toList());
 
         rolePermissionRepository.saveAll(newPermissions);
-        log.info("Updated permissions for role: {}", roleName);
+        log.info("Updated permissions for role: {}", roleCode);
     }
 
     @Override
@@ -113,8 +115,9 @@ public class PermissionServiceImpl implements PermissionService {
         // Return existing permissions for the response
         List<PermissionResponse> permissionResponses = permissionRepository.findAll().stream()
                 .filter(p -> p.getFeature().getId().equals(savedFeature.getId()))
-                .map(p -> new PermissionResponse(p.getId(), p.getName(), p.getDescription(), 
+                .map(p -> new PermissionResponse(p.getId(), p.getCode(), p.getName(), p.getPriority(), p.getPresentation(),
                         p.getRequiresPermission() != null ? p.getRequiresPermission().getId() : null))
+                .sorted(Comparator.comparing(PermissionResponse::priority, Comparator.nullsLast(Comparator.naturalOrder())))
                 .collect(Collectors.toList());
                 
         return new FeatureResponse(savedFeature.getId(), savedFeature.getName(), savedFeature.getDescription(), permissionResponses);
@@ -123,15 +126,17 @@ public class PermissionServiceImpl implements PermissionService {
     @Override
     @Transactional
     public PermissionResponse createPermission(CreatePermissionRequest request) {
-        if (permissionRepository.existsByName(request.name())) {
-            throw new IllegalArgumentException("Permission name already exists: " + request.name());
+        if (permissionRepository.existsByCode(request.code())) {
+            throw new IllegalArgumentException("Permission code already exists: " + request.code());
         }
         Feature feature = featureRepository.findById(request.featureId())
                 .orElseThrow(() -> new IllegalArgumentException("Feature not found with ID: " + request.featureId()));
         
         Permission permission = new Permission();
+        permission.setCode(request.code());
         permission.setName(request.name());
-        permission.setDescription(request.description());
+        permission.setPriority(request.priority() != null ? request.priority() : 1);
+        permission.setPresentation(request.presentation());
         permission.setFeature(feature);
         
         if (request.requiresPermissionId() != null) {
@@ -141,7 +146,7 @@ public class PermissionServiceImpl implements PermissionService {
         }
         
         permission = permissionRepository.save(permission);
-        return new PermissionResponse(permission.getId(), permission.getName(), permission.getDescription(),
+        return new PermissionResponse(permission.getId(), permission.getCode(), permission.getName(), permission.getPriority(), permission.getPresentation(),
                 permission.getRequiresPermission() != null ? permission.getRequiresPermission().getId() : null);
     }
 
@@ -150,11 +155,13 @@ public class PermissionServiceImpl implements PermissionService {
     public PermissionResponse updatePermission(Long id, UpdatePermissionRequest request) {
         Permission permission = permissionRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Permission not found with ID: " + id));
-        if (!permission.getName().equals(request.name()) && permissionRepository.existsByName(request.name())) {
-            throw new IllegalArgumentException("Permission name already exists: " + request.name());
+        if (!permission.getCode().equals(request.code()) && permissionRepository.existsByCode(request.code())) {
+            throw new IllegalArgumentException("Permission code already exists: " + request.code());
         }
+        permission.setCode(request.code());
         permission.setName(request.name());
-        permission.setDescription(request.description());
+        if (request.priority() != null) permission.setPriority(request.priority());
+        permission.setPresentation(request.presentation());
         
         if (request.requiresPermissionId() != null) {
             Permission reqPerm = permissionRepository.findById(request.requiresPermissionId())
@@ -169,7 +176,7 @@ public class PermissionServiceImpl implements PermissionService {
         }
         
         permission = permissionRepository.save(permission);
-        return new PermissionResponse(permission.getId(), permission.getName(), permission.getDescription(),
+        return new PermissionResponse(permission.getId(), permission.getCode(), permission.getName(), permission.getPriority(), permission.getPresentation(),
                 permission.getRequiresPermission() != null ? permission.getRequiresPermission().getId() : null);
     }
 }

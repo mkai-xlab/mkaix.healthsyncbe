@@ -51,7 +51,7 @@ public class UserServiceImpl implements UserService {
         Role role = roleRepository.findById(request.getRoleId())
                 .orElseThrow(() -> new IllegalArgumentException("Role not found"));
 
-        if ("ADMIN".equalsIgnoreCase(role.getName())) {
+        if ("ADMIN".equalsIgnoreCase(role.getCode())) {
             throw new IllegalArgumentException("Cannot create a user with the ADMIN role via this endpoint");
         }
 
@@ -69,7 +69,7 @@ public class UserServiceImpl implements UserService {
         user.setRole(role);
         
         // Use the role name as the userType if needed, or leave it generic.
-        user.setUserType(role.getName());
+        user.setUserType(role.getCode());
         user.setStatus(UserStatus.ACTIVE);
         user.setIsFirstActivated(true);
 
