@@ -908,6 +908,100 @@ Retrieves detailed information of an examination by ID, including patient detail
 - `400 Bad Request`: Examination not found
 - `401 Unauthorized`: Authentication is required
 
+## `GET /examinations/doctor/{doctorId}`
+
+Retrieves a paginated list of examinations for a specific doctor.
+
+### Path Parameters
+
+- `doctorId`: The ID of the doctor.
+
+### Query Parameters
+
+- `page` (Optional): Page index (0-based, default: `0`).
+- `size` (Optional): Items per page (default: `10`).
+
+### Response
+
+```json
+{
+  "content": [
+    {
+      "examinationId": 1,
+      "encounterCode": "...",
+      "status": "CREATED",
+      "studyDate": "2023-10-15",
+      "visitTime": "2023-10-15T10:30:00",
+      "thumbnailUrl": "http://localhost:8080/api/v1/dicom/instances/1/thumbnail",
+      "bodyPart": "KNEE",
+      "referringPhysician": "Dr. Smith",
+      "patient": {
+        "id": 1,
+        "fullName": "Nguyen Van A"
+      },
+      "images": []
+    }
+  ],
+  "pageNumber": 0,
+  "pageSize": 10,
+  "totalElements": 1,
+  "totalPages": 1,
+  "isLast": true
+}
+```
+
+### Status Codes
+
+- `200 OK`: Request successful
+- `401 Unauthorized`: Authentication is required
+
+## `GET /examinations/patient/{patientId}`
+
+Retrieves a paginated list of examinations for a specific patient.
+
+### Path Parameters
+
+- `patientId`: The ID of the patient.
+
+### Query Parameters
+
+- `page` (Optional): Page index (0-based, default: `0`).
+- `size` (Optional): Items per page (default: `10`).
+
+### Response
+
+```json
+{
+  "content": [
+    {
+      "examinationId": 1,
+      "encounterCode": "...",
+      "status": "CREATED",
+      "studyDate": "2023-10-15",
+      "visitTime": "2023-10-15T10:30:00",
+      "thumbnailUrl": "http://localhost:8080/api/v1/dicom/instances/1/thumbnail",
+      "bodyPart": "KNEE",
+      "referringPhysician": "Dr. Smith",
+      "patient": {
+        "id": 1,
+        "fullName": "Nguyen Van A"
+      },
+      "images": []
+    }
+  ],
+  "pageNumber": 0,
+  "pageSize": 10,
+  "totalElements": 1,
+  "totalPages": 1,
+  "isLast": true
+}
+```
+
+### Status Codes
+
+- `200 OK`: Request successful
+- `401 Unauthorized`: Authentication is required
+
 ## Navigation
 
 - [Back to Documentation Index](README.md)
