@@ -185,10 +185,10 @@ public class DicomServiceImpl implements DicomService {
                         d.setEmail("dummy_doc_" + java.util.UUID.randomUUID().toString().substring(0, 8) + "@temp.com");
                         d.setFullName("System Doctor");
                         d.setStatus(com.g93.be.entity.UserStatus.ACTIVE);
-                        com.g93.be.entity.Role doctorRole = roleRepository.findByName("ROLE_DOCTOR").orElseGet(() -> {
+                        com.g93.be.entity.Role doctorRole = roleRepository.findByCode("DOCTOR").orElseGet(() -> {
                             com.g93.be.entity.Role r = new com.g93.be.entity.Role();
-                            r.setName("ROLE_DOCTOR");
-                            r.setDescription("Doctor Role");
+                            r.setCode("DOCTOR");
+                            r.setName("Doctor Role");
                             return roleRepository.save(r);
                         });
                         d.setRole(doctorRole);

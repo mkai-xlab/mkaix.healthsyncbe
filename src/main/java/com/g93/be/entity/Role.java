@@ -19,11 +19,12 @@ public class Role {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "name", length = 50, nullable = false, unique = true)
+    @Column(name = "code", length = 50, nullable = false, unique = true)
+    private String code;
+
+    @Column(name = "name", columnDefinition = "TEXT")
     private String name;
 
-    @Column(name = "description", columnDefinition = "TEXT")
-    private String description;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
