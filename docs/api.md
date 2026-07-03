@@ -614,8 +614,10 @@ Retrieves the hierarchical tree of all features and their corresponding permissi
     "permissions": [
       {
         "id": 1,
-        "name": "READ_OWN_PROFILE",
-        "description": "Xem hồ sơ cá nhân",
+        "code": "READ_OWN_PROFILE",
+        "name": "Xem hồ sơ cá nhân",
+        "priority": 1,
+        "presentation": "profile_screen",
         "requiresPermissionId": null
       }
     ]
@@ -718,8 +720,10 @@ Creates a new permission under a specific feature. Optionally links to a parent 
 {
   "featureId": 1,
   "requiresPermissionId": null,
-  "name": "EXPORT_REPORTS",
-  "description": "Export data to Excel"
+  "code": "EXPORT_REPORTS",
+  "name": "Export data to Excel",
+  "priority": 50,
+  "presentation": "report_screen"
 }
 ```
 
@@ -739,8 +743,10 @@ Updates an existing permission's details and dependencies.
 ```json
 {
   "requiresPermissionId": 2,
-  "name": "EXPORT_PDF",
-  "description": "Export data to PDF"
+  "code": "EXPORT_PDF",
+  "name": "Export data to PDF",
+  "priority": 40,
+  "presentation": "report_screen"
 }
 ```
 
