@@ -21,6 +21,7 @@ import java.util.List;
 public class ExaminationMapper {
 
     private final PatientMapper patientMapper;
+    private final DoctorMapper doctorMapper;
 
     /**
      * Maps an Examination entity to an ExaminationDto.
@@ -43,9 +44,19 @@ public class ExaminationMapper {
         ed.setVisitTime(ex.getVisitTime());
         ed.setBodyPart(ex.getBodyPart());
         ed.setReferringPhysician(ex.getReferringPhysician());
+        ed.setStudyTime(ex.getStudyTime());
+        ed.setChiefComplaint(ex.getChiefComplaint());
+        ed.setClinicalNotes(ex.getClinicalNotes());
+        ed.setPriority(ex.getPriority());
+        ed.setFinalDiagnosis(ex.getFinalDiagnosis());
+        ed.setDescription(ex.getDescription());
 
         if (ex.getPatient() != null) {
             ed.setPatient(patientMapper.toResponse(ex.getPatient()));
+        }
+
+        if (ex.getDoctor() != null) {
+            ed.setDoctor(doctorMapper.toResponse(ex.getDoctor()));
         }
 
         String baseUrl = "";
