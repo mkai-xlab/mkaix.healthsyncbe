@@ -63,6 +63,34 @@ public class DicomController {
         return ResponseEntity.ok(response);
     }
 
+    @PostMapping(value = "/upload/zip-batch", consumes = "multipart/form-data")
+    public ResponseEntity<java.util.Map<String, String>> uploadZipBatch(
+            @RequestParam("file") MultipartFile file) {
+        log.info("Received request to upload ZIP batch DICOM file: {}", file.getOriginalFilename());
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("Uploaded file is empty");
+        }
+
+        try {
+            Path tempZipFile = Files.createTempFile("main_batch_", ".zip");
+            file.transferTo(tempZipFile.toFile());
+            
+            // Spawn background task
+            java.util.concurrent.CompletableFuture.runAsync(() -> {
+                dicomService.processZipBatch(tempZipFile);
+            });
+            
+            java.util.Map<String, String> response = new java.util.HashMap<>();
+            response.put("message", "ZIP file accepted. Processing in background.");
+            response.put("status", "PROCESSING");
+            
+            return ResponseEntity.ok(response);
+        } catch (java.io.IOException e) {
+            log.error("Failed to save uploaded ZIP file", e);
+            throw new RuntimeException("Failed to save uploaded ZIP file", e);
+        }
+    }
+
     @org.springframework.beans.factory.annotation.Value("${app.storage.base-dir:D:/Capstone/data}")
     private String storageBaseDir;
 
