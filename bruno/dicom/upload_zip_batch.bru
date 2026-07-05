@@ -1,0 +1,16 @@
+meta {
+  name: Upload ZIP Batch
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/dicom/upload/zip-batch
+  body: multipartForm
+  auth: none
+}
+
+body:multipart-form {
+  file: @file(sample_batch.zip)
+}
+​
