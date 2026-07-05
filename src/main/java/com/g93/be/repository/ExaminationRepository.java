@@ -13,4 +13,5 @@ public interface ExaminationRepository extends JpaRepository<Examination, Long> 
     List<Examination> findByPatientId(Long patientId);
     Page<Examination> findByPatientId(Long patientId, Pageable pageable);
     Page<Examination> findByDoctorId(Long doctorId, Pageable pageable);
+    java.util.Optional<Examination> findByEncounterCode(String encounterCode);
 }
