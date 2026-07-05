@@ -4,11 +4,15 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 public record UpdatePermissionRequest(
-        @NotBlank(message = "Permission name is required")
-        @Size(max = 100, message = "Permission name must not exceed 100 characters")
+        @NotBlank(message = "Permission code is required")
+        @Size(max = 100, message = "Permission code must not exceed 100 characters")
+        String code,
+
         String name,
 
-        String description,
+        Integer priority,
+
+        String presentation,
 
         Long requiresPermissionId
 ) {}

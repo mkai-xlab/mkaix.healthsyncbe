@@ -8,4 +8,5 @@ public interface ExaminationService {
     PageResponse<ExaminationDto> getAllExaminations(Pageable pageable);
     ExaminationDto getExaminationById(Long id);
     PageResponse<ExaminationDto> getExaminationsByDoctorId(Long doctorId, Pageable pageable);
+    PageResponse<ExaminationDto> getExaminationsByPatientId(Long patientId, Pageable pageable);
 }

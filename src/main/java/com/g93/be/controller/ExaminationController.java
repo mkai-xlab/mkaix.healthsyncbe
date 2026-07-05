@@ -42,4 +42,35 @@ public class ExaminationController {
         log.info("Received request to get examination with id: {}", id);
         return ResponseEntity.ok(examinationService.getExaminationById(id));
     }
+
+    /**
+     * Retrieves examinations by doctor ID with pagination.
+     *
+     * @param doctorId The doctor ID.
+     * @param pageable The pagination parameters.
+     * @return A paginated list of examinations for the doctor.
+     */
+    @GetMapping("/doctor/{doctorId}")
+    public ResponseEntity<PageResponse<ExaminationDto>> getExaminationsByDoctorId(
+            @PathVariable Long doctorId,
+            @PageableDefault(size = 10) Pageable pageable) {
+        log.info("Received request to get examinations by doctor id: {}", doctorId);
+        return ResponseEntity.ok(examinationService.getExaminationsByDoctorId(doctorId, pageable));
+    }
+
+    /**
+     * Retrieves examinations by patient ID with pagination.
+     *
+     * @param patientId The patient ID.
+     * @param pageable The pagination parameters.
+     * @return A paginated list of examinations for the patient.
+     */
+    @GetMapping("/patient/{patientId}")
+    public ResponseEntity<PageResponse<ExaminationDto>> getExaminationsByPatientId(
+            @PathVariable Long patientId,
+            @PageableDefault(size = 10) Pageable pageable) {
+        log.info("Received request to get examinations by patient id: {}", patientId);
+        return ResponseEntity.ok(examinationService.getExaminationsByPatientId(patientId, pageable));
+    }
 }
+

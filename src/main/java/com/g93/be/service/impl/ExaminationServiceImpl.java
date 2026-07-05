@@ -73,6 +73,28 @@ public class ExaminationServiceImpl implements ExaminationService {
                 examinationPage.getSize(),
                 examinationPage.getTotalElements(),
                 examinationPage.getTotalPages(),
-                examinationPage.isLast());
+                examinationPage.isLast()
+        );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<ExaminationDto> getExaminationsByPatientId(Long patientId, Pageable pageable) {
+        Page<Examination> examinationPage = examinationRepository.findByPatientId(patientId, pageable);
+        List<ExaminationDto> content = examinationPage.getContent().stream()
+                .map(ex -> {
+                    List<DicomInstance> instances = dicomInstanceRepository.findByExaminationId(ex.getId());
+                    return examinationMapper.toDto(ex, instances);
+                })
+                .toList();
+
+        return new PageResponse<>(
+                content,
+                examinationPage.getNumber(),
+                examinationPage.getSize(),
+                examinationPage.getTotalElements(),
+                examinationPage.getTotalPages(),
+                examinationPage.isLast()
+        );
     }
 }

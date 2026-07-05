@@ -20,10 +20,17 @@ public class ExaminationDto {
     private String encounterCode;
     private String status;
     private LocalDate studyDate;
+    private java.time.LocalTime studyTime;
     private LocalDateTime visitTime;
     private String thumbnailUrl;
     private String bodyPart;
     private String referringPhysician;
+    private String chiefComplaint;
+    private String clinicalNotes;
+    private String priority;
+    private String finalDiagnosis;
+    private String description;
     private PatientResponse patient;
+    private DoctorResponse doctor;
     private java.util.List<ExaminationImageDto> images;
 }

@@ -6,12 +6,11 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import java.util.Optional;
-
 import java.util.List;
 
 @Repository
 public interface ExaminationRepository extends JpaRepository<Examination, Long> {
     List<Examination> findByPatientId(Long patientId);
+    Page<Examination> findByPatientId(Long patientId, Pageable pageable);
     Page<Examination> findByDoctorId(Long doctorId, Pageable pageable);
 }
