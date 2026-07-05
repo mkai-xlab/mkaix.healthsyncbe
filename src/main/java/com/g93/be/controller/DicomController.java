@@ -17,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.http.HttpHeaders;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import com.g93.be.entity.DicomInstance;
@@ -69,7 +70,43 @@ public class DicomController {
         return ResponseEntity.ok(response);
     }
 
-    @Value("${app.storage.base-dir:D:/Capstone/data}")
+    @PostMapping(value = "/upload/zip-batch", consumes = "multipart/form-data")
+    public ResponseEntity<java.util.Map<String, String>> uploadZipBatch(
+            @RequestParam("file") MultipartFile file) {
+        log.info("Received request to upload ZIP batch DICOM file: {}", file.getOriginalFilename());
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("Uploaded file is empty");
+        }
+
+        String filename = file.getOriginalFilename();
+        if (filename == null || !filename.toLowerCase().endsWith(".zip")) {
+            java.util.Map<String, String> errResponse = new java.util.HashMap<>();
+            errResponse.put("error", "Invalid file format. Only .zip files are allowed for batch upload.");
+            errResponse.put("status", "FAILED");
+            return ResponseEntity.badRequest().body(errResponse);
+        }
+
+        try {
+            Path tempZipFile = Files.createTempFile("main_batch_", ".zip");
+            file.transferTo(tempZipFile.toFile());
+            
+            // Spawn background task
+            java.util.concurrent.CompletableFuture.runAsync(() -> {
+                dicomService.processZipBatch(tempZipFile);
+            });
+            
+            java.util.Map<String, String> response = new java.util.HashMap<>();
+            response.put("message", "ZIP file accepted. Processing in background.");
+            response.put("status", "PROCESSING");
+            
+            return ResponseEntity.ok(response);
+        } catch (java.io.IOException e) {
+            log.error("Failed to save uploaded ZIP file", e);
+            throw new RuntimeException("Failed to save uploaded ZIP file", e);
+        }
+    }
+
+    @org.springframework.beans.factory.annotation.Value("${app.storage.base-dir:D:/Capstone/data}")
     private String storageBaseDir;
 
     @GetMapping("/instances/{id}/image")

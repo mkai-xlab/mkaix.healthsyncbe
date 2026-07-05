@@ -66,86 +66,147 @@ public class DicomServiceImpl implements DicomService {
     private final ApplicationContext applicationContext;
 
     @Override
-    public BatchDicomUploadResponse uploadBatch(List<MultipartFile> files, Long userId) {
-        List<FileUploadError> errors = new ArrayList<>();
-        List<String> validFilePaths = new ArrayList<>();
-        List<String> originalFilenames = new ArrayList<>();
+    @org.springframework.transaction.annotation.Transactional
+    public com.g93.be.dto.BatchDicomUploadResponse uploadBatch(List<MultipartFile> files, Long userId) {
+        java.util.Map<String, Path> filePaths = new java.util.LinkedHashMap<>();
+        List<Path> tempFilesToClean = new ArrayList<>();
+        List<com.g93.be.dto.FileUploadError> earlyErrors = new ArrayList<>();
+        try {
+            for (MultipartFile file : files) {
+                String originalFilename = file.getOriginalFilename();
+                if (originalFilename == null || !originalFilename.toLowerCase().endsWith(".dcm")) {
+                    earlyErrors.add(new com.g93.be.dto.FileUploadError(originalFilename, "Invalid file format. Only .dcm files are allowed."));
+                    continue;
+                }
+                Path tempFile = Files.createTempFile("batch_", ".dcm");
+                file.transferTo(tempFile.toFile());
+                filePaths.put(originalFilename, tempFile);
+                tempFilesToClean.add(tempFile);
+            }
+            com.g93.be.dto.BatchDicomUploadResponse response = processBatchPaths(filePaths, userId);
+            response.getErrors().addAll(earlyErrors);
+            return response;
+        } catch (Exception e) {
+            log.error("Failed to process uploaded batch files", e);
+            throw new RuntimeException("Failed to process uploaded batch files", e);
+        } finally {
+            for (Path p : tempFilesToClean) {
+                try { Files.deleteIfExists(p); } catch (IOException ignored) {}
+            }
+        }
+    }
+
+    @Override
+    public void processZipBatch(Path zipFilePath) {
+        log.info("Starting background processing of ZIP batch at: {}", zipFilePath);
+        Path workDir = null;
+        try {
+            workDir = Files.createTempDirectory("zip_batch_work_");
+            unzipFile(zipFilePath, workDir);
+
+            List<Path> innerZips = java.nio.file.Files.walk(workDir)
+                    .filter(p -> p.toString().toLowerCase().endsWith(".zip"))
+                    .collect(java.util.stream.Collectors.toList());
+
+            for (Path innerZip : innerZips) {
+                Path innerExtractDir = Files.createTempDirectory(workDir, "inner_");
+                unzipFile(innerZip, innerExtractDir);
+            }
+
+            List<Path> dcmFiles = new ArrayList<>();
+            List<Path> strangeFiles = new ArrayList<>();
+
+            java.nio.file.Files.walk(workDir).forEach(p -> {
+                if (java.nio.file.Files.isRegularFile(p)) {
+                    String name = p.getFileName().toString().toLowerCase();
+                    if (name.endsWith(".dcm")) {
+                        dcmFiles.add(p);
+                    } else if (!name.endsWith(".zip")) {
+                        strangeFiles.add(p);
+                    }
+                }
+            });
+
+            log.info("Found {} DICOM files and {} strange files in the ZIP batch", dcmFiles.size(), strangeFiles.size());
+
+            java.util.Map<String, Path> filePaths = new java.util.LinkedHashMap<>();
+            for (Path dcmFile : dcmFiles) {
+                filePaths.put(dcmFile.getFileName().toString(), dcmFile);
+            }
+
+            com.g93.be.dto.BatchDicomUploadResponse response = processBatchPaths(filePaths, null);
+
+            if (dcmFiles.isEmpty()) {
+                response.getErrors().add(new com.g93.be.dto.FileUploadError(zipFilePath.getFileName().toString(), "No DICOM files found in the ZIP batch."));
+            }
+            for (Path strange : strangeFiles) {
+                response.getErrors().add(new com.g93.be.dto.FileUploadError(strange.getFileName().toString(), "Strange file detected (not .dcm or .zip). Ignored."));
+            }
+
+            log.info("Finished background processing of ZIP batch. Success: {}, Errors: {}",
+                    response.getSuccessfulPatients().size(), response.getErrors().size());
+
+        } catch (Exception e) {
+            log.error("Error processing background ZIP batch", e);
+        } finally {
+            if (workDir != null) {
+                try {
+                    java.nio.file.Files.walk(workDir)
+                            .sorted(java.util.Comparator.reverseOrder())
+                            .map(Path::toFile)
+                            .forEach(java.io.File::delete);
+                } catch (IOException ignored) {}
+            }
+            if (zipFilePath != null) {
+                try { Files.deleteIfExists(zipFilePath); } catch (IOException ignored) {}
+            }
+        }
+    }
+
+    private void unzipFile(Path zipFilePath, Path destDir) throws IOException {
+        try (java.util.zip.ZipInputStream zis = new java.util.zip.ZipInputStream(Files.newInputStream(zipFilePath))) {
+            java.util.zip.ZipEntry zipEntry = zis.getNextEntry();
+            while (zipEntry != null) {
+                Path newFilePath = destDir.resolve(zipEntry.getName()).normalize();
+                if (!newFilePath.startsWith(destDir.normalize())) {
+                    throw new IOException("Bad zip entry: " + zipEntry.getName());
+                }
+                if (zipEntry.isDirectory()) {
+                    Files.createDirectories(newFilePath);
+                } else {
+                    if (newFilePath.getParent() != null) {
+                        Files.createDirectories(newFilePath.getParent());
+                    }
+                    Files.copy(zis, newFilePath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                }
+                zipEntry = zis.getNextEntry();
+            }
+            zis.closeEntry();
+        }
+    }
+
+    @Override
+    @org.springframework.transaction.annotation.Transactional
+    public com.g93.be.dto.BatchDicomUploadResponse processBatchPaths(java.util.Map<String, Path> filePaths, Long userId) {
+        List<com.g93.be.dto.FileUploadError> errors = new ArrayList<>();
+        java.util.Map<String, com.g93.be.entity.Patient> patientMap = new java.util.HashMap<>();
+        java.util.Map<String, com.g93.be.entity.Examination> examMap = new java.util.HashMap<>();
+        List<com.g93.be.dto.PatientDetailsResponse> successfulPatients = new ArrayList<>();
+        java.util.Set<String> processedUids = new java.util.HashSet<>();
 
         Path baseDicomDir = Paths.get(storageBaseDir, "dicom");
+        Path baseImageDir = Paths.get(storageBaseDir, "images");
         try {
             Files.createDirectories(baseDicomDir);
+            Files.createDirectories(baseImageDir);
         } catch (IOException e) {
             log.error("Cannot create base dir", e);
             throw new RuntimeException("Cannot create storage directories");
         }
 
-        for (MultipartFile file : files) {
-            String originalFilename = file.getOriginalFilename();
-            if (originalFilename == null || !originalFilename.toLowerCase().endsWith(".dcm")) {
-                errors.add(new FileUploadError(originalFilename, "Invalid file format. Only .dcm files are allowed."));
-                continue;
-            }
-
-            try (InputStream is = file.getInputStream()) {
-                if (file.getSize() < 132) {
-                    errors.add(new FileUploadError(originalFilename, "File is too small to be a valid DICOM."));
-                    continue;
-                }
-                long skipped = is.skip(128);
-                if (skipped != 128) {
-                    errors.add(new FileUploadError(originalFilename, "Failed to read file signature."));
-                    continue;
-                }
-                byte[] magic = new byte[4];
-                int read = is.read(magic);
-                if (read != 4 || !new String(magic).equals("DICM")) {
-                    errors.add(new FileUploadError(originalFilename, "File does not have a valid DICOM signature."));
-                    continue;
-                }
-            } catch (IOException e) {
-                log.error("Error reading file signature for {}", originalFilename, e);
-                errors.add(new FileUploadError(originalFilename, "Error reading file content."));
-                continue;
-            }
-
-            try {
-                Path tempFile = Files.createTempFile("batch_", ".dcm");
-                file.transferTo(tempFile.toFile());
-                validFilePaths.add(tempFile.toAbsolutePath().toString());
-                originalFilenames.add(originalFilename);
-            } catch (Exception e) {
-                log.error("Error saving file {} for background processing", originalFilename, e);
-                errors.add(new FileUploadError(originalFilename, "Failed to save file for processing."));
-            }
-        }
-
-        if (!validFilePaths.isEmpty()) {
-            applicationContext.getBean(DicomService.class).processBatchAsync(validFilePaths, originalFilenames, userId);
-        }
-
-        String message = "Successfully received " + validFilePaths.size() + " DICOM files. Processing in background.";
-        return new BatchDicomUploadResponse(message, errors, new ArrayList<>());
-    }
-
-    @Override
-    @Async
-    @Transactional
-    public void processBatchAsync(List<String> tempFilePaths, List<String> originalFilenames, Long userId) {
-        log.info("Starting background processing for {} DICOM files", tempFilePaths.size());
-        Set<String> processedUids = new HashSet<>();
-        
-        Path baseDicomDir = Paths.get(storageBaseDir, "dicom");
-        Path baseImageDir = Paths.get(storageBaseDir, "images");
-        try {
-            Files.createDirectories(baseImageDir);
-        } catch (IOException e) {
-            log.error("Cannot create image dir", e);
-            return;
-        }
-
-        for (int i = 0; i < tempFilePaths.size(); i++) {
-            Path tempFile = Paths.get(tempFilePaths.get(i));
-            String originalFilename = originalFilenames.get(i);
+        for (java.util.Map.Entry<String, Path> entry : filePaths.entrySet()) {
+            String originalFilename = entry.getKey();
+            Path tempFile = entry.getValue();
 
             try {
                 String patientId = null;
@@ -328,20 +389,24 @@ public class DicomServiceImpl implements DicomService {
 
             } catch (Exception e) {
                 log.error("Error processing file {}", originalFilename, e);
-            } finally {
-                try { Files.deleteIfExists(tempFile); } catch (IOException ignored) {}
+                errors.add(new com.g93.be.dto.FileUploadError(originalFilename, "Processing error: " + e.getMessage()));
             }
         }
-        log.info("Finished background processing for {} DICOM files", tempFilePaths.size());
+        log.info("Finished background processing for {} DICOM files", filePaths.size());
         
         if (userId != null) {
             notificationService.sendNotification(new SendNotificationRequest(
                     userId,
                     "DICOM Upload Complete",
-                    "Đã hoàn tất xử lý " + tempFilePaths.size() + " file DICOM.",
+                    "Đã hoàn tất xử lý " + filePaths.size() + " file DICOM.",
                     "SYSTEM"
             ));
         }
+        
+        com.g93.be.dto.BatchDicomUploadResponse response = new com.g93.be.dto.BatchDicomUploadResponse();
+        response.setErrors(errors);
+        response.setSuccessfulPatients(successfulPatients);
+        return response;
     }
 }
 
