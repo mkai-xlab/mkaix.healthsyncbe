@@ -44,8 +44,7 @@ public class ExaminationServiceImpl implements ExaminationService {
                 examinationPage.getSize(),
                 examinationPage.getTotalElements(),
                 examinationPage.getTotalPages(),
-                examinationPage.isLast()
-        );
+                examinationPage.isLast());
     }
 
     @Override
@@ -55,5 +54,25 @@ public class ExaminationServiceImpl implements ExaminationService {
                 .orElseThrow(() -> new IllegalArgumentException("Examination with id " + id + " not found"));
         List<DicomInstance> instances = dicomInstanceRepository.findByExaminationId(examination.getId());
         return examinationMapper.toDto(examination, instances);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<ExaminationDto> getExaminationsByDoctorId(Long doctorId, Pageable pageable) {
+        Page<Examination> examinationPage = examinationRepository.findByDoctorId(doctorId, pageable);
+        List<ExaminationDto> content = examinationPage.getContent().stream()
+                .map(ex -> {
+                    List<DicomInstance> instances = dicomInstanceRepository.findByExaminationId(ex.getId());
+                    return examinationMapper.toDto(ex, instances);
+                })
+                .toList();
+
+        return new PageResponse<>(
+                content,
+                examinationPage.getNumber(),
+                examinationPage.getSize(),
+                examinationPage.getTotalElements(),
+                examinationPage.getTotalPages(),
+                examinationPage.isLast());
     }
 }
