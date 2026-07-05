@@ -3,19 +3,23 @@ package com.g93.be.controller;
 import com.g93.be.service.DicomService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.core.io.FileSystemResource;
-import org.springframework.core.io.Resource;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import com.g93.be.repository.DicomInstanceRepository;
-import com.g93.be.entity.DicomInstance;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.Files;
 import java.util.List;
 import com.g93.be.dto.DicomTagResponse;
+import com.g93.be.dto.BatchDicomUploadResponse;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import com.g93.be.security.CustomUserDetails;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
+import org.springframework.http.HttpHeaders;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import com.g93.be.entity.DicomInstance;
 
 /**
  * Controller for DICOM file operations.
@@ -49,36 +53,38 @@ public class DicomController {
     }
 
     @PostMapping(value = "/upload/batch", consumes = "multipart/form-data")
-    public ResponseEntity<com.g93.be.dto.BatchDicomUploadResponse> uploadBatch(
-            @RequestParam("files") List<MultipartFile> files) {
+    public ResponseEntity<BatchDicomUploadResponse> uploadBatch(
+            @RequestParam("files") List<MultipartFile> files,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
         log.info("Received request to upload batch of {} DICOM files", files.size());
         if (files == null || files.isEmpty()) {
             throw new IllegalArgumentException("Uploaded files list is empty");
         }
 
-        com.g93.be.dto.BatchDicomUploadResponse response = dicomService.uploadBatch(files);
+        Long userId = userDetails != null && userDetails.getUser() != null ? userDetails.getUser().getId() : null;
+        BatchDicomUploadResponse response = dicomService.uploadBatch(files, userId);
         log.info("Successfully processed batch upload. Errors: {}, Successful Patients: {}",
                 response.getErrors().size(), response.getSuccessfulPatients().size());
 
         return ResponseEntity.ok(response);
     }
 
-    @org.springframework.beans.factory.annotation.Value("${app.storage.base-dir:D:/Capstone/data}")
+    @Value("${app.storage.base-dir:D:/Capstone/data}")
     private String storageBaseDir;
 
     @GetMapping("/instances/{id}/image")
-    @org.springframework.transaction.annotation.Transactional(readOnly = true)
-    public ResponseEntity<org.springframework.core.io.Resource> getInstanceImage(@PathVariable Long id) {
-        com.g93.be.entity.DicomInstance instance = dicomInstanceRepository.findById(id).orElse(null);
+    @Transactional(readOnly = true)
+    public ResponseEntity<Resource> getInstanceImage(@PathVariable Long id) {
+        DicomInstance instance = dicomInstanceRepository.findById(id).orElse(null);
         if (instance != null && instance.getStoragePngPath() != null) {
             String imagePath = instance.getStoragePngPath();
             try {
                 String relPath = imagePath.startsWith("/") ? imagePath.substring(1) : imagePath;
-                java.nio.file.Path path = java.nio.file.Paths.get(storageBaseDir, relPath);
-                org.springframework.core.io.Resource resource = new org.springframework.core.io.UrlResource(path.toUri());
+                Path path = Paths.get(storageBaseDir, relPath);
+                Resource resource = new UrlResource(path.toUri());
                 if (resource.exists() || resource.isReadable()) {
                     return ResponseEntity.ok()
-                            .header(org.springframework.http.HttpHeaders.CONTENT_TYPE, "image/png")
+                            .header(HttpHeaders.CONTENT_TYPE, "image/png")
                             .body(resource);
                 }
             } catch (Exception e) {
