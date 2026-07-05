@@ -103,11 +103,21 @@ public class DicomServiceImpl implements DicomService {
                 unzipFile(innerZip, innerExtractDir);
             }
 
-            List<Path> dcmFiles = java.nio.file.Files.walk(workDir)
-                    .filter(p -> p.toString().toLowerCase().endsWith(".dcm"))
-                    .collect(java.util.stream.Collectors.toList());
+            List<Path> dcmFiles = new ArrayList<>();
+            List<Path> strangeFiles = new ArrayList<>();
 
-            log.info("Found {} DICOM files in the ZIP batch", dcmFiles.size());
+            java.nio.file.Files.walk(workDir).forEach(p -> {
+                if (java.nio.file.Files.isRegularFile(p)) {
+                    String name = p.getFileName().toString().toLowerCase();
+                    if (name.endsWith(".dcm")) {
+                        dcmFiles.add(p);
+                    } else if (!name.endsWith(".zip")) {
+                        strangeFiles.add(p);
+                    }
+                }
+            });
+
+            log.info("Found {} DICOM files and {} strange files in the ZIP batch", dcmFiles.size(), strangeFiles.size());
 
             java.util.Map<String, Path> filePaths = new java.util.LinkedHashMap<>();
             for (Path dcmFile : dcmFiles) {
@@ -115,6 +125,14 @@ public class DicomServiceImpl implements DicomService {
             }
 
             com.g93.be.dto.BatchDicomUploadResponse response = processBatchPaths(filePaths);
+
+            if (dcmFiles.isEmpty()) {
+                response.getErrors().add(new com.g93.be.dto.FileUploadError(zipFilePath.getFileName().toString(), "No DICOM files found in the ZIP batch."));
+            }
+            for (Path strange : strangeFiles) {
+                response.getErrors().add(new com.g93.be.dto.FileUploadError(strange.getFileName().toString(), "Strange file detected (not .dcm or .zip). Ignored."));
+            }
+
             log.info("Finished background processing of ZIP batch. Success: {}, Errors: {}",
                     response.getSuccessfulPatients().size(), response.getErrors().size());
 

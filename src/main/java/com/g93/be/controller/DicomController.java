@@ -71,6 +71,14 @@ public class DicomController {
             throw new IllegalArgumentException("Uploaded file is empty");
         }
 
+        String filename = file.getOriginalFilename();
+        if (filename == null || !filename.toLowerCase().endsWith(".zip")) {
+            java.util.Map<String, String> errResponse = new java.util.HashMap<>();
+            errResponse.put("error", "Invalid file format. Only .zip files are allowed for batch upload.");
+            errResponse.put("status", "FAILED");
+            return ResponseEntity.badRequest().body(errResponse);
+        }
+
         try {
             Path tempZipFile = Files.createTempFile("main_batch_", ".zip");
             file.transferTo(tempZipFile.toFile());
