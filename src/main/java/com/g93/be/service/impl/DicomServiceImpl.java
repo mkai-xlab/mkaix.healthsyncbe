@@ -1,21 +1,15 @@
 package com.g93.be.service.impl;
 
 import com.g93.be.dto.DicomTagResponse;
-import com.g93.be.dto.PatientDetailsResponse;
 import com.g93.be.entity.*;
-import com.g93.be.mapper.PatientMapper;
-import com.g93.be.repository.*;
 import com.g93.be.service.DicomService;
+import com.g93.be.repository.*;
+import com.g93.be.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.dcm4che3.data.Attributes;
-import org.dcm4che3.data.ElementDictionary;
-import org.dcm4che3.data.VR;
 import org.dcm4che3.io.DicomInputStream;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.imageio.ImageIO;
@@ -23,30 +17,44 @@ import javax.imageio.ImageReader;
 import javax.imageio.stream.ImageInputStream;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.time.LocalDate;
+import java.nio.file.StandardCopyOption;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.UUID;
 import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+
+import com.g93.be.dto.BatchDicomUploadResponse;
+import com.g93.be.dto.FileUploadError;
+import com.g93.be.dto.SendNotificationRequest;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationContext;
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Slf4j
-@lombok.RequiredArgsConstructor
+@RequiredArgsConstructor
 public class DicomServiceImpl implements DicomService {
 
-    private final com.g93.be.repository.PatientRepository patientRepository;
-    private final com.g93.be.repository.ExaminationRepository examinationRepository;
-    private final com.g93.be.repository.DicomInstanceRepository dicomInstanceRepository;
-    private final com.g93.be.repository.ImageRepository imageRepository;
-    private final com.g93.be.repository.RoleRepository roleRepository;
-    private final com.g93.be.repository.DoctorRepository doctorRepository;
-    private final com.g93.be.mapper.PatientMapper patientMapper;
+    private final PatientRepository patientRepository;
+    private final ExaminationRepository examinationRepository;
+    private final DicomInstanceRepository dicomInstanceRepository;
+    private final ImageRepository imageRepository;
+    private final RoleRepository roleRepository;
+    private final DoctorRepository doctorRepository;
+    private final NotificationService notificationService;
 
-    @org.springframework.beans.factory.annotation.Value("${app.storage.base-dir:D:/Capstone/data}")
+    @Value("${app.storage.base-dir:D:/Capstone/data}")
     private String storageBaseDir;
 
     @Override
@@ -54,6 +62,8 @@ public class DicomServiceImpl implements DicomService {
         // ... keeping the previous implementation simplified or stubbed to focus on the batch
         return new ArrayList<>();
     }
+
+    private final ApplicationContext applicationContext;
 
     @Override
     @org.springframework.transaction.annotation.Transactional
@@ -185,10 +195,8 @@ public class DicomServiceImpl implements DicomService {
         java.util.Set<String> processedUids = new java.util.HashSet<>();
 
         Path baseDicomDir = Paths.get(storageBaseDir, "dicom");
-        Path baseImageDir = Paths.get(storageBaseDir, "images");
         try {
             Files.createDirectories(baseDicomDir);
-            Files.createDirectories(baseImageDir);
         } catch (IOException e) {
             log.error("Cannot create base dir", e);
             throw new RuntimeException("Cannot create storage directories");
@@ -201,12 +209,12 @@ public class DicomServiceImpl implements DicomService {
             try {
                 String patientId = null;
                 String patientName = null;
-                java.util.Date patientBirthDate = null;
+                Date patientBirthDate = null;
                 String patientSex = null;
 
                 String studyInstanceUid = null;
-                java.util.Date studyDate = null;
-                java.util.Date studyTime = null;
+                Date studyDate = null;
+                Date studyTime = null;
                 String bodyPart = null;
                 String description = null;
                 String referringPhysician = null;
@@ -237,69 +245,65 @@ public class DicomServiceImpl implements DicomService {
                 }
 
                 if (sopInstanceUid == null || sopInstanceUid.isEmpty()) {
-                    errors.add(new com.g93.be.dto.FileUploadError(originalFilename, "Missing SOPInstanceUID"));
+                    log.warn("Missing SOPInstanceUID for file {}", originalFilename);
                     continue;
                 }
 
-                if (processedUids.contains(sopInstanceUid)) {
-                    errors.add(new com.g93.be.dto.FileUploadError(originalFilename, "DICOM file already processed in this batch (duplicate SOPInstanceUID)"));
-                    continue;
-                }
-
-                if (dicomInstanceRepository.existsBySopInstanceUid(sopInstanceUid)) {
-                    errors.add(new com.g93.be.dto.FileUploadError(originalFilename, "DICOM file already exists in database (duplicate SOPInstanceUID)"));
+                if (processedUids.contains(sopInstanceUid) || dicomInstanceRepository.existsBySopInstanceUid(sopInstanceUid)) {
+                    log.warn("Duplicate SOPInstanceUID for file {}", originalFilename);
                     continue;
                 }
                 
                 processedUids.add(sopInstanceUid);
 
-                final java.util.Date finalPatientBirthDate = patientBirthDate;
+                final Date finalPatientBirthDate = patientBirthDate;
                 final String finalPatientSex = patientSex;
+                final String finalStudyUid = (studyInstanceUid != null && !studyInstanceUid.isEmpty()) ? studyInstanceUid : "UNKNOWN_STUDY_" + System.currentTimeMillis();
 
-                // Get or Create Patient
-                final String finalPatientId = (patientId != null && !patientId.isEmpty()) ? patientId : "UNKNOWN";
-                final String finalPatientName = (patientName != null && !patientName.isEmpty()) ? patientName : "Unknown";
-                com.g93.be.entity.Patient patient = patientMap.computeIfAbsent(finalPatientId, pid -> {
-                    return patientRepository.findByPatientCode(pid).orElseGet(() -> {
-                        com.g93.be.entity.Patient p = new com.g93.be.entity.Patient();
-                        p.setPatientCode(pid);
-                        p.setEmail(pid + "_" + java.util.UUID.randomUUID().toString().substring(0, 8) + "@temp.com");
+                // Check if Study Instance UID exists
+                Optional<Examination> existingExamOpt = examinationRepository.findByEncounterCode(finalStudyUid);
+                Examination examination;
+
+                if (existingExamOpt.isPresent()) {
+                    examination = existingExamOpt.get();
+                    examination.setStatus(ExaminationStatus.NEED_REVERIFY);
+                    examinationRepository.save(examination);
+                    log.info("Study {} already exists. Flagged as NEED_REVERIFY.", finalStudyUid);
+                } else {
+                    // Get or Create Patient
+                    final String finalPatientId = (patientId != null && !patientId.isEmpty()) ? patientId : "UNKNOWN";
+                    final String finalPatientName = (patientName != null && !patientName.isEmpty()) ? patientName : "Unknown";
+                    Patient patient = patientRepository.findByPatientCode(finalPatientId).orElseGet(() -> {
+                        Patient p = new Patient();
+                        p.setPatientCode(finalPatientId);
+                        p.setEmail(finalPatientId + "_" + UUID.randomUUID().toString().substring(0, 8) + "@temp.com");
                         p.setFullName(finalPatientName.replace("^", " ").trim());
                         if (finalPatientBirthDate != null) {
-                            p.setDob(finalPatientBirthDate.toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDate());
+                            p.setDob(finalPatientBirthDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate());
                         }
                         if ("F".equalsIgnoreCase(finalPatientSex)) {
-                            p.setGender(com.g93.be.entity.Gender.FEMALE);
+                            p.setGender(Gender.FEMALE);
                         } else if ("M".equalsIgnoreCase(finalPatientSex)) {
-                            p.setGender(com.g93.be.entity.Gender.MALE);
+                            p.setGender(Gender.MALE);
                         } else {
-                            p.setGender(com.g93.be.entity.Gender.OTHER);
+                            p.setGender(Gender.OTHER);
                         }
                         return patientRepository.save(p);
                     });
-                });
 
-                final java.util.Date finalStudyDate = studyDate;
-                final java.util.Date finalStudyTime = studyTime;
-                final String finalBodyPart = bodyPart;
-                final String finalDescription = description;
-                final String finalReferringPhysician = referringPhysician;
-
-                // Get or Create Examination
-                final String finalStudyUid = (studyInstanceUid != null && !studyInstanceUid.isEmpty()) ? studyInstanceUid : "UNKNOWN_STUDY_" + System.currentTimeMillis();
-                com.g93.be.entity.Examination examination = examMap.computeIfAbsent(finalStudyUid, suid -> {
-                    com.g93.be.entity.Examination ex = new com.g93.be.entity.Examination();
-                    ex.setPatient(patient);
+                    // Create new Examination
+                    examination = new Examination();
+                    examination.setPatient(patient);
                     
-                    com.g93.be.entity.Doctor doctor = doctorRepository.findAll().stream().findFirst().orElseGet(() -> {
-                        com.g93.be.entity.Doctor d = new com.g93.be.entity.Doctor();
-                        d.setUsername("dummy_doc_" + java.util.UUID.randomUUID().toString().substring(0, 8));
+                    Doctor doctor = doctorRepository.findAll().stream().findFirst().orElseGet(() -> {
+                        Doctor d = new Doctor();
+                        d.setUsername("dummy_doc_" + UUID.randomUUID().toString().substring(0, 8));
                         d.setPassword("temp");
-                        d.setEmail("dummy_doc_" + java.util.UUID.randomUUID().toString().substring(0, 8) + "@temp.com");
+                        d.setEmail("dummy_doc_" + UUID.randomUUID().toString().substring(0, 8) + "@temp.com");
                         d.setFullName("System Doctor");
-                        d.setStatus(com.g93.be.entity.UserStatus.ACTIVE);
-                        com.g93.be.entity.Role doctorRole = roleRepository.findByCode("DOCTOR").orElseGet(() -> {
-                            com.g93.be.entity.Role r = new com.g93.be.entity.Role();
+                        d.setStatus(UserStatus.ACTIVE);
+                        Role doctorRole = roleRepository.findByCode("DOCTOR").orElseGet(() -> {
+                            Role r = new Role();
                             r.setCode("DOCTOR");
                             r.setName("Doctor Role");
                             return roleRepository.save(r);
@@ -308,34 +312,35 @@ public class DicomServiceImpl implements DicomService {
                         d.setYearsOfExperience(0);
                         return doctorRepository.save(d);
                     });
-                    ex.setDoctor(doctor);
+                    examination.setDoctor(doctor);
                     
-                    ex.setEncounterCode(suid);
-                    ex.setStatus(com.g93.be.entity.ExaminationStatus.PENDING_REVIEW);
-                    ex.setVisitTime(java.time.LocalDateTime.now());
-                    if (finalStudyDate != null) {
-                        ex.setStudyDate(finalStudyDate.toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDate());
+                    examination.setEncounterCode(finalStudyUid);
+                    examination.setStatus(ExaminationStatus.PENDING_REVIEW);
+                    examination.setVisitTime(LocalDateTime.now());
+                    if (studyDate != null) {
+                        examination.setStudyDate(studyDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate());
                     }
-                    if (finalStudyTime != null) {
-                        ex.setStudyTime(finalStudyTime.toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalTime());
+                    if (studyTime != null) {
+                        examination.setStudyTime(studyTime.toInstant().atZone(ZoneId.systemDefault()).toLocalTime());
                     }
-                    ex.setBodyPart(finalBodyPart);
-                    ex.setDescription(finalDescription);
-                    ex.setReferringPhysician(finalReferringPhysician);
-                    return examinationRepository.save(ex);
-                });
+                    examination.setBodyPart(bodyPart);
+                    examination.setDescription(description);
+                    examination.setReferringPhysician(referringPhysician);
+                    examination = examinationRepository.save(examination);
+                    log.info("Created new Examination for study {}", finalStudyUid);
+                }
 
                 // Move file and extract image
-                String uniqueName = java.util.UUID.randomUUID().toString();
+                String uniqueName = UUID.randomUUID().toString();
                 Path targetDcm = baseDicomDir.resolve(uniqueName + ".dcm");
                 Path targetPng = baseImageDir.resolve(uniqueName + ".png");
                 
                 String dbDcmPath = "/dicom/" + uniqueName + ".dcm";
                 String dbPngPath = "/images/" + uniqueName + ".png";
                 
-                Files.move(tempFile, targetDcm, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                Files.move(tempFile, targetDcm, StandardCopyOption.REPLACE_EXISTING);
                 
-                com.g93.be.entity.Image pngImageEntity = null;
+                Image pngImageEntity = null;
                 ImageIO.scanForPlugins();
                 try (ImageInputStream iis = ImageIO.createImageInputStream(targetDcm.toFile())) {
                     Iterator<ImageReader> iter = ImageIO.getImageReadersByFormatName("DICOM");
@@ -345,17 +350,17 @@ public class DicomServiceImpl implements DicomService {
                         BufferedImage bi = reader.read(0);
                         if (bi != null) {
                             ImageIO.write(bi, "png", targetPng.toFile());
-                            pngImageEntity = new com.g93.be.entity.Image();
+                            pngImageEntity = new Image();
                             pngImageEntity.setExtension("png");
                             pngImageEntity.setS3BucketKey(dbPngPath);
                             pngImageEntity = imageRepository.save(pngImageEntity);
                         }
                     }
                 } catch (Exception e) {
-                    log.error("Failed to extract image", e);
+                    log.error("Failed to extract image for {}", originalFilename, e);
                 }
 
-                com.g93.be.entity.Image dcmImageEntity = new com.g93.be.entity.Image();
+                Image dcmImageEntity = new Image();
                 dcmImageEntity.setExtension("dcm");
                 dcmImageEntity.setS3BucketKey(dbDcmPath);
                 dcmImageEntity = imageRepository.save(dcmImageEntity);
@@ -366,11 +371,11 @@ public class DicomServiceImpl implements DicomService {
                 }
 
                 // Save Instance
-                com.g93.be.entity.DicomInstance instance = new com.g93.be.entity.DicomInstance();
+                DicomInstance instance = new DicomInstance();
                 instance.setExamination(examination);
                 instance.setSopInstanceUid(sopInstanceUid);
-                instance.setStudyInstanceUid(studyInstanceUid);
-                instance.setCreatedAt(java.time.LocalDateTime.now());
+                instance.setStudyInstanceUid(finalStudyUid);
+                instance.setCreatedAt(LocalDateTime.now());
 
                 instance.setImageLaterality(imageLaterality);
                 instance.setImageRows(imageRows);
@@ -385,45 +390,16 @@ public class DicomServiceImpl implements DicomService {
                 errors.add(new com.g93.be.dto.FileUploadError(originalFilename, "Processing error: " + e.getMessage()));
             }
         }
-
-        // Build Response
-        for (com.g93.be.entity.Patient p : patientMap.values()) {
-            com.g93.be.dto.PatientDetailsResponse pdr = new com.g93.be.dto.PatientDetailsResponse();
-            pdr.setPatient(patientMapper.toResponse(p));
-            List<com.g93.be.dto.ExaminationDto> examDtos = new ArrayList<>();
-            for (com.g93.be.entity.Examination ex : examMap.values()) {
-                if (ex.getPatient().getId().equals(p.getId())) {
-                    com.g93.be.dto.ExaminationDto ed = new com.g93.be.dto.ExaminationDto();
-                    ed.setExaminationId(ex.getId());
-                    ed.setEncounterCode(ex.getEncounterCode());
-                    ed.setStatus(ex.getStatus().name());
-                    ed.setVisitTime(ex.getVisitTime());
-                    ed.setBodyPart(ex.getBodyPart());
-                    ed.setReferringPhysician(ex.getReferringPhysician());
-                    
-                    String baseUrl = org.springframework.web.servlet.support.ServletUriComponentsBuilder.fromCurrentContextPath().build().toUriString();
-                    List<com.g93.be.entity.DicomInstance> instances = dicomInstanceRepository.findByExaminationId(ex.getId());
-                    if (!instances.isEmpty()) {
-                        ed.setThumbnailUrl(baseUrl + "/dicom/instances/" + instances.get(0).getId() + "/image");
-                        List<com.g93.be.dto.ExaminationImageDto> imageDtos = new ArrayList<>();
-                        for (com.g93.be.entity.DicomInstance instance : instances) {
-                            com.g93.be.dto.ExaminationImageDto img = new com.g93.be.dto.ExaminationImageDto();
-                            img.setExaminationId(ex.getId());
-                            img.setEncounterCode(ex.getEncounterCode());
-                            img.setStatus(ex.getStatus().name());
-                            img.setVisitTime(ex.getVisitTime());
-                            img.setImageUrl(baseUrl + "/dicom/instances/" + instance.getId() + "/image");
-                            imageDtos.add(img);
-                        }
-                        ed.setImages(imageDtos);
-                    }
-                    examDtos.add(ed);
-                }
-            }
-            pdr.setRecentExaminations(examDtos);
-            successfulPatients.add(pdr);
+        log.info("Finished background processing for {} DICOM files", tempFilePaths.size());
+        
+        if (userId != null) {
+            notificationService.sendNotification(new SendNotificationRequest(
+                    userId,
+                    "DICOM Upload Complete",
+                    "Đã hoàn tất xử lý " + tempFilePaths.size() + " file DICOM.",
+                    "SYSTEM"
+            ));
         }
-
-        return new com.g93.be.dto.BatchDicomUploadResponse(errors, successfulPatients);
     }
 }
+
