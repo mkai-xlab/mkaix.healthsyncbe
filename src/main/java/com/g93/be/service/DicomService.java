@@ -2,6 +2,8 @@ package com.g93.be.service;
 
 import com.g93.be.dto.DicomTagResponse;
 import org.springframework.web.multipart.MultipartFile;
+import com.g93.be.dto.BatchDicomUploadResponse;
+import org.springframework.scheduling.annotation.Async;
 
 import java.util.List;
 
@@ -24,5 +26,8 @@ public interface DicomService {
      * @param files The uploaded DICOM files.
      * @return Batch upload response with successful patients and errors.
      */
-    com.g93.be.dto.BatchDicomUploadResponse uploadBatch(List<MultipartFile> files);
+    BatchDicomUploadResponse uploadBatch(List<MultipartFile> files, Long userId);
+
+    @Async
+    void processBatchAsync(List<String> tempFilePaths, List<String> originalFilenames, Long userId);
 }
