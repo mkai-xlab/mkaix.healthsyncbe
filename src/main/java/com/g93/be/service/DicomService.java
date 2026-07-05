@@ -2,6 +2,8 @@ package com.g93.be.service;
 
 import com.g93.be.dto.DicomTagResponse;
 import org.springframework.web.multipart.MultipartFile;
+import com.g93.be.dto.BatchDicomUploadResponse;
+import org.springframework.scheduling.annotation.Async;
 
 import java.util.List;
 

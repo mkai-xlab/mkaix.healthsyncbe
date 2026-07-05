@@ -551,6 +551,32 @@ Uploads a DICOM file, parses metadata, extracts the image, creates patient and e
 - `400 Bad Request`: Uploaded file is empty or invalid
 - `401 Unauthorized`: authentication is required
 
+## `POST /dicom/upload/batch`
+
+Uploads multiple DICOM files asynchronously. The server will immediately return a success message while processing metadata and extracting images in the background.
+
+### Request
+
+- **Content-Type**: `multipart/form-data`
+- **Parameters**:
+  - `files` (List of Files): The multipart DICOM files.
+
+### Response
+
+```json
+{
+  "message": "Successfully received 2 DICOM files. Processing in background.",
+  "errors": [],
+  "successfulPatients": []
+}
+```
+
+### Status Codes
+
+- `200 OK`: DICOM batch uploaded and accepted for processing
+- `400 Bad Request`: Uploaded files are empty or invalid
+- `401 Unauthorized`: Authentication is required
+
 ## `GET /patients/{patientId}/details`
 
 Retrieves a patient's details and their examination images.
