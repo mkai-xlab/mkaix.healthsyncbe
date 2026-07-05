@@ -20,11 +20,17 @@ public class Permission {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "name", length = 100, nullable = false, unique = true)
+    @Column(name = "code", length = 100, nullable = false, unique = true)
+    private String code;
+
+    @Column(name = "name", columnDefinition = "TEXT")
     private String name;
 
-    @Column(name = "description", columnDefinition = "TEXT")
-    private String description;
+    @Column(name = "priority")
+    private Integer priority = 1;
+
+    @Column(name = "presentation")
+    private String presentation;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "feature_id", nullable = false)

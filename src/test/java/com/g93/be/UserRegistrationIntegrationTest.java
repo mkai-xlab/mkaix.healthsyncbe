@@ -51,17 +51,19 @@ class UserRegistrationIntegrationTest {
     void setUp() {
         userRepository.deleteAll();
         
-        headOfDepartmentRole = roleRepository.findByName("HEAD_OF_DEPARTMENT")
+        headOfDepartmentRole = roleRepository.findByCode("HEAD_OF_DEPARTMENT")
                 .orElseGet(() -> {
                     Role r = new Role();
-                    r.setName("HEAD_OF_DEPARTMENT");
+                    r.setCode("HEAD_OF_DEPARTMENT");
+                    r.setName("Head of Department");
                     return roleRepository.save(r);
                 });
 
-        adminRole = roleRepository.findByName("ADMIN")
+        adminRole = roleRepository.findByCode("ADMIN")
                 .orElseGet(() -> {
                     Role r = new Role();
-                    r.setName("ADMIN");
+                    r.setCode("ADMIN");
+                    r.setName("Administrator");
                     return roleRepository.save(r);
                 });
     }

@@ -5,7 +5,7 @@ meta {
 }
 
 put {
-  url: {{baseUrl}}/permissions/1
+  url: {{baseUrl}}/permissions/22
   body: json
   auth: bearer
 }
@@ -16,7 +16,9 @@ auth:bearer {
 
 body:json {
   {
-    "name": "UPDATED_PERMISSION",
-    "description": "This is an updated permission"
+    "code": "UPDATED_PERMISSION",
+    "name": "This is an updated permission",
+    "priority": 40,
+    "presentation": "updated_screen"
   }
 }

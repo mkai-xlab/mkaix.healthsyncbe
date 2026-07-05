@@ -46,6 +46,17 @@ services:
     volumes:
       - ./data:/app/data
 
+  ai:
+    build:
+      context: ../mkaix.healthsynml
+      dockerfile: Dockerfile
+    container_name: capstone-ai
+    restart: unless-stopped
+    ports:
+      - "8005:8005"
+    volumes:
+      - ../mkaix.healthsynml/checkpoints:/app/checkpoints
+
 volumes:
   mysql_data:
 

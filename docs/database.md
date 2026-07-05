@@ -17,6 +17,11 @@ erDiagram
     users ||--o{ audit_logs : "user_id"
     users ||--o{ password_reset_tokens : "user_id"
     users ||--|| avatar_images : "user_id"
+    users ||--|| roles : "role_id"
+    features ||--o{ permissions : "feature_id"
+    permissions ||--o{ permissions : "requires_permission_id"
+    roles ||--o{ role_permissions : "role_id"
+    permissions ||--o{ role_permissions : "permission_id"
 
     patients ||--o{ examinations : "patient_id"
     doctors ||--o{ examinations : "doctor_id"
@@ -42,7 +47,7 @@ erDiagram
         varchar full_name
         varchar email
         varchar phone
-        user_role role
+        bigint role_id FK
         user_status status
         boolean is_first_activated
         datetime created_at
@@ -65,6 +70,38 @@ erDiagram
         bigint id PK, FK
         varchar admin_code
         varchar position
+    }
+
+    roles {
+        bigint id PK
+        varchar code
+        text name
+        datetime created_at
+        datetime updated_at
+    }
+
+    features {
+        bigint id PK
+        varchar name
+        text description
+        datetime created_at
+        datetime updated_at
+    }
+
+    permissions {
+        bigint id PK
+        varchar code
+        text name
+        int priority
+        varchar presentation
+        bigint feature_id FK
+        bigint requires_permission_id FK
+    }
+
+    role_permissions {
+        bigint id PK
+        bigint role_id FK
+        bigint permission_id FK
     }
 
     patients {

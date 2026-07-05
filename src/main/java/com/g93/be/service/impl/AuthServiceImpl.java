@@ -80,7 +80,7 @@ public class AuthServiceImpl implements AuthService {
         return new LoginResponse(
                 accessToken,
                 refreshToken,
-                userDetails.getUser().getRole().getName(),
+                userDetails.getUser().getRole().getCode(),
                 userDetails.getUsername(),
                 userDetails.getPermissions()
         );
