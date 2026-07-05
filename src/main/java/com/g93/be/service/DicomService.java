@@ -26,7 +26,7 @@ public interface DicomService {
      * @param files The uploaded DICOM files.
      * @return Batch upload response with successful patients and errors.
      */
-    com.g93.be.dto.BatchDicomUploadResponse uploadBatch(List<MultipartFile> files);
+    com.g93.be.dto.BatchDicomUploadResponse uploadBatch(List<MultipartFile> files, Long userId);
 
     /**
      * Processes a single zip file containing a batch of patient DICOM zip files asynchronously.
@@ -41,5 +41,5 @@ public interface DicomService {
      * @param filePaths Map of original filenames to temp file paths.
      * @return Batch upload response.
      */
-    com.g93.be.dto.BatchDicomUploadResponse processBatchPaths(java.util.Map<String, java.nio.file.Path> filePaths);
+    com.g93.be.dto.BatchDicomUploadResponse processBatchPaths(java.util.Map<String, java.nio.file.Path> filePaths, Long userId);
 }

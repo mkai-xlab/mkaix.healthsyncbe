@@ -67,7 +67,7 @@ public class DicomServiceImpl implements DicomService {
 
     @Override
     @org.springframework.transaction.annotation.Transactional
-    public com.g93.be.dto.BatchDicomUploadResponse uploadBatch(List<MultipartFile> files) {
+    public com.g93.be.dto.BatchDicomUploadResponse uploadBatch(List<MultipartFile> files, Long userId) {
         java.util.Map<String, Path> filePaths = new java.util.LinkedHashMap<>();
         List<Path> tempFilesToClean = new ArrayList<>();
         List<com.g93.be.dto.FileUploadError> earlyErrors = new ArrayList<>();
@@ -83,7 +83,7 @@ public class DicomServiceImpl implements DicomService {
                 filePaths.put(originalFilename, tempFile);
                 tempFilesToClean.add(tempFile);
             }
-            com.g93.be.dto.BatchDicomUploadResponse response = processBatchPaths(filePaths);
+            com.g93.be.dto.BatchDicomUploadResponse response = processBatchPaths(filePaths, userId);
             response.getErrors().addAll(earlyErrors);
             return response;
         } catch (Exception e) {
@@ -134,7 +134,7 @@ public class DicomServiceImpl implements DicomService {
                 filePaths.put(dcmFile.getFileName().toString(), dcmFile);
             }
 
-            com.g93.be.dto.BatchDicomUploadResponse response = processBatchPaths(filePaths);
+            com.g93.be.dto.BatchDicomUploadResponse response = processBatchPaths(filePaths, null);
 
             if (dcmFiles.isEmpty()) {
                 response.getErrors().add(new com.g93.be.dto.FileUploadError(zipFilePath.getFileName().toString(), "No DICOM files found in the ZIP batch."));
@@ -187,7 +187,7 @@ public class DicomServiceImpl implements DicomService {
 
     @Override
     @org.springframework.transaction.annotation.Transactional
-    public com.g93.be.dto.BatchDicomUploadResponse processBatchPaths(java.util.Map<String, Path> filePaths) {
+    public com.g93.be.dto.BatchDicomUploadResponse processBatchPaths(java.util.Map<String, Path> filePaths, Long userId) {
         List<com.g93.be.dto.FileUploadError> errors = new ArrayList<>();
         java.util.Map<String, com.g93.be.entity.Patient> patientMap = new java.util.HashMap<>();
         java.util.Map<String, com.g93.be.entity.Examination> examMap = new java.util.HashMap<>();
@@ -195,8 +195,10 @@ public class DicomServiceImpl implements DicomService {
         java.util.Set<String> processedUids = new java.util.HashSet<>();
 
         Path baseDicomDir = Paths.get(storageBaseDir, "dicom");
+        Path baseImageDir = Paths.get(storageBaseDir, "images");
         try {
             Files.createDirectories(baseDicomDir);
+            Files.createDirectories(baseImageDir);
         } catch (IOException e) {
             log.error("Cannot create base dir", e);
             throw new RuntimeException("Cannot create storage directories");
@@ -390,16 +392,21 @@ public class DicomServiceImpl implements DicomService {
                 errors.add(new com.g93.be.dto.FileUploadError(originalFilename, "Processing error: " + e.getMessage()));
             }
         }
-        log.info("Finished background processing for {} DICOM files", tempFilePaths.size());
+        log.info("Finished background processing for {} DICOM files", filePaths.size());
         
         if (userId != null) {
             notificationService.sendNotification(new SendNotificationRequest(
                     userId,
                     "DICOM Upload Complete",
-                    "Đã hoàn tất xử lý " + tempFilePaths.size() + " file DICOM.",
+                    "Đã hoàn tất xử lý " + filePaths.size() + " file DICOM.",
                     "SYSTEM"
             ));
         }
+        
+        com.g93.be.dto.BatchDicomUploadResponse response = new com.g93.be.dto.BatchDicomUploadResponse();
+        response.setErrors(errors);
+        response.setSuccessfulPatients(successfulPatients);
+        return response;
     }
 }
 
