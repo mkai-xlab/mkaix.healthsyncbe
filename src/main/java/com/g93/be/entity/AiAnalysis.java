@@ -19,8 +19,8 @@ public class AiAnalysis {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "start_date")
-    private LocalDateTime startDate;
+    @Column(name = "start_time")
+    private LocalDateTime startTime;
 
     @Column(name = "duration")
     private Long duration;
@@ -31,19 +31,7 @@ public class AiAnalysis {
     @Column(name = "token", length = 255)
     private String token;
 
-    @Column(name = "average_level")
-    private Double averageLevel;
-
-    @Column(name = "final_diagnosis", columnDefinition = "TEXT")
-    private String finalDiagnosis;
-
-    @Column(name = "number_of_result")
-    private Integer numberOfResult;
-
-    @Column(name = "accuracy_rate")
-    private Double accuracyRate;
-
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "examination_id", nullable = false)
-    private Examination examination;
+    @JoinColumn(name = "dicom_instance_id", nullable = false)
+    private DicomInstance dicomInstance;
 }
