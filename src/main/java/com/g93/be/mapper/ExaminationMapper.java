@@ -59,17 +59,17 @@ public class ExaminationMapper {
             ed.setDoctor(doctorMapper.toResponse(ex.getDoctor()));
         }
 
-        String baseUrl = "";
+        String baseUrl = "/api/v1";
         try {
-            baseUrl = ServletUriComponentsBuilder.fromCurrentContextPath().build().toUriString();
+            if (org.springframework.web.context.request.RequestContextHolder.getRequestAttributes() != null) {
+                baseUrl = ServletUriComponentsBuilder.fromCurrentContextPath().build().toUriString();
+            }
         } catch (Exception e) {
             log.warn("Could not determine base URL from request context: {}", e.getMessage());
         }
 
         if (instances != null && !instances.isEmpty()) {
-            if (!baseUrl.isEmpty()) {
-                ed.setThumbnailUrl(baseUrl + "/dicom/instances/" + instances.get(0).getId() + "/image");
-            }
+            ed.setThumbnailUrl(baseUrl + "/dicom/instances/" + instances.get(0).getId() + "/image");
             List<ExaminationImageDto> imageDtos = new ArrayList<>();
             for (DicomInstance instance : instances) {
                 ExaminationImageDto img = new ExaminationImageDto();
@@ -77,9 +77,7 @@ public class ExaminationMapper {
                 img.setEncounterCode(ex.getEncounterCode());
                 img.setStatus(ex.getStatus() != null ? ex.getStatus().name() : null);
                 img.setVisitTime(ex.getVisitTime());
-                if (!baseUrl.isEmpty()) {
-                    img.setImageUrl(baseUrl + "/dicom/instances/" + instance.getId() + "/image");
-                }
+                img.setImageUrl(baseUrl + "/dicom/instances/" + instance.getId() + "/image");
                 imageDtos.add(img);
             }
             ed.setImages(imageDtos);

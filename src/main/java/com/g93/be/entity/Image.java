@@ -21,12 +21,14 @@ public class Image {
     @Column(name = "extension", length = 20)
     private String extension;
 
-    @Column(name = "s3_bucket_id", length = 255)
-    private String s3BucketId;
-
-    @Column(name = "s3_bucket_key", length = 500)
-    private String s3BucketKey;
-
-    @Column(name = "file_path", length = 1000)
+    @Column(name = "file_path", length = 500)
     private String filePath;
+
+    @Column(name = "created_at")
+    private java.time.LocalDateTime createdAt;
+
+    @PrePersist
+    protected void onCreate() {
+        createdAt = java.time.LocalDateTime.now();
+    }
 }
