@@ -159,7 +159,7 @@ public class DicomController {
         }
     }
 
-    @Value("${app.storage.base-dir:D:/Capstone/data}")
+    @org.springframework.beans.factory.annotation.Value("${app.storage.base-dir:D:/Capstone/data}")
     private String storageBaseDir;
 
     @GetMapping("/instances/{id}/image")
