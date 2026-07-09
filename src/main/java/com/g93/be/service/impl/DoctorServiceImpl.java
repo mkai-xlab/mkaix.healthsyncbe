@@ -103,11 +103,10 @@ public class DoctorServiceImpl implements DoctorService {
             if (doctor.getAvatar() == null) {
                 Image avatar = new Image();
                 avatar.setExtension("png");
-                avatar.setS3BucketId("default");
-                avatar.setS3BucketKey(request.getAvatarUrl());
+                avatar.setFilePath(request.getAvatarUrl());
                 doctor.setAvatar(avatar);
             } else {
-                doctor.getAvatar().setS3BucketKey(request.getAvatarUrl());
+                doctor.getAvatar().setFilePath(request.getAvatarUrl());
             }
         }
 
@@ -158,8 +157,7 @@ public class DoctorServiceImpl implements DoctorService {
         if (request.getAvatarUrl() != null) {
             Image avatar = new Image();
             avatar.setExtension("png");
-            avatar.setS3BucketId("default");
-            avatar.setS3BucketKey(request.getAvatarUrl());
+            avatar.setFilePath(request.getAvatarUrl());
             doctor.setAvatar(avatar);
         }
         doctor.setRole(roleRepository.findByCode("DOCTOR")

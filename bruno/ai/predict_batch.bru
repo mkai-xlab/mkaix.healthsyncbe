@@ -1,0 +1,26 @@
+meta {
+  name: predict_batch
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/ai/predict-batch
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "dicomInstanceIds": [
+      1,
+      2,
+      3,
+      4
+    ]
+  }
+}

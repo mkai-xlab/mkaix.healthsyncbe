@@ -32,8 +32,9 @@ public interface DicomService {
      * Processes a single zip file containing a batch of patient DICOM zip files asynchronously.
      *
      * @param zipFilePath Path to the uploaded zip file.
+     * @param userId The ID of the uploading user for notifications.
      */
-    void processZipBatch(java.nio.file.Path zipFilePath);
+    void processZipBatch(java.nio.file.Path zipFilePath, Long userId);
 
     /**
      * Processes a batch of DICOM files mapped by their original filenames to their temporary paths on disk.
