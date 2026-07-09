@@ -15,6 +15,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 import java.util.List;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 /**
  * Controller for managing doctor-related operations.
@@ -34,6 +35,7 @@ public class DoctorController {
      * @return The created DoctorResponse.
      */
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<DoctorResponse> createDoctor(@Valid @RequestBody CreateDoctorRequest request) {
         log.info("Received request to register a new doctor with email: {}", request.getEmail());
         DoctorResponse response = doctorService.createDoctor(request);
@@ -50,6 +52,7 @@ public class DoctorController {
      * @return A paginated list of DoctorResponse.
      */
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'DOCTOR')")
     public ResponseEntity<PageResponse<DoctorResponse>> getDoctors(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String specialization,
@@ -67,6 +70,7 @@ public class DoctorController {
      * @return A list of DoctorResponse objects for active doctors wrapped in ResponseEntity.
      */
     @GetMapping("/active")
+    @PreAuthorize("hasAnyRole('ADMIN', 'DOCTOR')")
     public ResponseEntity<List<DoctorResponse>> getActiveDoctors() {
         log.info("Received request to fetch active doctors");
         return ResponseEntity.ok(doctorService.getActiveDoctors());
@@ -79,6 +83,7 @@ public class DoctorController {
      * @return A response signaling completion.
      */
     @PostMapping("/{id}/activate")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> activateDoctor(@PathVariable Long id) {
         log.info("Received request to activate doctor with ID: {}", id);
         doctorService.activateDoctor(id);
@@ -92,6 +97,7 @@ public class DoctorController {
      * @return A response signaling completion.
      */
     @PostMapping("/{id}/deactivate")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deactivateDoctorPost(@PathVariable Long id) {
         log.info("Received request to deactivate doctor with ID via POST: {}", id);
         doctorService.softDeleteDoctor(id);
@@ -105,6 +111,7 @@ public class DoctorController {
      * @return A response signaling completion.
      */
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deactivateDoctor(@PathVariable Long id) {
         log.info("Received request to deactivate doctor with ID via DELETE: {}", id);
         doctorService.softDeleteDoctor(id);
