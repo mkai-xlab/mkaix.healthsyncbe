@@ -19,6 +19,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import com.g93.be.entity.DicomInstance;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 /**
  * Controller for DICOM file operations.
@@ -40,6 +41,7 @@ public class DicomController {
      * @return A list of extracted DICOM tags.
      */
     @PostMapping(value = "/upload", consumes = "multipart/form-data")
+    @PreAuthorize("hasAuthority('UPLOAD_DICOM_IMAGE')")
     public ResponseEntity<List<DicomTagResponse>> uploadDicomFile(@RequestParam("file") MultipartFile file) {
         log.info("Received request to upload DICOM file: {}", file.getOriginalFilename());
         if (file.isEmpty()) {
@@ -53,6 +55,7 @@ public class DicomController {
     }
 
     @PostMapping(value = "/upload/batch", consumes = "multipart/form-data")
+    @PreAuthorize("hasAuthority('UPLOAD_DICOM_IMAGE')")
     public ResponseEntity<java.util.Map<String, String>> uploadBatch(
             @RequestParam("files") List<MultipartFile> files,
             java.security.Principal principal) {
@@ -104,6 +107,7 @@ public class DicomController {
     }
 
     @PostMapping(value = "/upload/zip-batch", consumes = "multipart/form-data")
+    @PreAuthorize("hasAuthority('UPLOAD_DICOM_IMAGE')")
     public ResponseEntity<java.util.Map<String, String>> uploadZipBatch(
             @RequestParam("file") MultipartFile file,
             java.security.Principal principal) {
@@ -160,6 +164,7 @@ public class DicomController {
 
     @GetMapping("/instances/{id}/image")
     @Transactional(readOnly = true)
+    @PreAuthorize("hasAuthority('VIEW_IMAGE_LIST')")
     public ResponseEntity<Resource> getInstanceImage(@PathVariable Long id) {
         DicomInstance instance = dicomInstanceRepository.findById(id).orElse(null);
         if (instance != null && instance.getStoragePngPath() != null) {
