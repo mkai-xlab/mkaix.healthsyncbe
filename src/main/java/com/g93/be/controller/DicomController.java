@@ -9,10 +9,8 @@ import org.springframework.web.multipart.MultipartFile;
 import com.g93.be.repository.DicomInstanceRepository;
 import java.util.List;
 import com.g93.be.dto.DicomTagResponse;
-import com.g93.be.dto.BatchDicomUploadResponse;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import com.g93.be.security.CustomUserDetails;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
@@ -34,6 +32,7 @@ public class DicomController {
 
     private final DicomService dicomService;
     private final DicomInstanceRepository dicomInstanceRepository;
+    private final com.g93.be.repository.UserRepository userRepository;
 
     /**
      * Uploads a DICOM file and returns its extracted metadata.
@@ -57,26 +56,61 @@ public class DicomController {
 
     @PostMapping(value = "/upload/batch", consumes = "multipart/form-data")
     @PreAuthorize("hasAuthority('UPLOAD_DICOM_IMAGE')")
-    public ResponseEntity<BatchDicomUploadResponse> uploadBatch(
+    public ResponseEntity<java.util.Map<String, String>> uploadBatch(
             @RequestParam("files") List<MultipartFile> files,
-            @AuthenticationPrincipal CustomUserDetails userDetails) {
+            java.security.Principal principal) {
         log.info("Received request to upload batch of {} DICOM files", files.size());
         if (files == null || files.isEmpty()) {
             throw new IllegalArgumentException("Uploaded files list is empty");
         }
 
-        Long userId = userDetails != null && userDetails.getUser() != null ? userDetails.getUser().getId() : null;
-        BatchDicomUploadResponse response = dicomService.uploadBatch(files, userId);
-        log.info("Successfully processed batch upload. Errors: {}, Successful Patients: {}",
-                response.getErrors().size(), response.getSuccessfulPatients().size());
+        Long userId = null;
+        if (principal != null && principal.getName() != null) {
+            com.g93.be.entity.User user = userRepository.findByUsername(principal.getName()).orElse(null);
+            if (user != null) {
+                userId = user.getId();
+            }
+        }
+        if (userId == null) {
+            java.util.Map<String, String> err = new java.util.HashMap<>();
+            err.put("error", "Unauthorized: Valid access token is required");
+            err.put("status", "FAILED");
+            return ResponseEntity.status(org.springframework.http.HttpStatus.UNAUTHORIZED).body(err);
+        }
+        
+        try {
+            // Save files to temp directory for async processing
+            java.util.Map<String, Path> tempFilePaths = new java.util.LinkedHashMap<>();
+            for (MultipartFile file : files) {
+                if (file.getOriginalFilename() != null) {
+                    Path tempFile = Files.createTempFile("main_batch_", ".dcm");
+                    file.transferTo(tempFile.toFile());
+                    tempFilePaths.put(file.getOriginalFilename(), tempFile);
+                }
+            }
 
-        return ResponseEntity.ok(response);
+            // Spawn background task
+            final Long finalUserId = userId;
+            java.util.concurrent.CompletableFuture.runAsync(() -> {
+                dicomService.processBatchPaths(tempFilePaths, finalUserId);
+            });
+
+            java.util.Map<String, String> response = new java.util.HashMap<>();
+            response.put("message", "DICOM files accepted. Processing in background.");
+            response.put("status", "PROCESSING");
+
+            return ResponseEntity.ok(response);
+        } catch (java.io.IOException e) {
+            log.error("Failed to save uploaded DICOM files for background processing", e);
+            throw new RuntimeException("Failed to save uploaded DICOM files", e);
+        }
     }
 
     @PostMapping(value = "/upload/zip-batch", consumes = "multipart/form-data")
     @PreAuthorize("hasAuthority('UPLOAD_DICOM_IMAGE')")
     public ResponseEntity<java.util.Map<String, String>> uploadZipBatch(
-            @RequestParam("file") MultipartFile file) {
+            @RequestParam("file") MultipartFile file,
+            java.security.Principal principal) {
         log.info("Received request to upload ZIP batch DICOM file: {}", file.getOriginalFilename());
         if (file == null || file.isEmpty()) {
             throw new IllegalArgumentException("Uploaded file is empty");
@@ -90,13 +124,28 @@ public class DicomController {
             return ResponseEntity.badRequest().body(errResponse);
         }
 
+        Long userId = null;
+        if (principal != null && principal.getName() != null) {
+            com.g93.be.entity.User user = userRepository.findByUsername(principal.getName()).orElse(null);
+            if (user != null) {
+                userId = user.getId();
+            }
+        }
+        if (userId == null) {
+            java.util.Map<String, String> err = new java.util.HashMap<>();
+            err.put("error", "Unauthorized: Valid access token is required");
+            err.put("status", "FAILED");
+            return ResponseEntity.status(org.springframework.http.HttpStatus.UNAUTHORIZED).body(err);
+        }
+
         try {
             Path tempZipFile = Files.createTempFile("main_batch_", ".zip");
             file.transferTo(tempZipFile.toFile());
             
             // Spawn background task
+            final Long finalUserId = userId;
             java.util.concurrent.CompletableFuture.runAsync(() -> {
-                dicomService.processZipBatch(tempZipFile);
+                dicomService.processZipBatch(tempZipFile, finalUserId);
             });
             
             java.util.Map<String, String> response = new java.util.HashMap<>();

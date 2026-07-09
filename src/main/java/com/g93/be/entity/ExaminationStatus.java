@@ -10,6 +10,7 @@ public enum ExaminationStatus {
     AI_COMPLETED,
     REVIEWED,
     REPORT_GENERATED,
+    NEED_VERIFY,
     NEED_REVERIFY,
     CANCELLED
 }

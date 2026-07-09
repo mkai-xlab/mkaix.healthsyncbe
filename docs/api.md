@@ -787,55 +787,86 @@ Updates an existing permission's details and dependencies.
 
 Endpoints for handling DICOM files and imaging.
 
-## `POST /dicom/upload`
+## `POST /dicom/upload/batch`
 
-Uploads a DICOM file, parses metadata, generates a PNG thumbnail, and associates it with a Patient and Examination. Duplicate files (same SOPInstanceUID) will be rejected.
+Uploads multiple DICOM files asynchronously. The server processes the files in the background, extracting metadata and generating PNG thumbnails. Processing results, including duplicate/invalid file errors and successful patient/examination mappings, are broadcasted via STOMP WebSockets.
 
 ### Request
 
 `multipart/form-data`
-- `file`: The DICOM `.dcm` file.
+- `files`: An array of DICOM `.dcm` files.
 
-### Response
+### HTTP Response
 
 ```json
 {
-  "patient": {
-    "id": 1,
-    "patientCode": "...",
-    "fullName": "...",
-    "dateOfBirth": "...",
-    "gender": "..."
-  },
-  "examinations": [
-    {
-      "examinationId": 1,
-      "encounterCode": "...",
-      "status": "CREATED",
-      "studyDate": "...",
-      "visitTime": "...",
-      "thumbnailUrl": "http://localhost:8080/api/v1/dicom/instances/1/thumbnail",
-      "bodyPart": "KNEE",
-      "referringPhysician": "Dr. Smith",
-      "images": [
-        {
-          "examinationId": 1,
-          "encounterCode": "...",
-          "status": "CREATED",
-          "visitTime": "...",
-          "imageUrl": "http://localhost:8080/api/v1/dicom/instances/1/image"
-        }
-      ]
-    }
-  ]
+  "message": "DICOM files accepted for background processing.",
+  "status": "PROCESSING",
+  "filesCount": 2,
+  "batchId": "6c84fb90-12c4-11e1-840d-7b25c5ee775a"
 }
 ```
 
 ### Status Codes
 
-- `201 Created`: DICOM file uploaded and processed successfully
-- `400 Bad Request`: Invalid file or file already exists (duplicate SOPInstanceUID)
+- `202 Accepted`: Files accepted for asynchronous processing
+- `400 Bad Request`: No files provided or missing authentication
 - `401 Unauthorized`: Authentication is required
+
+---
+
+## `POST /dicom/upload/zip-batch`
+
+Uploads a single ZIP file containing multiple DICOM files (can contain nested folders or nested ZIP files). The server processes the files asynchronously in the background.
+
+### Request
+
+`multipart/form-data`
+- `file`: The `.zip` file containing `.dcm` files.
+
+### HTTP Response
+
+```json
+{
+  "message": "ZIP batch accepted for background processing.",
+  "status": "PROCESSING",
+  "zipFileName": "dataset.zip",
+  "batchId": "6c84fb90-12c4-11e1-840d-7b25c5ee775a"
+}
+```
+
+### Status Codes
+
+- `202 Accepted`: File accepted for asynchronous processing
+- `400 Bad Request`: No file provided or missing authentication
+- `401 Unauthorized`: Authentication is required
+
+---
+
+## Asynchronous Notifications (WebSocket / STOMP)
+
+Clients subscribed to `/user/queue/notifications` will receive real-time updates regarding their uploads.
+
+### Progress Notifications (`type="SYSTEM"`)
+
+Sent immediately upon receiving the upload to indicate progress.
+- **Title**: `Tiếp nhận File ZIP` or `Đang xử lý DICOM`
+- **Message**: "Hệ thống đang tiến hành giải nén..." or "Hệ thống đang trích xuất dữ liệu từ X file DICOM..."
+
+### Final Result Notification (`type="DICOM_BATCH_RESULT"`)
+
+Sent when the entire batch is finished processing. The `message` field contains a JSON string of the `BatchDicomUploadResponse`.
+
+```json
+{
+  "id": 5,
+  "title": "DICOM Upload Complete",
+  "type": "DICOM_BATCH_RESULT",
+  "isRead": false,
+  "createdAt": "2026-07-08T23:15:00.123",
+  "message": "{\"errors\":[{\"fileName\":\"duplicate.dcm\",\"errorMessage\":\"File DICOM đã tồn tại trên hệ thống.\"}],\"successfulPatients\":[{\"patient\":{\"id\":1,\"patientCode\":\"12345\"},\"recentExaminations\":[{\"examinationId\":1,\"status\":\"PENDING_REVIEW\",\"images\":[{\"imageUrl\":\"/api/v1/dicom/instances/1/image\"}]}]}]}"
+}
+```
 
 ## `GET /dicom/instances/{id}/image`
 
@@ -1039,3 +1070,5 @@ Retrieves a paginated list of examinations for a specific patient.
 - [Back to Documentation Index](README.md)
 - [Previous: Database](database.md)
 - [Next: Deployment Guide](deployment.md)
+# #   D i c o m   E n d p o i n t s  
+ 

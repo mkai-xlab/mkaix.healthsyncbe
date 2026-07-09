@@ -17,7 +17,6 @@ import javax.imageio.ImageReader;
 import javax.imageio.stream.ImageInputStream;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -26,20 +25,13 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
-
-import com.g93.be.dto.BatchDicomUploadResponse;
-import com.g93.be.dto.FileUploadError;
 import com.g93.be.dto.SendNotificationRequest;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationContext;
-import org.springframework.scheduling.annotation.Async;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Slf4j
@@ -53,9 +45,26 @@ public class DicomServiceImpl implements DicomService {
     private final RoleRepository roleRepository;
     private final DoctorRepository doctorRepository;
     private final NotificationService notificationService;
+    private final com.g93.be.mapper.PatientMapper patientMapper;
+    private final com.g93.be.mapper.ExaminationMapper examinationMapper;
+    
+    private static final com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper()
+            .registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule())
+            .disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
     @Value("${app.storage.base-dir:D:/Capstone/data}")
     private String storageBaseDir;
+
+    @jakarta.annotation.PostConstruct
+    public void fixDbEnum() {
+        try (java.sql.Connection conn = java.sql.DriverManager.getConnection("jdbc:mysql://localhost:3306/capstone?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC", "root", "capstone_root_password")) {
+            java.sql.Statement stmt = conn.createStatement();
+            stmt.executeUpdate("ALTER TABLE examinations MODIFY COLUMN status VARCHAR(255) NOT NULL");
+            log.info("Successfully altered examinations.status to VARCHAR(255)");
+        } catch (Exception e) {
+            log.warn("Could not alter examinations table: {}", e.getMessage());
+        }
+    }
 
     @Override
     public List<DicomTagResponse> extractMetadata(MultipartFile file) {
@@ -97,8 +106,16 @@ public class DicomServiceImpl implements DicomService {
     }
 
     @Override
-    public void processZipBatch(Path zipFilePath) {
+    public void processZipBatch(Path zipFilePath, Long userId) {
         log.info("Starting background processing of ZIP batch at: {}", zipFilePath);
+        if (userId != null) {
+            notificationService.sendNotification(new com.g93.be.dto.SendNotificationRequest(
+                    userId,
+                    "Tiếp nhận File ZIP",
+                    "Hệ thống đang tiến hành giải nén và kiểm tra file ZIP...",
+                    "SYSTEM"
+            ));
+        }
         Path workDir = null;
         try {
             workDir = Files.createTempDirectory("zip_batch_work_");
@@ -134,7 +151,7 @@ public class DicomServiceImpl implements DicomService {
                 filePaths.put(dcmFile.getFileName().toString(), dcmFile);
             }
 
-            com.g93.be.dto.BatchDicomUploadResponse response = processBatchPaths(filePaths, null);
+            com.g93.be.dto.BatchDicomUploadResponse response = processBatchPaths(filePaths, userId);
 
             if (dcmFiles.isEmpty()) {
                 response.getErrors().add(new com.g93.be.dto.FileUploadError(zipFilePath.getFileName().toString(), "No DICOM files found in the ZIP batch."));
@@ -189,10 +206,20 @@ public class DicomServiceImpl implements DicomService {
     @org.springframework.transaction.annotation.Transactional
     public com.g93.be.dto.BatchDicomUploadResponse processBatchPaths(java.util.Map<String, Path> filePaths, Long userId) {
         List<com.g93.be.dto.FileUploadError> errors = new ArrayList<>();
-        java.util.Map<String, com.g93.be.entity.Patient> patientMap = new java.util.HashMap<>();
-        java.util.Map<String, com.g93.be.entity.Examination> examMap = new java.util.HashMap<>();
         List<com.g93.be.dto.PatientDetailsResponse> successfulPatients = new ArrayList<>();
         java.util.Set<String> processedUids = new java.util.HashSet<>();
+        java.util.Map<Long, com.g93.be.entity.Patient> uniquePatients = new java.util.HashMap<>();
+        java.util.Map<Long, java.util.Map<Long, com.g93.be.entity.Examination>> patientExaminations = new java.util.HashMap<>();
+        java.util.Map<Long, java.util.List<DicomInstance>> examNewInstances = new java.util.HashMap<>();
+
+        if (userId != null) {
+            notificationService.sendNotification(new com.g93.be.dto.SendNotificationRequest(
+                    userId,
+                    "Đang xử lý DICOM",
+                    "Hệ thống đang trích xuất dữ liệu từ " + filePaths.size() + " file DICOM...",
+                    "SYSTEM"
+            ));
+        }
 
         Path baseDicomDir = Paths.get(storageBaseDir, "dicom");
         Path baseImageDir = Paths.get(storageBaseDir, "images");
@@ -248,11 +275,13 @@ public class DicomServiceImpl implements DicomService {
 
                 if (sopInstanceUid == null || sopInstanceUid.isEmpty()) {
                     log.warn("Missing SOPInstanceUID for file {}", originalFilename);
+                    errors.add(new com.g93.be.dto.FileUploadError(originalFilename, "File DICOM không hợp lệ (thiếu SOPInstanceUID)."));
                     continue;
                 }
 
                 if (processedUids.contains(sopInstanceUid) || dicomInstanceRepository.existsBySopInstanceUid(sopInstanceUid)) {
                     log.warn("Duplicate SOPInstanceUID for file {}", originalFilename);
+                    errors.add(new com.g93.be.dto.FileUploadError(originalFilename, "File DICOM đã tồn tại trên hệ thống."));
                     continue;
                 }
                 
@@ -275,7 +304,24 @@ public class DicomServiceImpl implements DicomService {
                     // Get or Create Patient
                     final String finalPatientId = (patientId != null && !patientId.isEmpty()) ? patientId : "UNKNOWN";
                     final String finalPatientName = (patientName != null && !patientName.isEmpty()) ? patientName : "Unknown";
-                    Patient patient = patientRepository.findByPatientCode(finalPatientId).orElseGet(() -> {
+                    
+                    Patient patient = patientRepository.findByPatientCode(finalPatientId).orElse(null);
+                    if (patient != null) {
+                        // Update existing patient with new DICOM info
+                        patient.setFullName(finalPatientName.replace("^", " ").trim());
+                        if (finalPatientBirthDate != null) {
+                            patient.setDob(finalPatientBirthDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate());
+                        }
+                        if ("F".equalsIgnoreCase(finalPatientSex)) {
+                            patient.setGender(Gender.FEMALE);
+                        } else if ("M".equalsIgnoreCase(finalPatientSex)) {
+                            patient.setGender(Gender.MALE);
+                        } else {
+                            patient.setGender(Gender.OTHER);
+                        }
+                        patient = patientRepository.save(patient);
+                    } else {
+                        // Create new patient
                         Patient p = new Patient();
                         p.setPatientCode(finalPatientId);
                         p.setEmail(finalPatientId + "_" + UUID.randomUUID().toString().substring(0, 8) + "@temp.com");
@@ -290,34 +336,41 @@ public class DicomServiceImpl implements DicomService {
                         } else {
                             p.setGender(Gender.OTHER);
                         }
-                        return patientRepository.save(p);
-                    });
+                        patient = patientRepository.save(p);
+                    }
 
                     // Create new Examination
                     examination = new Examination();
                     examination.setPatient(patient);
                     
-                    Doctor doctor = doctorRepository.findAll().stream().findFirst().orElseGet(() -> {
-                        Doctor d = new Doctor();
-                        d.setUsername("dummy_doc_" + UUID.randomUUID().toString().substring(0, 8));
-                        d.setPassword("temp");
-                        d.setEmail("dummy_doc_" + UUID.randomUUID().toString().substring(0, 8) + "@temp.com");
-                        d.setFullName("System Doctor");
-                        d.setStatus(UserStatus.ACTIVE);
-                        Role doctorRole = roleRepository.findByCode("DOCTOR").orElseGet(() -> {
-                            Role r = new Role();
-                            r.setCode("DOCTOR");
-                            r.setName("Doctor Role");
-                            return roleRepository.save(r);
+                    Doctor doctor = null;
+                    if (userId != null) {
+                        doctor = doctorRepository.findById(userId).orElse(null);
+                    }
+                    if (doctor == null) {
+                        // Fallback only if no doctor is found or userId is null (e.g. anonymous upload if allowed)
+                        doctor = doctorRepository.findAll().stream().findFirst().orElseGet(() -> {
+                            Doctor d = new Doctor();
+                            d.setUsername("dummy_doc_" + UUID.randomUUID().toString().substring(0, 8));
+                            d.setPassword("temp");
+                            d.setEmail("dummy_doc_" + UUID.randomUUID().toString().substring(0, 8) + "@temp.com");
+                            d.setFullName("System Doctor");
+                            d.setStatus(com.g93.be.entity.UserStatus.ACTIVE);
+                            com.g93.be.entity.Role doctorRole = roleRepository.findByCode("DOCTOR").orElseGet(() -> {
+                                com.g93.be.entity.Role r = new com.g93.be.entity.Role();
+                                r.setCode("DOCTOR");
+                                r.setName("Doctor Role");
+                                return roleRepository.save(r);
+                            });
+                            d.setRole(doctorRole);
+                            d.setYearsOfExperience(0);
+                            return doctorRepository.save(d);
                         });
-                        d.setRole(doctorRole);
-                        d.setYearsOfExperience(0);
-                        return doctorRepository.save(d);
-                    });
+                    }
                     examination.setDoctor(doctor);
                     
                     examination.setEncounterCode(finalStudyUid);
-                    examination.setStatus(ExaminationStatus.PENDING_REVIEW);
+                    examination.setStatus(ExaminationStatus.NEED_VERIFY);
                     examination.setVisitTime(LocalDateTime.now());
                     if (studyDate != null) {
                         examination.setStudyDate(studyDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate());
@@ -354,7 +407,7 @@ public class DicomServiceImpl implements DicomService {
                             ImageIO.write(bi, "png", targetPng.toFile());
                             pngImageEntity = new Image();
                             pngImageEntity.setExtension("png");
-                            pngImageEntity.setS3BucketKey(dbPngPath);
+                            pngImageEntity.setFilePath(dbPngPath);
                             pngImageEntity = imageRepository.save(pngImageEntity);
                         }
                     }
@@ -364,11 +417,11 @@ public class DicomServiceImpl implements DicomService {
 
                 Image dcmImageEntity = new Image();
                 dcmImageEntity.setExtension("dcm");
-                dcmImageEntity.setS3BucketKey(dbDcmPath);
+                dcmImageEntity.setFilePath(dbDcmPath);
                 dcmImageEntity = imageRepository.save(dcmImageEntity);
 
                 if (pngImageEntity != null && examination.getImagePath() == null) {
-                    examination.setImagePath(pngImageEntity.getS3BucketKey());
+                    examination.setImagePath(pngImageEntity.getFilePath());
                     examinationRepository.save(examination);
                 }
 
@@ -385,7 +438,15 @@ public class DicomServiceImpl implements DicomService {
                 instance.setStorageRawPath(dbDcmPath);
                 instance.setStoragePngPath(dbPngPath);
 
-                dicomInstanceRepository.save(instance);
+                instance = dicomInstanceRepository.save(instance);
+                examNewInstances.computeIfAbsent(examination.getId(), k -> new ArrayList<>()).add(instance);
+                
+                if (examination.getPatient() != null) {
+                    Long dbPatientId = examination.getPatient().getId();
+                    uniquePatients.put(dbPatientId, examination.getPatient());
+                    patientExaminations.computeIfAbsent(dbPatientId, k -> new java.util.HashMap<>())
+                            .put(examination.getId(), examination);
+                }
 
             } catch (Exception e) {
                 log.error("Error processing file {}", originalFilename, e);
@@ -394,18 +455,52 @@ public class DicomServiceImpl implements DicomService {
         }
         log.info("Finished background processing for {} DICOM files", filePaths.size());
         
-        if (userId != null) {
-            notificationService.sendNotification(new SendNotificationRequest(
-                    userId,
-                    "DICOM Upload Complete",
-                    "Đã hoàn tất xử lý " + filePaths.size() + " file DICOM.",
-                    "SYSTEM"
-            ));
+        for (com.g93.be.entity.Patient p : uniquePatients.values()) {
+            com.g93.be.dto.PatientResponse pr = patientMapper.toResponse(p);
+            
+            List<com.g93.be.dto.ExaminationDto> recentExams = new ArrayList<>();
+            java.util.Map<Long, com.g93.be.entity.Examination> examsForPatient = patientExaminations.get(p.getId());
+            if (examsForPatient != null) {
+                for (com.g93.be.entity.Examination exam : examsForPatient.values()) {
+                    List<DicomInstance> instances = examNewInstances.getOrDefault(exam.getId(), new ArrayList<>());
+                    com.g93.be.dto.ExaminationDto examDto = examinationMapper.toDto(exam, instances);
+                    if (examDto != null) {
+                        recentExams.add(examDto);
+                    }
+                }
+            }
+            
+            com.g93.be.dto.PatientDetailsResponse pdr = new com.g93.be.dto.PatientDetailsResponse();
+            pdr.setPatient(pr);
+            pdr.setRecentExaminations(recentExams);
+            
+            successfulPatients.add(pdr);
         }
         
         com.g93.be.dto.BatchDicomUploadResponse response = new com.g93.be.dto.BatchDicomUploadResponse();
         response.setErrors(errors);
         response.setSuccessfulPatients(successfulPatients);
+
+        if (userId != null) {
+            try {
+                String responseJson = objectMapper.writeValueAsString(response);
+                notificationService.sendNotification(new SendNotificationRequest(
+                        userId,
+                        "DICOM Upload Complete",
+                        responseJson,
+                        "DICOM_BATCH_RESULT"
+                ));
+            } catch (Exception e) {
+                log.error("Failed to serialize notification payload", e);
+                notificationService.sendNotification(new SendNotificationRequest(
+                        userId,
+                        "DICOM Upload Complete",
+                        "Đã hoàn tất xử lý " + filePaths.size() + " file DICOM.",
+                        "SYSTEM"
+                ));
+            }
+        }
+        
         return response;
     }
 }
