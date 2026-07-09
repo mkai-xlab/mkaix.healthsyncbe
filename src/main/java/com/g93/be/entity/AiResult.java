@@ -30,6 +30,9 @@ public class AiResult {
     @Column(name = "confidence")
     private Double confidence;
 
+    @Column(name = "description", columnDefinition = "TEXT")
+    private String description;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ai_analysis_id", nullable = false)
     private AiAnalysis aiAnalysis;
