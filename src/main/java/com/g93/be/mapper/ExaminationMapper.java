@@ -73,6 +73,7 @@ public class ExaminationMapper {
             List<ExaminationImageDto> imageDtos = new ArrayList<>();
             for (DicomInstance instance : instances) {
                 ExaminationImageDto img = new ExaminationImageDto();
+                img.setDicomInstanceId(instance.getId());
                 img.setExaminationId(ex.getId());
                 img.setEncounterCode(ex.getEncounterCode());
                 img.setStatus(ex.getStatus() != null ? ex.getStatus().name() : null);

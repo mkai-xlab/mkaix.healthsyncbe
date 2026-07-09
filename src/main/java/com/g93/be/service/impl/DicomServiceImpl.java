@@ -55,6 +55,17 @@ public class DicomServiceImpl implements DicomService {
     @Value("${app.storage.base-dir:D:/Capstone/data}")
     private String storageBaseDir;
 
+    @jakarta.annotation.PostConstruct
+    public void fixDbEnum() {
+        try (java.sql.Connection conn = java.sql.DriverManager.getConnection("jdbc:mysql://localhost:3306/capstone?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC", "root", "capstone_root_password")) {
+            java.sql.Statement stmt = conn.createStatement();
+            stmt.executeUpdate("ALTER TABLE examinations MODIFY COLUMN status VARCHAR(255) NOT NULL");
+            log.info("Successfully altered examinations.status to VARCHAR(255)");
+        } catch (Exception e) {
+            log.warn("Could not alter examinations table: {}", e.getMessage());
+        }
+    }
+
     @Override
     public List<DicomTagResponse> extractMetadata(MultipartFile file) {
         // ... keeping the previous implementation simplified or stubbed to focus on the batch
@@ -199,6 +210,7 @@ public class DicomServiceImpl implements DicomService {
         java.util.Set<String> processedUids = new java.util.HashSet<>();
         java.util.Map<Long, com.g93.be.entity.Patient> uniquePatients = new java.util.HashMap<>();
         java.util.Map<Long, java.util.Map<Long, com.g93.be.entity.Examination>> patientExaminations = new java.util.HashMap<>();
+        java.util.Map<Long, java.util.List<DicomInstance>> examNewInstances = new java.util.HashMap<>();
 
         if (userId != null) {
             notificationService.sendNotification(new com.g93.be.dto.SendNotificationRequest(
@@ -358,7 +370,7 @@ public class DicomServiceImpl implements DicomService {
                     examination.setDoctor(doctor);
                     
                     examination.setEncounterCode(finalStudyUid);
-                    examination.setStatus(ExaminationStatus.PENDING_REVIEW);
+                    examination.setStatus(ExaminationStatus.NEED_VERIFY);
                     examination.setVisitTime(LocalDateTime.now());
                     if (studyDate != null) {
                         examination.setStudyDate(studyDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate());
@@ -426,7 +438,9 @@ public class DicomServiceImpl implements DicomService {
                 instance.setStorageRawPath(dbDcmPath);
                 instance.setStoragePngPath(dbPngPath);
 
-                dicomInstanceRepository.save(instance);
+                instance = dicomInstanceRepository.save(instance);
+                examNewInstances.computeIfAbsent(examination.getId(), k -> new ArrayList<>()).add(instance);
+                
                 if (examination.getPatient() != null) {
                     Long dbPatientId = examination.getPatient().getId();
                     uniquePatients.put(dbPatientId, examination.getPatient());
@@ -448,7 +462,7 @@ public class DicomServiceImpl implements DicomService {
             java.util.Map<Long, com.g93.be.entity.Examination> examsForPatient = patientExaminations.get(p.getId());
             if (examsForPatient != null) {
                 for (com.g93.be.entity.Examination exam : examsForPatient.values()) {
-                    List<DicomInstance> instances = dicomInstanceRepository.findByExaminationId(exam.getId());
+                    List<DicomInstance> instances = examNewInstances.getOrDefault(exam.getId(), new ArrayList<>());
                     com.g93.be.dto.ExaminationDto examDto = examinationMapper.toDto(exam, instances);
                     if (examDto != null) {
                         recentExams.add(examDto);
