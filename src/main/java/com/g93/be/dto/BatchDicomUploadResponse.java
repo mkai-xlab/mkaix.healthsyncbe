@@ -21,6 +21,11 @@ public class BatchDicomUploadResponse {
     private String message;
     
     /**
+     * The ID of the upload session to be verified.
+     */
+    private String uploadSessionId;
+    
+    /**
      * List of files that failed validation during upload.
      */
     private List<FileUploadError> errors;
