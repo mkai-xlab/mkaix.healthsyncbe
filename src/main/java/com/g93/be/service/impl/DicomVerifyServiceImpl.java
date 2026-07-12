@@ -42,7 +42,7 @@ public class DicomVerifyServiceImpl implements DicomVerifyService {
 
     @Override
     @Transactional
-    public void verifySession(DicomVerifyRequest request) {
+    public java.util.List<Long> verifySession(DicomVerifyRequest request) {
         String sessionId = request.getUploadSessionId();
         String redisKey = "uploadSession:" + sessionId;
 
@@ -60,10 +60,11 @@ public class DicomVerifyServiceImpl implements DicomVerifyService {
         }
 
         List<String> acceptedCodes = request.getAcceptedPatientCodes() != null ? request.getAcceptedPatientCodes() : List.of();
+        java.util.List<Long> savedInstanceIds = new java.util.ArrayList<>();
 
         for (PendingDicomUploadDTO pending : sessionDTO.getPatients().values()) {
             if (acceptedCodes.contains(pending.getPatientCode())) {
-                savePatientData(pending, sessionDTO.getUploaderUserId());
+                savedInstanceIds.addAll(savePatientData(pending, sessionDTO.getUploaderUserId()));
             } else {
                 deletePhysicalFiles(pending);
             }
@@ -73,9 +74,12 @@ public class DicomVerifyServiceImpl implements DicomVerifyService {
         stringRedisTemplate.delete(redisKey);
         stringRedisTemplate.opsForZSet().remove("uploadSessionTimeouts", sessionId);
         log.info("Session {} verified and cleaned from Redis.", sessionId);
+        
+        return savedInstanceIds;
     }
 
-    private void savePatientData(PendingDicomUploadDTO pending, Long uploaderUserId) {
+    private java.util.List<Long> savePatientData(PendingDicomUploadDTO pending, Long uploaderUserId) {
+        java.util.List<Long> instanceIds = new java.util.ArrayList<>();
         final String finalStudyUid = (pending.getStudyInstanceUid() != null && !pending.getStudyInstanceUid().isEmpty())
                 ? pending.getStudyInstanceUid()
                 : "UNKNOWN_STUDY_" + System.currentTimeMillis();
@@ -200,8 +204,11 @@ public class DicomVerifyServiceImpl implements DicomVerifyService {
             if (firstPngPath != null) {
                 instance.setStoragePngPath(firstPngPath); // this might overwrite if multiple instances
             }
-            dicomInstanceRepository.save(instance);
+            instance = dicomInstanceRepository.save(instance);
+            instanceIds.add(instance.getId());
         }
+        
+        return instanceIds;
     }
 
     private void deletePhysicalFiles(PendingDicomUploadDTO pending) {
