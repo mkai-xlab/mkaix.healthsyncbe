@@ -1,0 +1,24 @@
+meta {
+  name: Verify DICOM Session
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/dicom/verify
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "uploadSessionId": "e1406ef1-9f1c-4369-a9fa-833ea719b295",
+    "acceptedPatientCodes": [
+      "2600056648"
+    ]
+  }
+}
