@@ -300,7 +300,6 @@ public class DicomServiceImpl implements DicomService {
                         .studyInstanceUid(studyInstanceUid)
                         .studyDate(studyDate)
                         .studyTime(studyTime)
-                        .bodyPart(bodyPart)
                         .description(description)
                         .referringPhysician(referringPhysician)
                         .physicalFilePaths(new java.util.HashMap<>())
@@ -358,6 +357,7 @@ public class DicomServiceImpl implements DicomService {
                 pendingUpload.getParsedInstances().add(com.g93.be.dto.PendingDicomUploadDTO.InstanceCacheDTO.builder()
                     .sopInstanceUid(sopInstanceUid)
                     .filePath(dbDcmPath)
+                    .bodyPart(bodyPart)
                     .build());
 
             } catch (Exception e) {
@@ -400,7 +400,6 @@ public class DicomServiceImpl implements DicomService {
                 
                 com.g93.be.dto.ExaminationDto examDto = new com.g93.be.dto.ExaminationDto();
                 examDto.setEncounterCode(pending.getStudyInstanceUid());
-                examDto.setBodyPart(pending.getBodyPart());
                 examDto.setDescription(pending.getDescription());
                 examDto.setReferringPhysician(pending.getReferringPhysician());
                 examDto.setStatus(ExaminationStatus.NEED_VERIFY.name());
