@@ -15,6 +15,8 @@ This project can follow semantic versioning when formal releases start.
 - Direct backend DICOM file upload API (`POST /dicom/upload`).
 - Deduplication logic rejecting duplicate DICOM uploads based on `SOPInstanceUID`.
 - DICOM image retrieval API (`GET /dicom/instances/{id}/image`).
+- DICOM raw file retrieval API (`GET /dicom/instances/{id}/raw`).
+- Refactored database schema to separate `DicomRaw` and `Image` mappings for DICOM instances.
 - Backend documentation set.
 - Architecture, authentication, database, development, API, and Git Flow documentation.
 
