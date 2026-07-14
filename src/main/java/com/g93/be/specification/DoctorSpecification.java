@@ -4,42 +4,33 @@ import com.g93.be.entity.Doctor;
 import com.g93.be.entity.UserStatus;
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.jpa.domain.Specification;
-
 import java.util.ArrayList;
 import java.util.List;
 
 public class DoctorSpecification {
 
     /**
-     * Builds a JPA Specification for Doctor entity based on search keyword, specialization, and status.
+     * Builds a JPA Specification for Doctor entity based on search keyword and status.
      *
-     * @param keyword        The search term to match against code, name, email, phone, or specialization
-     * @param specialization Exact or partial match for specialization
+     * @param keyword        The search term to match against name, email, phone, or username
      * @param status         Exact match for UserStatus
      * @return A combined Specification object
      */
-    public static Specification<Doctor> searchAndFilter(String keyword, String specialization, UserStatus status) {
+    public static Specification<Doctor> searchAndFilter(String keyword, String statusNotUsed, UserStatus status) {
         return (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
 
             // Search by Keyword
             if (keyword != null && !keyword.trim().isEmpty()) {
-                String likePattern = "%" + keyword.trim().toLowerCase() + "%";
-                Predicate codeMatch = criteriaBuilder.like(criteriaBuilder.lower(root.get("doctorCode")), likePattern);
+                String cleanKeyword = keyword.trim().toLowerCase();
+                String likePattern = "%" + cleanKeyword + "%";
+
                 Predicate nameMatch = criteriaBuilder.like(criteriaBuilder.lower(root.get("fullName")), likePattern);
                 Predicate emailMatch = criteriaBuilder.like(criteriaBuilder.lower(root.get("email")), likePattern);
                 Predicate phoneMatch = criteriaBuilder.like(criteriaBuilder.lower(root.get("phone")), likePattern);
-                Predicate specMatch = criteriaBuilder.like(criteriaBuilder.lower(root.get("specialization")), likePattern);
+                Predicate usernameMatch = criteriaBuilder.like(criteriaBuilder.lower(root.get("username")), likePattern);
                 
-                predicates.add(criteriaBuilder.or(codeMatch, nameMatch, emailMatch, phoneMatch, specMatch));
-            }
-
-            // Filter by Specialization
-            if (specialization != null && !specialization.trim().isEmpty()) {
-                predicates.add(criteriaBuilder.like(
-                        criteriaBuilder.lower(root.get("specialization")), 
-                        "%" + specialization.trim().toLowerCase() + "%"
-                ));
+                predicates.add(criteriaBuilder.or(nameMatch, emailMatch, phoneMatch, usernameMatch));
             }
 
             // Filter by Status

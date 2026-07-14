@@ -1,6 +1,6 @@
 package com.g93.be.dto;
 
-import com.g93.be.entity.UserRole;
+import java.util.List;
 
 /**
  * Data Transfer Object for successful login response.
@@ -9,6 +9,7 @@ import com.g93.be.entity.UserRole;
 public record LoginResponse(
     String accessToken,
     String refreshToken,
-    UserRole role,
-    String username
+    String role,
+    String username,
+    List<String> permissions
 ) {}

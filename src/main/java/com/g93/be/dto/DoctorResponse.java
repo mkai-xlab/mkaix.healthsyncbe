@@ -1,6 +1,5 @@
 package com.g93.be.dto;
 
-import com.g93.be.entity.DoctorPosition;
 import com.g93.be.entity.UserStatus;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -22,16 +21,9 @@ public class DoctorResponse {
     private String avatarUrl;
     private String role;
     private UserStatus status;
-    private String doctorCode;
-    private String licenseNumber;
-    private String specialization;
-    private String hospitalName;
     private Integer yearsOfExperience;
-    private String academicTitle;
     private String degree;
-    private String signatureUrl;
-    private String bio;
-    private DoctorPosition position;
+    private String biography;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

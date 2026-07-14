@@ -18,11 +18,16 @@ public class CreatePatientRequest {
     private String patientCode;
     
     @NotBlank(message = "Full name cannot be blank")
+    @jakarta.validation.constraints.Size(max = 100, message = "Full name must not exceed 100 characters")
     private String fullName;
     
     private LocalDate dateOfBirth;
     private Gender gender;
+    @jakarta.validation.constraints.Pattern(regexp = "^\\d+$", message = "Phone must contain only numbers")
+    @jakarta.validation.constraints.Size(max = 20, message = "Phone must not exceed 20 characters")
     private String phone;
+    @jakarta.validation.constraints.Email(message = "Invalid email format")
+    @jakarta.validation.constraints.Size(max = 150, message = "Email must not exceed 150 characters")
     private String email;
     private String address;
     private String emergencyContactName;

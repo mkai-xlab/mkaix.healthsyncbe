@@ -12,7 +12,7 @@ services:
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+      test: [ "CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD --silent" ]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -26,6 +26,15 @@ services:
       - "1080:1080" # Web UI
       - "1025:1025" # SMTP Port
 
+  redis:
+    image: dhi.io/redis:alpine
+    container_name: capstone-redis
+    restart: unless-stopped
+    env_file:
+      - ../env/redis.env
+    ports:
+      - "6379:6379"
+
   be:
     build:
       context: .
@@ -33,14 +42,29 @@ services:
     container_name: capstone-be
     restart: unless-stopped
     ports:
-      - "8080:8080"
+      - "8000:8080"
     env_file:
       - ../env/be.env
-    depends_on:
-      mysql:
-        condition: service_healthy
-      maildev:
-        condition: service_started
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+      # depends_on:
+      # mysql:
+      #   condition: service_healthy
+      # maildev:
+      #   condition: service_started
+    volumes:
+      - ./data:/app/data
+
+  ai:
+    build:
+      context: ../mkaix.healthsynml
+      dockerfile: Dockerfile
+    container_name: capstone-ai
+    restart: unless-stopped
+    ports:
+      - "8005:8005"
+    volumes:
+      - ../mkaix.healthsynml/checkpoints:/app/checkpoints
 
 volumes:
   mysql_data:

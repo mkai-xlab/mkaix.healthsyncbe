@@ -21,13 +21,13 @@ resource "aws_instance" "server" {
   }
 
   root_block_device {
-    volume_size           = 10
+    volume_size           = 20
     volume_type           = "gp3"
     delete_on_termination = true
   }
 
   ebs_block_device {
-    volume_size = 10
+    volume_size = 50
     volume_type = "gp3"
     device_name = "/dev/sdb"
   }
@@ -45,10 +45,9 @@ resource "aws_eip_association" "server_ip_assoc" {
   instance_id   = aws_instance.server.id
   allocation_id = aws_eip.server_ip.id
 }
-
 resource "aws_key_pair" "server_key" {
-  key_name   = "${var.environment}-server-key"
-  public_key = file(var.key_path)
+  key_name   = "heathsync-dev-server"
+  public_key = file(pathexpand(var.key_path))
   tags = {
     Environment = var.environment
   }
@@ -56,18 +55,19 @@ resource "aws_key_pair" "server_key" {
 
 resource "aws_security_group" "server_sg" {
   name        = "${var.environment}-server-sg"
-  description = "Allow SSH and HTTP for ${var.environment}"
+  description = "Allow direct SSH, HTTP, HTTPS, and project ports for ${var.environment}"
   vpc_id      = var.vpc_id
 
   ingress {
-    from_port       = 22
-    to_port         = 22
-    protocol        = "tcp"
-    security_groups = [aws_security_group.eice_sg.id]
-    # cidr_blocks = [var.vpc_cidr]
+    description = "Allow direct SSH"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   ingress {
+    description = "Allow HTTP"
     from_port   = 80
     to_port     = 80
     protocol    = "tcp"
@@ -75,8 +75,35 @@ resource "aws_security_group" "server_sg" {
   }
 
   ingress {
+    description = "Allow HTTPS"
     from_port   = 443
     to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+
+
+  ingress {
+    description = "Allow Backend API host port"
+    from_port   = 8000
+    to_port     = 8000
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description = "Allow Maildev UI"
+    from_port   = 1080
+    to_port     = 1080
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description = "Allow MySQL Port"
+    from_port   = 3306
+    to_port     = 3306
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
@@ -90,33 +117,6 @@ resource "aws_security_group" "server_sg" {
 
   tags = {
     Name        = "${var.environment}-server-sg"
-    Environment = var.environment
-  }
-}
-
-
-resource "aws_security_group" "eice_sg" {
-  name        = "${var.environment}-eice-sg"
-  description = "Allow EC2 Instance Connect for ${var.environment}"
-  vpc_id      = var.vpc_id
-  egress {
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = [var.vpc_cidr]
-  }
-
-  tags = {
-    Name        = "${var.environment}-eice-sg"
-    Environment = var.environment
-  }
-}
-
-resource "aws_ec2_instance_connect_endpoint" "eice" {
-  subnet_id          = var.subnet_ids[1]
-  security_group_ids = [aws_security_group.eice_sg.id]
-  tags = {
-    Name        = "${var.environment}-eice"
     Environment = var.environment
   }
 }
@@ -155,4 +155,8 @@ resource "aws_iam_role" "ec2_ssm_role" {
 resource "aws_iam_role_policy_attachment" "ssm_core" {
   role       = aws_iam_role.ec2_ssm_role.name
   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
+
+output "server_public_ip" {
+  value = aws_eip.server_ip.public_ip
 }

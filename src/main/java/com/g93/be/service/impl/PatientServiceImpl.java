@@ -1,13 +1,9 @@
 package com.g93.be.service.impl;
 
-import com.g93.be.dto.CreatePatientRequest;
-import com.g93.be.dto.EditPatientRequest;
-import com.g93.be.dto.PageResponse;
-import com.g93.be.dto.PatientFilterRequest;
-import com.g93.be.dto.PatientResponse;
-import com.g93.be.entity.Patient;
+import com.g93.be.dto.*;
+import com.g93.be.entity.*;
 import com.g93.be.mapper.PatientMapper;
-import com.g93.be.repository.PatientRepository;
+import com.g93.be.repository.*;
 import com.g93.be.repository.specification.PatientSpecification;
 import com.g93.be.service.PatientService;
 import lombok.RequiredArgsConstructor;
@@ -17,7 +13,12 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -25,6 +26,8 @@ import java.util.List;
 public class PatientServiceImpl implements PatientService {
 
     private final PatientRepository patientRepository;
+    private final ExaminationRepository examinationRepository;
+    private final DicomInstanceRepository dicomInstanceRepository;
     private final PatientMapper patientMapper;
 
     @Override
@@ -62,18 +65,12 @@ public class PatientServiceImpl implements PatientService {
                 .orElseThrow(() -> new IllegalArgumentException("Patient with id " + id + " not found"));
 
         if (request.getFullName() != null) patient.setFullName(request.getFullName());
-        if (request.getDateOfBirth() != null) patient.setDateOfBirth(request.getDateOfBirth());
+        if (request.getDateOfBirth() != null) patient.setDob(request.getDateOfBirth());
         if (request.getGender() != null) patient.setGender(request.getGender());
         if (request.getPhone() != null) patient.setPhone(request.getPhone());
         if (request.getEmail() != null && !request.getEmail().isBlank()) {
-            if (patientRepository.existsByEmailAndIdNot(request.getEmail(), id)) {
-                throw new IllegalArgumentException("Email '" + request.getEmail() + "' is already registered");
-            }
             patient.setEmail(request.getEmail());
         }
-        if (request.getAddress() != null) patient.setAddress(request.getAddress());
-        if (request.getEmergencyContactName() != null) patient.setEmergencyContactName(request.getEmergencyContactName());
-        if (request.getEmergencyContactPhone() != null) patient.setEmergencyContactPhone(request.getEmergencyContactPhone());
 
         Patient saved = patientRepository.save(patient);
         log.info("Edited patient with id {}", saved.getId());
@@ -83,39 +80,71 @@ public class PatientServiceImpl implements PatientService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public PatientResponse createPatient(CreatePatientRequest request) {
-        log.info("Starting registration for patient code: {}", request.getPatientCode());
+        log.info("Starting registration for patient name: {}", request.getFullName());
 
-        if (request.getPatientCode() == null || request.getPatientCode().isBlank()) {
-            throw new IllegalArgumentException("Patient code is required");
-        }
         if (request.getFullName() == null || request.getFullName().isBlank()) {
             throw new IllegalArgumentException("Full name is required");
         }
 
-        if (patientRepository.existsByPatientCode(request.getPatientCode())) {
-            throw new IllegalArgumentException("Patient code '" + request.getPatientCode() + "' is already in use");
-        }
-
-        if (request.getEmail() != null && !request.getEmail().isBlank()) {
-            if (patientRepository.existsByEmail(request.getEmail())) {
-                throw new IllegalArgumentException("Email '" + request.getEmail() + "' is already registered");
-            }
-        }
-
         Patient patient = new Patient();
-        patient.setPatientCode(request.getPatientCode());
         patient.setFullName(request.getFullName());
-        patient.setDateOfBirth(request.getDateOfBirth());
+        patient.setDob(request.getDateOfBirth());
         patient.setGender(request.getGender());
         patient.setPhone(request.getPhone());
         patient.setEmail(request.getEmail());
-        patient.setAddress(request.getAddress());
-        patient.setEmergencyContactName(request.getEmergencyContactName());
-        patient.setEmergencyContactPhone(request.getEmergencyContactPhone());
+        if (patient.getPatientCode() == null) {
+            patient.setPatientCode("PAT_" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
+        }
 
         Patient savedPatient = patientRepository.save(patient);
         log.info("Patient saved successfully with ID: {}", savedPatient.getId());
 
         return patientMapper.toResponse(savedPatient);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PatientDetailsResponse getPatientDetailsWithImages(String patientId) {
+        Patient patient = patientRepository.findByPatientCode(patientId)
+                .orElseThrow(() -> new IllegalArgumentException("Patient with code " + patientId + " not found"));
+
+        PatientDetailsResponse pdr = new PatientDetailsResponse();
+        pdr.setPatient(patientMapper.toResponse(patient));
+
+        List<Examination> examinations = examinationRepository.findByPatientId(patient.getId());
+        List<ExaminationDto> examDtos = new ArrayList<>();
+
+        String baseUrl = org.springframework.web.servlet.support.ServletUriComponentsBuilder.fromCurrentContextPath().build().toUriString();
+
+        for (Examination ex : examinations) {
+            ExaminationDto ed = new ExaminationDto();
+            ed.setExaminationId(ex.getId());
+            ed.setEncounterCode(ex.getEncounterCode());
+            ed.setStatus(ex.getStatus().name());
+            ed.setStudyDate(ex.getStudyDate());
+            ed.setVisitTime(ex.getVisitTime());
+            ed.setReferringPhysician(ex.getReferringPhysician());
+
+            List<com.g93.be.entity.DicomInstance> instances = dicomInstanceRepository.findByExaminationId(ex.getId());
+            if (instances != null && !instances.isEmpty()) {
+                ed.setThumbnailUrl(baseUrl + "/dicom/instances/" + instances.get(0).getId() + "/image");
+                List<ExaminationImageDto> imageDtos = new ArrayList<>();
+                for (com.g93.be.entity.DicomInstance instance : instances) {
+                    ExaminationImageDto img = new ExaminationImageDto();
+                    img.setExaminationId(ex.getId());
+                    img.setEncounterCode(ex.getEncounterCode());
+                    img.setStatus(ex.getStatus().name());
+                    img.setVisitTime(ex.getVisitTime());
+                    img.setBodyPart(instance.getBodyPart());
+                    img.setImageUrl(baseUrl + "/dicom/instances/" + instance.getId() + "/image");
+                    imageDtos.add(img);
+                }
+                ed.setImages(imageDtos);
+            }
+            examDtos.add(ed);
+        }
+        pdr.setRecentExaminations(examDtos);
+
+        return pdr;
     }
 }

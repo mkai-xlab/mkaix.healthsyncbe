@@ -12,4 +12,5 @@ public interface PatientService {
     PageResponse<PatientResponse> getAllPatients(PatientFilterRequest filter, Pageable pageable);
     void deletePatient(Long id);
     PatientResponse editPatient(Long id, EditPatientRequest request);
+    com.g93.be.dto.PatientDetailsResponse getPatientDetailsWithImages(String patientId);
 }

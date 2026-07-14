@@ -1,0 +1,19 @@
+meta {
+  name: Search Patients By Date Of Birth
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{baseUrl}}/patients
+  body: none
+  auth: bearer
+}
+
+query {
+  dateOfBirth: 1990-01-01
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}

@@ -4,7 +4,7 @@ import com.g93.be.common.util.MailUtil;
 import com.g93.be.dto.CreateDoctorRequest;
 import com.g93.be.dto.DoctorResponse;
 import com.g93.be.entity.Doctor;
-import com.g93.be.entity.DoctorPosition;
+
 import com.g93.be.entity.UserStatus;
 import com.g93.be.repository.DoctorRepository;
 import com.g93.be.service.DoctorService;
@@ -54,16 +54,9 @@ class DoctorRegistrationIntegrationTest {
                 "john.doe@hospital.com",
                 "123456789",
                 "http://avatar.url",
-                "DOC001",
-                "LIC12345",
-                "Orthopedics",
-                "General Hospital",
                 10,
-                "Prof",
-                "PhD",
-                "http://signature.url",
-                "Orthopedics expert",
-                DoctorPosition.DEPARTMENT_HEAD
+                null,
+                null
         );
 
         // When
@@ -75,7 +68,7 @@ class DoctorRegistrationIntegrationTest {
         assertEquals("John Doe", response.getFullName());
         assertEquals("john.doe@hospital.com", response.getEmail());
         assertEquals(UserStatus.ACTIVE, response.getStatus());
-        assertEquals("Orthopedics", response.getSpecialization());
+        assertEquals(10, response.getYearsOfExperience());
 
         // Verify entity in DB
         Optional<Doctor> savedDocOpt = doctorRepository.findById(response.getId());
@@ -102,33 +95,77 @@ class DoctorRegistrationIntegrationTest {
     }
 
     @Test
-    void testCreateDoctor_DuplicateDoctorCode() {
+    void testCreateDoctor_DuplicateEmail() {
         // Given
         CreateDoctorRequest request1 = new CreateDoctorRequest(
                 "John Doe",
                 "john.doe@hospital.com",
                 "123456789",
                 null,
-                "DOC001",
-                null, null, null, null, null, null, null, null,
-                DoctorPosition.NORMAL
+                null,
+                null,
+                null
         );
         doctorService.createDoctor(request1);
 
         CreateDoctorRequest request2 = new CreateDoctorRequest(
                 "Jane Doe",
-                "jane.doe@hospital.com",
+                "john.doe@hospital.com", // Duplicate email
                 "987654321",
                 null,
-                "DOC001", // Duplicate code
-                null, null, null, null, null, null, null, null,
-                DoctorPosition.NORMAL
+                null,
+                null,
+                null
         );
 
         // When/Then
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
             doctorService.createDoctor(request2);
         });
-        assertTrue(exception.getMessage().contains("already in use"));
+        assertTrue(exception.getMessage().contains("already registered"));
+    }
+
+    @Test
+    void testSearchDoctors_SubstringMatch() {
+        // Given
+        CreateDoctorRequest request = new CreateDoctorRequest(
+                "Nguyễn Hoàng Duy",
+                "hoangduy@hospital.com",
+                "123456789",
+                null,
+                5,
+                null,
+                null
+        );
+        doctorService.createDoctor(request);
+
+        // When
+        var response = doctorService.searchDoctors("du", null, null, org.springframework.data.domain.PageRequest.of(0, 10));
+
+        // Then
+        assertFalse(response.content().isEmpty());
+        assertEquals("Nguyễn Hoàng Duy", response.content().get(0).getFullName());
+    }
+
+    @Test
+    void testSearchDoctors_UsernameMatch() {
+        // Given
+        CreateDoctorRequest request = new CreateDoctorRequest(
+                "Nguyễn Hoàng Duy",
+                "hoangduy2@hospital.com",
+                "987654321",
+                null,
+                5,
+                null,
+                null
+        );
+        doctorService.createDoctor(request);
+
+        // When searching "hoangduy" (matches username "hoangduy2")
+        var response = doctorService.searchDoctors("hoangduy", null, null, org.springframework.data.domain.PageRequest.of(0, 10));
+
+        // Then
+        assertFalse(response.content().isEmpty());
+        assertEquals("Nguyễn Hoàng Duy", response.content().get(0).getFullName());
     }
 }

@@ -23,20 +23,11 @@ public class AuditLog {
     @JoinColumn(name = "user_id")
     private User user;
 
-    @Column(name = "action", length = 100, nullable = false)
-    private String action;
-
-    @Column(name = "entity_type", length = 100)
-    private String entityType;
-
-    @Column(name = "entity_id")
-    private Long entityId;
+    @Column(name = "title", length = 255, nullable = false)
+    private String title;
 
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;
-
-    @Column(name = "payload", columnDefinition = "TEXT")
-    private String payload;
 
     @Column(name = "ip_address", length = 100)
     private String ipAddress;
@@ -44,14 +35,11 @@ public class AuditLog {
     @Column(name = "user_agent", length = 255)
     private String userAgent;
 
-    @Column(name = "is_success", nullable = false)
-    private Boolean isSuccess = true;
-
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
+    @Column(name = "time_stamp", nullable = false, updatable = false)
+    private LocalDateTime timeStamp;
 
     @PrePersist
     protected void onCreate() {
-        createdAt = LocalDateTime.now();
+        timeStamp = LocalDateTime.now();
     }
 }

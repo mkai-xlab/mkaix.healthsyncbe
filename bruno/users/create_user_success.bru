@@ -1,11 +1,11 @@
 meta {
-  name: Create Duplicate Code
+  name: Create User Success
   type: http
-  seq: 3
+  seq: 1
 }
 
 post {
-  url: {{baseUrl}}/doctors
+  url: {{baseUrl}}/users
   body: json
   auth: bearer
 }
@@ -17,7 +17,8 @@ auth:bearer {
 body:json {
   {
     "fullName": "Nguyen Van C",
-    "email": "doctor.c@healthsync.com",
-    "doctorCode": "DOC002"
+    "email": "user_test_success@healthsync.com",
+    "phone": "0912345678",
+    "roleId": 2
   }
 }

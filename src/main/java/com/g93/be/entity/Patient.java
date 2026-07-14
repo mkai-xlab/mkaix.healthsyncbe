@@ -1,7 +1,6 @@
 package com.g93.be.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -14,31 +13,30 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
 public class Patient {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "patient_code", length = 50, nullable = false, unique = true)
-    private String patientCode;
-
     @Column(name = "full_name", length = 150, nullable = false)
     private String fullName;
 
-    @Column(name = "date_of_birth")
-    private LocalDate dateOfBirth;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "gender", length = 10)
-    private Gender gender;
+    @Column(name = "email", length = 150)
+    private String email;
 
     @Column(name = "phone", length = 30)
     private String phone;
 
-    @Column(name = "email", length = 150)
-    private String email;
+    @Column(name = "dob")
+    private java.time.LocalDate dob;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "gender", length = 20)
+    private Gender gender;
+
+    @Column(name = "patient_code", length = 50, unique = true)
+    private String patientCode;
 
     @Column(name = "address", length = 255)
     private String address;
@@ -50,18 +48,18 @@ public class Patient {
     private String emergencyContactPhone;
 
     @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
+    private java.time.LocalDateTime createdAt;
 
     @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
+    private java.time.LocalDateTime updatedAt;
 
     @PrePersist
     protected void onCreate() {
-        createdAt = LocalDateTime.now();
+        createdAt = java.time.LocalDateTime.now();
     }
 
     @PreUpdate
     protected void onUpdate() {
-        updatedAt = LocalDateTime.now();
+        updatedAt = java.time.LocalDateTime.now();
     }
 }

@@ -1,6 +1,5 @@
 package com.g93.be.dto;
 
-import com.g93.be.entity.DoctorPosition;
 import jakarta.validation.constraints.Email;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -21,13 +20,10 @@ public class EditDoctorRequest {
     
     private String phone;
     private String avatarUrl;
-    private String licenseNumber;
-    private String specialization;
-    private String hospitalName;
     private Integer yearsOfExperience;
-    private String academicTitle;
+
+    @jakarta.validation.constraints.Size(max = 100, message = "Degree must not exceed 100 characters")
     private String degree;
-    private String signatureUrl;
-    private String bio;
-    private DoctorPosition position;
+
+    private String biography;
 }

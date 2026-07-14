@@ -25,7 +25,7 @@ public class PatientMapper {
                 patient.getId(),
                 patient.getPatientCode(),
                 patient.getFullName(),
-                patient.getDateOfBirth(),
+                patient.getDob(),
                 patient.getGender(),
                 patient.getPhone(),
                 patient.getEmail(),

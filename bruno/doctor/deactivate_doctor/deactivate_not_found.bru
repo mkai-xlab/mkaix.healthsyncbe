@@ -1,0 +1,15 @@
+meta {
+  name: Deactivate Doctor Not Found
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/doctors/99999/deactivate
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
