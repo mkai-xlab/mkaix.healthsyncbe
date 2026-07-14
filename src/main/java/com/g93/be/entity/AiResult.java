@@ -36,4 +36,7 @@ public class AiResult {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ai_analysis_id", nullable = false)
     private AiAnalysis aiAnalysis;
+
+    @OneToOne(mappedBy = "aiResult", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private AiResultConfidenceScore confidenceScore;
 }

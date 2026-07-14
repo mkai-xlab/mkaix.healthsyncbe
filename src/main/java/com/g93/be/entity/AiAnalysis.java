@@ -34,4 +34,7 @@ public class AiAnalysis {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "dicom_instance_id", nullable = false)
     private DicomInstance dicomInstance;
+
+    @OneToMany(mappedBy = "aiAnalysis", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private java.util.List<AiResult> aiResults;
 }
