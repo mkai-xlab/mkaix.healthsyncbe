@@ -72,5 +72,18 @@ public class ExaminationController {
         log.info("Received request to get examinations by patient id: {}", patientId);
         return ResponseEntity.ok(examinationService.getExaminationsByPatientId(patientId, pageable));
     }
+
+    /**
+     * Marks an examination as viewed.
+     *
+     * @param id The ID of the examination to mark as viewed.
+     * @return 200 OK.
+     */
+    @PutMapping("/{id}/view")
+    public ResponseEntity<Void> markAsViewed(@PathVariable Long id) {
+        log.info("Received request to mark examination {} as viewed", id);
+        examinationService.markAsViewed(id);
+        return ResponseEntity.ok().build();
+    }
 }
 
