@@ -1,0 +1,26 @@
+meta {
+  name: Edit Success
+  type: http
+  seq: 1
+}
+
+put {
+  url: {{baseUrl}}/doctors/1
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "fullName": "Nguyen Van B Updated",
+    "phone": "0987654323",
+    "yearsOfExperience": 12,
+    "degree": "Ph.D. in AI Health",
+    "biography": "An experienced doctor specializing in AI analysis."
+  }
+}
+​
