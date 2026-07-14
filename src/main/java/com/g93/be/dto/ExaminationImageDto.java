@@ -19,6 +19,7 @@ public class ExaminationImageDto {
     private String encounterCode;
     private String status;
     private LocalDateTime visitTime;
+    private String bodyPart;
     private String imageUrl;
     private java.util.List<AiPredictionResultDto> aiResults;
 }

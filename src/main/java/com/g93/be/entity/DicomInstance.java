@@ -40,6 +40,9 @@ public class DicomInstance {
     @Column(name = "seri_id", length = 100)
     private String seriId;
 
+    @Column(name = "body_part", length = 100)
+    private String bodyPart;
+
     @Column(name = "image_laterality", length = 10)
     private String imageLaterality;
 
@@ -49,11 +52,13 @@ public class DicomInstance {
     @Column(name = "image_columns")
     private Integer imageColumns;
 
-    @Column(name = "storage_raw_path", length = 512)
-    private String storageRawPath;
+    @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JoinColumn(name = "dicom_raw_id")
+    private DicomRaw dicomRaw;
 
-    @Column(name = "storage_png_path", length = 512)
-    private String storagePngPath;
+    @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JoinColumn(name = "image_id")
+    private Image image;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
