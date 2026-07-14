@@ -14,4 +14,6 @@ public interface DoctorService {
     void softDeleteDoctor(Long id);
     void activateDoctor(Long id);
     DoctorResponse editDoctor(Long id, com.g93.be.dto.EditDoctorRequest request);
+    DoctorResponse getDoctorProfile(String username);
+    DoctorResponse editDoctorProfile(String username, com.g93.be.dto.EditDoctorRequest request);
 }

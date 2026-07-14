@@ -7,7 +7,6 @@ import com.g93.be.dto.PageResponse;
 import com.g93.be.entity.Doctor;
 import com.g93.be.entity.UserStatus;
 import com.g93.be.entity.Image;
-import com.g93.be.entity.Role;
 import com.g93.be.repository.DoctorRepository;
 import com.g93.be.repository.UserRepository;
 import com.g93.be.repository.RoleRepository;
@@ -92,6 +91,24 @@ public class DoctorServiceImpl implements DoctorService {
     public DoctorResponse editDoctor(Long id, EditDoctorRequest request) {
         Doctor doctor = doctorRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Doctor with id " + id + " not found"));
+        return updateDoctorFields(doctor, request);
+    }
+
+    @Override
+    public DoctorResponse getDoctorProfile(String username) {
+        Doctor doctor = doctorRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("Doctor not found for username: " + username));
+        return doctorMapper.toResponse(doctor);
+    }
+
+    @Override
+    public DoctorResponse editDoctorProfile(String username, EditDoctorRequest request) {
+        Doctor doctor = doctorRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("Doctor not found for username: " + username));
+        return updateDoctorFields(doctor, request);
+    }
+
+    private DoctorResponse updateDoctorFields(Doctor doctor, EditDoctorRequest request) {
         // Update mutable fields
         if (request.getFullName() != null)
             doctor.setFullName(request.getFullName());
@@ -112,6 +129,10 @@ public class DoctorServiceImpl implements DoctorService {
 
         if (request.getYearsOfExperience() != null)
             doctor.setYearsOfExperience(request.getYearsOfExperience());
+        if (request.getDegree() != null)
+            doctor.setDegree(request.getDegree());
+        if (request.getBiography() != null)
+            doctor.setBiography(request.getBiography());
 
         Doctor saved = doctorRepository.save(doctor);
         log.info("Edited doctor with id {}", saved.getId());
@@ -166,6 +187,8 @@ public class DoctorServiceImpl implements DoctorService {
 
         // Doctor specific fields
         doctor.setYearsOfExperience(request.getYearsOfExperience());
+        doctor.setDegree(request.getDegree());
+        doctor.setBiography(request.getBiography());
 
         // Save to database
         Doctor savedDoctor = doctorRepository.save(doctor);

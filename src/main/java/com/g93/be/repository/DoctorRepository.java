@@ -9,4 +9,5 @@ import java.util.List;
 @Repository
 public interface DoctorRepository extends JpaRepository<Doctor, Long>, JpaSpecificationExecutor<Doctor> {
     List<Doctor> findAllByStatus(com.g93.be.entity.UserStatus status);
+    java.util.Optional<Doctor> findByUsername(String username);
 }

@@ -1,11 +1,11 @@
 meta {
-  name: Create Doctor Invalid Fields
+  name: Edit Invalid Fields
   type: http
-  seq: 6
+  seq: 2
 }
 
-post {
-  url: {{baseUrl}}/doctors
+put {
+  url: {{baseUrl}}/doctors/1
   body: json
   auth: bearer
 }
@@ -16,11 +16,7 @@ auth:bearer {
 
 body:json {
   {
-    "fullName": "This name is way too long and will definitely exceed the one hundred characters limit because I just keep typing and typing and typing...",
     "email": "invalid-email",
-    "phone": "091234abc",
-    "avatarUrl": "http://example.com/avatar.png",
-    "yearsOfExperience": 5,
     "degree": "This degree string is way too long and should definitely exceed the one hundred characters limit because I just keep typing and typing and typing and typing and typing and typing and typing..."
   }
 }
