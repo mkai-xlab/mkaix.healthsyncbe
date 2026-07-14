@@ -23,7 +23,6 @@ public class PendingDicomUploadDTO implements Serializable {
     private String studyInstanceUid;
     private Date studyDate;
     private Date studyTime;
-    private String bodyPart;
     private String description;
     private String referringPhysician;
     
@@ -51,6 +50,7 @@ public class PendingDicomUploadDTO implements Serializable {
     public static class InstanceCacheDTO implements Serializable {
         private String sopInstanceUid;
         private String filePath; // for DICOM raw
+        private String bodyPart;
         private Integer instanceNumber;
     }
 }

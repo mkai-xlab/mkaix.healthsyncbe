@@ -1065,10 +1065,221 @@ Retrieves a paginated list of examinations for a specific patient.
 - `200 OK`: Request successful
 - `401 Unauthorized`: Authentication is required
 
+Retrieves the PNG image associated with a specific DICOM instance.
+
+### Path Parameters
+
+- `id`: The ID of the DICOM instance.
+
+### Response
+
+Returns the image binary data with `Content-Type: image/png`.
+
+### Status Codes
+
+- `200 OK`: Image returned successfully
+- `404 Not Found`: Instance or image not found
+- `401 Unauthorized`: Authentication is required
+
+## `GET /examinations`
+
+Retrieves a paginated list of examinations.
+
+### Query Parameters
+
+- `page` (Optional): Page index (0-based, default: `0`).
+- `size` (Optional): Items per page (default: `10`).
+
+### Response
+
+```json
+{
+  "content": [
+    {
+      "examinationId": 1,
+      "encounterCode": "...",
+      "status": "CREATED",
+      "studyDate": "2023-10-15",
+      "visitTime": "2023-10-15T10:30:00",
+      "thumbnailUrl": "http://localhost:8080/api/v1/dicom/instances/1/thumbnail",
+      "bodyPart": "KNEE",
+      "referringPhysician": "Dr. Smith",
+      "patient": {
+        "id": 1,
+        "fullName": "Nguyen Van A"
+      },
+      "images": []
+    }
+  ],
+  "pageNumber": 0,
+  "pageSize": 10,
+  "totalElements": 1,
+  "totalPages": 1,
+  "isLast": true
+}
+```
+
+### Status Codes
+
+- `200 OK`: Request successful
+- `401 Unauthorized`: Authentication is required
+
+## `GET /examinations/{id}`
+
+Retrieves detailed information of an examination by ID, including patient details and associated DICOM images.
+
+### Path Parameters
+
+- `id`: The ID of the examination.
+
+### Response
+
+```json
+{
+  "examinationId": 1,
+  "encounterCode": "...",
+  "status": "CREATED",
+  "studyDate": "2023-10-15",
+  "visitTime": "2023-10-15T10:30:00",
+  "thumbnailUrl": "http://localhost:8080/api/v1/dicom/instances/1/thumbnail",
+  "bodyPart": "KNEE",
+  "referringPhysician": "Dr. Smith",
+  "patient": {
+    "id": 1,
+    "fullName": "Nguyen Van A"
+  },
+  "images": [
+    {
+      "examinationId": 1,
+      "encounterCode": "...",
+      "status": "CREATED",
+      "visitTime": "2023-10-15T10:30:00",
+      "imageUrl": "http://localhost:8080/api/v1/dicom/instances/1/image"
+    }
+  ]
+}
+```
+
+### Status Codes
+
+- `200 OK`: Request successful
+- `400 Bad Request`: Examination not found
+- `401 Unauthorized`: Authentication is required
+
+## `GET /examinations/doctor/{doctorId}`
+
+Retrieves a paginated list of examinations for a specific doctor.
+
+### Path Parameters
+
+- `doctorId`: The ID of the doctor.
+
+### Query Parameters
+
+- `page` (Optional): Page index (0-based, default: `0`).
+- `size` (Optional): Items per page (default: `10`).
+
+### Response
+
+```json
+{
+  "content": [
+    {
+      "examinationId": 1,
+      "encounterCode": "...",
+      "status": "CREATED",
+      "studyDate": "2023-10-15",
+      "visitTime": "2023-10-15T10:30:00",
+      "thumbnailUrl": "http://localhost:8080/api/v1/dicom/instances/1/thumbnail",
+      "bodyPart": "KNEE",
+      "referringPhysician": "Dr. Smith",
+      "patient": {
+        "id": 1,
+        "fullName": "Nguyen Van A"
+      },
+      "images": []
+    }
+  ],
+  "pageNumber": 0,
+  "pageSize": 10,
+  "totalElements": 1,
+  "totalPages": 1,
+  "isLast": true
+}
+```
+
+### Status Codes
+
+- `200 OK`: Request successful
+- `401 Unauthorized`: Authentication is required
+
+## `GET /examinations/patient/{patientId}`
+
+Retrieves a paginated list of examinations for a specific patient.
+
+### Path Parameters
+
+- `patientId`: The ID of the patient.
+
+### Query Parameters
+
+- `page` (Optional): Page index (0-based, default: `0`).
+- `size` (Optional): Items per page (default: `10`).
+
+### Response
+
+```json
+{
+  "content": [
+    {
+      "examinationId": 1,
+      "encounterCode": "...",
+      "status": "CREATED",
+      "studyDate": "2023-10-15",
+      "visitTime": "2023-10-15T10:30:00",
+      "thumbnailUrl": "http://localhost:8080/api/v1/dicom/instances/1/thumbnail",
+      "bodyPart": "KNEE",
+      "referringPhysician": "Dr. Smith",
+      "patient": {
+        "id": 1,
+        "fullName": "Nguyen Van A"
+      },
+      "images": []
+    }
+  ],
+  "pageNumber": 0,
+  "pageSize": 10,
+  "totalElements": 1,
+  "totalPages": 1,
+  "isLast": true
+}
+```
+
+### Status Codes
+
+- `200 OK`: Request successful
+- `401 Unauthorized`: Authentication is required
+
 ## Navigation
 
 - [Back to Documentation Index](README.md)
 - [Previous: Database](database.md)
 - [Next: Deployment Guide](deployment.md)
-# #   D i c o m   E n d p o i n t s  
- 
+
+## `GET /dicom/instances/{id}/raw`
+
+Retrieves the raw DICOM file for a specific DICOM instance.
+
+### Path Parameters
+
+- `id`: The ID of the DICOM instance.
+
+### Response
+
+Returns the physical DICOM file with content type `application/dicom`.
+
+### Status Codes
+
+- `200 OK`: Request successful, file attached.
+- `401 Unauthorized`: Authentication is required
+- `404 Not Found`: Instance or file not found.

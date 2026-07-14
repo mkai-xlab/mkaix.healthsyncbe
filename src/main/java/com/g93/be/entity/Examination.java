@@ -52,17 +52,11 @@ public class Examination {
     @Column(name = "final_diagnosis", columnDefinition = "TEXT")
     private String finalDiagnosis;
 
-    @Column(name = "image_path")
-    private String imagePath;
-
     @Column(name = "study_date")
     private java.time.LocalDate studyDate;
 
     @Column(name = "study_time")
     private java.time.LocalTime studyTime;
-
-    @Column(name = "body_part", length = 100)
-    private String bodyPart;
 
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;

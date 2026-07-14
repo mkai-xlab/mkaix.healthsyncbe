@@ -56,7 +56,7 @@ public class AiServiceImpl implements AiService {
             if (instanceOpt.isEmpty()) continue;
 
             DicomInstance instance = instanceOpt.get();
-            String pngPath = instance.getStoragePngPath(); // e.g. /images/uuid.png
+            String pngPath = instance.getImage() != null ? instance.getImage().getFilePath() : null; // e.g. /images/uuid.png
             if (pngPath == null) continue;
 
             File imageFile = Paths.get(storageBaseDir, pngPath).toFile();

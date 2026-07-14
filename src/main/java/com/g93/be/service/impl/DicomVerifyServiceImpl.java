@@ -35,6 +35,7 @@ public class DicomVerifyServiceImpl implements DicomVerifyService {
     private final ImageRepository imageRepository;
     private final DoctorRepository doctorRepository;
     private final RoleRepository roleRepository;
+    private final DicomRawRepository dicomRawRepository;
     
     private static final ObjectMapper objectMapper = new ObjectMapper()
             .registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule())
@@ -166,7 +167,6 @@ public class DicomVerifyServiceImpl implements DicomVerifyService {
             if (pending.getStudyTime() != null) {
                 examination.setStudyTime(pending.getStudyTime().toInstant().atZone(ZoneId.systemDefault()).toLocalTime());
             }
-            examination.setBodyPart(pending.getBodyPart());
             examination.setDescription(pending.getDescription());
             examination.setReferringPhysician(pending.getReferringPhysician());
             examination = examinationRepository.save(examination);
@@ -174,23 +174,26 @@ public class DicomVerifyServiceImpl implements DicomVerifyService {
 
         // Images and Instances
         String firstPngPath = null;
+        java.util.Map<String, Image> pngMap = new java.util.HashMap<>();
+        java.util.Map<String, DicomRaw> rawMap = new java.util.HashMap<>();
+
         for (PendingDicomUploadDTO.ImageCacheDTO imageCache : pending.getParsedImages()) {
-            Image image = new Image();
-            image.setFilePath(imageCache.getStoredFilePath());
             if ("image/png".equals(imageCache.getMimeType())) {
+                Image image = new Image();
+                image.setFilePath(imageCache.getStoredFilePath());
                 image.setExtension("png");
+                image = imageRepository.save(image);
+                pngMap.put(imageCache.getSopInstanceUid(), image);
                 if (firstPngPath == null) {
                     firstPngPath = imageCache.getStoredFilePath();
                 }
             } else {
-                image.setExtension("dcm");
+                DicomRaw raw = new DicomRaw();
+                raw.setFilePath(imageCache.getStoredFilePath());
+                raw.setExtension("dcm");
+                raw = dicomRawRepository.save(raw);
+                rawMap.put(imageCache.getSopInstanceUid(), raw);
             }
-            imageRepository.save(image);
-        }
-
-        if (firstPngPath != null && examination.getImagePath() == null) {
-            examination.setImagePath(firstPngPath);
-            examinationRepository.save(examination);
         }
 
         for (PendingDicomUploadDTO.InstanceCacheDTO instCache : pending.getParsedInstances()) {
@@ -198,12 +201,21 @@ public class DicomVerifyServiceImpl implements DicomVerifyService {
             instance.setExamination(examination);
             instance.setSopInstanceUid(instCache.getSopInstanceUid());
             instance.setStudyInstanceUid(finalStudyUid);
+            instance.setBodyPart(instCache.getBodyPart());
             instance.setCreatedAt(LocalDateTime.now());
-            instance.setStorageRawPath(instCache.getFilePath());
-            // Need to match PNG path properly, but for simplicity:
-            if (firstPngPath != null) {
-                instance.setStoragePngPath(firstPngPath); // this might overwrite if multiple instances
+            
+            Image matchedImage = pngMap.get(instCache.getSopInstanceUid());
+            if (matchedImage == null && !pngMap.isEmpty()) {
+                matchedImage = pngMap.values().iterator().next();
             }
+            instance.setImage(matchedImage);
+            
+            DicomRaw matchedRaw = rawMap.get(instCache.getSopInstanceUid());
+            if (matchedRaw == null && !rawMap.isEmpty()) {
+                matchedRaw = rawMap.values().iterator().next();
+            }
+            instance.setDicomRaw(matchedRaw);
+            
             instance = dicomInstanceRepository.save(instance);
             instanceIds.add(instance.getId());
         }
