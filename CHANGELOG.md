@@ -8,6 +8,9 @@ This project can follow semantic versioning when formal releases start.
 
 ### Added
 
+- Added `GET /doctors/profile` and `PUT /doctors/profile` endpoints for doctors to view and edit their own profiles.
+- Added `PUT /doctors/{id}` endpoint to update existing doctors.
+- Added `degree` and `biography` fields to `Doctor` entity and related APIs.
 - Added `GET /examinations` and `GET /examinations/{id}` endpoints to retrieve paginated examinations and detailed views (including patient information and DICOM images).
 - Support for batch uploading of multiple DICOM files (parsing multiple images for the same Examination).
 - Implemented `PatientServiceImpl.getPatientDetailsWithImages` to retrieve details of a patient alongside their related examinations and image instances.

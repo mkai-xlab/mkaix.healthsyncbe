@@ -1,0 +1,26 @@
+meta {
+  name: Edit Profile
+  type: http
+  seq: 2
+}
+
+put {
+  url: {{baseUrl}}/doctors/profile
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "fullName": "Doctor B Self Updated",
+    "phone": "0987654325",
+    "yearsOfExperience": 15,
+    "degree": "Ph.D. in AI Health updated",
+    "biography": "Self updated profile."
+  }
+}
+​
