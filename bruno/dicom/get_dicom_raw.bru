@@ -1,0 +1,15 @@
+meta {
+  name: Get DICOM Raw
+  type: http
+  seq: 10
+}
+
+get {
+  url: {{baseUrl}}/dicom/instances/1/raw
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
