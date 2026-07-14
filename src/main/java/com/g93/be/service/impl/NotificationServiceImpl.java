@@ -47,12 +47,23 @@ public class NotificationServiceImpl implements NotificationService {
         // 2. Map to DTO
         NotificationDto dto = notificationMapper.toDto(saved);
         
+        // 2.5 Attach arbitrary data if present, only for WebSocket, not DB
+        NotificationDto wsDto = new NotificationDto(
+                dto.id(),
+                dto.title(),
+                dto.message(),
+                dto.type(),
+                dto.isRead(),
+                dto.createdAt(),
+                request.data()
+        );
+        
         // 3. Send via WebSocket using STOMP. The destination will be /user/{username}/queue/notifications
         log.info("Sending STOMP notification to user {}", user.getUsername());
         messagingTemplate.convertAndSendToUser(
                 user.getUsername(),
                 "/queue/notifications",
-                dto
+                wsDto
         );
     }
 

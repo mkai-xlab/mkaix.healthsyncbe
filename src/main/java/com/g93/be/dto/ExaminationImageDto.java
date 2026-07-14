@@ -21,5 +21,5 @@ public class ExaminationImageDto {
     private LocalDateTime visitTime;
     private String bodyPart;
     private String imageUrl;
-    private AiPredictionResultDto aiResult;
+    private java.util.List<AiPredictionResultDto> aiResults;
 }

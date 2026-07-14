@@ -67,6 +67,9 @@ public class DicomInstance {
     @JoinColumn(name = "examination_id", nullable = false)
     private Examination examination;
 
+    @OneToMany(mappedBy = "dicomInstance", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private java.util.List<AiAnalysis> aiAnalyses;
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
