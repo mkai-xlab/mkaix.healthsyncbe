@@ -47,7 +47,7 @@ public class AiServiceImpl implements AiService {
     @Transactional
     public List<ExaminationDto> predictBatch(AiPredictionRequest request) {
         RestTemplate restTemplate = new RestTemplate();
-        Map<Long, AiPredictionResultDto> aiResultMap = new HashMap<>();
+        Map<Long, List<AiPredictionResultDto>> aiResultMap = new HashMap<>();
         Map<Long, Examination> uniqueExams = new HashMap<>();
         Map<Long, List<DicomInstance>> instancesByExam = new HashMap<>();
 
@@ -56,7 +56,7 @@ public class AiServiceImpl implements AiService {
             if (instanceOpt.isEmpty()) continue;
 
             DicomInstance instance = instanceOpt.get();
-            String pngPath = instance.getStoragePngPath(); // e.g. /images/uuid.png
+            String pngPath = instance.getImage() != null ? instance.getImage().getFilePath() : null; // e.g. /images/uuid.png
             if (pngPath == null) continue;
 
             File imageFile = Paths.get(storageBaseDir, pngPath).toFile();
@@ -148,7 +148,7 @@ public class AiServiceImpl implements AiService {
                             .gradcamImageUrl(gradcamPath != null ? "/api/v1/ai/heatmap/" + aiResult.getId() : null)
                             .build();
                             
-                    aiResultMap.put(instanceId, dto);
+                    aiResultMap.computeIfAbsent(instanceId, k -> new ArrayList<>()).add(dto);
                     if (exam != null) {
                         uniqueExams.putIfAbsent(exam.getId(), exam);
                         instancesByExam.computeIfAbsent(exam.getId(), k -> new ArrayList<>()).add(instance);
@@ -166,12 +166,24 @@ public class AiServiceImpl implements AiService {
         for (Examination exam : uniqueExams.values()) {
             List<DicomInstance> examInstances = instancesByExam.getOrDefault(exam.getId(), new ArrayList<>());
             ExaminationDto examDto = examinationMapper.toDto(exam, examInstances);
+            int maxGrade = -1;
+
             if (examDto != null && examDto.getImages() != null) {
                 for (com.g93.be.dto.ExaminationImageDto img : examDto.getImages()) {
-                    AiPredictionResultDto aiRes = aiResultMap.get(img.getDicomInstanceId());
-                    if (aiRes != null) {
-                        img.setAiResult(aiRes);
+                    List<AiPredictionResultDto> aiResList = aiResultMap.get(img.getDicomInstanceId());
+                    if (aiResList != null) {
+                        img.setAiResults(aiResList);
+                        for (AiPredictionResultDto r : aiResList) {
+                            if (r.getPredictedGrade() != null && r.getPredictedGrade() > maxGrade) {
+                                maxGrade = r.getPredictedGrade();
+                            }
+                        }
                     }
+                }
+                if (maxGrade >= 0) {
+                    exam.setMaxPredictedGrade(maxGrade);
+                    examDto.setMaxPredictedGrade(maxGrade);
+                    examinationRepository.save(exam);
                 }
                 finalResults.add(examDto);
             }

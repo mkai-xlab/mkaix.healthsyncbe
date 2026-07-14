@@ -123,7 +123,6 @@ public class PatientServiceImpl implements PatientService {
             ed.setStatus(ex.getStatus().name());
             ed.setStudyDate(ex.getStudyDate());
             ed.setVisitTime(ex.getVisitTime());
-            ed.setBodyPart(ex.getBodyPart());
             ed.setReferringPhysician(ex.getReferringPhysician());
 
             List<com.g93.be.entity.DicomInstance> instances = dicomInstanceRepository.findByExaminationId(ex.getId());
@@ -136,6 +135,7 @@ public class PatientServiceImpl implements PatientService {
                     img.setEncounterCode(ex.getEncounterCode());
                     img.setStatus(ex.getStatus().name());
                     img.setVisitTime(ex.getVisitTime());
+                    img.setBodyPart(instance.getBodyPart());
                     img.setImageUrl(baseUrl + "/dicom/instances/" + instance.getId() + "/image");
                     imageDtos.add(img);
                 }

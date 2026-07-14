@@ -17,7 +17,8 @@ public class NotificationMapper {
                 notification.getMessage(),
                 notification.getType(),
                 notification.getIsRead(),
-                notification.getCreatedAt()
+                notification.getCreatedAt(),
+                null
         );
     }
 }
