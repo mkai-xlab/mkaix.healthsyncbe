@@ -224,6 +224,117 @@ No response body.
 - `400 Bad Request`: Doctor with the given ID not found
 - `401 Unauthorized`: Authentication is required
 
+## `PUT /doctors/{id}`
+
+Updates an existing doctor's profile.
+
+### Request
+
+```json
+{
+  "fullName": "Nguyen Van B Updated",
+  "phone": "0987654323",
+  "yearsOfExperience": 12,
+  "degree": "Ph.D. in AI Health",
+  "biography": "An experienced doctor specializing in AI analysis."
+}
+```
+
+### Response
+
+```json
+{
+  "id": 1,
+  "username": "doctor.b",
+  "email": "doctor.b@example.com",
+  "fullName": "Nguyen Van B Updated",
+  "phone": "0987654323",
+  "role": "DOCTOR",
+  "status": "ACTIVE",
+  "yearsOfExperience": 12,
+  "degree": "Ph.D. in AI Health",
+  "biography": "An experienced doctor specializing in AI analysis."
+}
+```
+
+### Status Codes
+
+- `200 OK`: Doctor updated successfully
+- `400 Bad Request`: Invalid input fields
+- `401 Unauthorized`: Authentication is required
+- `404 Not Found`: Doctor not found
+
+## `GET /doctors/profile`
+
+Retrieves the profile of the currently authenticated doctor.
+
+### Request
+
+No request body.
+
+### Response
+
+```json
+{
+  "id": 1,
+  "username": "doctor.b",
+  "email": "doctor.b@example.com",
+  "fullName": "Nguyen Van B",
+  "phone": "0987654321",
+  "role": "DOCTOR",
+  "status": "ACTIVE",
+  "yearsOfExperience": 10,
+  "degree": "MD",
+  "biography": "Experienced doctor."
+}
+```
+
+### Status Codes
+
+- `200 OK`: Request successful
+- `401 Unauthorized`: Authentication is required
+- `403 Forbidden`: Authenticated user is not a DOCTOR
+
+## `PUT /doctors/profile`
+
+Updates the profile of the currently authenticated doctor.
+
+### Request
+
+```json
+{
+  "fullName": "Doctor B Self Updated",
+  "phone": "0987654325",
+  "yearsOfExperience": 15,
+  "degree": "Ph.D. in AI Health updated",
+  "biography": "Self updated profile."
+}
+```
+
+### Response
+
+```json
+{
+  "id": 1,
+  "username": "doctor.b",
+  "email": "doctor.b@example.com",
+  "fullName": "Doctor B Self Updated",
+  "phone": "0987654325",
+  "role": "DOCTOR",
+  "status": "ACTIVE",
+  "yearsOfExperience": 15,
+  "degree": "Ph.D. in AI Health updated",
+  "biography": "Self updated profile."
+}
+```
+
+### Status Codes
+
+- `200 OK`: Profile updated successfully
+- `400 Bad Request`: Invalid input fields
+- `401 Unauthorized`: Authentication is required
+- `403 Forbidden`: Authenticated user is not a DOCTOR
+
 ## `GET /notifications/unread`
 
 Retrieves all unread notifications for the currently authenticated user.

@@ -22,6 +22,8 @@ public class DoctorResponse {
     private String role;
     private UserStatus status;
     private Integer yearsOfExperience;
+    private String degree;
+    private String biography;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

@@ -43,6 +43,50 @@ public class DoctorController {
     }
 
     /**
+     * Updates an existing doctor.
+     *
+     * @param id The ID of the doctor to update.
+     * @param request The update payload.
+     * @return The updated DoctorResponse.
+     */
+    @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<DoctorResponse> editDoctor(@PathVariable Long id, @Valid @RequestBody com.g93.be.dto.EditDoctorRequest request) {
+        log.info("Received request to edit doctor with ID: {}", id);
+        DoctorResponse response = doctorService.editDoctor(id, request);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Retrieves the profile of the currently authenticated doctor.
+     *
+     * @param principal The authenticated user's principal.
+     * @return The DoctorResponse.
+     */
+    @GetMapping("/profile")
+    @PreAuthorize("hasRole('DOCTOR')")
+    public ResponseEntity<DoctorResponse> getProfile(java.security.Principal principal) {
+        log.info("Received request to fetch profile for doctor: {}", principal.getName());
+        DoctorResponse response = doctorService.getDoctorProfile(principal.getName());
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Updates the profile of the currently authenticated doctor.
+     *
+     * @param principal The authenticated user's principal.
+     * @param request The update payload.
+     * @return The updated DoctorResponse.
+     */
+    @PutMapping("/profile")
+    @PreAuthorize("hasRole('DOCTOR')")
+    public ResponseEntity<DoctorResponse> editProfile(java.security.Principal principal, @Valid @RequestBody com.g93.be.dto.EditDoctorRequest request) {
+        log.info("Received request to edit profile for doctor: {}", principal.getName());
+        DoctorResponse response = doctorService.editDoctorProfile(principal.getName(), request);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
      * Retrieves doctors with pagination, search, sorting, and filtering.
      *
      * @param keyword Optional search term (code, name, email, phone, specialization).

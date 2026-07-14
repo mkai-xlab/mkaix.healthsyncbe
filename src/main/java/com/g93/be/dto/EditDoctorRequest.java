@@ -21,4 +21,9 @@ public class EditDoctorRequest {
     private String phone;
     private String avatarUrl;
     private Integer yearsOfExperience;
+
+    @jakarta.validation.constraints.Size(max = 100, message = "Degree must not exceed 100 characters")
+    private String degree;
+
+    private String biography;
 }
