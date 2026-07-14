@@ -97,4 +97,13 @@ public class ExaminationServiceImpl implements ExaminationService {
                 examinationPage.isLast()
         );
     }
+
+    @Override
+    @Transactional
+    public void markAsViewed(Long id) {
+        Examination examination = examinationRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Examination with id " + id + " not found"));
+        examination.setIsViewed(1);
+        examinationRepository.save(examination);
+    }
 }

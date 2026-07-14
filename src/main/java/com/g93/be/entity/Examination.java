@@ -70,6 +70,12 @@ public class Examination {
     @Column(name = "referring_physician", length = 255)
     private String referringPhysician;
 
+    @Column(name = "is_viewed", columnDefinition = "TINYINT DEFAULT 0")
+    private Integer isViewed = 0;
+
+    @Column(name = "max_predicted_grade")
+    private Integer maxPredictedGrade;
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();

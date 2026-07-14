@@ -114,7 +114,8 @@ public class DicomServiceImpl implements DicomService {
                     userId,
                     "Tiếp nhận File ZIP",
                     "Hệ thống đang tiến hành giải nén và kiểm tra file ZIP...",
-                    "SYSTEM"
+                    "SYSTEM",
+                    null
             ));
         }
         Path workDir = null;
@@ -218,7 +219,8 @@ public class DicomServiceImpl implements DicomService {
                     userId,
                     "Đang xử lý DICOM",
                     "Hệ thống đang trích xuất dữ liệu từ " + filePaths.size() + " file DICOM...",
-                    "SYSTEM"
+                    "SYSTEM",
+                    null
             ));
         }
 
@@ -433,7 +435,8 @@ public class DicomServiceImpl implements DicomService {
                         userId,
                         "DICOM Upload Complete (Pending Verify)",
                         responseJson,
-                        "DICOM_BATCH_RESULT"
+                        "DICOM_BATCH_RESULT",
+                        null
                 ));
             } catch (Exception e) {
                 log.error("Failed to serialize notification payload", e);
@@ -441,7 +444,8 @@ public class DicomServiceImpl implements DicomService {
                         userId,
                         "DICOM Upload Complete",
                         "Vui lòng xác nhận lưu dữ liệu (Session: " + uploadSessionId + ")",
-                        "SYSTEM"
+                        "SYSTEM",
+                        null
                 ));
             }
         }

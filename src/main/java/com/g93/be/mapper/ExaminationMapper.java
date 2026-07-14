@@ -50,13 +50,15 @@ public class ExaminationMapper {
         ed.setPriority(ex.getPriority());
         ed.setFinalDiagnosis(ex.getFinalDiagnosis());
         ed.setDescription(ex.getDescription());
+        ed.setIsViewed(ex.getIsViewed());
+        ed.setMaxPredictedGrade(ex.getMaxPredictedGrade());
 
         if (ex.getPatient() != null) {
             ed.setPatient(patientMapper.toResponse(ex.getPatient()));
         }
 
         if (ex.getDoctor() != null) {
-            ed.setDoctor(doctorMapper.toResponse(ex.getDoctor()));
+            ed.setDoctorId(ex.getDoctor().getId());
         }
 
         String baseUrl = "/api/v1";
@@ -79,6 +81,40 @@ public class ExaminationMapper {
                 img.setStatus(ex.getStatus() != null ? ex.getStatus().name() : null);
                 img.setVisitTime(ex.getVisitTime());
                 img.setImageUrl(baseUrl + "/dicom/instances/" + instance.getId() + "/image");
+
+                // Map aiResults lazily
+                List<com.g93.be.dto.AiPredictionResultDto> aiResList = new ArrayList<>();
+                if (instance.getAiAnalyses() != null) {
+                    for (com.g93.be.entity.AiAnalysis analysis : instance.getAiAnalyses()) {
+                        if (analysis.getAiResults() != null) {
+                            for (com.g93.be.entity.AiResult aiRes : analysis.getAiResults()) {
+                                java.util.Map<String, Double> details = new java.util.HashMap<>();
+                                if (aiRes.getConfidenceScore() != null) {
+                                    details.put("0Normal", aiRes.getConfidenceScore().getC0Confidence());
+                                    details.put("1Doubtful", aiRes.getConfidenceScore().getC1Confidence());
+                                    details.put("2Mild", aiRes.getConfidenceScore().getC2Confidence());
+                                    details.put("3Moderate", aiRes.getConfidenceScore().getC3Confidence());
+                                    details.put("4Severe", aiRes.getConfidenceScore().getC4Confidence());
+                                }
+                                com.g93.be.dto.AiPredictionResultDto dto = com.g93.be.dto.AiPredictionResultDto.builder()
+                                    .dicomInstanceId(instance.getId())
+                                    .aiAnalysisId(analysis.getId())
+                                    .aiResultId(aiRes.getId())
+                                    .predictedGrade(aiRes.getPredictedGrade())
+                                    .confidence(aiRes.getConfidence())
+                                    .description(aiRes.getDescription())
+                                    .details(details.isEmpty() ? null : details)
+                                    .gradcamImageUrl(aiRes.getStorageHeatmapFilePath() != null ? baseUrl + "/ai/heatmap/" + aiRes.getId() : null)
+                                    .build();
+                                aiResList.add(dto);
+                            }
+                        }
+                    }
+                }
+                if (!aiResList.isEmpty()) {
+                    img.setAiResults(aiResList);
+                }
+
                 imageDtos.add(img);
             }
             ed.setImages(imageDtos);

@@ -9,4 +9,5 @@ public interface ExaminationService {
     ExaminationDto getExaminationById(Long id);
     PageResponse<ExaminationDto> getExaminationsByDoctorId(Long doctorId, Pageable pageable);
     PageResponse<ExaminationDto> getExaminationsByPatientId(Long patientId, Pageable pageable);
+    void markAsViewed(Long id);
 }

@@ -13,6 +13,8 @@ public record SendNotificationRequest(
         @NotBlank(message = "Message cannot be blank")
         String message,
 
-        String type
+        String type,
+
+        Object data
 ) {
 }
