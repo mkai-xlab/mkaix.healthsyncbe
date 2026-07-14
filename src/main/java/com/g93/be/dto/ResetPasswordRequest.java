@@ -17,7 +17,7 @@ public record ResetPasswordRequest(
         String token,
 
         @NotBlank(message = "New password cannot be blank")
-        @Size(min = 6, message = "New password must be at least 6 characters")
+        @Size(min = 8, max = 32, message = "New password must be between 8 and 32 characters")
         String newPassword
 ) {
 }

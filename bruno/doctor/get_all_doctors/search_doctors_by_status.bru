@@ -1,0 +1,19 @@
+meta {
+  name: Search Doctors By Status
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/doctors
+  body: none
+  auth: bearer
+}
+
+query {
+  status: ACTIVE
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}

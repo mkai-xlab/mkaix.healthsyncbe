@@ -1,0 +1,20 @@
+meta {
+  name: Search Patients By Emergency Contact
+  type: http
+  seq: 11
+}
+
+get {
+  url: {{baseUrl}}/patients
+  body: none
+  auth: bearer
+}
+
+query {
+  emergencyContactName: Nguyen
+  emergencyContactPhone: 09
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}

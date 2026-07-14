@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test WebSocket STOMP Notifications</title>
+    <!-- Include SockJS and StompJS from CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@stomp/stompjs@7.0.0/bundles/stomp.umd.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .box { border: 1px solid #ccc; padding: 15px; margin-bottom: 20px; border-radius: 5px; }
+        .log { background-color: #f4f4f4; padding: 10px; height: 300px; overflow-y: scroll; font-family: monospace; white-space: pre-wrap; }
+        button { padding: 8px 15px; margin-right: 10px; cursor: pointer; }
+        input[type="text"] { width: 100%; padding: 8px; margin-bottom: 10px; box-sizing: border-box; }
+        .notification-item { border-left: 4px solid #0056b3; padding: 10px; margin-bottom: 10px; background-color: #e9f5ff; }
+    </style>
+</head>
+<body>
+
+    <h2>Test HealthSync STOMP WebSocket Notifications</h2>
+
+    <div class="box">
+        <h3>1. Authentication</h3>
+        <p>Enter your Access Token (without "Bearer " prefix):</p>
+        <input type="text" id="token" placeholder="eyJhbGciOiJIUzUxMiJ9...">
+        <button id="connectBtn" onclick="connect()">Connect</button>
+        <button id="disconnectBtn" onclick="disconnect()" disabled>Disconnect</button>
+    </div>
+
+    <div class="box">
+        <h3>2. Received Notifications</h3>
+        <div id="notificationsContainer"></div>
+    </div>
+
+    <div class="box">
+        <h3>System Logs</h3>
+        <div id="logs" class="log"></div>
+    </div>
+
+    <script>
+        let stompClient = null;
+
+        function logMessage(message) {
+            const logs = document.getElementById('logs');
+            logs.innerHTML += `[${new Date().toLocaleTimeString()}] ${message}\n`;
+            logs.scrollTop = logs.scrollHeight;
+        }
+
+        function connect() {
+            const token = document.getElementById('token').value.trim();
+            if (!token) {
+                alert("Please enter an access token!");
+                return;
+            }
+
+            // Using standard WebSocket with context-path
+            const wsUrl = `ws://${window.location.host}/api/v1/ws`;
+            
+            stompClient = new StompJs.Client({
+                brokerURL: wsUrl,
+                connectHeaders: {
+                    Authorization: `Bearer ${token}`
+                },
+                debug: function (str) {
+                    // console.log(str); // Uncomment to see raw stomp frames
+                },
+                reconnectDelay: 5000,
+                heartbeatIncoming: 4000,
+                heartbeatOutgoing: 4000,
+            });
+
+            stompClient.onConnect = function (frame) {
+                logMessage('Connected: ' + frame);
+                document.getElementById('connectBtn').disabled = true;
+                document.getElementById('disconnectBtn').disabled = false;
+                document.getElementById('token').disabled = true;
+
+                // Subscribe to the user's specific notification queue
+                // In Spring, /user/queue/notifications maps to the currently authenticated user
+                stompClient.subscribe('/user/queue/notifications', function (message) {
+                    logMessage('Received Notification: ' + message.body);
+                    displayNotification(JSON.parse(message.body));
+                });
+                
+                logMessage('Subscribed to /user/queue/notifications');
+            };
+
+            stompClient.onStompError = function (frame) {
+                logMessage('Broker reported error: ' + frame.headers['message']);
+                logMessage('Additional details: ' + frame.body);
+            };
+
+            logMessage(`Attempting to connect to ${wsUrl}...`);
+            stompClient.activate();
+        }
+
+        function disconnect() {
+            if (stompClient !== null) {
+                stompClient.deactivate();
+            }
+            logMessage('Disconnected');
+            document.getElementById('connectBtn').disabled = false;
+            document.getElementById('disconnectBtn').disabled = true;
+            document.getElementById('token').disabled = false;
+        }
+
+        function displayNotification(notification) {
+            const container = document.getElementById('notificationsContainer');
+            const el = document.createElement('div');
+            el.className = 'notification-item';
+            el.innerHTML = `<strong>${notification.title}</strong><br>
+                            ${notification.message}<br>
+                            <small style="color:gray">Type: ${notification.type} | Time: ${notification.createdAt}</small>`;
+            container.prepend(el); // add to top
+        }
+    </script>
+</body>
+</html>

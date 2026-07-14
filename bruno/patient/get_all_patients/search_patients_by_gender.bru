@@ -1,0 +1,19 @@
+meta {
+  name: Search Patients By Gender
+  type: http
+  seq: 9
+}
+
+get {
+  url: {{baseUrl}}/patients
+  body: none
+  auth: bearer
+}
+
+query {
+  gender: MALE
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}

@@ -34,6 +34,22 @@ This document outlines the standard coding rules and project-specific convention
 - **Clarity**: Keep comments clear and descriptive, focusing on the "why" rather than the "what" for complex business logic.
 
 ## 7. API Testing (Bruno)
-- **Always Update Tests**: Whenever you modify an API endpoint, its payload, or its validation logic, you MUST simultaneously update the corresponding Bruno (`.bru`) test files in the `bruno/` directory.
+- **Always Update Tests**: Whenever you create or modify an API endpoint, its functionality, its payload, or its validation logic, you MUST simultaneously update or add the corresponding Bruno (`.bru`) test files in the `bruno/` directory so the user can immediately test the new functionality.
 - **Test Structure**: Group tests logically into folders by feature and action (e.g., `bruno/patient/create_patient/`).
 - **Comprehensive Scenarios**: Ensure both success and failure test cases (e.g., missing required fields, duplicate data) are written or updated so the user can immediately test the changes.
+
+## 8. WebSockets & Real-Time Notifications
+- **Technology Stack**: Use STOMP over WebSockets (`spring-boot-starter-websocket`). Avoid SockJS fallback unless strictly required for backward compatibility.
+- **Security Integration**: WebSocket connections MUST be authenticated. Implement `ChannelInterceptor` in the `security` package (e.g., `WebSocketChannelInterceptor`) to intercept the STOMP `CONNECT` frame and validate the JWT from the `Authorization: Bearer <token>` header.
+- **Broker Config**: Register standard `/topic` (broadcast) and `/queue` (user-specific) brokers in a `WebSocketConfig` class located in the `config` package.
+- **Payload & DTOs**: Always use DTOs (e.g., `NotificationDto`) when sending messages via `SimpMessagingTemplate`. Do not send raw Entities to avoid exposing sensitive internal state.
+- **Client Testing**: Maintain an HTML test client (e.g., `src/main/resources/static/test-stomp.html`) to allow quick local verification of real-time events. Ensure the client connects using the correct context path (`/api/v1/ws`).
+
+## 9. Feature Completion Checklist
+- **Always Wrap Up**: Whenever you finish implementing a new feature or completing a functional requirement, you MUST systematically update and synchronize the following components:
+  1. **Documentation**: Update `README.md`, `CHANGELOG.md`, or any related system architecture documentation to reflect the new feature.
+  2. **Code**: Ensure all code is clean, properly formatted, commented in English, and adheres to the architecture rules.
+  3. **Bruno / Tests**: Create or update Bruno collections and automated tests for the newly added or modified functionality.
+  4. **AGENT GUIDELINES**: If the new feature introduces a new architectural pattern, rule, or systemic change, update `AGENT_CODING_GUIDELINES.md` to establish the new standard for future tasks.
+## 9. API Documentation (Docs)
+- **Always Update API Docs**: Whenever you create or modify an API endpoint, you MUST update the corresponding API documentation in the `docs/` folder so the Frontend (FE) team can use it immediately.

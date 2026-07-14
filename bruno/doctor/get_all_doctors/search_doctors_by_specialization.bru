@@ -1,0 +1,19 @@
+meta {
+  name: Search Doctors By Specialization
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/doctors
+  body: none
+  auth: bearer
+}
+
+query {
+  specialization: Cardiology
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}

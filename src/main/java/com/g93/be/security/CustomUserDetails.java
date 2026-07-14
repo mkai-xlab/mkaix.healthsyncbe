@@ -11,14 +11,21 @@ import java.util.List;
 public class CustomUserDetails implements UserDetails {
 
     private final User user;
+    private final List<String> permissions;
 
-    public CustomUserDetails(User user) {
+    public CustomUserDetails(User user, List<String> permissions) {
         this.user = user;
+        this.permissions = permissions;
     }
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()));
+        List<GrantedAuthority> authorities = new java.util.ArrayList<>();
+        authorities.add(new SimpleGrantedAuthority("ROLE_" + user.getRole().getCode()));
+        if (permissions != null) {
+            permissions.forEach(p -> authorities.add(new SimpleGrantedAuthority(p)));
+        }
+        return authorities;
     }
 
     @Override
@@ -53,5 +60,9 @@ public class CustomUserDetails implements UserDetails {
 
     public User getUser() {
         return user;
+    }
+
+    public List<String> getPermissions() {
+        return permissions;
     }
 }

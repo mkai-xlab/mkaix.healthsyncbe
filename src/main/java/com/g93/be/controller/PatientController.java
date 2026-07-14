@@ -14,6 +14,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import com.g93.be.dto.PageResponse;
 import com.g93.be.dto.PatientFilterRequest;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 
 /**
@@ -34,6 +35,7 @@ public class PatientController {
      * @return The created PatientResponse.
      */
     @PostMapping
+    @PreAuthorize("hasAuthority('CREATE_PATIENT_EXAM')")
     public ResponseEntity<PatientResponse> createPatient(@Valid @RequestBody CreatePatientRequest request) {
         log.info("Received request to register a new patient with code: {}", request.getPatientCode());
         PatientResponse response = patientService.createPatient(request);
@@ -48,6 +50,7 @@ public class PatientController {
      * @return A paginated list of patients.
      */
     @GetMapping
+    @PreAuthorize("hasAuthority('READ_PATIENT_LIST')")
     public ResponseEntity<PageResponse<PatientResponse>> getAllPatients(
             @ModelAttribute PatientFilterRequest filter,
             @PageableDefault(size = 10) Pageable pageable) {
@@ -62,6 +65,7 @@ public class PatientController {
      * @return The updated PatientResponse.
      */
     @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('CREATE_PATIENT_EXAM')")
     public ResponseEntity<PatientResponse> editPatient(@PathVariable Long id, @Valid @RequestBody EditPatientRequest request) {
         return ResponseEntity.ok(patientService.editPatient(id, request));
     }
@@ -72,8 +76,21 @@ public class PatientController {
      * @param id The ID of the patient to delete.
      */
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deletePatient(@PathVariable Long id) {
         patientService.deletePatient(id);
         return ResponseEntity.ok().build();
+    }
+
+    /**
+     * Retrieves a patient's details and their examination images.
+     *
+     * @param patientId The patient code.
+     * @return Patient details and image URLs.
+     */
+    @GetMapping("/{patientId}/details")
+    @PreAuthorize("hasAuthority('VIEW_PATIENT_DETAIL')")
+    public ResponseEntity<com.g93.be.dto.PatientDetailsResponse> getPatientDetailsWithImages(@PathVariable String patientId) {
+        return ResponseEntity.ok(patientService.getPatientDetailsWithImages(patientId));
     }
 }

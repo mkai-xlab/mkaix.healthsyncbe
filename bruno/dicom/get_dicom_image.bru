@@ -1,0 +1,16 @@
+meta {
+  name: Get DICOM Image
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/dicom/instances/1/image
+  body: none
+  auth: inherit
+}
+
+assert {
+  res.status: eq 200
+  res.headers['content-type']: eq image/png
+}

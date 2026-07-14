@@ -7,6 +7,10 @@ server:
 spring:
   application:
     name: be
+  servlet:
+    multipart:
+      max-file-size: 100MB
+      max-request-size: 500MB
   datasource:
     url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:capstone}?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
     username: ${DB_USERNAME:root}
@@ -18,6 +22,12 @@ spring:
     open-in-view: false
     properties:
       hibernate:
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
 
   mail:
     host: ${SPRING_MAIL_HOST:localhost}
@@ -32,11 +42,16 @@ spring:
 app:
   jwt:
     issuer: capstone-ai-knee-diagnosis
-    # 256-bit keys encoded in Base64 (using values for testing/local development fallback)
     access-secret: ${JWT_ACCESS_SECRET:dGVzdC1hY2Nlc3Mtc2VjcmV0LWtleS1tdXN0LWJlLWF0LWxlYXN0LTI1Ni1iaXRzLWxvbmc=}
     refresh-secret: ${JWT_REFRESH_SECRET:dGVzdC1yZWZyZXNoLXNlY3JldC1rZXktbXVzdC1iZS1hdC1sZWFzdC0yNTYtYml0cy1sb25n}
     access-expiration-ms: 900000 # 15 minutes
     refresh-expiration-ms: 604800000 # 7 days
+  aws:
+    region: ${AWS_REGION:ap-southeast-1}
+    s3:
+      bucket: ${AWS_BUCKET_NAME:test-bucket-819109476069-ap-southeast-1-an}
+  storage:
+    base-dir: ${APP_STORAGE_BASE_DIR:D:/Capstone/data}
 
 logging:
   level:

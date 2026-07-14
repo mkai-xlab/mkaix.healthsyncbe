@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import jakarta.validation.Valid;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 /**
  * Controller for handling authentication-related REST API requests.
@@ -33,6 +34,7 @@ public class AuthController {
      * @return ResponseEntity containing token information, role, and username.
      */
     @PostMapping("/login")
+    @PreAuthorize("permitAll()")
     public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
         // Perform login via AuthService
         LoginResponse response = authService.login(request);
@@ -46,6 +48,7 @@ public class AuthController {
      * @return A success message.
      */
     @PostMapping("/change-password")
+    @PreAuthorize("permitAll()")
     public ResponseEntity<String> changePassword(@Valid @RequestBody ChangePasswordRequest request) {
         authService.changePassword(request);
         return ResponseEntity.ok("Password changed successfully");
@@ -59,6 +62,7 @@ public class AuthController {
      * @return A success message.
      */
     @PostMapping("/forgot-password")
+    @PreAuthorize("permitAll()")
     public ResponseEntity<String> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
         authService.forgotPassword(request);
         return ResponseEntity.ok("If the email exists, a password reset token has been sent.");
@@ -71,6 +75,7 @@ public class AuthController {
      * @return A success message.
      */
     @PostMapping("/reset-password")
+    @PreAuthorize("permitAll()")
     public ResponseEntity<String> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
         authService.resetPassword(request);
         return ResponseEntity.ok("Password reset successfully");

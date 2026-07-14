@@ -1,0 +1,146 @@
+erDiagram
+    roles ||--o{ permissions : "has"
+    features ||--o{ permissions : "has"
+    roles ||--o{ users : "has"
+    
+    users ||--|| admins : "is"
+    users ||--|| doctors : "is"
+    users ||--o{ notifications : "Recivce"
+    users ||--o{ audit_logs : "Do"
+    users }|--|| images : "Has"
+    
+    patients ||--o{ examinations : "Has"
+    doctors ||--o{ examinations : "Request"
+    
+    examinations ||--o{ dicom_instances : "Contain"
+    examinations ||--o{ ai_analyses : "Request"
+    
+    images ||--o{ dicom_instances : "Has"
+    
+    dicom_instances ||--o{ result_attachments : "Return"
+
+    roles {
+        bigint id PK
+        varchar name
+    }
+
+    features {
+        bigint id PK
+        varchar name
+    }
+
+    permissions {
+        bigint id PK
+        varchar name
+        bigint feature_id FK
+        bigint role_id FK
+    }
+
+    users {
+        bigint id PK
+        varchar email
+        varchar username
+        varchar password
+        varchar phone
+        varchar full_name
+        date dob
+        varchar user_type
+        bigint avatar_image_id FK
+        varchar status
+        varchar gender
+        datetime create_at
+        datetime update_at
+        bigint role_id FK
+    }
+
+    admins {
+        bigint id PK, FK
+    }
+
+    doctors {
+        bigint id PK, FK
+        int years_of_experience
+    }
+
+    notifications {
+        bigint id PK
+        bigint user_id FK
+        varchar title
+        text message
+        varchar type
+        boolean is_read
+        datetime create_at
+        datetime read_at
+    }
+
+    audit_logs {
+        bigint id PK
+        bigint user_id FK
+        varchar title
+        text description
+        varchar ip_address
+        varchar user_agent
+        datetime time_stamp
+    }
+
+    images {
+        bigint id PK
+        varchar extension
+        varchar s3_bucket_id
+        varchar s3_bucket_key
+    }
+
+    patients {
+        bigint id PK
+    }
+
+    examinations {
+        bigint id PK
+        bigint patient_id FK
+        bigint doctor_id FK
+        varchar encounter_code
+        datetime visit_time
+        varchar status
+        text chief_complaint
+        text clinical_notes
+        varchar priority
+        datetime created_at
+        text final_diagnosis
+    }
+
+    dicom_instances {
+        bigint id PK
+        datetime study_date
+        varchar study_description
+        varchar modality
+        varchar study_instance_uid
+        varchar series_instance_uid
+        varchar instance_uid
+        varchar seri_id
+        datetime created_at
+        bigint dicom_image_id FK
+        bigint png_image_id FK
+        bigint examination_id FK
+    }
+
+    ai_analyses {
+        bigint id PK
+        bigint examination_id FK
+        datetime start_date
+        int duration
+        varchar status
+        varchar token
+        varchar average_level
+        text final_diagnosis
+        int number_of_result
+        decimal accuracy_rate
+        datetime created_at
+    }
+
+    result_attachments {
+        bigint id PK
+        bigint dicom_study_id FK
+        varchar KL_level
+        text diagnosis
+        decimal accuracy_rate
+    }

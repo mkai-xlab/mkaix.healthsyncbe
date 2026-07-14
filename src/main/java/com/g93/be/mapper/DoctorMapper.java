@@ -27,18 +27,14 @@ public class DoctorMapper {
         response.setFullName(doctor.getFullName());
         response.setEmail(doctor.getEmail());
         response.setPhone(doctor.getPhone());
-        response.setAvatarUrl(doctor.getAvatarUrl());
-        response.setRole(doctor.getRole() != null ? doctor.getRole().name() : null);
+        response.setAvatarUrl(null); // Image no longer has fileUrl, using S3 bucket key instead requires service logic
+        response.setRole(doctor.getRole() != null ? doctor.getRole().getCode() : null);
         response.setStatus(doctor.getStatus());
-        response.setDoctorCode(doctor.getDoctorCode());
-        response.setLicenseNumber(doctor.getLicenseNumber());
-        response.setSpecialization(doctor.getSpecialization());
-        response.setYearsOfExperience(doctor.getYearsOfExperience());
-        response.setAcademicTitle(doctor.getAcademicTitle());
-        response.setDegree(doctor.getDegree());
+        
 
-        response.setBio(doctor.getBio());
-        response.setPosition(doctor.getPosition());
+        response.setYearsOfExperience(doctor.getYearsOfExperience());
+        response.setDegree(doctor.getDegree());
+        response.setBiography(doctor.getBiography());
         response.setCreatedAt(doctor.getCreatedAt());
         response.setUpdatedAt(doctor.getUpdatedAt());
         return response;

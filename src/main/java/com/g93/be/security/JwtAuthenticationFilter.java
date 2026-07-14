@@ -6,12 +6,14 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import java.io.IOException;
+import java.util.List;
+import java.util.ArrayList;
 
 /**
  * Filter thực hiện trích xuất và kiểm tra JWT token từ request header.
@@ -20,11 +22,9 @@ import java.io.IOException;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtTokenProvider jwtTokenProvider;
-    private final CustomUserDetailsService userDetailsService;
 
-    public JwtAuthenticationFilter(JwtTokenProvider jwtTokenProvider, CustomUserDetailsService userDetailsService) {
+    public JwtAuthenticationFilter(JwtTokenProvider jwtTokenProvider) {
         this.jwtTokenProvider = jwtTokenProvider;
-        this.userDetailsService = userDetailsService;
     }
 
     @Override
@@ -46,12 +46,21 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         try {
             userEmail = jwtTokenProvider.extractUsernameFromAccessToken(jwt);
             if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                UserDetails userDetails = this.userDetailsService.loadUserByUsername(userEmail);
-                if (jwtTokenProvider.isAccessTokenValid(jwt, userDetails)) {
+                // Stateless validation: Extract authorities from JWT directly
+                if (jwtTokenProvider.isAccessTokenValid(jwt)) {
+                    List<String> permissions = jwtTokenProvider.extractPermissionsFromAccessToken(jwt);
+                    String role = jwtTokenProvider.extractRoleFromAccessToken(jwt);
+
+                    List<SimpleGrantedAuthority> authorities = new ArrayList<>();
+                    if (role != null) authorities.add(new SimpleGrantedAuthority("ROLE_" + role));
+                    if (permissions != null) {
+                        permissions.forEach(p -> authorities.add(new SimpleGrantedAuthority(p)));
+                    }
+
                     UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                            userDetails,
+                            userEmail,
                             null,
-                            userDetails.getAuthorities()
+                            authorities
                     );
                     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authToken);

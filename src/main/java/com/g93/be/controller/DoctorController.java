@@ -15,6 +15,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 import java.util.List;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 /**
  * Controller for managing doctor-related operations.
@@ -34,10 +35,55 @@ public class DoctorController {
      * @return The created DoctorResponse.
      */
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<DoctorResponse> createDoctor(@Valid @RequestBody CreateDoctorRequest request) {
-        log.info("Received request to register a new doctor with code: {}", request.getDoctorCode());
+        log.info("Received request to register a new doctor with email: {}", request.getEmail());
         DoctorResponse response = doctorService.createDoctor(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    /**
+     * Updates an existing doctor.
+     *
+     * @param id The ID of the doctor to update.
+     * @param request The update payload.
+     * @return The updated DoctorResponse.
+     */
+    @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<DoctorResponse> editDoctor(@PathVariable Long id, @Valid @RequestBody com.g93.be.dto.EditDoctorRequest request) {
+        log.info("Received request to edit doctor with ID: {}", id);
+        DoctorResponse response = doctorService.editDoctor(id, request);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Retrieves the profile of the currently authenticated doctor.
+     *
+     * @param principal The authenticated user's principal.
+     * @return The DoctorResponse.
+     */
+    @GetMapping("/profile")
+    @PreAuthorize("hasRole('DOCTOR')")
+    public ResponseEntity<DoctorResponse> getProfile(java.security.Principal principal) {
+        log.info("Received request to fetch profile for doctor: {}", principal.getName());
+        DoctorResponse response = doctorService.getDoctorProfile(principal.getName());
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Updates the profile of the currently authenticated doctor.
+     *
+     * @param principal The authenticated user's principal.
+     * @param request The update payload.
+     * @return The updated DoctorResponse.
+     */
+    @PutMapping("/profile")
+    @PreAuthorize("hasRole('DOCTOR')")
+    public ResponseEntity<DoctorResponse> editProfile(java.security.Principal principal, @Valid @RequestBody com.g93.be.dto.EditDoctorRequest request) {
+        log.info("Received request to edit profile for doctor: {}", principal.getName());
+        DoctorResponse response = doctorService.editDoctorProfile(principal.getName(), request);
+        return ResponseEntity.ok(response);
     }
 
     /**
@@ -50,6 +96,7 @@ public class DoctorController {
      * @return A paginated list of DoctorResponse.
      */
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'DOCTOR')")
     public ResponseEntity<PageResponse<DoctorResponse>> getDoctors(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String specialization,
@@ -64,20 +111,54 @@ public class DoctorController {
     /**
      * Retrieves only active doctors.
      *
-     * @return A list of DoctorResponse objects for active doctors.
+     * @return A list of DoctorResponse objects for active doctors wrapped in ResponseEntity.
      */
     @GetMapping("/active")
-    public List<DoctorResponse> getActiveDoctors() {
-        return doctorService.getActiveDoctors();
+    @PreAuthorize("hasAnyRole('ADMIN', 'DOCTOR')")
+    public ResponseEntity<List<DoctorResponse>> getActiveDoctors() {
+        log.info("Received request to fetch active doctors");
+        return ResponseEntity.ok(doctorService.getActiveDoctors());
     }
 
     /**
      * Activates a doctor by ID.
      *
      * @param id The ID of the doctor to activate.
+     * @return A response signaling completion.
      */
     @PostMapping("/{id}/activate")
-    public void activateDoctor(@PathVariable Long id) {
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Void> activateDoctor(@PathVariable Long id) {
+        log.info("Received request to activate doctor with ID: {}", id);
         doctorService.activateDoctor(id);
+        return ResponseEntity.ok().build();
+    }
+
+    /**
+     * Deactivates a doctor by ID via POST.
+     *
+     * @param id The ID of the doctor to deactivate.
+     * @return A response signaling completion.
+     */
+    @PostMapping("/{id}/deactivate")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Void> deactivateDoctorPost(@PathVariable Long id) {
+        log.info("Received request to deactivate doctor with ID via POST: {}", id);
+        doctorService.softDeleteDoctor(id);
+        return ResponseEntity.ok().build();
+    }
+
+    /**
+     * Deactivates (soft-deletes) a doctor by ID.
+     *
+     * @param id The ID of the doctor to deactivate.
+     * @return A response signaling completion.
+     */
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Void> deactivateDoctor(@PathVariable Long id) {
+        log.info("Received request to deactivate doctor with ID via DELETE: {}", id);
+        doctorService.softDeleteDoctor(id);
+        return ResponseEntity.ok().build();
     }
 }

@@ -1,0 +1,15 @@
+meta {
+  name: Get Patient Details
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/patients/{{patientId}}/details
+  body: none
+  auth: inherit
+}
+
+vars:pre-request {
+  patientId: 2600055845
+}
