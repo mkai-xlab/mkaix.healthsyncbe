@@ -54,7 +54,9 @@ class DoctorRegistrationIntegrationTest {
                 "john.doe@hospital.com",
                 "123456789",
                 "http://avatar.url",
-                10
+                10,
+                null,
+                null
         );
 
         // When
@@ -100,6 +102,8 @@ class DoctorRegistrationIntegrationTest {
                 "john.doe@hospital.com",
                 "123456789",
                 null,
+                null,
+                null,
                 null
         );
         doctorService.createDoctor(request1);
@@ -108,6 +112,8 @@ class DoctorRegistrationIntegrationTest {
                 "Jane Doe",
                 "john.doe@hospital.com", // Duplicate email
                 "987654321",
+                null,
+                null,
                 null,
                 null
         );
@@ -127,7 +133,9 @@ class DoctorRegistrationIntegrationTest {
                 "hoangduy@hospital.com",
                 "123456789",
                 null,
-                5
+                5,
+                null,
+                null
         );
         doctorService.createDoctor(request);
 
@@ -147,7 +155,9 @@ class DoctorRegistrationIntegrationTest {
                 "hoangduy2@hospital.com",
                 "987654321",
                 null,
-                5
+                5,
+                null,
+                null
         );
         doctorService.createDoctor(request);
 
