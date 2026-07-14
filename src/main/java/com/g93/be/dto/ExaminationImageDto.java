@@ -20,5 +20,5 @@ public class ExaminationImageDto {
     private String status;
     private LocalDateTime visitTime;
     private String imageUrl;
-    private AiPredictionResultDto aiResult;
+    private java.util.List<AiPredictionResultDto> aiResults;
 }
