@@ -23,7 +23,6 @@ public class ExaminationDto {
     private java.time.LocalTime studyTime;
     private LocalDateTime visitTime;
     private String thumbnailUrl;
-    private String bodyPart;
     private String referringPhysician;
     private String chiefComplaint;
     private String clinicalNotes;
@@ -31,6 +30,8 @@ public class ExaminationDto {
     private String finalDiagnosis;
     private String description;
     private PatientResponse patient;
-    private DoctorResponse doctor;
+    private Long doctorId;
     private java.util.List<ExaminationImageDto> images;
+    private Integer isViewed;
+    private Integer maxPredictedGrade;
 }

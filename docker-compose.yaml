@@ -26,6 +26,15 @@ services:
       - "1080:1080" # Web UI
       - "1025:1025" # SMTP Port
 
+  redis:
+    image: dhi.io/redis:alpine
+    container_name: capstone-redis
+    restart: unless-stopped
+    env_file:
+      - ../env/redis.env
+    ports:
+      - "6379:6379"
+
   be:
     build:
       context: .

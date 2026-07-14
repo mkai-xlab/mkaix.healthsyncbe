@@ -8,6 +8,7 @@ public record NotificationDto(
         String message,
         String type,
         Boolean isRead,
-        LocalDateTime createdAt
+        LocalDateTime createdAt,
+        Object data
 ) {
 }
