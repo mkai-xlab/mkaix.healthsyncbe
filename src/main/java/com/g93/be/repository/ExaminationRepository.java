@@ -13,5 +13,12 @@ public interface ExaminationRepository extends JpaRepository<Examination, Long> 
     List<Examination> findByPatientId(Long patientId);
     Page<Examination> findByPatientId(Long patientId, Pageable pageable);
     Page<Examination> findByDoctorId(Long doctorId, Pageable pageable);
+    long countByDoctorId(Long doctorId);
+    long countByMaxPredictedGradeIn(List<Integer> grades);
+    long countByDoctorIdAndMaxPredictedGradeIn(Long doctorId, List<Integer> grades);
+    long countByStatus(com.g93.be.entity.ExaminationStatus status);
+    long countByStatusNot(com.g93.be.entity.ExaminationStatus status);
+    long countByDoctorIdAndStatus(Long doctorId, com.g93.be.entity.ExaminationStatus status);
+    long countByDoctorIdAndStatusNot(Long doctorId, com.g93.be.entity.ExaminationStatus status);
     java.util.Optional<Examination> findByEncounterCode(String encounterCode);
 }
