@@ -795,6 +795,110 @@ Trigger a test notification to a specific user.
 Notification sent successfully
 ```
 
+## `GET /examinations/total`
+
+Retrieves the total number of examinations based on the user's role.
+
+### Query Parameters
+
+- `userId` (Required): The ID of the user requesting the total.
+
+### Request
+
+```http
+GET /examinations/total?userId=1
+```
+
+### Response
+
+```json
+150
+```
+
+### Status Codes
+
+- `200 OK`: Request successful
+- `400 Bad Request`: Missing user ID or invalid user
+- `401 Unauthorized`: Authentication is required
+
+## `GET /examinations/total-severe`
+
+Retrieves the total number of severe examinations (KL3, KL4) based on the user's role.
+
+### Query Parameters
+
+- `userId` (Required): The ID of the user.
+
+### Request
+
+```http
+GET /examinations/total-severe?userId=1
+```
+
+### Response
+
+```json
+25
+```
+
+### Status Codes
+
+- `200 OK`: Request successful
+- `400 Bad Request`: Missing user ID or invalid user
+- `401 Unauthorized`: Authentication is required
+
+## `GET /examinations/total-verified`
+
+Retrieves the total number of verified (REVIEWED) examinations based on the user's role.
+
+### Query Parameters
+
+- `userId` (Required): The ID of the user.
+
+### Request
+
+```http
+GET /examinations/total-verified?userId=1
+```
+
+### Response
+
+```json
+100
+```
+
+### Status Codes
+
+- `200 OK`: Request successful
+- `400 Bad Request`: Missing user ID or invalid user
+- `401 Unauthorized`: Authentication is required
+
+## `GET /examinations/total-unverified`
+
+Retrieves the total number of unverified examinations based on the user's role.
+
+### Query Parameters
+
+- `userId` (Required): The ID of the user.
+
+### Request
+
+```http
+GET /examinations/total-unverified?userId=1
+```
+
+### Response
+
+```json
+50
+```
+
+### Status Codes
+
+- `200 OK`: Request successful
+- `400 Bad Request`: Missing user ID or invalid user
+- `401 Unauthorized`: Authentication is required
+
 ## WebSocket Connection (STOMP)
 
 Clients can connect to the real-time notification server using STOMP over WebSocket.

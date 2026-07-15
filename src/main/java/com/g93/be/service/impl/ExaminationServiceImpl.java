@@ -26,6 +26,7 @@ public class ExaminationServiceImpl implements ExaminationService {
     private final ExaminationRepository examinationRepository;
     private final DicomInstanceRepository dicomInstanceRepository;
     private final ExaminationMapper examinationMapper;
+    private final com.g93.be.repository.UserRepository userRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -105,5 +106,91 @@ public class ExaminationServiceImpl implements ExaminationService {
                 .orElseThrow(() -> new IllegalArgumentException("Examination with id " + id + " not found"));
         examination.setIsViewed(1);
         examinationRepository.save(examination);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public long getTotalExaminations(Long userId) {
+        com.g93.be.entity.User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User with id " + userId + " not found"));
+        
+        if (user.getRole() == null || user.getRole().getCode() == null) {
+            return 0L;
+        }
+
+        String roleCode = user.getRole().getCode();
+        if ("DEPARTMENT_HEAD".equalsIgnoreCase(roleCode) || "HEAD_OF_DEPARTMENT".equalsIgnoreCase(roleCode)) {
+            return examinationRepository.count();
+        } else if ("DOCTOR".equalsIgnoreCase(roleCode)) {
+            return examinationRepository.countByDoctorId(userId);
+        }
+        
+        return 0L;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public long getTotalSevereExaminations(Long userId) {
+        com.g93.be.entity.User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User with id " + userId + " not found"));
+        
+        if (user.getRole() == null || user.getRole().getCode() == null) {
+            return 0L;
+        }
+
+        List<Integer> severeGrades = List.of(3, 4);
+        String roleCode = user.getRole().getCode();
+        
+        if ("DEPARTMENT_HEAD".equalsIgnoreCase(roleCode) || "HEAD_OF_DEPARTMENT".equalsIgnoreCase(roleCode)) {
+            return examinationRepository.countByMaxPredictedGradeIn(severeGrades);
+        } else if ("DOCTOR".equalsIgnoreCase(roleCode)) {
+            return examinationRepository.countByDoctorIdAndMaxPredictedGradeIn(userId, severeGrades);
+        }
+        
+        return 0L;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public long getTotalVerifiedExaminations(Long userId) {
+        com.g93.be.entity.User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User with id " + userId + " not found"));
+        
+        if (user.getRole() == null || user.getRole().getCode() == null) {
+            return 0L;
+        }
+
+        String roleCode = user.getRole().getCode();
+        com.g93.be.entity.ExaminationStatus verifiedStatus = com.g93.be.entity.ExaminationStatus.REVIEWED;
+        
+        if ("DEPARTMENT_HEAD".equalsIgnoreCase(roleCode) || "HEAD_OF_DEPARTMENT".equalsIgnoreCase(roleCode)) {
+            return examinationRepository.countByStatus(verifiedStatus);
+        } else if ("DOCTOR".equalsIgnoreCase(roleCode)) {
+            return examinationRepository.countByDoctorIdAndStatus(userId, verifiedStatus);
+        }
+        
+        return 0L;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public long getTotalUnverifiedExaminations(Long userId) {
+        com.g93.be.entity.User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User with id " + userId + " not found"));
+        
+        if (user.getRole() == null || user.getRole().getCode() == null) {
+            return 0L;
+        }
+
+        String roleCode = user.getRole().getCode();
+        com.g93.be.entity.ExaminationStatus verifiedStatus = com.g93.be.entity.ExaminationStatus.REVIEWED;
+        
+        if ("DEPARTMENT_HEAD".equalsIgnoreCase(roleCode) || "HEAD_OF_DEPARTMENT".equalsIgnoreCase(roleCode)) {
+            return examinationRepository.countByStatusNot(verifiedStatus);
+        } else if ("DOCTOR".equalsIgnoreCase(roleCode)) {
+            return examinationRepository.countByDoctorIdAndStatusNot(userId, verifiedStatus);
+        }
+        
+        return 0L;
     }
 }
