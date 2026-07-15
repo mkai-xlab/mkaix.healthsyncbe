@@ -51,5 +51,13 @@ This document outlines the standard coding rules and project-specific convention
   2. **Code**: Ensure all code is clean, properly formatted, commented in English, and adheres to the architecture rules.
   3. **Bruno / Tests**: Create or update Bruno collections and automated tests for the newly added or modified functionality.
   4. **AGENT GUIDELINES**: If the new feature introduces a new architectural pattern, rule, or systemic change, update `AGENT_CODING_GUIDELINES.md` to establish the new standard for future tasks.
-## 9. API Documentation (Docs)
-- **Always Update API Docs**: Whenever you create or modify an API endpoint, you MUST update the corresponding API documentation in the `docs/` folder so the Frontend (FE) team can use it immediately.
+
+## 10. API Documentation (Required)
+- You MUST maintain the `docs/api.md` file up to date.
+- Every new endpoint added to the system MUST be documented in `docs/api.md` including Request, Response, and Status Codes.
+
+## 11. Audit Logging (Required)
+- The system uses AOP (Aspect-Oriented Programming) for business audit logging.
+- Any new Service method that modifies state (CREATE, UPDATE, DELETE) MUST be annotated with `@LogAction(action="ACTION_NAME")` (e.g. `@LogAction("CREATE_PATIENT")`).
+- This applies to all business logic methods that need administrative tracking. Read-only methods (GET) should NOT be annotated.
+- The `AuditLogAspect` will automatically extract the `username`, `ipAddress`, and serialize the method arguments.

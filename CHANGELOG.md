@@ -8,6 +8,8 @@ This project can follow semantic versioning when formal releases start.
 
 ### Added
 
+- Added `GET /audit-logs` endpoint for admins to view user activities.
+- Implemented AOP-based Audit Logging pattern to track state modifications automatically via `@LogAction`.
 - Added `GET /doctors/profile` and `PUT /doctors/profile` endpoints for doctors to view and edit their own profiles.
 - Added `PUT /doctors/{id}` endpoint to update existing doctors.
 - Added `degree` and `biography` fields to `Doctor` entity and related APIs.

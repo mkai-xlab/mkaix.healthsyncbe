@@ -1,0 +1,15 @@
+meta {
+  name: Get Audit Logs
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/audit-logs?size=10&page=0
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
