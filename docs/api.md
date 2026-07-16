@@ -2426,3 +2426,42 @@ Returns the physical DICOM file with content type `application/dicom`.
 - `200 OK`: Request successful, file attached.
 - `401 Unauthorized`: Authentication is required
 - `404 Not Found`: Instance or file not found.
+
+## `GET /audit-logs`
+
+Retrieves a paginated list of system audit logs. This API is used by administrators to track user activities (such as creating, updating, or deleting records). View (GET) actions are not recorded.
+
+### Request
+
+- `page` (optional): The page index (starts at 0).
+- `size` (optional): Number of records per page (default: 10).
+- `sort` (optional): Field to sort by (default: timeStamp,desc).
+
+### Response
+
+```json
+{
+  "content": [
+    {
+      "id": 1,
+      "username": "admin",
+      "title": "CREATE_DOCTOR",
+      "description": "[\"CreateDoctorRequest(fullName=John Doe, email=john@hospital.com...)\"]",
+      "ipAddress": "192.168.1.100",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)...",
+      "timeStamp": "2026-07-14T15:58:25"
+    }
+  ],
+  "pageNumber": 0,
+  "pageSize": 10,
+  "totalElements": 1,
+  "totalPages": 1,
+  "isLast": true
+}
+```
+
+### Status Codes
+
+- `200 OK`: Request successful
+- `401 Unauthorized`: Authentication is required
+- `403 Forbidden`: Authenticated user is not an ADMIN
