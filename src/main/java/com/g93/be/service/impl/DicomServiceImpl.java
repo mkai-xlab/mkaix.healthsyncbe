@@ -421,7 +421,8 @@ public class DicomServiceImpl implements DicomService {
             }
         } catch (Exception e) {
             log.error("Failed to cache upload session", e);
-            throw new RuntimeException("Failed to cache upload session", e);
+            String rootCause = e.getCause() != null ? e.getCause().getMessage() : e.getMessage();
+            throw new RuntimeException("Failed to cache upload session: " + e.getClass().getSimpleName() + " - " + rootCause, e);
         }
         
         com.g93.be.dto.BatchDicomUploadResponse response = new com.g93.be.dto.BatchDicomUploadResponse();
