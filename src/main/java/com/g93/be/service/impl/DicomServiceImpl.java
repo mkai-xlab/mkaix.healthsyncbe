@@ -392,7 +392,7 @@ public class DicomServiceImpl implements DicomService {
                 pr.setPatientCode(pending.getPatientCode());
                 pr.setFullName(pending.getPatientName() != null ? pending.getPatientName().replace("^", " ").trim() : "Unknown");
                 if (pending.getPatientBirthDate() != null) {
-                    pr.setDateOfBirth(pending.getPatientBirthDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDate());
+                    pr.setDateOfBirth(java.time.Instant.ofEpochMilli(pending.getPatientBirthDate().getTime()).atZone(ZoneId.systemDefault()).toLocalDate());
                 }
                 if ("F".equalsIgnoreCase(pending.getPatientSex())) {
                     pr.setGender(Gender.FEMALE);
@@ -408,10 +408,10 @@ public class DicomServiceImpl implements DicomService {
                 examDto.setReferringPhysician(pending.getReferringPhysician());
                 examDto.setStatus(ExaminationStatus.NEED_VERIFY.name());
                 if (pending.getStudyDate() != null) {
-                    examDto.setStudyDate(pending.getStudyDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDate());
+                    examDto.setStudyDate(java.time.Instant.ofEpochMilli(pending.getStudyDate().getTime()).atZone(ZoneId.systemDefault()).toLocalDate());
                 }
                 if (pending.getStudyTime() != null) {
-                    examDto.setStudyTime(pending.getStudyTime().toInstant().atZone(ZoneId.systemDefault()).toLocalTime());
+                    examDto.setStudyTime(java.time.Instant.ofEpochMilli(pending.getStudyTime().getTime()).atZone(ZoneId.systemDefault()).toLocalTime());
                 }
                 
                 com.g93.be.dto.PatientDetailsResponse pdr = new com.g93.be.dto.PatientDetailsResponse();
