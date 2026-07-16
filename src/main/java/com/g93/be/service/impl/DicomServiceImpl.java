@@ -214,6 +214,8 @@ public class DicomServiceImpl implements DicomService {
         String uploadSessionId = UUID.randomUUID().toString();
         java.util.Map<String, com.g93.be.dto.PendingDicomUploadDTO> patientsMap = new java.util.HashMap<>();
 
+        try {
+
         if (userId != null) {
             notificationService.sendNotification(new com.g93.be.dto.SendNotificationRequest(
                     userId,
@@ -450,6 +452,20 @@ public class DicomServiceImpl implements DicomService {
         }
         
         return response;
+
+        } catch (Exception globalEx) {
+            log.error("Fatal error during background DICOM processing", globalEx);
+            if (userId != null) {
+                notificationService.sendNotification(new SendNotificationRequest(
+                        userId,
+                        "Lỗi xử lý DICOM",
+                        "Đã xảy ra lỗi nghiêm trọng: " + globalEx.getMessage(),
+                        "SYSTEM",
+                        null
+                ));
+            }
+            throw new RuntimeException("Background processing failed", globalEx);
+        }
     }
 }
 
