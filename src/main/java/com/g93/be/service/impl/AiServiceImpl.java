@@ -40,8 +40,9 @@ public class AiServiceImpl implements AiService {
 
     @Value("${app.storage.base-dir:D:/Capstone/data}")
     private String storageBaseDir;
-    
-    private final String AI_API_URL = "http://54.254.113.71:8005/api/v1/predict";
+
+    @Value("${app.ai.api-url:http://54.254.113.71:8005/api/v1/predict}")
+    private String aiApiUrl;
 
     @Override
     @Transactional
@@ -53,16 +54,23 @@ public class AiServiceImpl implements AiService {
 
         for (Long instanceId : request.getDicomInstanceIds()) {
             Optional<DicomInstance> instanceOpt = dicomInstanceRepository.findById(instanceId);
-            if (instanceOpt.isEmpty()) continue;
+            if (instanceOpt.isEmpty()) {
+                throw new RuntimeException("DicomInstance not found for ID: " + instanceId);
+            }
 
             DicomInstance instance = instanceOpt.get();
             String pngPath = instance.getImage() != null ? instance.getImage().getFilePath() : null; // e.g. /images/uuid.png
-            if (pngPath == null) continue;
+            if (pngPath == null) {
+                throw new RuntimeException("Image/PNG path is NULL for instance ID: " + instanceId + ". This means the DICOM to PNG conversion failed during upload.");
+            }
 
-            File imageFile = Paths.get(storageBaseDir, pngPath).toFile();
+            String safePngPath = pngPath;
+            if (safePngPath.startsWith("/") || safePngPath.startsWith("\\")) {
+                safePngPath = safePngPath.substring(1);
+            }
+            File imageFile = Paths.get(storageBaseDir, safePngPath).toFile();
             if (!imageFile.exists()) {
-                log.warn("Image file not found for instance {}: {}", instanceId, imageFile.getAbsolutePath());
-                continue;
+                throw new RuntimeException("Image file does not exist on disk: " + imageFile.getAbsolutePath());
             }
 
             try {
@@ -74,9 +82,10 @@ public class AiServiceImpl implements AiService {
                 body.add("file", new FileSystemResource(imageFile));
 
                 HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
-                
+
                 long startTime = System.currentTimeMillis();
-                ResponseEntity<FastApiPredictionResponse> response = restTemplate.postForEntity(AI_API_URL, requestEntity, FastApiPredictionResponse.class);
+                ResponseEntity<FastApiPredictionResponse> response = restTemplate.postForEntity(aiApiUrl, requestEntity,
+                        FastApiPredictionResponse.class);
                 long duration = System.currentTimeMillis() - startTime;
 
                 if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
@@ -147,7 +156,7 @@ public class AiServiceImpl implements AiService {
                             .details(aiData.getDetails())
                             .gradcamImageUrl(gradcamPath != null ? "/api/v1/ai/heatmap/" + aiResult.getId() : null)
                             .build();
-                            
+
                     aiResultMap.computeIfAbsent(instanceId, k -> new ArrayList<>()).add(dto);
                     if (exam != null) {
                         uniqueExams.putIfAbsent(exam.getId(), exam);
@@ -155,13 +164,15 @@ public class AiServiceImpl implements AiService {
                     }
                 } else {
                     log.error("Failed to get prediction from AI. Status: {}", response.getStatusCode());
+                    throw new RuntimeException("AI API call failed with status: " + response.getStatusCode());
                 }
 
             } catch (Exception e) {
                 log.error("Error during AI prediction for instance {}", instanceId, e);
+                throw new RuntimeException("Không thể kết nối đến Server AI: " + e.getMessage(), e);
             }
         }
-        
+
         List<ExaminationDto> finalResults = new ArrayList<>();
         for (Examination exam : uniqueExams.values()) {
             List<DicomInstance> examInstances = instancesByExam.getOrDefault(exam.getId(), new ArrayList<>());
@@ -188,7 +199,7 @@ public class AiServiceImpl implements AiService {
                 finalResults.add(examDto);
             }
         }
-        
+
         return finalResults;
     }
 }
