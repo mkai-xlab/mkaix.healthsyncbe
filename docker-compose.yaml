@@ -27,7 +27,7 @@ services:
       - "1025:1025" # SMTP Port
 
   redis:
-    image: dhi.io/redis:alpine
+    image: dhi.io/redis:8-alpine
     container_name: capstone-redis
     restart: unless-stopped
     env_file:
