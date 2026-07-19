@@ -38,6 +38,7 @@ public class AiServiceImpl implements AiService {
     private final AiAnalysisRepository aiAnalysisRepository;
     private final AiResultRepository aiResultRepository;
     private final AiResultConfidenceScoreRepository aiResultConfidenceScoreRepository;
+    private final ImageRepository imageRepository;
     private final ExaminationMapper examinationMapper;
 
     @Value("${app.storage.base-dir:D:/Capstone/data}")
@@ -98,21 +99,16 @@ public class AiServiceImpl implements AiService {
                 if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
                     FastApiPredictionResponse aiData = response.getBody();
 
-                    // Decode base64 GradCAM
-                    String gradcamBase64 = aiData.getGradcamImage();
-                    String gradcamPath = null;
-                    if (gradcamBase64 != null && gradcamBase64.startsWith("data:image")) {
-                        String[] parts = gradcamBase64.split(",");
-                        if (parts.length == 2) {
-                            byte[] decodedImg = Base64.getDecoder().decode(parts[1]);
-                            String uniqueName = UUID.randomUUID().toString() + "_gradcam.png";
-                            gradcamPath = "/images/" + uniqueName;
-                            Path targetPath = Paths.get(storageBaseDir, "images", uniqueName);
-                            // Ensure directory exists
-                            targetPath.getParent().toFile().mkdirs();
-                            try (FileOutputStream fos = new FileOutputStream(targetPath.toFile())) {
-                                fos.write(decodedImg);
-                            }
+                    // Decode base64 Annotated Image
+                    String annotatedBase64 = aiData.getAnnotatedImage();
+                    Image annotatedImageEntity = null;
+                    if (annotatedBase64 != null) {
+                        String annotatedPath = saveBase64ToDisk(annotatedBase64, UUID.randomUUID().toString() + "_annotated.png");
+                        if (annotatedPath != null) {
+                            annotatedImageEntity = new Image();
+                            annotatedImageEntity.setFilePath(annotatedPath);
+                            annotatedImageEntity = imageRepository.save(annotatedImageEntity);
+                            instance.setAnnotatedImage(annotatedImageEntity);
                         }
                     }
 
@@ -124,25 +120,74 @@ public class AiServiceImpl implements AiService {
                     analysis.setStatus("SUCCESS");
                     analysis = aiAnalysisRepository.save(analysis);
 
-                    // Save AiResult
-                    AiResult aiResult = new AiResult();
-                    aiResult.setAiAnalysis(analysis);
-                    aiResult.setPredictedGrade(aiData.getPredictedClass());
-                    aiResult.setConfidence(aiData.getConfidence());
-                    aiResult.setDescription(aiData.getDescription());
-                    aiResult.setStorageHeatmapFilePath(gradcamPath);
-                    aiResult = aiResultRepository.save(aiResult);
+                    List<FastApiPredictionResponse.AiPredictionData> preds = aiData.getPredictions();
+                    if (preds != null) {
+                        for (FastApiPredictionResponse.AiPredictionData p : preds) {
+                            // Decode ROI
+                            Image roiImageEntity = null;
+                            if (p.getRoiImage() != null) {
+                                String roiPath = saveBase64ToDisk(p.getRoiImage(), UUID.randomUUID().toString() + "_roi.png");
+                                if (roiPath != null) {
+                                    roiImageEntity = new Image();
+                                    roiImageEntity.setFilePath(roiPath);
+                                    roiImageEntity = imageRepository.save(roiImageEntity);
+                                }
+                            }
 
-                    // Save Confidence Scores
-                    if (aiData.getDetails() != null) {
-                        AiResultConfidenceScore score = new AiResultConfidenceScore();
-                        score.setAiResult(aiResult);
-                        score.setC0Confidence(aiData.getDetails().getOrDefault("0Normal", 0.0));
-                        score.setC1Confidence(aiData.getDetails().getOrDefault("1Doubtful", 0.0));
-                        score.setC2Confidence(aiData.getDetails().getOrDefault("2Mild", 0.0));
-                        score.setC3Confidence(aiData.getDetails().getOrDefault("3Moderate", 0.0));
-                        score.setC4Confidence(aiData.getDetails().getOrDefault("4Severe", 0.0));
-                        aiResultConfidenceScoreRepository.save(score);
+                            // Decode GradCAM
+                            Image gradcamImageEntity = null;
+                            if (p.getGradcamImage() != null) {
+                                String gradcamPath = saveBase64ToDisk(p.getGradcamImage(), UUID.randomUUID().toString() + "_gradcam.png");
+                                if (gradcamPath != null) {
+                                    gradcamImageEntity = new Image();
+                                    gradcamImageEntity.setFilePath(gradcamPath);
+                                    gradcamImageEntity = imageRepository.save(gradcamImageEntity);
+                                }
+                            }
+
+                            // Save AiResult
+                            AiResult aiResult = new AiResult();
+                            aiResult.setAiAnalysis(analysis);
+                            aiResult.setPredictedGrade(p.getPredictedClass());
+                            aiResult.setConfidence(p.getConfidence());
+                            aiResult.setDescription(p.getDescription());
+                            aiResult.setKneeSide(p.getKneeSide());
+                            aiResult.setRoiImage(roiImageEntity);
+                            aiResult.setGradcamImage(gradcamImageEntity);
+                            if (gradcamImageEntity != null) {
+                                aiResult.setStorageHeatmapFilePath(gradcamImageEntity.getFilePath()); // keep backward compatibility
+                            }
+                            aiResult = aiResultRepository.save(aiResult);
+
+                            // Save Confidence Scores
+                            if (p.getDetails() != null) {
+                                AiResultConfidenceScore score = new AiResultConfidenceScore();
+                                score.setAiResult(aiResult);
+                                score.setC0Confidence(p.getDetails().getOrDefault("0Normal", 0.0));
+                                score.setC1Confidence(p.getDetails().getOrDefault("1Doubtful", 0.0));
+                                score.setC2Confidence(p.getDetails().getOrDefault("2Mild", 0.0));
+                                score.setC3Confidence(p.getDetails().getOrDefault("3Moderate", 0.0));
+                                score.setC4Confidence(p.getDetails().getOrDefault("4Severe", 0.0));
+                                aiResultConfidenceScoreRepository.save(score);
+                            }
+
+                            // Build DTO
+                            AiPredictionResultDto dto = AiPredictionResultDto.builder()
+                                    .dicomInstanceId(instanceId)
+                                    .aiAnalysisId(analysis.getId())
+                                    .aiResultId(aiResult.getId())
+                                    .predictedGrade(aiResult.getPredictedGrade())
+                                    .confidence(aiResult.getConfidence())
+                                    .description(aiResult.getDescription())
+                                    .details(p.getDetails())
+                                    .kneeSide(aiResult.getKneeSide())
+                                    .roiImageUrl(roiImageEntity != null ? "/api/v1/ai/roi/" + aiResult.getId() : null)
+                                    .gradcamImageUrl(gradcamImageEntity != null ? "/api/v1/ai/heatmap/" + aiResult.getId() : null)
+                                    .annotatedImageUrl(annotatedImageEntity != null ? "/api/v1/ai/annotated/" + instanceId : null)
+                                    .build();
+
+                            aiResultMap.computeIfAbsent(instanceId, k -> new ArrayList<>()).add(dto);
+                        }
                     }
 
                     // Update Examination Status and DicomInstance Status
@@ -155,19 +200,6 @@ public class AiServiceImpl implements AiService {
                         examinationRepository.save(exam);
                     }
 
-                    // Build DTO
-                    AiPredictionResultDto dto = AiPredictionResultDto.builder()
-                            .dicomInstanceId(instanceId)
-                            .aiAnalysisId(analysis.getId())
-                            .aiResultId(aiResult.getId())
-                            .predictedGrade(aiResult.getPredictedGrade())
-                            .confidence(aiResult.getConfidence())
-                            .description(aiResult.getDescription())
-                            .details(aiData.getDetails())
-                            .gradcamImageUrl(gradcamPath != null ? "/api/v1/ai/heatmap/" + aiResult.getId() : null)
-                            .build();
-
-                    aiResultMap.computeIfAbsent(instanceId, k -> new ArrayList<>()).add(dto);
                     if (exam != null) {
                         uniqueExams.putIfAbsent(exam.getId(), exam);
                         instancesByExam.computeIfAbsent(exam.getId(), k -> new ArrayList<>()).add(instance);
@@ -211,5 +243,25 @@ public class AiServiceImpl implements AiService {
         }
 
         return finalResults;
+    }
+
+    private String saveBase64ToDisk(String base64String, String fileName) {
+        if (base64String == null || !base64String.startsWith("data:image")) return null;
+        String[] parts = base64String.split(",");
+        if (parts.length != 2) return null;
+
+        try {
+            byte[] decodedImg = Base64.getDecoder().decode(parts[1]);
+            String filePath = "/images/" + fileName;
+            Path targetPath = Paths.get(storageBaseDir, "images", fileName);
+            targetPath.getParent().toFile().mkdirs();
+            try (FileOutputStream fos = new FileOutputStream(targetPath.toFile())) {
+                fos.write(decodedImg);
+            }
+            return filePath;
+        } catch (Exception e) {
+            log.error("Failed to decode and save base64 image", e);
+            return null;
+        }
     }
 }

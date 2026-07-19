@@ -57,7 +57,7 @@ public class DicomController {
 
     @PostMapping(value = "/upload/batch", consumes = "multipart/form-data")
     // @PreAuthorize("hasAuthority('UPLOAD_DICOM_IMAGE')")
-    public ResponseEntity<java.util.Map<String, String>> uploadBatch(
+    public ResponseEntity<com.g93.be.dto.BatchDicomUploadResponse> uploadBatch(
             @RequestParam("files") List<MultipartFile> files,
             java.security.Principal principal) {
         log.info("Received request to upload batch of {} DICOM files", files.size());
@@ -86,16 +86,10 @@ public class DicomController {
                     tempFilePaths.put(file.getOriginalFilename(), tempFile);
                 }
             }
+            String uploadSessionId = java.util.UUID.randomUUID().toString();
 
-            // Spawn background task
-            final Long finalUserId = userId;
-            java.util.concurrent.CompletableFuture.runAsync(() -> {
-                dicomService.processBatchPaths(tempFilePaths, finalUserId);
-            });
-
-            java.util.Map<String, String> response = new java.util.HashMap<>();
-            response.put("message", "DICOM files accepted. Processing in background.");
-            response.put("status", "PROCESSING");
+            // Run synchronously
+            com.g93.be.dto.BatchDicomUploadResponse response = dicomService.processBatchPaths(tempFilePaths, userId, uploadSessionId);
 
             return ResponseEntity.ok(response);
         } catch (java.io.IOException e) {
@@ -106,7 +100,7 @@ public class DicomController {
 
     @PostMapping(value = "/upload/zip-batch", consumes = "multipart/form-data")
     @PreAuthorize("hasAuthority('UPLOAD_DICOM_IMAGE')")
-    public ResponseEntity<java.util.Map<String, String>> uploadZipBatch(
+    public ResponseEntity<?> uploadZipBatch(
             @RequestParam("file") MultipartFile file,
             java.security.Principal principal) {
         log.info("Received request to upload ZIP batch DICOM file: {}", file.getOriginalFilename());
@@ -139,16 +133,10 @@ public class DicomController {
         try {
             Path tempZipFile = Files.createTempFile("main_batch_", ".zip");
             file.transferTo(tempZipFile.toFile());
+            String uploadSessionId = java.util.UUID.randomUUID().toString();
             
-            // Spawn background task
-            final Long finalUserId = userId;
-            java.util.concurrent.CompletableFuture.runAsync(() -> {
-                dicomService.processZipBatch(tempZipFile, finalUserId);
-            });
-            
-            java.util.Map<String, String> response = new java.util.HashMap<>();
-            response.put("message", "ZIP file accepted. Processing in background.");
-            response.put("status", "PROCESSING");
+            // Run synchronously
+            com.g93.be.dto.BatchDicomUploadResponse response = dicomService.processZipBatch(tempZipFile, userId, uploadSessionId);
             
             return ResponseEntity.ok(response);
         } catch (java.io.IOException e) {
@@ -159,6 +147,26 @@ public class DicomController {
 
     @org.springframework.beans.factory.annotation.Value("${app.storage.base-dir:D:/Capstone/data}")
     private String storageBaseDir;
+
+    @GetMapping("/total-studies")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Long> getTotalStudies() {
+        log.info("Received request to get total unique DICOM studies");
+        return ResponseEntity.ok(dicomInstanceRepository.countUniqueStudies());
+    }
+
+    /**
+     * Retrieves the JSON string of the upload session from Redis.
+     */
+    @GetMapping(value = "/upload-session/{sessionId}", produces = "application/json")
+    public ResponseEntity<String> getUploadSession(@PathVariable String sessionId) {
+        log.info("Received request to get upload session: {}", sessionId);
+        String sessionJson = dicomService.getUploadSession(sessionId);
+        if (sessionJson == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(sessionJson);
+    }
 
     @GetMapping("/instances/{id}/image")
     @Transactional(readOnly = true)
