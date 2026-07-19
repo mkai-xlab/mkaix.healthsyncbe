@@ -406,7 +406,7 @@ public class DicomServiceImpl implements DicomService {
                 examDto.setEncounterCode(pending.getStudyInstanceUid());
                 examDto.setDescription(pending.getDescription());
                 examDto.setReferringPhysician(pending.getReferringPhysician());
-                examDto.setStatus(ExaminationStatus.NEED_VERIFY.name());
+                examDto.setStatus(ExaminationStatus.AI_PROCESSING.name());
                 if (pending.getStudyDate() != null) {
                     examDto.setStudyDate(java.time.Instant.ofEpochMilli(pending.getStudyDate().getTime()).atZone(ZoneId.systemDefault()).toLocalDate());
                 }

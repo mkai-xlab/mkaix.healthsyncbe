@@ -1,5 +1,7 @@
 package com.g93.be.service.impl;
 
+
+import com.g93.be.entity.DicomInstanceStatus;
 import com.g93.be.dto.AiPredictionRequest;
 import com.g93.be.dto.AiPredictionResultDto;
 import com.g93.be.dto.FastApiPredictionResponse;
@@ -59,6 +61,11 @@ public class AiServiceImpl implements AiService {
             }
 
             DicomInstance instance = instanceOpt.get();
+            if (instance.getStatus() != DicomInstanceStatus.AI_SENDING) {
+                log.info("Skipping instance {} as its status is not AI_SENDING", instanceId);
+                continue;
+            }
+
             String pngPath = instance.getImage() != null ? instance.getImage().getFilePath() : null; // e.g. /images/uuid.png
             if (pngPath == null) {
                 throw new RuntimeException("Image/PNG path is NULL for instance ID: " + instanceId + ". This means the DICOM to PNG conversion failed during upload.");
@@ -138,10 +145,13 @@ public class AiServiceImpl implements AiService {
                         aiResultConfidenceScoreRepository.save(score);
                     }
 
-                    // Update Examination Status
+                    // Update Examination Status and DicomInstance Status
+                    instance.setStatus(DicomInstanceStatus.GET_RESULTED);
+                    dicomInstanceRepository.save(instance);
+                    
                     Examination exam = instance.getExamination();
                     if (exam != null) {
-                        exam.setStatus(ExaminationStatus.AI_COMPLETED);
+                        exam.setStatus(ExaminationStatus.NEED_VERIFY);
                         examinationRepository.save(exam);
                     }
 

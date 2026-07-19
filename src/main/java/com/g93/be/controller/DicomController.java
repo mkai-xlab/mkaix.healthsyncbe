@@ -1,5 +1,8 @@
 package com.g93.be.controller;
 
+
+import com.g93.be.entity.DicomInstance;
+import com.g93.be.entity.User;
 import com.g93.be.service.DicomService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -64,7 +67,7 @@ public class DicomController {
 
         Long userId = null;
         if (principal != null && principal.getName() != null) {
-            com.g93.be.entity.User user = userRepository.findByUsername(principal.getName()).orElse(null);
+            User user = userRepository.findByUsername(principal.getName()).orElse(null);
             if (user != null) {
                 userId = user.getId();
             }
@@ -121,7 +124,7 @@ public class DicomController {
 
         Long userId = null;
         if (principal != null && principal.getName() != null) {
-            com.g93.be.entity.User user = userRepository.findByUsername(principal.getName()).orElse(null);
+            User user = userRepository.findByUsername(principal.getName()).orElse(null);
             if (user != null) {
                 userId = user.getId();
             }

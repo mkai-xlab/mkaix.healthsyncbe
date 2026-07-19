@@ -1,5 +1,10 @@
 package com.g93.be.service.impl;
 
+
+import com.g93.be.entity.DicomInstance;
+import com.g93.be.entity.Examination;
+import com.g93.be.entity.User;
+import com.g93.be.entity.ExaminationStatus;
 import com.g93.be.dto.ExaminationDto;
 import com.g93.be.dto.PageResponse;
 import com.g93.be.entity.DicomInstance;
@@ -111,7 +116,7 @@ public class ExaminationServiceImpl implements ExaminationService {
     @Override
     @Transactional(readOnly = true)
     public long getTotalExaminations(Long userId) {
-        com.g93.be.entity.User user = userRepository.findById(userId)
+        User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User with id " + userId + " not found"));
         
         if (user.getRole() == null || user.getRole().getCode() == null) {
@@ -131,7 +136,7 @@ public class ExaminationServiceImpl implements ExaminationService {
     @Override
     @Transactional(readOnly = true)
     public long getTotalSevereExaminations(Long userId) {
-        com.g93.be.entity.User user = userRepository.findById(userId)
+        User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User with id " + userId + " not found"));
         
         if (user.getRole() == null || user.getRole().getCode() == null) {
@@ -153,7 +158,7 @@ public class ExaminationServiceImpl implements ExaminationService {
     @Override
     @Transactional(readOnly = true)
     public long getTotalVerifiedExaminations(Long userId) {
-        com.g93.be.entity.User user = userRepository.findById(userId)
+        User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User with id " + userId + " not found"));
         
         if (user.getRole() == null || user.getRole().getCode() == null) {
@@ -161,7 +166,7 @@ public class ExaminationServiceImpl implements ExaminationService {
         }
 
         String roleCode = user.getRole().getCode();
-        com.g93.be.entity.ExaminationStatus verifiedStatus = com.g93.be.entity.ExaminationStatus.REVIEWED;
+        ExaminationStatus verifiedStatus = ExaminationStatus.VERIFIED;
         
         if ("DEPARTMENT_HEAD".equalsIgnoreCase(roleCode) || "HEAD_OF_DEPARTMENT".equalsIgnoreCase(roleCode)) {
             return examinationRepository.countByStatus(verifiedStatus);
@@ -175,7 +180,7 @@ public class ExaminationServiceImpl implements ExaminationService {
     @Override
     @Transactional(readOnly = true)
     public long getTotalUnverifiedExaminations(Long userId) {
-        com.g93.be.entity.User user = userRepository.findById(userId)
+        User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User with id " + userId + " not found"));
         
         if (user.getRole() == null || user.getRole().getCode() == null) {
@@ -183,7 +188,7 @@ public class ExaminationServiceImpl implements ExaminationService {
         }
 
         String roleCode = user.getRole().getCode();
-        com.g93.be.entity.ExaminationStatus verifiedStatus = com.g93.be.entity.ExaminationStatus.REVIEWED;
+        ExaminationStatus verifiedStatus = ExaminationStatus.VERIFIED;
         
         if ("DEPARTMENT_HEAD".equalsIgnoreCase(roleCode) || "HEAD_OF_DEPARTMENT".equalsIgnoreCase(roleCode)) {
             return examinationRepository.countByStatusNot(verifiedStatus);
