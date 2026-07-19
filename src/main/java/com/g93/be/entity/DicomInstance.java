@@ -60,6 +60,10 @@ public class DicomInstance {
     @JoinColumn(name = "image_id")
     private Image image;
 
+    @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JoinColumn(name = "annotated_image_id")
+    private Image annotatedImage;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
