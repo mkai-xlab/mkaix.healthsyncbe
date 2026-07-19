@@ -1,5 +1,7 @@
 package com.g93.be.controller;
 
+
+import com.g93.be.entity.User;
 import com.g93.be.dto.DicomVerifyRequest;
 import com.g93.be.service.DicomVerifyService;
 import lombok.RequiredArgsConstructor;

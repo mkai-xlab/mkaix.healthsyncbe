@@ -1,5 +1,7 @@
 package com.g93.be.security;
 
+
+import com.g93.be.entity.User;
 import com.g93.be.entity.User;
 import com.g93.be.repository.UserRepository;
 import com.g93.be.repository.RolePermissionRepository;

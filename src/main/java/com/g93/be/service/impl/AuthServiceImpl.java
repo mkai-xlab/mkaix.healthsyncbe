@@ -1,5 +1,8 @@
 package com.g93.be.service.impl;
 
+
+import com.g93.be.entity.PasswordResetToken;
+import com.g93.be.entity.User;
 import com.g93.be.common.util.MailUtil;
 import com.g93.be.dto.ChangePasswordRequest;
 import com.g93.be.dto.ForgotPasswordRequest;
