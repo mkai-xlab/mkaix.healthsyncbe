@@ -1,0 +1,15 @@
+meta {
+  name: get_my_total_verified
+  type: http
+  seq: 11
+}
+
+get {
+  url: {{baseUrl}}/examinations/my-total-verified
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
