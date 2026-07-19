@@ -10,6 +10,9 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import com.g93.be.security.CustomUserDetails;
 
 @RestController
 @RequestMapping("/examinations")
@@ -138,5 +141,56 @@ public class ExaminationController {
         log.info("Received request to get total unverified examinations for user id: {}", userId);
         return ResponseEntity.ok(examinationService.getTotalUnverifiedExaminations(userId));
     }
-}
 
+    /**
+     * Retrieves total examinations based on user role (from access token).
+     */
+    @GetMapping("/my-total")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Long> getMyTotalExaminations() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+        Long userId = userDetails.getUser().getId();
+        log.info("Received request to get total examinations for my token, user id: {}", userId);
+        return ResponseEntity.ok(examinationService.getTotalExaminations(userId));
+    }
+
+    /**
+     * Retrieves total severe examinations based on user role (from access token).
+     */
+    @GetMapping("/my-total-severe")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Long> getMyTotalSevereExaminations() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+        Long userId = userDetails.getUser().getId();
+        log.info("Received request to get total severe examinations for my token, user id: {}", userId);
+        return ResponseEntity.ok(examinationService.getTotalSevereExaminations(userId));
+    }
+
+    /**
+     * Retrieves total verified examinations based on user role (from access token).
+     */
+    @GetMapping("/my-total-verified")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Long> getMyTotalVerifiedExaminations() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+        Long userId = userDetails.getUser().getId();
+        log.info("Received request to get total verified examinations for my token, user id: {}", userId);
+        return ResponseEntity.ok(examinationService.getTotalVerifiedExaminations(userId));
+    }
+
+    /**
+     * Retrieves total unverified examinations based on user role (from access token).
+     */
+    @GetMapping("/my-total-unverified")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Long> getMyTotalUnverifiedExaminations() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+        Long userId = userDetails.getUser().getId();
+        log.info("Received request to get total unverified examinations for my token, user id: {}", userId);
+        return ResponseEntity.ok(examinationService.getTotalUnverifiedExaminations(userId));
+    }
+}
