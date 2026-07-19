@@ -97,7 +97,17 @@ public class JwtTokenProvider {
         return extractClaim(token, accessKey, claims -> {
             Object perms = claims.get("permissions");
             if (perms instanceof List) {
-                return (List<String>) perms;
+                return ((List<?>) perms).stream()
+                        .map(p -> {
+                            if (p instanceof java.util.Map) {
+                                return (String) ((java.util.Map<?, ?>) p).get("code");
+                            } else if (p instanceof String) {
+                                return (String) p;
+                            }
+                            return null;
+                        })
+                        .filter(java.util.Objects::nonNull)
+                        .collect(java.util.stream.Collectors.toList());
             }
             return new ArrayList<>();
         });
