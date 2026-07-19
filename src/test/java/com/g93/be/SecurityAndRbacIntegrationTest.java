@@ -145,7 +145,15 @@ public class SecurityAndRbacIntegrationTest {
                 adminToken = jwtTokenProvider.generateAccessToken(adminDetails);
 
                 // For doctor (with CREATE_PATIENT_EXAM permission)
-                CustomUserDetails doctorDetails = new CustomUserDetails(doctorUser, List.of("CREATE_PATIENT_EXAM"));
+                com.g93.be.dto.PermissionResponse permResponse = new com.g93.be.dto.PermissionResponse(
+                        createPatientExamPermission.getId(),
+                        createPatientExamPermission.getCode(),
+                        createPatientExamPermission.getName(),
+                        createPatientExamPermission.getPriority(),
+                        createPatientExamPermission.getPresentation(),
+                        null
+                );
+                CustomUserDetails doctorDetails = new CustomUserDetails(doctorUser, List.of(permResponse));
                 doctorToken = jwtTokenProvider.generateAccessToken(doctorDetails);
         }
 

@@ -14,20 +14,23 @@ import java.util.List;
 public class CustomUserDetails implements UserDetails {
 
     private final User user;
-    private final List<String> permissions;
+    private final List<com.g93.be.dto.PermissionResponse> permissions;
 
-    public CustomUserDetails(User user, List<String> permissions) {
+    public CustomUserDetails(User user, List<com.g93.be.dto.PermissionResponse> permissions) {
         this.user = user;
         this.permissions = permissions;
+    }
+
+    public List<String> getPermissionCodes() {
+        if (permissions == null) return java.util.Collections.emptyList();
+        return permissions.stream().map(com.g93.be.dto.PermissionResponse::code).collect(java.util.stream.Collectors.toList());
     }
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         List<GrantedAuthority> authorities = new java.util.ArrayList<>();
         authorities.add(new SimpleGrantedAuthority("ROLE_" + user.getRole().getCode()));
-        if (permissions != null) {
-            permissions.forEach(p -> authorities.add(new SimpleGrantedAuthority(p)));
-        }
+        getPermissionCodes().forEach(p -> authorities.add(new SimpleGrantedAuthority(p)));
         return authorities;
     }
 
@@ -65,7 +68,7 @@ public class CustomUserDetails implements UserDetails {
         return user;
     }
 
-    public List<String> getPermissions() {
+    public List<com.g93.be.dto.PermissionResponse> getPermissions() {
         return permissions;
     }
 }
