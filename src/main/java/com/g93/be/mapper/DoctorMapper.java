@@ -1,5 +1,7 @@
 package com.g93.be.mapper;
 
+
+import com.g93.be.entity.Doctor;
 import com.g93.be.dto.DoctorResponse;
 import com.g93.be.entity.Doctor;
 import org.springframework.stereotype.Component;

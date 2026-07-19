@@ -1,5 +1,8 @@
 package com.g93.be.specification;
 
+
+import com.g93.be.entity.Doctor;
+import com.g93.be.entity.UserStatus;
 import com.g93.be.entity.Doctor;
 import com.g93.be.entity.UserStatus;
 import jakarta.persistence.criteria.Predicate;

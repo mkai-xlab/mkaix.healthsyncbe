@@ -63,6 +63,10 @@ public class DicomInstance {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status")
+    private DicomInstanceStatus status;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "examination_id", nullable = false)
     private Examination examination;
@@ -73,5 +77,8 @@ public class DicomInstance {
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
+        if (status == null) {
+            status = DicomInstanceStatus.AI_SENDING;
+        }
     }
 }
