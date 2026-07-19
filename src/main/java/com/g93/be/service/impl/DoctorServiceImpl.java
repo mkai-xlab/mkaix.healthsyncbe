@@ -1,5 +1,9 @@
 package com.g93.be.service.impl;
 
+
+import com.g93.be.entity.Doctor;
+import com.g93.be.entity.UserStatus;
+import com.g93.be.entity.Image;
 import com.g93.be.common.util.MailUtil;
 import com.g93.be.dto.CreateDoctorRequest;
 import com.g93.be.dto.DoctorResponse;
@@ -64,7 +68,7 @@ public class DoctorServiceImpl implements DoctorService {
 
     @Override
     public List<DoctorResponse> getActiveDoctors() {
-        return doctorRepository.findAllByStatus(com.g93.be.entity.UserStatus.ACTIVE)
+        return doctorRepository.findAllByStatus(UserStatus.ACTIVE)
                 .stream()
                 .map(doctorMapper::toResponse)
                 .collect(Collectors.toList());

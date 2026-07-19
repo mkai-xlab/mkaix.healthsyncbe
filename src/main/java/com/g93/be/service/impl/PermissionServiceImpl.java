@@ -1,5 +1,10 @@
 package com.g93.be.service.impl;
 
+
+import com.g93.be.entity.Feature;
+import com.g93.be.entity.Permission;
+import com.g93.be.entity.Role;
+import com.g93.be.entity.RolePermission;
 import com.g93.be.dto.FeatureResponse;
 import com.g93.be.dto.PermissionResponse;
 import com.g93.be.dto.UpdateRolePermissionsRequest;

@@ -1,6 +1,8 @@
 package com.g93.be.repository;
 
+
 import com.g93.be.entity.Examination;
+import com.g93.be.entity.ExaminationStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -16,9 +18,10 @@ public interface ExaminationRepository extends JpaRepository<Examination, Long> 
     long countByDoctorId(Long doctorId);
     long countByMaxPredictedGradeIn(List<Integer> grades);
     long countByDoctorIdAndMaxPredictedGradeIn(Long doctorId, List<Integer> grades);
-    long countByStatus(com.g93.be.entity.ExaminationStatus status);
-    long countByStatusNot(com.g93.be.entity.ExaminationStatus status);
-    long countByDoctorIdAndStatus(Long doctorId, com.g93.be.entity.ExaminationStatus status);
-    long countByDoctorIdAndStatusNot(Long doctorId, com.g93.be.entity.ExaminationStatus status);
+    long countByStatus(ExaminationStatus status);
+    long countByStatusNot(ExaminationStatus status);
+    long countByDoctorIdAndStatus(Long doctorId, ExaminationStatus status);
+    long countByDoctorIdAndStatusNot(Long doctorId, ExaminationStatus status);
     java.util.Optional<Examination> findByEncounterCode(String encounterCode);
+    java.util.Optional<Examination> findFirstByPatientPatientCodeAndStudyDateOrderByCreatedAtDesc(String patientCode, java.time.LocalDate studyDate);
 }

@@ -1,5 +1,7 @@
 package com.g93.be.controller;
 
+
+import com.g93.be.entity.AiResult;
 import com.g93.be.dto.AiPredictionRequest;
 import com.g93.be.dto.ExaminationDto;
 import com.g93.be.entity.AiResult;

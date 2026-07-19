@@ -1,5 +1,8 @@
 package com.g93.be.security;
 
+
+import com.g93.be.entity.User;
+import com.g93.be.entity.UserStatus;
 import com.g93.be.entity.User;
 import com.g93.be.entity.UserStatus;
 import org.springframework.security.core.GrantedAuthority;

@@ -1,5 +1,7 @@
 package com.g93.be.service;
 
+
+import com.g93.be.entity.UserStatus;
 import com.g93.be.dto.CreateDoctorRequest;
 import com.g93.be.dto.DoctorResponse;
 import com.g93.be.dto.PageResponse;

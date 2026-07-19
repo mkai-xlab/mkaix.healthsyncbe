@@ -1,5 +1,7 @@
 package com.g93.be.repository;
 
+
+import com.g93.be.entity.AuditLog;
 import com.g93.be.entity.AuditLog;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
