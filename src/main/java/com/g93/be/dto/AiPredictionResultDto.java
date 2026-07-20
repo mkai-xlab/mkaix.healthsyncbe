@@ -19,5 +19,8 @@ public class AiPredictionResultDto {
     private Double confidence;
     private String description;
     private Map<String, Double> details;
+    private String kneeSide;
+    private String roiImageUrl;
     private String gradcamImageUrl;
+    private String annotatedImageUrl;
 }
