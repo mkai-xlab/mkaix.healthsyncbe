@@ -25,7 +25,11 @@ public class CustomUserDetailsService implements UserDetailsService {
     public UserDetails loadUserByUsername(String usernameOrEmail) throws UsernameNotFoundException {
         User user = userRepository.findByUsernameOrEmail(usernameOrEmail, usernameOrEmail)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found with username or email: " + usernameOrEmail));
-        java.util.List<String> permissions = rolePermissionRepository.findPermissionCodesByRoleCode(user.getRole().getCode());
+        java.util.List<com.g93.be.entity.Permission> perms = rolePermissionRepository.findPermissionsByRoleCode(user.getRole().getCode());
+        java.util.List<com.g93.be.dto.PermissionResponse> permissions = perms.stream()
+                .map(p -> new com.g93.be.dto.PermissionResponse(p.getId(), p.getCode(), p.getName(), p.getPriority(), p.getPresentation(),
+                        p.getRequiresPermission() != null ? p.getRequiresPermission().getId() : null))
+                .collect(java.util.stream.Collectors.toList());
         return new CustomUserDetails(user, permissions);
     }
 }
