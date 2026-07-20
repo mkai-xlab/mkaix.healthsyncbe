@@ -1,4 +1,4 @@
-# API Documentation
+﻿# API Documentation
 
 [Back to Documentation Index](README.md) | Previous: [Database](database.md) | Next: [Deployment Guide](deployment.md)
 
@@ -706,34 +706,74 @@ No response body.
 - `400 Bad Request`: Patient not found
 - `401 Unauthorized`: authentication is required
 
-## `POST /dicom/upload`
+## `POST /dicom/upload/batch`
 
-Uploads a DICOM file, parses metadata, extracts the image, creates patient and examination records.
+Uploads multiple DICOM files synchronously, parses metadata, extracts images, and returns a session for verification before persisting records.
 
 ### Request
 
 - **Content-Type**: `multipart/form-data`
 - **Parameters**:
-  - `file` (File): The multipart DICOM file.
+  - `files` (List of Files): Multiple `.dcm` files.
 
 ### Response
 
 ```json
 {
-  "patient": {
-    "id": 1,
-    "patientCode": null,
-    "fullName": "Nguyen Van A",
-    "email": "hn-2026-0099@healthsync.com"
-  },
-  "examinations": []
+  "message": null,
+  "uploadSessionId": "140d6df5-f47d-41d1-add1-2201a85bce7c",
+  "errors": [],
+  "successfulPatients": []
 }
 ```
 
 ### Status Codes
 
-- `200 OK`: Profile updated successfully
-- `400 Bad Request`: Invalid input fields
+- `200 OK`: Files processed successfully (pending verify)
+- `400 Bad Request`: Invalid file format or request
+- `401 Unauthorized`: Authentication is required
+
+## `POST /dicom/upload/zip`
+
+Uploads a single ZIP file containing multiple DICOM files synchronously, extracts and processes them.
+
+### Request
+
+- **Content-Type**: `multipart/form-data`
+- **Parameters**:
+  - `file` (File): A `.zip` file containing `.dcm` files.
+
+### Response
+
+Returns the same `BatchDicomUploadResponse` structure as `/dicom/upload/batch`.
+
+## `POST /dicom/verify`
+
+Verifies and commits a pending DICOM upload session into the database.
+
+### Request
+
+```json
+{
+  "uploadSessionId": "140d6df5-f47d-41d1-add1-2201a85bce7c",
+  "acceptedPatientCodes": [
+    "PT001"
+  ]
+}
+```
+
+### Response
+
+```json
+{
+  "message": "Upload session verified and data saved successfully."
+}
+```
+
+### Status Codes
+
+- `200 OK`: Data saved successfully
+- `400 Bad Request`: Session expired or invalid patient codes
 - `401 Unauthorized`: Authentication is required
 - `403 Forbidden`: Authenticated user is not a DOCTOR
 
@@ -1253,12 +1293,12 @@ Retrieves the hierarchical tree of all features and their corresponding permissi
   {
     "id": 1,
     "name": "User & Account Management",
-    "description": "Quản lý Tài khoản",
+    "description": "Quáº£n lÃ½ TÃ i khoáº£n",
     "permissions": [
       {
         "id": 1,
         "code": "READ_OWN_PROFILE",
-        "name": "Xem hồ sơ cá nhân",
+        "name": "Xem há»“ sÆ¡ cÃ¡ nhÃ¢n",
         "priority": 1,
         "presentation": "profile_screen",
         "requiresPermissionId": null
@@ -1467,8 +1507,8 @@ Clients subscribed to `/user/queue/notifications` will receive real-time updates
 ### Progress Notifications (`type="SYSTEM"`)
 
 Sent immediately upon receiving the upload to indicate progress.
-- **Title**: `Tiếp nhận File ZIP` or `Đang xử lý DICOM`
-- **Message**: "Hệ thống đang tiến hành giải nén..." or "Hệ thống đang trích xuất dữ liệu từ X file DICOM..."
+- **Title**: `Tiáº¿p nháº­n File ZIP` or `Äang xá»­ lÃ½ DICOM`
+- **Message**: "Há»‡ thá»‘ng Ä‘ang tiáº¿n hÃ nh giáº£i nÃ©n..." or "Há»‡ thá»‘ng Ä‘ang trÃ­ch xuáº¥t dá»¯ liá»‡u tá»« X file DICOM..."
 
 ### Final Result Notification (`type="DICOM_BATCH_RESULT"`)
 
@@ -1481,7 +1521,7 @@ Sent when the entire batch is finished processing. The `message` field contains 
   "type": "DICOM_BATCH_RESULT",
   "isRead": false,
   "createdAt": "2026-07-08T23:15:00.123",
-  "message": "{\"errors\":[{\"fileName\":\"duplicate.dcm\",\"errorMessage\":\"File DICOM đã tồn tại trên hệ thống.\"}],\"successfulPatients\":[{\"patient\":{\"id\":1,\"patientCode\":\"12345\"},\"recentExaminations\":[{\"examinationId\":1,\"status\":\"PENDING_REVIEW\",\"images\":[{\"imageUrl\":\"/api/v1/dicom/instances/1/image\"}]}]}]}"
+  "message": "{\"errors\":[{\"fileName\":\"duplicate.dcm\",\"errorMessage\":\"File DICOM Ä‘Ã£ tá»“n táº¡i trÃªn há»‡ thá»‘ng.\"}],\"successfulPatients\":[{\"patient\":{\"id\":1,\"patientCode\":\"12345\"},\"recentExaminations\":[{\"examinationId\":1,\"status\":\"PENDING_REVIEW\",\"images\":[{\"imageUrl\":\"/api/v1/dicom/instances/1/image\"}]}]}]}"
 }
 ```
 
@@ -1779,12 +1819,12 @@ Retrieves the hierarchical tree of all features and their corresponding permissi
   {
     "id": 1,
     "name": "User & Account Management",
-    "description": "Quản lý Tài khoản",
+    "description": "Quáº£n lÃ½ TÃ i khoáº£n",
     "permissions": [
       {
         "id": 1,
         "code": "READ_OWN_PROFILE",
-        "name": "Xem hồ sơ cá nhân",
+        "name": "Xem há»“ sÆ¡ cÃ¡ nhÃ¢n",
         "priority": 1,
         "presentation": "profile_screen",
         "requiresPermissionId": null
@@ -1993,8 +2033,8 @@ Clients subscribed to `/user/queue/notifications` will receive real-time updates
 ### Progress Notifications (`type="SYSTEM"`)
 
 Sent immediately upon receiving the upload to indicate progress.
-- **Title**: `Tiếp nhận File ZIP` or `Đang xử lý DICOM`
-- **Message**: "Hệ thống đang tiến hành giải nén..." or "Hệ thống đang trích xuất dữ liệu từ X file DICOM..."
+- **Title**: `Tiáº¿p nháº­n File ZIP` or `Äang xá»­ lÃ½ DICOM`
+- **Message**: "Há»‡ thá»‘ng Ä‘ang tiáº¿n hÃ nh giáº£i nÃ©n..." or "Há»‡ thá»‘ng Ä‘ang trÃ­ch xuáº¥t dá»¯ liá»‡u tá»« X file DICOM..."
 
 ### Final Result Notification (`type="DICOM_BATCH_RESULT"`)
 
@@ -2007,7 +2047,7 @@ Sent when the entire batch is finished processing. The `message` field contains 
   "type": "DICOM_BATCH_RESULT",
   "isRead": false,
   "createdAt": "2026-07-08T23:15:00.123",
-  "message": "{\"errors\":[{\"fileName\":\"duplicate.dcm\",\"errorMessage\":\"File DICOM đã tồn tại trên hệ thống.\"}],\"successfulPatients\":[{\"patient\":{\"id\":1,\"patientCode\":\"12345\"},\"recentExaminations\":[{\"examinationId\":1,\"status\":\"PENDING_REVIEW\",\"images\":[{\"imageUrl\":\"/api/v1/dicom/instances/1/image\"}]}]}]}"
+  "message": "{\"errors\":[{\"fileName\":\"duplicate.dcm\",\"errorMessage\":\"File DICOM Ä‘Ã£ tá»“n táº¡i trÃªn há»‡ thá»‘ng.\"}],\"successfulPatients\":[{\"patient\":{\"id\":1,\"patientCode\":\"12345\"},\"recentExaminations\":[{\"examinationId\":1,\"status\":\"PENDING_REVIEW\",\"images\":[{\"imageUrl\":\"/api/v1/dicom/instances/1/image\"}]}]}]}"
 }
 ```
 
@@ -2465,3 +2505,4 @@ Retrieves a paginated list of system audit logs. This API is used by administrat
 - `200 OK`: Request successful
 - `401 Unauthorized`: Authentication is required
 - `403 Forbidden`: Authenticated user is not an ADMIN
+

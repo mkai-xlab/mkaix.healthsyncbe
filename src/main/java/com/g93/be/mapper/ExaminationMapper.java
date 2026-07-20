@@ -84,7 +84,6 @@ public class ExaminationMapper {
                 img.setEncounterCode(ex.getEncounterCode());
                 img.setStatus(ex.getStatus() != null ? ex.getStatus().name() : null);
                 img.setVisitTime(ex.getVisitTime());
-                img.setBodyPart(instance.getBodyPart());
                 img.setImageUrl(baseUrl + "/dicom/instances/" + instance.getId() + "/image");
 
                 // Map aiResults lazily

@@ -12,4 +12,7 @@ import java.util.List;
 public interface DicomInstanceRepository extends JpaRepository<DicomInstance, Long> {
     List<DicomInstance> findByExaminationId(Long examinationId);
     boolean existsBySopInstanceUid(String sopInstanceUid);
+    
+    @org.springframework.data.jpa.repository.Query("SELECT COUNT(DISTINCT d.studyInstanceUid) FROM DicomInstance d")
+    long countUniqueStudies();
 }
