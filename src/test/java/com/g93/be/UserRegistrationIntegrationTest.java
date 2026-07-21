@@ -36,6 +36,21 @@ class UserRegistrationIntegrationTest {
     private UserRepository userRepository;
 
     @Autowired
+    private com.g93.be.repository.NotificationRepository notificationRepository;
+
+    @Autowired
+    private com.g93.be.repository.DicomInstanceRepository dicomInstanceRepository;
+
+    @Autowired
+    private com.g93.be.repository.AuditLogRepository auditLogRepository;
+
+    @Autowired
+    private com.g93.be.repository.ExaminationRepository examinationRepository;
+
+    @Autowired
+    private com.g93.be.repository.DoctorRepository doctorRepository;
+
+    @Autowired
     private RoleRepository roleRepository;
 
     @Autowired
@@ -49,6 +64,11 @@ class UserRegistrationIntegrationTest {
 
     @BeforeEach
     void setUp() {
+        notificationRepository.deleteAll();
+        auditLogRepository.deleteAll();
+        dicomInstanceRepository.deleteAll();
+        examinationRepository.deleteAll();
+        doctorRepository.deleteAll();
         userRepository.deleteAll();
         
         headOfDepartmentRole = roleRepository.findByCode("HEAD_OF_DEPARTMENT")

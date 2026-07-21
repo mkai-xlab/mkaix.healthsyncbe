@@ -8,10 +8,13 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.security.access.prepost.PreAuthorize;
 
+import org.springframework.context.annotation.Profile;
+
 @RestController
 @RequestMapping("/s3")
 @RequiredArgsConstructor
 @Slf4j
+@Profile("!prod")
 public class TestS3Controller {
 
     private final StorageService storageService;
