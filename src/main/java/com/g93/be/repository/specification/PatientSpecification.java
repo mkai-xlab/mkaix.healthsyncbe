@@ -1,5 +1,7 @@
 package com.g93.be.repository.specification;
 
+
+import com.g93.be.entity.Patient;
 import com.g93.be.dto.PatientFilterRequest;
 import com.g93.be.entity.Patient;
 import jakarta.persistence.criteria.Predicate;

@@ -1,5 +1,7 @@
 package com.g93.be.controller;
 
+
+import com.g93.be.entity.User;
 import com.g93.be.dto.DicomVerifyRequest;
 import com.g93.be.service.DicomVerifyService;
 import lombok.RequiredArgsConstructor;
@@ -43,6 +45,27 @@ public class DicomVerifyController {
                 AiPredictionRequest aiRequest = new AiPredictionRequest(savedInstanceIds);
                 List<ExaminationDto> aiResultsList = aiService.predictBatch(aiRequest);
                 
+                // Calculate patient statistics based on max_predicted_grade for this specific batch
+                java.util.Map<Long, Integer> patientToMaxGrade = new java.util.HashMap<>();
+                for (ExaminationDto exam : aiResultsList) {
+                    if (exam.getPatient() != null && exam.getMaxPredictedGrade() != null) {
+                        Long patId = exam.getPatient().getId();
+                        Integer currentMax = patientToMaxGrade.getOrDefault(patId, -1);
+                        if (exam.getMaxPredictedGrade() > currentMax) {
+                            patientToMaxGrade.put(patId, exam.getMaxPredictedGrade());
+                        }
+                    }
+                }
+
+                java.util.Map<Integer, Long> gradeCountMap = new java.util.HashMap<>();
+                for (Integer grade : patientToMaxGrade.values()) {
+                    gradeCountMap.put(grade, gradeCountMap.getOrDefault(grade, 0L) + 1);
+                }
+
+                List<com.g93.be.dto.PatientGradeStatsDto> statsList = gradeCountMap.entrySet().stream()
+                        .map(entry -> new com.g93.be.dto.PatientGradeStatsDto(entry.getKey(), entry.getValue()))
+                        .collect(java.util.stream.Collectors.toList());
+                
                 // Send success notification
                 SendNotificationRequest notifReq = new SendNotificationRequest(
                         finalUserId,
@@ -53,7 +76,7 @@ public class DicomVerifyController {
                 );
                 notificationService.sendNotification(notifReq);
 
-                return ResponseEntity.ok(aiResultsList);
+                return ResponseEntity.ok(statsList);
             } catch (Exception e) {
                 e.printStackTrace();
                 // Send error notification

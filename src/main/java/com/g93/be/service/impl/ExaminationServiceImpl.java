@@ -1,5 +1,10 @@
 package com.g93.be.service.impl;
 
+
+import com.g93.be.entity.DicomInstance;
+import com.g93.be.entity.Examination;
+import com.g93.be.entity.User;
+import com.g93.be.entity.ExaminationStatus;
 import com.g93.be.dto.ExaminationDto;
 import com.g93.be.dto.PageResponse;
 import com.g93.be.entity.DicomInstance;
@@ -111,7 +116,7 @@ public class ExaminationServiceImpl implements ExaminationService {
     @Override
     @Transactional(readOnly = true)
     public long getTotalExaminations(Long userId) {
-        com.g93.be.entity.User user = userRepository.findById(userId)
+        User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User with id " + userId + " not found"));
         
         if (user.getRole() == null || user.getRole().getCode() == null) {
@@ -131,7 +136,7 @@ public class ExaminationServiceImpl implements ExaminationService {
     @Override
     @Transactional(readOnly = true)
     public long getTotalSevereExaminations(Long userId) {
-        com.g93.be.entity.User user = userRepository.findById(userId)
+        User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User with id " + userId + " not found"));
         
         if (user.getRole() == null || user.getRole().getCode() == null) {
@@ -153,7 +158,7 @@ public class ExaminationServiceImpl implements ExaminationService {
     @Override
     @Transactional(readOnly = true)
     public long getTotalVerifiedExaminations(Long userId) {
-        com.g93.be.entity.User user = userRepository.findById(userId)
+        User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User with id " + userId + " not found"));
         
         if (user.getRole() == null || user.getRole().getCode() == null) {
@@ -161,7 +166,7 @@ public class ExaminationServiceImpl implements ExaminationService {
         }
 
         String roleCode = user.getRole().getCode();
-        com.g93.be.entity.ExaminationStatus verifiedStatus = com.g93.be.entity.ExaminationStatus.REVIEWED;
+        ExaminationStatus verifiedStatus = ExaminationStatus.VERIFIED;
         
         if ("DEPARTMENT_HEAD".equalsIgnoreCase(roleCode) || "HEAD_OF_DEPARTMENT".equalsIgnoreCase(roleCode)) {
             return examinationRepository.countByStatus(verifiedStatus);
@@ -175,7 +180,7 @@ public class ExaminationServiceImpl implements ExaminationService {
     @Override
     @Transactional(readOnly = true)
     public long getTotalUnverifiedExaminations(Long userId) {
-        com.g93.be.entity.User user = userRepository.findById(userId)
+        User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User with id " + userId + " not found"));
         
         if (user.getRole() == null || user.getRole().getCode() == null) {
@@ -183,7 +188,7 @@ public class ExaminationServiceImpl implements ExaminationService {
         }
 
         String roleCode = user.getRole().getCode();
-        com.g93.be.entity.ExaminationStatus verifiedStatus = com.g93.be.entity.ExaminationStatus.REVIEWED;
+        ExaminationStatus verifiedStatus = ExaminationStatus.VERIFIED;
         
         if ("DEPARTMENT_HEAD".equalsIgnoreCase(roleCode) || "HEAD_OF_DEPARTMENT".equalsIgnoreCase(roleCode)) {
             return examinationRepository.countByStatusNot(verifiedStatus);
@@ -192,5 +197,107 @@ public class ExaminationServiceImpl implements ExaminationService {
         }
         
         return 0L;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<ExaminationDto> getExaminationsByStatus(ExaminationStatus status, String username, Pageable pageable) {
+        User user = userRepository.findByUsernameOrEmail(username, username)
+                .orElseThrow(() -> new IllegalArgumentException("User with username/email " + username + " not found"));
+                
+        if (user.getRole() == null || user.getRole().getCode() == null) {
+            return new PageResponse<>(List.of(), 0, pageable.getPageSize(), 0, 0, true);
+        }
+
+        String roleCode = user.getRole().getCode();
+        Page<Examination> examinationPage;
+
+        if ("DOCTOR".equalsIgnoreCase(roleCode)) {
+            examinationPage = examinationRepository.findByDoctorIdAndStatus(user.getId(), status, pageable);
+        } else if ("DEPARTMENT_HEAD".equalsIgnoreCase(roleCode) || "HEAD_OF_DEPARTMENT".equalsIgnoreCase(roleCode) || "ADMIN".equalsIgnoreCase(roleCode)) {
+            examinationPage = examinationRepository.findByStatus(status, pageable);
+        } else {
+            return new PageResponse<>(List.of(), 0, pageable.getPageSize(), 0, 0, true);
+        }
+
+        List<ExaminationDto> content = examinationPage.getContent().stream()
+                .map(ex -> {
+                    List<DicomInstance> instances = dicomInstanceRepository.findByExaminationId(ex.getId());
+                    return examinationMapper.toDto(ex, instances);
+                })
+                .toList();
+
+        return new PageResponse<>(
+                content,
+                examinationPage.getNumber(),
+                examinationPage.getSize(),
+                examinationPage.getTotalElements(),
+                examinationPage.getTotalPages(),
+                examinationPage.isLast()
+        );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<ExaminationDto> getExaminationsByGrade(Integer grade, String username, Pageable pageable) {
+        User user = userRepository.findByUsernameOrEmail(username, username)
+                .orElseThrow(() -> new IllegalArgumentException("User with username/email " + username + " not found"));
+                
+        if (user.getRole() == null || user.getRole().getCode() == null) {
+            return new PageResponse<>(List.of(), 0, pageable.getPageSize(), 0, 0, true);
+        }
+
+        String roleCode = user.getRole().getCode();
+        Page<Examination> examinationPage;
+
+        if ("DOCTOR".equalsIgnoreCase(roleCode)) {
+            examinationPage = examinationRepository.findByDoctorIdAndMaxPredictedGrade(user.getId(), grade, pageable);
+        } else if ("DEPARTMENT_HEAD".equalsIgnoreCase(roleCode) || "HEAD_OF_DEPARTMENT".equalsIgnoreCase(roleCode) || "ADMIN".equalsIgnoreCase(roleCode)) {
+            examinationPage = examinationRepository.findByMaxPredictedGrade(grade, pageable);
+        } else {
+            return new PageResponse<>(List.of(), 0, pageable.getPageSize(), 0, 0, true);
+        }
+
+        List<ExaminationDto> content = examinationPage.getContent().stream()
+                .map(ex -> {
+                    List<DicomInstance> instances = dicomInstanceRepository.findByExaminationId(ex.getId());
+                    return examinationMapper.toDto(ex, instances);
+                })
+                .toList();
+
+        return new PageResponse<>(
+                content,
+                examinationPage.getNumber(),
+                examinationPage.getSize(),
+                examinationPage.getTotalElements(),
+                examinationPage.getTotalPages(),
+                examinationPage.isLast()
+        );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<com.g93.be.dto.PatientGradeStatsDto> getPatientGradeStatistics(String username) {
+        User user = userRepository.findByUsernameOrEmail(username, username)
+                .orElseThrow(() -> new IllegalArgumentException("User with username/email " + username + " not found"));
+
+        if (user.getRole() == null || user.getRole().getCode() == null) {
+            return List.of();
+        }
+
+        String roleCode = user.getRole().getCode();
+        List<ExaminationRepository.GradePatientCountProjection> projections;
+
+        if ("DOCTOR".equalsIgnoreCase(roleCode)) {
+            projections = examinationRepository.countPatientsByLatestGradeForDoctor(user.getId());
+        } else if ("DEPARTMENT_HEAD".equalsIgnoreCase(roleCode) || "HEAD_OF_DEPARTMENT".equalsIgnoreCase(roleCode) || "ADMIN".equalsIgnoreCase(roleCode)) {
+            projections = examinationRepository.countPatientsByLatestGrade();
+        } else {
+            return List.of();
+        }
+
+        return projections.stream()
+                .map(p -> new com.g93.be.dto.PatientGradeStatsDto(p.getGrade(), p.getPatientCount()))
+                .toList();
     }
 }

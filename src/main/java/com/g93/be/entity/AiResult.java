@@ -21,11 +21,22 @@ public class AiResult {
     @Column(name = "predicted_grade")
     private Integer predictedGrade;
 
+    @Column(name = "knee_side", length = 10)
+    private String kneeSide;
+
     @Column(name = "storage_url", length = 512)
     private String storageUrl;
 
     @Column(name = "storage_heatmap_file_path", length = 512)
     private String storageHeatmapFilePath;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "roi_image_id")
+    private Image roiImage;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "gradcam_image_id")
+    private Image gradcamImage;
 
     @Column(name = "confidence")
     private Double confidence;

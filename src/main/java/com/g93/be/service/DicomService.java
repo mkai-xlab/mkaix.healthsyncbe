@@ -34,7 +34,7 @@ public interface DicomService {
      * @param zipFilePath Path to the uploaded zip file.
      * @param userId The ID of the uploading user for notifications.
      */
-    void processZipBatch(java.nio.file.Path zipFilePath, Long userId);
+    com.g93.be.dto.BatchDicomUploadResponse processZipBatch(java.nio.file.Path zipFilePath, Long userId, String uploadSessionId);
 
     /**
      * Processes a batch of DICOM files mapped by their original filenames to their temporary paths on disk.
@@ -42,5 +42,10 @@ public interface DicomService {
      * @param filePaths Map of original filenames to temp file paths.
      * @return Batch upload response.
      */
-    com.g93.be.dto.BatchDicomUploadResponse processBatchPaths(java.util.Map<String, java.nio.file.Path> filePaths, Long userId);
+    com.g93.be.dto.BatchDicomUploadResponse processBatchPaths(java.util.Map<String, java.nio.file.Path> filePaths, Long userId, String uploadSessionId);
+
+    /**
+     * Retrieves the JSON string of the upload session from Redis.
+     */
+    String getUploadSession(String sessionId);
 }

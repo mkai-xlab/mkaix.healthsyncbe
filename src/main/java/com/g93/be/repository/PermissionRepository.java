@@ -1,5 +1,7 @@
 package com.g93.be.repository;
 
+
+import com.g93.be.entity.Permission;
 import com.g93.be.entity.Permission;
 import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.Optional;

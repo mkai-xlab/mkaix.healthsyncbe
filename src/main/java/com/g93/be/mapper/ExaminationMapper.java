@@ -1,5 +1,10 @@
 package com.g93.be.mapper;
 
+
+import com.g93.be.entity.DicomInstance;
+import com.g93.be.entity.Examination;
+import com.g93.be.entity.AiAnalysis;
+import com.g93.be.entity.AiResult;
 import com.g93.be.dto.ExaminationDto;
 import com.g93.be.dto.ExaminationImageDto;
 import com.g93.be.entity.DicomInstance;
@@ -79,15 +84,14 @@ public class ExaminationMapper {
                 img.setEncounterCode(ex.getEncounterCode());
                 img.setStatus(ex.getStatus() != null ? ex.getStatus().name() : null);
                 img.setVisitTime(ex.getVisitTime());
-                img.setBodyPart(instance.getBodyPart());
                 img.setImageUrl(baseUrl + "/dicom/instances/" + instance.getId() + "/image");
 
                 // Map aiResults lazily
                 List<com.g93.be.dto.AiPredictionResultDto> aiResList = new ArrayList<>();
                 if (instance.getAiAnalyses() != null) {
-                    for (com.g93.be.entity.AiAnalysis analysis : instance.getAiAnalyses()) {
+                    for (AiAnalysis analysis : instance.getAiAnalyses()) {
                         if (analysis.getAiResults() != null) {
-                            for (com.g93.be.entity.AiResult aiRes : analysis.getAiResults()) {
+                            for (AiResult aiRes : analysis.getAiResults()) {
                                 java.util.Map<String, Double> details = new java.util.HashMap<>();
                                 if (aiRes.getConfidenceScore() != null) {
                                     details.put("0Normal", aiRes.getConfidenceScore().getC0Confidence());

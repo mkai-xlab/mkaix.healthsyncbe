@@ -10,6 +10,10 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import com.g93.be.security.CustomUserDetails;
+import com.g93.be.entity.ExaminationStatus;
 
 @RestController
 @RequestMapping("/examinations")
@@ -72,6 +76,56 @@ public class ExaminationController {
             @PageableDefault(size = 10) Pageable pageable) {
         log.info("Received request to get examinations by patient id: {}", patientId);
         return ResponseEntity.ok(examinationService.getExaminationsByPatientId(patientId, pageable));
+    }
+
+    /**
+     * Retrieves examinations by status based on user role.
+     *
+     * @param status The status to filter by.
+     * @param userDetails The authenticated user details.
+     * @param pageable The pagination parameters.
+     * @return A paginated list of examinations matching the status.
+     */
+    @GetMapping("/status")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<PageResponse<ExaminationDto>> getExaminationsByStatus(
+            @RequestParam ExaminationStatus status,
+            java.security.Principal principal,
+            @PageableDefault(size = 10) Pageable pageable) {
+        log.info("Received request to get examinations by status: {} for user: {}", status, principal.getName());
+        return ResponseEntity.ok(examinationService.getExaminationsByStatus(status, principal.getName(), pageable));
+    }
+
+    /**
+     * Retrieves examinations by max predicted grade based on user role.
+     *
+     * @param grade The max predicted grade to filter by.
+     * @param principal The authenticated user's principal.
+     * @param pageable The pagination parameters.
+     * @return A paginated list of examinations matching the grade.
+     */
+    @GetMapping("/grade")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<PageResponse<ExaminationDto>> getExaminationsByGrade(
+            @RequestParam Integer grade,
+            java.security.Principal principal,
+            @PageableDefault(size = 10) Pageable pageable) {
+        log.info("Received request to get examinations by grade: {} for user: {}", grade, principal.getName());
+        return ResponseEntity.ok(examinationService.getExaminationsByGrade(grade, principal.getName(), pageable));
+    }
+
+    /**
+     * Retrieves patient statistics grouped by max predicted grade based on user role.
+     *
+     * @param principal The authenticated user's principal.
+     * @return A list of patient grade statistics.
+     */
+    @GetMapping("/statistics/patients-by-grade")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<java.util.List<com.g93.be.dto.PatientGradeStatsDto>> getPatientGradeStatistics(
+            java.security.Principal principal) {
+        log.info("Received request to get patient grade statistics for user: {}", principal.getName());
+        return ResponseEntity.ok(examinationService.getPatientGradeStatistics(principal.getName()));
     }
 
     /**
@@ -138,5 +192,56 @@ public class ExaminationController {
         log.info("Received request to get total unverified examinations for user id: {}", userId);
         return ResponseEntity.ok(examinationService.getTotalUnverifiedExaminations(userId));
     }
-}
 
+    /**
+     * Retrieves total examinations based on user role (from access token).
+     */
+    @GetMapping("/my-total")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Long> getMyTotalExaminations() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+        Long userId = userDetails.getUser().getId();
+        log.info("Received request to get total examinations for my token, user id: {}", userId);
+        return ResponseEntity.ok(examinationService.getTotalExaminations(userId));
+    }
+
+    /**
+     * Retrieves total severe examinations based on user role (from access token).
+     */
+    @GetMapping("/my-total-severe")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Long> getMyTotalSevereExaminations() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+        Long userId = userDetails.getUser().getId();
+        log.info("Received request to get total severe examinations for my token, user id: {}", userId);
+        return ResponseEntity.ok(examinationService.getTotalSevereExaminations(userId));
+    }
+
+    /**
+     * Retrieves total verified examinations based on user role (from access token).
+     */
+    @GetMapping("/my-total-verified")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Long> getMyTotalVerifiedExaminations() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+        Long userId = userDetails.getUser().getId();
+        log.info("Received request to get total verified examinations for my token, user id: {}", userId);
+        return ResponseEntity.ok(examinationService.getTotalVerifiedExaminations(userId));
+    }
+
+    /**
+     * Retrieves total unverified examinations based on user role (from access token).
+     */
+    @GetMapping("/my-total-unverified")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Long> getMyTotalUnverifiedExaminations() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+        Long userId = userDetails.getUser().getId();
+        log.info("Received request to get total unverified examinations for my token, user id: {}", userId);
+        return ResponseEntity.ok(examinationService.getTotalUnverifiedExaminations(userId));
+    }
+}

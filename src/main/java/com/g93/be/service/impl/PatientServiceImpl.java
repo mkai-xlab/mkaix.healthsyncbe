@@ -1,5 +1,7 @@
 package com.g93.be.service.impl;
 
+
+import com.g93.be.entity.DicomInstance;
 import com.g93.be.dto.*;
 import com.g93.be.entity.*;
 import com.g93.be.mapper.PatientMapper;
@@ -125,17 +127,16 @@ public class PatientServiceImpl implements PatientService {
             ed.setVisitTime(ex.getVisitTime());
             ed.setReferringPhysician(ex.getReferringPhysician());
 
-            List<com.g93.be.entity.DicomInstance> instances = dicomInstanceRepository.findByExaminationId(ex.getId());
+            List<DicomInstance> instances = dicomInstanceRepository.findByExaminationId(ex.getId());
             if (instances != null && !instances.isEmpty()) {
                 ed.setThumbnailUrl(baseUrl + "/dicom/instances/" + instances.get(0).getId() + "/image");
                 List<ExaminationImageDto> imageDtos = new ArrayList<>();
-                for (com.g93.be.entity.DicomInstance instance : instances) {
+                for (DicomInstance instance : instances) {
                     ExaminationImageDto img = new ExaminationImageDto();
                     img.setExaminationId(ex.getId());
                     img.setEncounterCode(ex.getEncounterCode());
                     img.setStatus(ex.getStatus().name());
                     img.setVisitTime(ex.getVisitTime());
-                    img.setBodyPart(instance.getBodyPart());
                     img.setImageUrl(baseUrl + "/dicom/instances/" + instance.getId() + "/image");
                     imageDtos.add(img);
                 }
