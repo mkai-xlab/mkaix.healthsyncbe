@@ -87,6 +87,13 @@ public class UserServiceImpl implements UserService {
         return mapToResponse(savedUser);
     }
 
+    @Override
+    public java.util.List<UserResponse> getStaffList() {
+        log.info("Fetching medical staff list");
+        java.util.List<User> staffUsers = userRepository.findByRoleCodeIn(java.util.List.of("HEAD_OF_DEPARTMENT", "DEPARTMENT_HEAD", "DOCTOR"));
+        return staffUsers.stream().map(this::mapToResponse).collect(java.util.stream.Collectors.toList());
+    }
+
     private String generateUniqueUsername(String email) {
         String base = email.split("@")[0].replaceAll("[^a-zA-Z0-9._]", "").toLowerCase();
         if (base.isBlank()) {
