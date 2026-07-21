@@ -13,6 +13,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import com.g93.be.security.CustomUserDetails;
+import com.g93.be.entity.ExaminationStatus;
 
 @RestController
 @RequestMapping("/examinations")
@@ -75,6 +76,56 @@ public class ExaminationController {
             @PageableDefault(size = 10) Pageable pageable) {
         log.info("Received request to get examinations by patient id: {}", patientId);
         return ResponseEntity.ok(examinationService.getExaminationsByPatientId(patientId, pageable));
+    }
+
+    /**
+     * Retrieves examinations by status based on user role.
+     *
+     * @param status The status to filter by.
+     * @param userDetails The authenticated user details.
+     * @param pageable The pagination parameters.
+     * @return A paginated list of examinations matching the status.
+     */
+    @GetMapping("/status")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<PageResponse<ExaminationDto>> getExaminationsByStatus(
+            @RequestParam ExaminationStatus status,
+            java.security.Principal principal,
+            @PageableDefault(size = 10) Pageable pageable) {
+        log.info("Received request to get examinations by status: {} for user: {}", status, principal.getName());
+        return ResponseEntity.ok(examinationService.getExaminationsByStatus(status, principal.getName(), pageable));
+    }
+
+    /**
+     * Retrieves examinations by max predicted grade based on user role.
+     *
+     * @param grade The max predicted grade to filter by.
+     * @param principal The authenticated user's principal.
+     * @param pageable The pagination parameters.
+     * @return A paginated list of examinations matching the grade.
+     */
+    @GetMapping("/grade")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<PageResponse<ExaminationDto>> getExaminationsByGrade(
+            @RequestParam Integer grade,
+            java.security.Principal principal,
+            @PageableDefault(size = 10) Pageable pageable) {
+        log.info("Received request to get examinations by grade: {} for user: {}", grade, principal.getName());
+        return ResponseEntity.ok(examinationService.getExaminationsByGrade(grade, principal.getName(), pageable));
+    }
+
+    /**
+     * Retrieves patient statistics grouped by max predicted grade based on user role.
+     *
+     * @param principal The authenticated user's principal.
+     * @return A list of patient grade statistics.
+     */
+    @GetMapping("/statistics/patients-by-grade")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<java.util.List<com.g93.be.dto.PatientGradeStatsDto>> getPatientGradeStatistics(
+            java.security.Principal principal) {
+        log.info("Received request to get patient grade statistics for user: {}", principal.getName());
+        return ResponseEntity.ok(examinationService.getPatientGradeStatistics(principal.getName()));
     }
 
     /**
