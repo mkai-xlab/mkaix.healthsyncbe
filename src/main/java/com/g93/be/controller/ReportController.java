@@ -7,14 +7,14 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/v1/examinations")
+@RequestMapping("/examinations")
 @RequiredArgsConstructor
 public class ReportController {
 
     private final PdfExportService pdfExportService;
 
     @PostMapping("/{id}/generate-report")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasAuthority('GENERATE_PDF_REPORT')")
     public ResponseEntity<String> generatePdfReport(@PathVariable Long id) {
         String savedPath = pdfExportService.generateAndSavePdfReport(id);
         return ResponseEntity.ok("Report generated and saved at: " + savedPath);

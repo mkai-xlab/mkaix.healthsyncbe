@@ -733,6 +733,27 @@ Uploads multiple DICOM files synchronously, parses metadata, extracts images, an
 - `400 Bad Request`: Invalid file format or request
 - `401 Unauthorized`: Authentication is required
 
+## `POST /examinations/{id}/generate-report`
+
+Generates and saves a PDF report for a given examination.
+
+### Request
+
+No request body. Replace `{id}` with the examination ID.
+
+### Response
+
+```text
+Report generated and saved at: D:/HealthSync_Exports/report_EX-001_1a2b3c4d.pdf
+```
+
+### Status Codes
+
+- `200 OK`: Report generated successfully
+- `401 Unauthorized`: Authentication is required
+- `403 Forbidden`: Authenticated user does not have `GENERATE_PDF_REPORT` permission
+- `500 Internal Server Error`: Failed to generate PDF
+
 ## `POST /dicom/upload/zip`
 
 Uploads a single ZIP file containing multiple DICOM files synchronously, extracts and processes them.
