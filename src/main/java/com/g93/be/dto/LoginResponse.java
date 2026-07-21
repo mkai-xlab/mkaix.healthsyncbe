@@ -11,5 +11,5 @@ public record LoginResponse(
     String refreshToken,
     String role,
     String username,
-    List<String> permissions
+    List<PermissionResponse> permissions
 ) {}

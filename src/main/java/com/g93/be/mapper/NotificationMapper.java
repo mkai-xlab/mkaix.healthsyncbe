@@ -1,5 +1,7 @@
 package com.g93.be.mapper;
 
+
+import com.g93.be.entity.Notification;
 import com.g93.be.dto.NotificationDto;
 import com.g93.be.entity.Notification;
 import org.springframework.stereotype.Component;

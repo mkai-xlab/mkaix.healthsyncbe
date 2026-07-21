@@ -35,7 +35,7 @@ public class Examination {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
-    private ExaminationStatus status = ExaminationStatus.CREATED;
+    private ExaminationStatus status = ExaminationStatus.AI_PROCESSING;
 
     @Column(name = "chief_complaint", columnDefinition = "TEXT")
     private String chiefComplaint;
@@ -74,7 +74,7 @@ public class Examination {
     protected void onCreate() {
         createdAt = LocalDateTime.now();
         if (status == null) {
-            status = ExaminationStatus.CREATED;
+            status = ExaminationStatus.AI_PROCESSING;
         }
     }
 }

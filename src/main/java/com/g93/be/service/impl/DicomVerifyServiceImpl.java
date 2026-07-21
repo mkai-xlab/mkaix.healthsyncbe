@@ -1,5 +1,8 @@
 package com.g93.be.service.impl;
 
+
+import com.g93.be.entity.UserStatus;
+import com.g93.be.entity.Role;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.g93.be.dto.DicomUploadSessionDTO;
 import com.g93.be.dto.DicomVerifyRequest;
@@ -85,13 +88,23 @@ public class DicomVerifyServiceImpl implements DicomVerifyService {
                 ? pending.getStudyInstanceUid()
                 : "UNKNOWN_STUDY_" + System.currentTimeMillis();
 
-        Optional<Examination> existingExamOpt = examinationRepository.findByEncounterCode(finalStudyUid);
+        java.time.LocalDate studyDateForGrouping = (pending.getStudyDate() != null)
+                ? pending.getStudyDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDate()
+                : java.time.LocalDate.now();
+
+        Optional<Examination> existingExamOpt = examinationRepository.findFirstByPatientPatientCodeAndStudyDateOrderByCreatedAtDesc(pending.getPatientCode(), studyDateForGrouping);
         Examination examination;
 
         if (existingExamOpt.isPresent()) {
             examination = existingExamOpt.get();
-            examination.setStatus(ExaminationStatus.NEED_REVERIFY);
-            examinationRepository.save(examination);
+            if (examination.getStatus() == ExaminationStatus.REPORT_GENERATED) {
+                deletePhysicalFiles(pending);
+                throw new RuntimeException("Cannot upload new dicoms to an examination that is already REPORT_GENERATED for patient " + pending.getPatientCode() + " on " + studyDateForGrouping);
+            }
+            if (examination.getStatus() == ExaminationStatus.NEED_VERIFY || examination.getStatus() == ExaminationStatus.VERIFIED) {
+                examination.setStatus(ExaminationStatus.AI_PROCESSING);
+                examinationRepository.save(examination);
+            }
         } else {
             // Get or Create Patient
             final String finalPatientId = pending.getPatientCode();
@@ -144,9 +157,9 @@ public class DicomVerifyServiceImpl implements DicomVerifyService {
                     d.setPassword("temp");
                     d.setEmail("dummy_doc_" + UUID.randomUUID().toString().substring(0, 8) + "@temp.com");
                     d.setFullName("System Doctor");
-                    d.setStatus(com.g93.be.entity.UserStatus.ACTIVE);
-                    com.g93.be.entity.Role doctorRole = roleRepository.findByCode("DOCTOR").orElseGet(() -> {
-                        com.g93.be.entity.Role r = new com.g93.be.entity.Role();
+                    d.setStatus(UserStatus.ACTIVE);
+                    Role doctorRole = roleRepository.findByCode("DOCTOR").orElseGet(() -> {
+                        Role r = new Role();
                         r.setCode("DOCTOR");
                         r.setName("Doctor Role");
                         return roleRepository.save(r);
@@ -159,11 +172,9 @@ public class DicomVerifyServiceImpl implements DicomVerifyService {
             examination.setDoctor(doctor);
 
             examination.setEncounterCode(finalStudyUid);
-            examination.setStatus(ExaminationStatus.NEED_VERIFY);
+            examination.setStatus(ExaminationStatus.AI_PROCESSING);
             examination.setVisitTime(LocalDateTime.now());
-            if (pending.getStudyDate() != null) {
-                examination.setStudyDate(pending.getStudyDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDate());
-            }
+            examination.setStudyDate(studyDateForGrouping);
             if (pending.getStudyTime() != null) {
                 examination.setStudyTime(pending.getStudyTime().toInstant().atZone(ZoneId.systemDefault()).toLocalTime());
             }

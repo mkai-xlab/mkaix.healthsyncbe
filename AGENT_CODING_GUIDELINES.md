@@ -61,3 +61,24 @@ This document outlines the standard coding rules and project-specific convention
 - Any new Service method that modifies state (CREATE, UPDATE, DELETE) MUST be annotated with `@LogAction(action="ACTION_NAME")` (e.g. `@LogAction("CREATE_PATIENT")`).
 - This applies to all business logic methods that need administrative tracking. Read-only methods (GET) should NOT be annotated.
 - The `AuditLogAspect` will automatically extract the `username`, `ipAddress`, and serialize the method arguments.
+
+## 12. External Integrations (AI/ML)
+- **HTTP Clients**: When integrating with external AI/ML services (e.g., Python FastAPI), use Spring's `RestTemplate` or `WebClient`. 
+- **Response Mapping**: Always map external JSON responses to strongly-typed dedicated DTOs (e.g., `FastApiPredictionResponse`) rather than using raw Maps or generic Objects. Handle nested arrays and structures cleanly.
+- **Error Handling**: Anticipate connection timeouts or unexpected schema changes from external AI services. Wrap external calls in try-catch blocks and log appropriately without crashing the main application flow.
+
+## 13. Media & DICOM Processing
+- **DICOM Metadata**: Strictly use the `dcm4che3` library to extract DICOM metadata using standard tags (e.g., `Tag.PatientID`, `Tag.BodyPartExamined`). Never attempt to parse patient data from filenames or custom headers.
+- **Base64 Handling**: When receiving images as Base64 strings from external APIs (like GradCAM or ROI images), NEVER save the raw Base64 string directly to the database. Decode it and save it as a physical file on the disk (using `ImageIO` or similar utilities), then save only the file path/URL to the database.
+
+## 14. Security & Authentication
+- **Endpoint Security**: Use standard Spring Security annotations (e.g., `@PreAuthorize("hasRole('DOCTOR')")`) at the Controller level to enforce RBAC (Role-Based Access Control) instead of manual checks inside business logic.
+- **Temporary State**: Use Redis (`StringRedisTemplate`) to manage temporary states and TTLs, such as `uploadSessionId` for pending DICOM sessions, OTPs, or password reset tokens. Avoid polluting relational database tables with short-lived states.
+
+## 15. Asynchronous Processing & Transactions
+- **Thread Context Loss**: Be extremely cautious when using `CompletableFuture.runAsync(...)` or Spring's `@Async`. The Spring `@Transactional` context and JPA Session do NOT automatically propagate to new threads. 
+- **Database Access in Threads**: If a background thread must access the database, it must do so by calling a `@Transactional` annotated method on a Spring-managed proxy bean (e.g. injecting the Service into itself or extracting logic to another component).
+- **Graceful Degradation**: For critical file uploads where user feedback on validation errors is essential, prefer synchronous blocking responses over asynchronous STOMP notifications if the async flow hides failures.
+
+## 16. Configuration & Environment Variables
+- **Secrets Management**: Never hardcode sensitive credentials (database passwords, Redis URLs, external API keys, JWT secrets) directly in Java classes. Always inject them via `@Value("${...}")` or `@ConfigurationProperties` to allow environment-specific overrides in `application.yml`.

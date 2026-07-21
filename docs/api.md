@@ -706,34 +706,82 @@ No response body.
 - `400 Bad Request`: Patient not found
 - `401 Unauthorized`: authentication is required
 
-## `POST /dicom/upload`
+## `POST /dicom/upload/batch`
 
-Uploads a DICOM file, parses metadata, extracts the image, creates patient and examination records.
+Uploads multiple DICOM files synchronously, parses metadata, extracts images, and returns a session for verification before persisting records.
 
 ### Request
 
 - **Content-Type**: `multipart/form-data`
 - **Parameters**:
-  - `file` (File): The multipart DICOM file.
+  - `files` (List of Files): Multiple `.dcm` files.
 
 ### Response
 
 ```json
 {
-  "patient": {
-    "id": 1,
-    "patientCode": null,
-    "fullName": "Nguyen Van A",
-    "email": "hn-2026-0099@healthsync.com"
-  },
-  "examinations": []
+  "message": null,
+  "uploadSessionId": "140d6df5-f47d-41d1-add1-2201a85bce7c",
+  "errors": [],
+  "successfulPatients": []
 }
 ```
 
 ### Status Codes
 
-- `200 OK`: Profile updated successfully
-- `400 Bad Request`: Invalid input fields
+- `200 OK`: Files processed successfully (pending verify)
+- `400 Bad Request`: Invalid file format or request
+- `401 Unauthorized`: Authentication is required
+
+## `POST /dicom/upload/zip`
+
+Uploads a single ZIP file containing multiple DICOM files synchronously, extracts and processes them.
+
+### Request
+
+- **Content-Type**: `multipart/form-data`
+- **Parameters**:
+  - `file` (File): A `.zip` file containing `.dcm` files.
+
+### Response
+
+Returns the same `BatchDicomUploadResponse` structure as `/dicom/upload/batch`.
+
+
+
+Verifies and commits a pending DICOM upload session into the database.
+
+### Request
+
+```json
+{
+  "uploadSessionId": "140d6df5-f47d-41d1-add1-2201a85bce7c",
+  "acceptedPatientCodes": [
+    "PT001"
+  ]
+}
+```
+
+### Response
+
+`json
+[
+  {
+    "grade": 1,
+    "patientCount": 5
+  },
+  {
+    "grade": 2,
+    "patientCount": 3
+  }
+]
+
+
+
+### Status Codes
+
+- `200 OK`: Data saved successfully
+- `400 Bad Request`: Session expired or invalid patient codes
 - `401 Unauthorized`: Authentication is required
 - `403 Forbidden`: Authenticated user is not a DOCTOR
 
@@ -2457,8 +2505,7 @@ Retrieves a paginated list of system audit logs. This API is used by administrat
   "totalElements": 1,
   "totalPages": 1,
   "isLast": true
-### Status Codes
-
+}
 - `200 OK`: Request successful
 - `401 Unauthorized`: Authentication is required
 
@@ -2661,26 +2708,118 @@ Retrieves a paginated list of system audit logs. This API is used by administrat
 - `401 Unauthorized`: Authentication is required
 - `403 Forbidden`: Authenticated user is not an ADMIN
 
-## `POST /examinations/{id}/generate-report`
+ 
+ 
 
-Generates a comprehensive PDF report for an examination, including patient information, clinical notes, and AI analysis results (with GradCAM images). The generated PDF is automatically saved to the local file system (e.g., `D:/HealthSync_Exports`).
+## `GET /examinations/status`
+
+Retrieves a paginated list of examinations filtered by status. The results are automatically filtered based on the authenticated user's role (RBAC):
+- **DOCTOR**: Only returns their own assigned examinations.
+- **ADMIN / DEPARTMENT_HEAD**: Returns all examinations in the system.
+
+### Query Parameters
+
+- `status` (Required): Filter by ExaminationStatus (e.g., `AI_PROCESSING`, `NEED_VERIFY`, `VERIFIED`, `REPORT_GENERATED`).
+- `page` (Optional): Page index (0-based, default: `0`).
+- `size` (Optional): Items per page (default: `10`).
 
 ### Request
 
 ```http
-POST /examinations/1/generate-report
+GET /examinations/status?status=NEED_VERIFY&page=0&size=10
 Authorization: Bearer <token>
 ```
 
 ### Response
 
-```text
-Report generated and saved at: D:\HealthSync_Exports\report_EX-001_1a2b3c4d.pdf
+```json
+{
+  "content": [
+    {
+      "id": 1,
+      "status": "NEED_VERIFY"
+    }
+  ],
+  "pageNumber": 0,
+  "pageSize": 10,
+  "totalElements": 1,
+  "totalPages": 1,
+  "isLast": true
+}
 ```
 
 ### Status Codes
 
-- `200 OK`: Report generated successfully.
-- `401 Unauthorized`: Authentication is required.
-- `404 Not Found`: Examination with the given ID does not exist.
-- `500 Internal Server Error`: Failed to generate PDF (e.g., template processing or font loading error).
+- `200 OK`: Request successful
+- `401 Unauthorized`: User is not authenticated
+
+## GET /examinations/grade
+
+Retrieves examinations filtered by their max predicted grade. The results are automatically filtered based on the authenticated user's role (doctors only see their own, admins/department heads see all).
+
+### Request
+
+- grade (query parameter): The max predicted grade to filter by (e.g., 3, 4).
+- page (query parameter, optional): Page number (default: 0).
+- size (query parameter, optional): Page size (default: 10).
+
+Requires Bearer Token in Authorization header.
+
+### Response
+
+`json
+{
+  "content": [
+    {
+      "id": 1,
+      "maxPredictedGrade": 3
+    }
+  ],
+  "pageNumber": 0,
+  "pageSize": 10,
+  "totalElements": 1,
+  "totalPages": 1,
+  "isLast": true
+}
+`
+
+### Status Codes
+
+- 200 OK: Request successful
+- 401 Unauthorized: User is not authenticated
+## GET /examinations/statistics/patients-by-grade
+
+Retrieves the number of patients grouped by the max predicted grade of their latest examination.
+For doctors, it counts patients based on their latest examination with that specific doctor.
+For admins/department heads, it counts all patients based on their latest examination in the system.
+
+### Request
+
+- No query parameters required.
+
+Requires Bearer Token in Authorization header.
+
+### Response
+
+`json
+[
+  {
+    "grade": 1,
+    "patientCount": 15
+  },
+  {
+    "grade": 2,
+    "patientCount": 8
+  },
+  {
+    "grade": 3,
+    "patientCount": 2
+  }
+]
+`
+
+### Status Codes
+
+- 200 OK: Request successful
+- 401 Unauthorized: User is not authenticated
+
