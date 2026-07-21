@@ -1,4 +1,4 @@
-﻿# API Documentation
+# API Documentation
 
 [Back to Documentation Index](README.md) | Previous: [Database](database.md) | Next: [Deployment Guide](deployment.md)
 
@@ -747,7 +747,7 @@ Uploads a single ZIP file containing multiple DICOM files synchronously, extract
 
 Returns the same `BatchDicomUploadResponse` structure as `/dicom/upload/batch`.
 
-## `POST /dicom/verify`
+
 
 Verifies and commits a pending DICOM upload session into the database.
 
@@ -764,11 +764,19 @@ Verifies and commits a pending DICOM upload session into the database.
 
 ### Response
 
-```json
-{
-  "message": "Upload session verified and data saved successfully."
-}
-```
+`json
+[
+  {
+    "grade": 1,
+    "patientCount": 5
+  },
+  {
+    "grade": 2,
+    "patientCount": 3
+  }
+]
+
+
 
 ### Status Codes
 
@@ -1293,12 +1301,12 @@ Retrieves the hierarchical tree of all features and their corresponding permissi
   {
     "id": 1,
     "name": "User & Account Management",
-    "description": "Quáº£n lÃ½ TÃ i khoáº£n",
+    "description": "Quản lý Tài khoản",
     "permissions": [
       {
         "id": 1,
         "code": "READ_OWN_PROFILE",
-        "name": "Xem há»“ sÆ¡ cÃ¡ nhÃ¢n",
+        "name": "Xem hồ sơ cá nhân",
         "priority": 1,
         "presentation": "profile_screen",
         "requiresPermissionId": null
@@ -1507,8 +1515,8 @@ Clients subscribed to `/user/queue/notifications` will receive real-time updates
 ### Progress Notifications (`type="SYSTEM"`)
 
 Sent immediately upon receiving the upload to indicate progress.
-- **Title**: `Tiáº¿p nháº­n File ZIP` or `Äang xá»­ lÃ½ DICOM`
-- **Message**: "Há»‡ thá»‘ng Ä‘ang tiáº¿n hÃ nh giáº£i nÃ©n..." or "Há»‡ thá»‘ng Ä‘ang trÃ­ch xuáº¥t dá»¯ liá»‡u tá»« X file DICOM..."
+- **Title**: `Tiếp nhận File ZIP` or `Đang xử lý DICOM`
+- **Message**: "Hệ thống đang tiến hành giải nén..." or "Hệ thống đang trích xuất dữ liệu từ X file DICOM..."
 
 ### Final Result Notification (`type="DICOM_BATCH_RESULT"`)
 
@@ -1521,7 +1529,7 @@ Sent when the entire batch is finished processing. The `message` field contains 
   "type": "DICOM_BATCH_RESULT",
   "isRead": false,
   "createdAt": "2026-07-08T23:15:00.123",
-  "message": "{\"errors\":[{\"fileName\":\"duplicate.dcm\",\"errorMessage\":\"File DICOM Ä‘Ã£ tá»“n táº¡i trÃªn há»‡ thá»‘ng.\"}],\"successfulPatients\":[{\"patient\":{\"id\":1,\"patientCode\":\"12345\"},\"recentExaminations\":[{\"examinationId\":1,\"status\":\"PENDING_REVIEW\",\"images\":[{\"imageUrl\":\"/api/v1/dicom/instances/1/image\"}]}]}]}"
+  "message": "{\"errors\":[{\"fileName\":\"duplicate.dcm\",\"errorMessage\":\"File DICOM đã tồn tại trên hệ thống.\"}],\"successfulPatients\":[{\"patient\":{\"id\":1,\"patientCode\":\"12345\"},\"recentExaminations\":[{\"examinationId\":1,\"status\":\"PENDING_REVIEW\",\"images\":[{\"imageUrl\":\"/api/v1/dicom/instances/1/image\"}]}]}]}"
 }
 ```
 
@@ -1819,12 +1827,12 @@ Retrieves the hierarchical tree of all features and their corresponding permissi
   {
     "id": 1,
     "name": "User & Account Management",
-    "description": "Quáº£n lÃ½ TÃ i khoáº£n",
+    "description": "Quản lý Tài khoản",
     "permissions": [
       {
         "id": 1,
         "code": "READ_OWN_PROFILE",
-        "name": "Xem há»“ sÆ¡ cÃ¡ nhÃ¢n",
+        "name": "Xem hồ sơ cá nhân",
         "priority": 1,
         "presentation": "profile_screen",
         "requiresPermissionId": null
@@ -2033,8 +2041,8 @@ Clients subscribed to `/user/queue/notifications` will receive real-time updates
 ### Progress Notifications (`type="SYSTEM"`)
 
 Sent immediately upon receiving the upload to indicate progress.
-- **Title**: `Tiáº¿p nháº­n File ZIP` or `Äang xá»­ lÃ½ DICOM`
-- **Message**: "Há»‡ thá»‘ng Ä‘ang tiáº¿n hÃ nh giáº£i nÃ©n..." or "Há»‡ thá»‘ng Ä‘ang trÃ­ch xuáº¥t dá»¯ liá»‡u tá»« X file DICOM..."
+- **Title**: `Tiếp nhận File ZIP` or `Đang xử lý DICOM`
+- **Message**: "Hệ thống đang tiến hành giải nén..." or "Hệ thống đang trích xuất dữ liệu từ X file DICOM..."
 
 ### Final Result Notification (`type="DICOM_BATCH_RESULT"`)
 
@@ -2047,7 +2055,7 @@ Sent when the entire batch is finished processing. The `message` field contains 
   "type": "DICOM_BATCH_RESULT",
   "isRead": false,
   "createdAt": "2026-07-08T23:15:00.123",
-  "message": "{\"errors\":[{\"fileName\":\"duplicate.dcm\",\"errorMessage\":\"File DICOM Ä‘Ã£ tá»“n táº¡i trÃªn há»‡ thá»‘ng.\"}],\"successfulPatients\":[{\"patient\":{\"id\":1,\"patientCode\":\"12345\"},\"recentExaminations\":[{\"examinationId\":1,\"status\":\"PENDING_REVIEW\",\"images\":[{\"imageUrl\":\"/api/v1/dicom/instances/1/image\"}]}]}]}"
+  "message": "{\"errors\":[{\"fileName\":\"duplicate.dcm\",\"errorMessage\":\"File DICOM đã tồn tại trên hệ thống.\"}],\"successfulPatients\":[{\"patient\":{\"id\":1,\"patientCode\":\"12345\"},\"recentExaminations\":[{\"examinationId\":1,\"status\":\"PENDING_REVIEW\",\"images\":[{\"imageUrl\":\"/api/v1/dicom/instances/1/image\"}]}]}]}"
 }
 ```
 
@@ -2620,3 +2628,4 @@ Requires Bearer Token in Authorization header.
 
 - 200 OK: Request successful
 - 401 Unauthorized: User is not authenticated
+
