@@ -2,6 +2,7 @@ package com.g93.be.service;
 
 import com.g93.be.dto.ExaminationDto;
 import com.g93.be.dto.PageResponse;
+import com.g93.be.entity.ExaminationStatus;
 import org.springframework.data.domain.Pageable;
 
 public interface ExaminationService {
@@ -14,4 +15,7 @@ public interface ExaminationService {
     long getTotalSevereExaminations(Long userId);
     long getTotalVerifiedExaminations(Long userId);
     long getTotalUnverifiedExaminations(Long userId);
+    PageResponse<ExaminationDto> getExaminationsByStatus(ExaminationStatus status, String username, Pageable pageable);
+    PageResponse<ExaminationDto> getExaminationsByGrade(Integer grade, String username, Pageable pageable);
+    java.util.List<com.g93.be.dto.PatientGradeStatsDto> getPatientGradeStatistics(String username);
 }
