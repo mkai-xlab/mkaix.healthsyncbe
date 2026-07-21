@@ -1,0 +1,16 @@
+meta {
+  name: Generate PDF Report
+  type: http
+  seq: 14
+}
+
+post {
+  url: {{baseUrl}}/examinations/1/generate-report
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+​
