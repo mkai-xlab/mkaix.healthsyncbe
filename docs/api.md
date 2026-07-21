@@ -2506,3 +2506,117 @@ Retrieves a paginated list of system audit logs. This API is used by administrat
 - `401 Unauthorized`: Authentication is required
 - `403 Forbidden`: Authenticated user is not an ADMIN
 
+ 
+ 
+
+## `GET /examinations/status`
+
+Retrieves a paginated list of examinations filtered by status. The results are automatically filtered based on the authenticated user's role (RBAC):
+- **DOCTOR**: Only returns their own assigned examinations.
+- **ADMIN / DEPARTMENT_HEAD**: Returns all examinations in the system.
+
+### Query Parameters
+
+- `status` (Required): Filter by ExaminationStatus (e.g., `AI_PROCESSING`, `NEED_VERIFY`, `VERIFIED`, `REPORT_GENERATED`).
+- `page` (Optional): Page index (0-based, default: `0`).
+- `size` (Optional): Items per page (default: `10`).
+
+### Request
+
+```http
+GET /examinations/status?status=NEED_VERIFY&page=0&size=10
+Authorization: Bearer <token>
+```
+
+### Response
+
+```json
+{
+  "content": [
+    {
+      "id": 1,
+      "status": "NEED_VERIFY"
+    }
+  ],
+  "pageNumber": 0,
+  "pageSize": 10,
+  "totalElements": 1,
+  "totalPages": 1,
+  "isLast": true
+}
+```
+
+### Status Codes
+
+- `200 OK`: Request successful
+- `401 Unauthorized`: User is not authenticated
+
+## GET /examinations/grade
+
+Retrieves examinations filtered by their max predicted grade. The results are automatically filtered based on the authenticated user's role (doctors only see their own, admins/department heads see all).
+
+### Request
+
+- grade (query parameter): The max predicted grade to filter by (e.g., 3, 4).
+- page (query parameter, optional): Page number (default: 0).
+- size (query parameter, optional): Page size (default: 10).
+
+Requires Bearer Token in Authorization header.
+
+### Response
+
+`json
+{
+  "content": [
+    {
+      "id": 1,
+      "maxPredictedGrade": 3
+    }
+  ],
+  "pageNumber": 0,
+  "pageSize": 10,
+  "totalElements": 1,
+  "totalPages": 1,
+  "isLast": true
+}
+`
+
+### Status Codes
+
+- 200 OK: Request successful
+- 401 Unauthorized: User is not authenticated
+## GET /examinations/statistics/patients-by-grade
+
+Retrieves the number of patients grouped by the max predicted grade of their latest examination.
+For doctors, it counts patients based on their latest examination with that specific doctor.
+For admins/department heads, it counts all patients based on their latest examination in the system.
+
+### Request
+
+- No query parameters required.
+
+Requires Bearer Token in Authorization header.
+
+### Response
+
+`json
+[
+  {
+    "grade": 1,
+    "patientCount": 15
+  },
+  {
+    "grade": 2,
+    "patientCount": 8
+  },
+  {
+    "grade": 3,
+    "patientCount": 2
+  }
+]
+`
+
+### Status Codes
+
+- 200 OK: Request successful
+- 401 Unauthorized: User is not authenticated
