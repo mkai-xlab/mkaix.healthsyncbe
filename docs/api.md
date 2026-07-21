@@ -2457,6 +2457,201 @@ Retrieves a paginated list of system audit logs. This API is used by administrat
   "totalElements": 1,
   "totalPages": 1,
   "isLast": true
+### Status Codes
+
+- `200 OK`: Request successful
+- `401 Unauthorized`: Authentication is required
+
+## `GET /examinations/{id}`
+
+Retrieves detailed information of an examination by ID, including patient details and associated DICOM images.
+
+### Path Parameters
+
+- `id`: The ID of the examination.
+
+### Response
+
+```json
+{
+  "examinationId": 1,
+  "encounterCode": "...",
+  "status": "CREATED",
+  "studyDate": "2023-10-15",
+  "visitTime": "2023-10-15T10:30:00",
+  "thumbnailUrl": "http://localhost:8080/api/v1/dicom/instances/1/thumbnail",
+  "bodyPart": "KNEE",
+  "referringPhysician": "Dr. Smith",
+  "patient": {
+    "id": 1,
+    "fullName": "Nguyen Van A"
+  },
+  "images": [
+    {
+      "examinationId": 1,
+      "encounterCode": "...",
+      "status": "CREATED",
+      "visitTime": "2023-10-15T10:30:00",
+      "imageUrl": "http://localhost:8080/api/v1/dicom/instances/1/image"
+    }
+  ]
+}
+```
+
+### Status Codes
+
+- `200 OK`: Request successful
+- `400 Bad Request`: Examination not found
+- `401 Unauthorized`: Authentication is required
+
+## `GET /examinations/doctor/{doctorId}`
+
+Retrieves a paginated list of examinations for a specific doctor.
+
+### Path Parameters
+
+- `doctorId`: The ID of the doctor.
+
+### Query Parameters
+
+- `page` (Optional): Page index (0-based, default: `0`).
+- `size` (Optional): Items per page (default: `10`).
+
+### Response
+
+```json
+{
+  "content": [
+    {
+      "examinationId": 1,
+      "encounterCode": "...",
+      "status": "CREATED",
+      "studyDate": "2023-10-15",
+      "visitTime": "2023-10-15T10:30:00",
+      "thumbnailUrl": "http://localhost:8080/api/v1/dicom/instances/1/thumbnail",
+      "bodyPart": "KNEE",
+      "referringPhysician": "Dr. Smith",
+      "patient": {
+        "id": 1,
+        "fullName": "Nguyen Van A"
+      },
+      "images": []
+    }
+  ],
+  "pageNumber": 0,
+  "pageSize": 10,
+  "totalElements": 1,
+  "totalPages": 1,
+  "isLast": true
+}
+```
+
+### Status Codes
+
+- `200 OK`: Request successful
+- `401 Unauthorized`: Authentication is required
+
+## `GET /examinations/patient/{patientId}`
+
+Retrieves a paginated list of examinations for a specific patient.
+
+### Path Parameters
+
+- `patientId`: The ID of the patient.
+
+### Query Parameters
+
+- `page` (Optional): Page index (0-based, default: `0`).
+- `size` (Optional): Items per page (default: `10`).
+
+### Response
+
+```json
+{
+  "content": [
+    {
+      "examinationId": 1,
+      "encounterCode": "...",
+      "status": "CREATED",
+      "studyDate": "2023-10-15",
+      "visitTime": "2023-10-15T10:30:00",
+      "thumbnailUrl": "http://localhost:8080/api/v1/dicom/instances/1/thumbnail",
+      "bodyPart": "KNEE",
+      "referringPhysician": "Dr. Smith",
+      "patient": {
+        "id": 1,
+        "fullName": "Nguyen Van A"
+      },
+      "images": []
+    }
+  ],
+  "pageNumber": 0,
+  "pageSize": 10,
+  "totalElements": 1,
+  "totalPages": 1,
+  "isLast": true
+}
+```
+
+### Status Codes
+
+- `200 OK`: Request successful
+- `401 Unauthorized`: Authentication is required
+
+## Navigation
+
+- [Back to Documentation Index](README.md)
+- [Previous: Database](database.md)
+- [Next: Deployment Guide](deployment.md)
+
+## `GET /dicom/instances/{id}/raw`
+
+Retrieves the raw DICOM file for a specific DICOM instance.
+
+### Path Parameters
+
+- `id`: The ID of the DICOM instance.
+
+### Response
+
+Returns the physical DICOM file with content type `application/dicom`.
+
+### Status Codes
+
+- `200 OK`: Request successful, file attached.
+- `401 Unauthorized`: Authentication is required
+- `404 Not Found`: Instance or file not found.
+
+## `GET /audit-logs`
+
+Retrieves a paginated list of system audit logs. This API is used by administrators to track user activities (such as creating, updating, or deleting records). View (GET) actions are not recorded.
+
+### Request
+
+- `page` (optional): The page index (starts at 0).
+- `size` (optional): Number of records per page (default: 10).
+- `sort` (optional): Field to sort by (default: timeStamp,desc).
+
+### Response
+
+```json
+{
+  "content": [
+    {
+      "id": 1,
+      "username": "admin",
+      "title": "CREATE_DOCTOR",
+      "description": "[\"CreateDoctorRequest(fullName=John Doe, email=john@hospital.com...)\"]",
+      "ipAddress": "192.168.1.100",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)...",
+      "timeStamp": "2026-07-14T15:58:25"
+    }
+  ],
+  "pageNumber": 0,
+  "pageSize": 10,
+  "totalElements": 1,
+  "totalPages": 1,
+  "isLast": true
 }
 ```
 
@@ -2465,3 +2660,27 @@ Retrieves a paginated list of system audit logs. This API is used by administrat
 - `200 OK`: Request successful
 - `401 Unauthorized`: Authentication is required
 - `403 Forbidden`: Authenticated user is not an ADMIN
+
+## `POST /examinations/{id}/generate-report`
+
+Generates a comprehensive PDF report for an examination, including patient information, clinical notes, and AI analysis results (with GradCAM images). The generated PDF is automatically saved to the local file system (e.g., `D:/HealthSync_Exports`).
+
+### Request
+
+```http
+POST /examinations/1/generate-report
+Authorization: Bearer <token>
+```
+
+### Response
+
+```text
+Report generated and saved at: D:\HealthSync_Exports\report_EX-001_1a2b3c4d.pdf
+```
+
+### Status Codes
+
+- `200 OK`: Report generated successfully.
+- `401 Unauthorized`: Authentication is required.
+- `404 Not Found`: Examination with the given ID does not exist.
+- `500 Internal Server Error`: Failed to generate PDF (e.g., template processing or font loading error).

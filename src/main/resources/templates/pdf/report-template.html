@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>Báo cáo Y tế</title>
+    <style>
+        @font-face {
+            font-family: 'Roboto';
+            src: url('classpath:/fonts/Roboto-Regular.ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            font-size: 14px;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #2c3e50;
+            padding-bottom: 10px;
+        }
+
+        .header h1 {
+            color: #2c3e50;
+            margin: 0;
+            font-size: 24px;
+        }
+
+        .header h2 {
+            margin: 5px 0 0 0;
+            font-size: 16px;
+            color: #7f8c8d;
+        }
+
+        .section {
+            margin-bottom: 25px;
+        }
+
+        .section-title {
+            background-color: #ecf0f1;
+            padding: 8px;
+            font-weight: bold;
+            font-size: 16px;
+            margin-bottom: 10px;
+            border-left: 4px solid #3498db;
+        }
+
+        .info-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .info-table td {
+            padding: 5px;
+            vertical-align: top;
+        }
+
+        .info-label {
+            font-weight: bold;
+            width: 150px;
+            color: #555;
+        }
+
+        .ai-result-item {
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+            padding: 15px;
+            page-break-inside: avoid;
+        }
+
+        .ai-image {
+            text-align: center;
+            margin-top: 15px;
+        }
+
+        .ai-image img {
+            max-width: 90%;
+            max-height: 400px;
+            border: 1px solid #ccc;
+        }
+
+        .footer {
+            margin-top: 50px;
+            text-align: right;
+            page-break-inside: avoid;
+        }
+
+        .signature-box {
+            display: inline-block;
+            text-align: center;
+            width: 250px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>KẾT QUẢ CHỤP X-QUANG VÀ PHÂN TÍCH AI</h1>
+        <h2>BỆNH VIỆN / PHÒNG KHÁM HEALTHSYNC</h2>
+    </div>
+
+    <div class="section">
+        <div class="section-title">I. THÔNG TIN BỆNH NHÂN</div>
+        <table class="info-table">
+            <tr>
+                <td class="info-label">Mã bệnh nhân:</td>
+                <td th:text="${data.patientCode}">PT-001</td>
+                <td class="info-label">Giới tính:</td>
+                <td th:text="${data.gender}">Nam</td>
+            </tr>
+            <tr>
+                <td class="info-label">Họ và tên:</td>
+                <td th:text="${data.patientName}">Nguyễn Văn A</td>
+                <td class="info-label">Tuổi/Năm sinh:</td>
+                <td th:text="${data.dob}">01/01/1990</td>
+            </tr>
+            <tr>
+                <td class="info-label">Địa chỉ:</td>
+                <td colspan="3" th:text="${data.address}">Hà Nội</td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="section">
+        <div class="section-title">II. THÔNG TIN KHÁM</div>
+        <table class="info-table">
+            <tr>
+                <td class="info-label">Mã ca khám:</td>
+                <td th:text="${data.encounterCode}">EX-001</td>
+                <td class="info-label">Ngày khám:</td>
+                <td th:text="${data.visitTime}">20/07/2026</td>
+            </tr>
+            <tr>
+                <td class="info-label">Bác sĩ chỉ định:</td>
+                <td colspan="3" th:text="${data.doctorName}">BS. Trần B</td>
+            </tr>
+            <tr>
+                <td class="info-label">Chẩn đoán lâm sàng:</td>
+                <td colspan="3" th:text="${data.clinicalNotes}">Đau nhức khớp gối phải</td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="section">
+        <div class="section-title">III. KẾT QUẢ PHÂN TÍCH AI (X-QUANG KHỚP GỐI)</div>
+        
+        <div th:if="${data.aiResults == null or data.aiResults.isEmpty()}">
+            <p>Không có dữ liệu phân tích AI cho ca khám này.</p>
+        </div>
+
+        <div th:each="result, iterStat : ${data.aiResults}" class="ai-result-item">
+            <h3 style="margin-top: 0;">Ảnh #<span th:text="${iterStat.count}">1</span></h3>
+            <table class="info-table">
+                <tr>
+                    <td class="info-label">Đánh giá KL Grade:</td>
+                    <td>
+                        <strong th:text="${result.klGrade}" style="color: #e74c3c;">2</strong> 
+                        (Độ tin cậy: <span th:text="${result.confidence}">95.5</span>%)
+                    </td>
+                </tr>
+                <tr>
+                    <td class="info-label">Kết luận tự động:</td>
+                    <td th:text="${result.interpretation}">Có dấu hiệu thoái hóa khớp gối nhẹ.</td>
+                </tr>
+            </table>
+
+            <div class="ai-image" th:if="${result.gradcamBase64 != null}">
+                <p><i>Hình ảnh đánh dấu vùng tổn thương (GradCAM):</i></p>
+                <!-- Sử dụng data URI base64 để openhtmltopdf dễ dàng render mà không cần tải qua mạng -->
+                <img th:src="${'data:image/jpeg;base64,' + result.gradcamBase64}" alt="GradCAM Image"/>
+            </div>
+        </div>
+    </div>
+    
+    <div class="section" th:if="${data.finalDiagnosis != null}">
+        <div class="section-title">IV. KẾT LUẬN CỦA BÁC SĨ</div>
+        <p th:text="${data.finalDiagnosis}">Thoái hóa khớp gối độ 2, cần tập vật lý trị liệu.</p>
+    </div>
+
+    <div class="footer">
+        <div class="signature-box">
+            <p><i>Ngày ..... tháng ..... năm .......</i></p>
+            <p><strong>BÁC SĨ CHUYÊN KHOA</strong></p>
+            <br/><br/><br/><br/>
+            <p th:text="${data.doctorName}">BS. Trần B</p>
+        </div>
+    </div>
+
+</body>
+</html>
