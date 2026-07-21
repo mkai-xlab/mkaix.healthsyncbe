@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.thymeleaf.context.Context;
 import org.thymeleaf.spring6.SpringTemplateEngine;
 
@@ -39,6 +40,7 @@ public class PdfExportService {
 
     private static final String EXPORT_DIR = "D:/HealthSync_Exports";
 
+    @Transactional(readOnly = true)
     public String generateAndSavePdfReport(Long examinationId) {
         // 1. Fetch data
         Examination examination = examinationRepository.findById(examinationId)
@@ -103,11 +105,11 @@ public class PdfExportService {
             builder.withHtmlContent(htmlContent, "/");
             
             // Add font
-            ClassPathResource fontResource = new ClassPathResource("fonts/Roboto-Regular.ttf");
+            ClassPathResource fontResource = new ClassPathResource("fonts/tahoma.ttf");
             if (fontResource.exists()) {
-                builder.useFont(fontResource.getFile(), "Roboto");
+                builder.useFont(fontResource.getFile(), "Tahoma");
             } else {
-                log.warn("Roboto font not found in resources!");
+                log.warn("Tahoma font not found in resources!");
             }
             
             builder.toStream(os);
@@ -116,7 +118,7 @@ public class PdfExportService {
             return outputFile.getAbsolutePath();
         } catch (Exception e) {
             log.error("Failed to generate PDF", e);
-            throw new RuntimeException("Failed to generate PDF", e);
+            throw new RuntimeException("Failed to generate PDF: " + e.getMessage(), e);
         }
     }
 
