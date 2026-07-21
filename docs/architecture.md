@@ -27,6 +27,12 @@ Client request (STOMP WebSocket)
 
 The application now actively exposes various RESTful API endpoints securely under the `/api/v1` context path and supports real-time, authenticated STOMP WebSocket connections.
 
+## PDF Reporting Engine
+
+The system uses a combination of **Thymeleaf** and **OpenHTMLToPDF** to dynamically generate and export clinical PDF reports containing patient details and AI analysis results. 
+- **Thymeleaf** binds dynamic Java Data Transfer Objects (DTOs) into HTML templates (stored in `src/main/resources/templates/pdf`).
+- **OpenHTMLToPDF** renders the finalized HTML strings into binary PDF streams, complete with custom typography (e.g., Roboto for Vietnamese) and embedded Base64-encoded AI GradCAM images.
+
 ## Application Entry Point
 
 The application starts from:
