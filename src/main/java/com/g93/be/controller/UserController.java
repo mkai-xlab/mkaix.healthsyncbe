@@ -39,4 +39,16 @@ public class UserController {
         UserResponse response = userService.createUser(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
+    /**
+     * Retrieves the list of medical staff (Doctors, Head of Departments).
+     *
+     * @return List of UserResponse.
+     */
+    @org.springframework.web.bind.annotation.GetMapping("/staff")
+    @PreAuthorize("hasAnyRole('HEAD_OF_DEPARTMENT', 'DEPARTMENT_HEAD', 'ADMIN')")
+    public ResponseEntity<java.util.List<UserResponse>> getStaffList() {
+        log.info("Received request to fetch medical staff list");
+        java.util.List<UserResponse> staffList = userService.getStaffList();
+        return ResponseEntity.ok(staffList);
+    }
 }
