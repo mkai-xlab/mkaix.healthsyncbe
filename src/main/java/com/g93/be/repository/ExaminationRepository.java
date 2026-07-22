@@ -65,4 +65,6 @@ public interface ExaminationRepository extends JpaRepository<Examination, Long> 
     
     Page<Examination> findByCreatedAtBetween(java.time.LocalDateTime start, java.time.LocalDateTime end, Pageable pageable);
     Page<Examination> findByDoctorIdAndCreatedAtBetween(Long doctorId, java.time.LocalDateTime start, java.time.LocalDateTime end, Pageable pageable);
+    
+    Page<Examination> findByPatientIdAndStudyDateBetween(Long patientId, java.time.LocalDate startDate, java.time.LocalDate endDate, Pageable pageable);
 }

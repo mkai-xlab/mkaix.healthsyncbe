@@ -179,4 +179,21 @@ class ExaminationServiceFilterSortTest {
         assertEquals(1, response.content().size());
         verify(examinationRepository).findByCreatedAtBetween(start, end, pageable);
     }
+
+    @Test
+    void testGetExaminationsByPatientIdAndStudyMonth() {
+        Page<Examination> page = new PageImpl<>(List.of(new Examination()));
+        int year = 2026;
+        int month = 7;
+        LocalDate startDate = LocalDate.of(year, month, 1);
+        LocalDate endDate = startDate.withDayOfMonth(startDate.lengthOfMonth());
+        
+        when(examinationRepository.findByPatientIdAndStudyDateBetween(1L, startDate, endDate, pageable)).thenReturn(page);
+        when(examinationMapper.toDto(any(), any())).thenReturn(new ExaminationDto());
+
+        PageResponse<ExaminationDto> response = examinationService.getExaminationsByPatientIdAndStudyMonth(1L, year, month, pageable);
+
+        assertEquals(1, response.content().size());
+        verify(examinationRepository).findByPatientIdAndStudyDateBetween(1L, startDate, endDate, pageable);
+    }
 }

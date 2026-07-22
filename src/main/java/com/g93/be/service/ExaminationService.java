@@ -22,4 +22,5 @@ public interface ExaminationService {
     PageResponse<ExaminationDto> getExaminationsSortedByUploadDate(String direction, String username, Pageable pageable);
     PageResponse<ExaminationDto> getExaminationsFilteredByStudyDate(java.time.LocalDate date, String username, Pageable pageable);
     PageResponse<ExaminationDto> getExaminationsFilteredByUploadDate(java.time.LocalDate date, String username, Pageable pageable);
+    PageResponse<ExaminationDto> getExaminationsByPatientIdAndStudyMonth(Long patientId, int year, int month, Pageable pageable);
 }
