@@ -2933,3 +2933,35 @@ Authorization: Bearer <token>
 - 400 Bad Request: Missing or invalid date format
 - 401 Unauthorized: User is not authenticated
 
+
+## `GET /examinations/patient/{patientId}/filter/study-month`
+
+Retrieves a paginated list of examinations for a specific patient, filtered by the month and year of the study date.
+
+### Path Parameters
+
+- `patientId` (Required): The ID of the patient.
+
+### Query Parameters
+
+- `year` (Required): The year to filter by (e.g., `2026`).
+- `month` (Required): The month to filter by (e.g., `7`).
+- `page` (Optional): Page index (0-based, default: `0`).
+- `size` (Optional): Items per page (default: `10`).
+
+### Request
+
+`http
+GET /examinations/patient/1/filter/study-month?year=2026&month=7
+Authorization: Bearer <token>
+`
+
+### Response
+
+Returns a paginated list of `ExaminationDto`.
+
+### Status Codes
+- 200 OK: Request successful
+- 400 Bad Request: Missing or invalid date format
+- 401 Unauthorized: User is not authenticated
+

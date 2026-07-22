@@ -119,6 +119,26 @@ public class ExaminationController {
     }
 
     /**
+     * Retrieves examinations by patient ID filtered by study month.
+     *
+     * @param patientId The patient ID.
+     * @param year The year to filter by.
+     * @param month The month to filter by.
+     * @param pageable The pagination parameters.
+     * @return A paginated list of examinations for the patient in the given month.
+     */
+    @GetMapping("/patient/{patientId}/filter/study-month")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<PageResponse<ExaminationDto>> getExaminationsByPatientIdAndStudyMonth(
+            @PathVariable Long patientId,
+            @RequestParam int year,
+            @RequestParam int month,
+            @PageableDefault(size = 10) Pageable pageable) {
+        log.info("Received request to get examinations for patient id: {} in {}/{}", patientId, month, year);
+        return ResponseEntity.ok(examinationService.getExaminationsByPatientIdAndStudyMonth(patientId, year, month, pageable));
+    }
+
+    /**
      * Retrieves examinations by status based on user role.
      *
      * @param status The status to filter by.

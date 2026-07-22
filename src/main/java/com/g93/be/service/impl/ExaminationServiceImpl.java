@@ -402,6 +402,16 @@ public class ExaminationServiceImpl implements ExaminationService {
         return mapToPageResponse(examinationPage);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<ExaminationDto> getExaminationsByPatientIdAndStudyMonth(Long patientId, int year, int month, Pageable pageable) {
+        java.time.LocalDate startDate = java.time.LocalDate.of(year, month, 1);
+        java.time.LocalDate endDate = startDate.withDayOfMonth(startDate.lengthOfMonth());
+        
+        Page<Examination> examinationPage = examinationRepository.findByPatientIdAndStudyDateBetween(patientId, startDate, endDate, pageable);
+        return mapToPageResponse(examinationPage);
+    }
+
     private PageResponse<ExaminationDto> mapToPageResponse(Page<Examination> examinationPage) {
         java.util.List<ExaminationDto> content = examinationPage.getContent().stream()
                 .map(ex -> {

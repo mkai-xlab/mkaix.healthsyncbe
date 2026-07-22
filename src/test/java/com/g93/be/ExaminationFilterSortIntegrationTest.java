@@ -24,6 +24,8 @@ import static org.hamcrest.Matchers.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 
 @SpringBootTest
 @Transactional
@@ -65,6 +67,8 @@ public class ExaminationFilterSortIntegrationTest {
     private String doctor1Token;
     private String doctor2Token;
     private String headOfDepartmentToken;
+    
+    private Patient patient;
 
     @BeforeEach
     void setUp() throws Exception {
@@ -95,7 +99,7 @@ public class ExaminationFilterSortIntegrationTest {
         doctor2Token = jwtTokenProvider.generateAccessToken(new CustomUserDetails(doctor2, List.of()));
         headOfDepartmentToken = jwtTokenProvider.generateAccessToken(new CustomUserDetails(headOfDepartment, List.of()));
 
-        Patient patient = new Patient();
+        patient = new Patient();
         patient.setPatientCode("P001");
         patient.setFullName("Test Patient");
         patient.setGender(Gender.MALE);
@@ -220,6 +224,33 @@ public class ExaminationFilterSortIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content", hasSize(1)))
                 .andExpect(jsonPath("$.content[0].description", is("exam3_doc2")));
+    }
+
+    @Test
+    void shouldFilterExaminationsByUploadDate_AsHeadOfDepartment() throws Exception {
+        LocalDate uploadDate = LocalDate.now();
+
+        mockMvc.perform(get("/examinations/filter/upload-date")
+                        .param("date", uploadDate.toString())
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + headOfDepartmentToken)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content", hasSize(3)));
+    }
+
+    @Test
+    void shouldFilterExaminationsByPatientIdAndStudyMonth() throws Exception {
+        int year = 2026;
+        int month = 7;
+        
+        mockMvc.perform(get("/examinations/patient/" + patient.getId() + "/filter/study-month")
+                        .param("year", String.valueOf(year))
+                        .param("month", String.valueOf(month))
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + doctor1Token)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andDo(org.springframework.test.web.servlet.result.MockMvcResultHandlers.print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content", hasSize(3)));
     }
 
     @Test
