@@ -18,4 +18,8 @@ public interface ExaminationService {
     PageResponse<ExaminationDto> getExaminationsByStatus(ExaminationStatus status, String username, Pageable pageable);
     PageResponse<ExaminationDto> getExaminationsByGrade(Integer grade, String username, Pageable pageable);
     java.util.List<com.g93.be.dto.PatientGradeStatsDto> getPatientGradeStatistics(String username);
+    PageResponse<ExaminationDto> getExaminationsSortedByStudyDate(String direction, String username, Pageable pageable);
+    PageResponse<ExaminationDto> getExaminationsSortedByUploadDate(String direction, String username, Pageable pageable);
+    PageResponse<ExaminationDto> getExaminationsFilteredByStudyDate(java.time.LocalDate date, String username, Pageable pageable);
+    PageResponse<ExaminationDto> getExaminationsFilteredByUploadDate(java.time.LocalDate date, String username, Pageable pageable);
 }

@@ -8,6 +8,7 @@ This project can follow semantic versioning when formal releases start.
 
 ### Added
 
+- Added 4 separate endpoints for Examination filtering and sorting (`/examinations/sort/study-date`, `/examinations/sort/upload-date`, `/examinations/filter/study-date`, `/examinations/filter/upload-date`).
 - Added `GET /audit-logs` endpoint for admins to view user activities.
 - Implemented AOP-based Audit Logging pattern to track state modifications automatically via `@LogAction`.
 - Added `GET /doctors/profile` and `PUT /doctors/profile` endpoints for doctors to view and edit their own profiles.
