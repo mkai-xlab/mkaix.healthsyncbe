@@ -300,4 +300,123 @@ public class ExaminationServiceImpl implements ExaminationService {
                 .map(p -> new com.g93.be.dto.PatientGradeStatsDto(p.getGrade(), p.getPatientCount()))
                 .toList();
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<ExaminationDto> getExaminationsSortedByStudyDate(String direction, String username, Pageable pageable) {
+        User user = userRepository.findByUsernameOrEmail(username, username)
+                .orElseThrow(() -> new IllegalArgumentException("User with username/email " + username + " not found"));
+        if (user.getRole() == null || user.getRole().getCode() == null) {
+            return new PageResponse<>(java.util.List.of(), 0, pageable.getPageSize(), 0, 0, true);
+        }
+        
+        org.springframework.data.domain.Sort sort = "asc".equalsIgnoreCase(direction) ? 
+                org.springframework.data.domain.Sort.by("studyDate").ascending() : 
+                org.springframework.data.domain.Sort.by("studyDate").descending();
+        Pageable sortedPageable = org.springframework.data.domain.PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), sort);
+
+        String roleCode = user.getRole().getCode();
+        Page<Examination> examinationPage;
+        if ("DOCTOR".equalsIgnoreCase(roleCode)) {
+            examinationPage = examinationRepository.findByDoctorId(user.getId(), sortedPageable);
+        } else if ("DEPARTMENT_HEAD".equalsIgnoreCase(roleCode) || "HEAD_OF_DEPARTMENT".equalsIgnoreCase(roleCode) || "ADMIN".equalsIgnoreCase(roleCode)) {
+            examinationPage = examinationRepository.findAll(sortedPageable);
+        } else {
+            return new PageResponse<>(java.util.List.of(), 0, pageable.getPageSize(), 0, 0, true);
+        }
+
+        return mapToPageResponse(examinationPage);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<ExaminationDto> getExaminationsSortedByUploadDate(String direction, String username, Pageable pageable) {
+        User user = userRepository.findByUsernameOrEmail(username, username)
+                .orElseThrow(() -> new IllegalArgumentException("User with username/email " + username + " not found"));
+        if (user.getRole() == null || user.getRole().getCode() == null) {
+            return new PageResponse<>(java.util.List.of(), 0, pageable.getPageSize(), 0, 0, true);
+        }
+        
+        org.springframework.data.domain.Sort sort = "asc".equalsIgnoreCase(direction) ? 
+                org.springframework.data.domain.Sort.by("createdAt").ascending() : 
+                org.springframework.data.domain.Sort.by("createdAt").descending();
+        Pageable sortedPageable = org.springframework.data.domain.PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), sort);
+
+        String roleCode = user.getRole().getCode();
+        Page<Examination> examinationPage;
+        if ("DOCTOR".equalsIgnoreCase(roleCode)) {
+            examinationPage = examinationRepository.findByDoctorId(user.getId(), sortedPageable);
+        } else if ("DEPARTMENT_HEAD".equalsIgnoreCase(roleCode) || "HEAD_OF_DEPARTMENT".equalsIgnoreCase(roleCode) || "ADMIN".equalsIgnoreCase(roleCode)) {
+            examinationPage = examinationRepository.findAll(sortedPageable);
+        } else {
+            return new PageResponse<>(java.util.List.of(), 0, pageable.getPageSize(), 0, 0, true);
+        }
+
+        return mapToPageResponse(examinationPage);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<ExaminationDto> getExaminationsFilteredByStudyDate(java.time.LocalDate date, String username, Pageable pageable) {
+        User user = userRepository.findByUsernameOrEmail(username, username)
+                .orElseThrow(() -> new IllegalArgumentException("User with username/email " + username + " not found"));
+        if (user.getRole() == null || user.getRole().getCode() == null) {
+            return new PageResponse<>(java.util.List.of(), 0, pageable.getPageSize(), 0, 0, true);
+        }
+
+        String roleCode = user.getRole().getCode();
+        Page<Examination> examinationPage;
+        if ("DOCTOR".equalsIgnoreCase(roleCode)) {
+            examinationPage = examinationRepository.findByDoctorIdAndStudyDate(user.getId(), date, pageable);
+        } else if ("DEPARTMENT_HEAD".equalsIgnoreCase(roleCode) || "HEAD_OF_DEPARTMENT".equalsIgnoreCase(roleCode) || "ADMIN".equalsIgnoreCase(roleCode)) {
+            examinationPage = examinationRepository.findByStudyDate(date, pageable);
+        } else {
+            return new PageResponse<>(java.util.List.of(), 0, pageable.getPageSize(), 0, 0, true);
+        }
+
+        return mapToPageResponse(examinationPage);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<ExaminationDto> getExaminationsFilteredByUploadDate(java.time.LocalDate date, String username, Pageable pageable) {
+        User user = userRepository.findByUsernameOrEmail(username, username)
+                .orElseThrow(() -> new IllegalArgumentException("User with username/email " + username + " not found"));
+        if (user.getRole() == null || user.getRole().getCode() == null) {
+            return new PageResponse<>(java.util.List.of(), 0, pageable.getPageSize(), 0, 0, true);
+        }
+
+        java.time.LocalDateTime start = date.atStartOfDay();
+        java.time.LocalDateTime end = date.atTime(23, 59, 59);
+
+        String roleCode = user.getRole().getCode();
+        Page<Examination> examinationPage;
+        if ("DOCTOR".equalsIgnoreCase(roleCode)) {
+            examinationPage = examinationRepository.findByDoctorIdAndCreatedAtBetween(user.getId(), start, end, pageable);
+        } else if ("DEPARTMENT_HEAD".equalsIgnoreCase(roleCode) || "HEAD_OF_DEPARTMENT".equalsIgnoreCase(roleCode) || "ADMIN".equalsIgnoreCase(roleCode)) {
+            examinationPage = examinationRepository.findByCreatedAtBetween(start, end, pageable);
+        } else {
+            return new PageResponse<>(java.util.List.of(), 0, pageable.getPageSize(), 0, 0, true);
+        }
+
+        return mapToPageResponse(examinationPage);
+    }
+
+    private PageResponse<ExaminationDto> mapToPageResponse(Page<Examination> examinationPage) {
+        java.util.List<ExaminationDto> content = examinationPage.getContent().stream()
+                .map(ex -> {
+                    java.util.List<DicomInstance> instances = dicomInstanceRepository.findByExaminationId(ex.getId());
+                    return examinationMapper.toDto(ex, instances);
+                })
+                .toList();
+
+        return new PageResponse<>(
+                content,
+                examinationPage.getNumber(),
+                examinationPage.getSize(),
+                examinationPage.getTotalElements(),
+                examinationPage.getTotalPages(),
+                examinationPage.isLast()
+        );
+    }
 }

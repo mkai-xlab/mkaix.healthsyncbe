@@ -36,6 +36,46 @@ public class ExaminationController {
         return ResponseEntity.ok(examinationService.getAllExaminations(pageable));
     }
 
+    @GetMapping("/sort/study-date")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<PageResponse<ExaminationDto>> getExaminationsSortedByStudyDate(
+            @RequestParam(defaultValue = "desc") String direction,
+            java.security.Principal principal,
+            @PageableDefault(size = 10) Pageable pageable) {
+        log.info("Received request to sort examinations by study date ({}) for user: {}", direction, principal.getName());
+        return ResponseEntity.ok(examinationService.getExaminationsSortedByStudyDate(direction, principal.getName(), pageable));
+    }
+
+    @GetMapping("/sort/upload-date")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<PageResponse<ExaminationDto>> getExaminationsSortedByUploadDate(
+            @RequestParam(defaultValue = "desc") String direction,
+            java.security.Principal principal,
+            @PageableDefault(size = 10) Pageable pageable) {
+        log.info("Received request to sort examinations by upload date ({}) for user: {}", direction, principal.getName());
+        return ResponseEntity.ok(examinationService.getExaminationsSortedByUploadDate(direction, principal.getName(), pageable));
+    }
+
+    @GetMapping("/filter/study-date")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<PageResponse<ExaminationDto>> getExaminationsFilteredByStudyDate(
+            @RequestParam @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate date,
+            java.security.Principal principal,
+            @PageableDefault(size = 10) Pageable pageable) {
+        log.info("Received request to filter examinations by study date ({}) for user: {}", date, principal.getName());
+        return ResponseEntity.ok(examinationService.getExaminationsFilteredByStudyDate(date, principal.getName(), pageable));
+    }
+
+    @GetMapping("/filter/upload-date")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<PageResponse<ExaminationDto>> getExaminationsFilteredByUploadDate(
+            @RequestParam @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate date,
+            java.security.Principal principal,
+            @PageableDefault(size = 10) Pageable pageable) {
+        log.info("Received request to filter examinations by upload date ({}) for user: {}", date, principal.getName());
+        return ResponseEntity.ok(examinationService.getExaminationsFilteredByUploadDate(date, principal.getName(), pageable));
+    }
+
     /**
      * Retrieves an examination by ID.
      *
