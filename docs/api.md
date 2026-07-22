@@ -2844,3 +2844,124 @@ Requires Bearer Token in Authorization header.
 - 200 OK: Request successful
 - 401 Unauthorized: User is not authenticated
 
+
+## `GET /examinations/sort/study-date`
+
+Retrieves a paginated list of examinations sorted by study date. The results are automatically filtered based on the authenticated user's role (RBAC):
+- **DOCTOR**: Only returns their own assigned examinations.
+- **ADMIN / DEPARTMENT_HEAD**: Returns all examinations in the system.
+
+### Query Parameters
+
+- `direction` (Optional): Sort direction (`asc` or `desc`, default: `desc`).
+- `page` (Optional): Page index (0-based, default: `0`).
+- `size` (Optional): Items per page (default: `10`).
+
+### Request
+
+`http
+GET /examinations/sort/study-date?direction=desc&page=0&size=10
+Authorization: Bearer <token>
+`
+
+### Status Codes
+- 200 OK: Request successful
+- 401 Unauthorized: User is not authenticated
+
+## `GET /examinations/sort/upload-date`
+
+Retrieves a paginated list of examinations sorted by the date they were uploaded (created at). Role-based filtering applies.
+
+### Query Parameters
+
+- `direction` (Optional): Sort direction (`asc` or `desc`, default: `desc`).
+- `page` (Optional): Page index (0-based, default: `0`).
+- `size` (Optional): Items per page (default: `10`).
+
+### Request
+
+`http
+GET /examinations/sort/upload-date?direction=desc&page=0&size=10
+Authorization: Bearer <token>
+`
+
+### Status Codes
+- 200 OK: Request successful
+- 401 Unauthorized: User is not authenticated
+
+## `GET /examinations/filter/study-date`
+
+Retrieves a paginated list of examinations that occurred on a specific study date. Role-based filtering applies.
+
+### Query Parameters
+
+- `date` (Required): The study date to filter by (format: `YYYY-MM-DD`).
+- `page` (Optional): Page index (0-based, default: `0`).
+- `size` (Optional): Items per page (default: `10`).
+
+### Request
+
+`http
+GET /examinations/filter/study-date?date=2026-07-22&page=0&size=10
+Authorization: Bearer <token>
+`
+
+### Status Codes
+- 200 OK: Request successful
+- 400 Bad Request: Missing or invalid date format
+- 401 Unauthorized: User is not authenticated
+
+## `GET /examinations/filter/upload-date`
+
+Retrieves a paginated list of examinations that were uploaded (created) on a specific date. Role-based filtering applies.
+
+### Query Parameters
+
+- `date` (Required): The upload date to filter by (format: `YYYY-MM-DD`).
+- `page` (Optional): Page index (0-based, default: `0`).
+- `size` (Optional): Items per page (default: `10`).
+
+### Request
+
+`http
+GET /examinations/filter/upload-date?date=2026-07-22&page=0&size=10
+Authorization: Bearer <token>
+`
+
+### Status Codes
+- 200 OK: Request successful
+- 400 Bad Request: Missing or invalid date format
+- 401 Unauthorized: User is not authenticated
+
+
+## `GET /examinations/patient/{patientId}/filter/study-month`
+
+Retrieves a paginated list of examinations for a specific patient, filtered by the month and year of the study date.
+
+### Path Parameters
+
+- `patientId` (Required): The ID of the patient.
+
+### Query Parameters
+
+- `year` (Required): The year to filter by (e.g., `2026`).
+- `month` (Required): The month to filter by (e.g., `7`).
+- `page` (Optional): Page index (0-based, default: `0`).
+- `size` (Optional): Items per page (default: `10`).
+
+### Request
+
+`http
+GET /examinations/patient/1/filter/study-month?year=2026&month=7
+Authorization: Bearer <token>
+`
+
+### Response
+
+Returns a paginated list of `ExaminationDto`.
+
+### Status Codes
+- 200 OK: Request successful
+- 400 Bad Request: Missing or invalid date format
+- 401 Unauthorized: User is not authenticated
+
