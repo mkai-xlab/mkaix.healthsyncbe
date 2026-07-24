@@ -14,6 +14,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.g93.be.security.CustomUserDetails;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -147,5 +150,37 @@ public class PatientServiceImpl implements PatientService {
         pdr.setRecentExaminations(examDtos);
 
         return pdr;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<PatientResponse> getPatientsByUploadDate(LocalDate date, Pageable pageable, CustomUserDetails userDetails) {
+        Long filterDoctorId = null;
+        if (userDetails != null && userDetails.getUser() != null && userDetails.getUser().getRole() != null) {
+            String roleCode = userDetails.getUser().getRole().getCode();
+            if ("DOCTOR".equals(roleCode)) {
+                filterDoctorId = userDetails.getUser().getId();
+            }
+            // For DEPARTMENT_HEAD or ADMIN, filterDoctorId remains null, meaning fetch all patients
+        }
+
+        LocalDateTime startOfDay = date.atStartOfDay();
+        LocalDateTime startOfNextDay = date.plusDays(1).atStartOfDay();
+
+        Page<Patient> patientPage = patientRepository.findPatientsByUploadDateAndDoctor(
+                startOfDay, startOfNextDay, filterDoctorId, pageable);
+
+        List<PatientResponse> content = patientPage.getContent().stream()
+                .map(patientMapper::toResponse)
+                .toList();
+
+        return new PageResponse<>(
+                content,
+                patientPage.getNumber(),
+                patientPage.getSize(),
+                patientPage.getTotalElements(),
+                patientPage.getTotalPages(),
+                patientPage.isLast()
+        );
     }
 }

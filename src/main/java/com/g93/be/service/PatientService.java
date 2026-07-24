@@ -5,7 +5,9 @@ import com.g93.be.dto.EditPatientRequest;
 import com.g93.be.dto.PatientResponse;
 import com.g93.be.dto.PageResponse;
 import com.g93.be.dto.PatientFilterRequest;
+import com.g93.be.security.CustomUserDetails;
 import org.springframework.data.domain.Pageable;
+import java.time.LocalDate;
 
 public interface PatientService {
     PatientResponse createPatient(CreatePatientRequest request);
@@ -13,4 +15,5 @@ public interface PatientService {
     void deletePatient(Long id);
     PatientResponse editPatient(Long id, EditPatientRequest request);
     com.g93.be.dto.PatientDetailsResponse getPatientDetailsWithImages(String patientId);
+    PageResponse<PatientResponse> getPatientsByUploadDate(LocalDate date, Pageable pageable, CustomUserDetails userDetails);
 }
