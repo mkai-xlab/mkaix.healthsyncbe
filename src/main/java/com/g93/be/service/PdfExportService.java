@@ -11,6 +11,7 @@ import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.thymeleaf.context.Context;
@@ -38,7 +39,8 @@ public class PdfExportService {
     private final SpringTemplateEngine templateEngine;
     private final ExaminationRepository examinationRepository;
 
-    private static final String EXPORT_DIR = "D:/HealthSync_Exports";
+    @Value("${app.pdf.export-dir:D:/HealthSync_Exports}")
+    private String exportDir;
 
     @Transactional(readOnly = true)
     public String generateAndSavePdfReport(Long examinationId) {
@@ -92,12 +94,12 @@ public class PdfExportService {
 
         // 5. Generate PDF
         String fileName = "report_" + examination.getEncounterCode() + "_" + UUID.randomUUID().toString().substring(0, 8) + ".pdf";
-        File exportDir = new File(EXPORT_DIR);
-        if (!exportDir.exists()) {
-            exportDir.mkdirs();
+        File exportDirectory = new File(exportDir);
+        if (!exportDirectory.exists()) {
+            exportDirectory.mkdirs();
         }
         
-        File outputFile = new File(exportDir, fileName);
+        File outputFile = new File(exportDirectory, fileName);
 
         try (FileOutputStream os = new FileOutputStream(outputFile)) {
             PdfRendererBuilder builder = new PdfRendererBuilder();
