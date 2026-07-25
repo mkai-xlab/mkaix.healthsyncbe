@@ -22,6 +22,15 @@ public class NotificationController {
     private final NotificationService notificationService;
 
     /**
+     * Retrieves all notifications for the currently authenticated user.
+     */
+    @GetMapping
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<List<NotificationDto>> getAllNotifications(Authentication authentication) {
+        return ResponseEntity.ok(notificationService.getAllNotifications(authentication.getName()));
+    }
+
+    /**
      * Retrieves all unread notifications for the currently authenticated user.
      */
     @GetMapping("/unread")

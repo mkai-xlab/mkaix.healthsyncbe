@@ -8,6 +8,10 @@ This project can follow semantic versioning when formal releases start.
 
 ### Added
 
+- Added `fullName` to successful login responses.
+- Added `GET /notifications` to retrieve all notifications for the authenticated user, including read items.
+- Added admin-only `DELETE /permissions/{id}` and `DELETE /features/{id}` endpoints with dependent RBAC relationship cleanup and audit logging.
+- Added focused unit and Bruno tests for the new authentication, notification, permission, and feature behavior.
 - Added 4 separate endpoints for Examination filtering and sorting (`/examinations/sort/study-date`, `/examinations/sort/upload-date`, `/examinations/filter/study-date`, `/examinations/filter/upload-date`).
 - Added `GET /audit-logs` endpoint for admins to view user activities.
 - Implemented AOP-based Audit Logging pattern to track state modifications automatically via `@LogAction`.
