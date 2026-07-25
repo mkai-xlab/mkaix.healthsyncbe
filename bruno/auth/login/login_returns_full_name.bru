@@ -1,0 +1,24 @@
+meta {
+  name: Login Returns Full Name
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/auth/login
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "username": "doctor.b",
+    "password": "Test123@"
+  }
+}
+
+tests {
+  test("response includes fullName", function() {
+    expect(res.body.fullName).to.be.a("string").and.not.be.empty;
+  });
+}

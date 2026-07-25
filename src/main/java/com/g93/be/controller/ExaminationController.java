@@ -36,6 +36,46 @@ public class ExaminationController {
         return ResponseEntity.ok(examinationService.getAllExaminations(pageable));
     }
 
+    @GetMapping("/sort/study-date")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<PageResponse<ExaminationDto>> getExaminationsSortedByStudyDate(
+            @RequestParam(defaultValue = "desc") String direction,
+            java.security.Principal principal,
+            @PageableDefault(size = 10) Pageable pageable) {
+        log.info("Received request to sort examinations by study date ({}) for user: {}", direction, principal.getName());
+        return ResponseEntity.ok(examinationService.getExaminationsSortedByStudyDate(direction, principal.getName(), pageable));
+    }
+
+    @GetMapping("/sort/upload-date")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<PageResponse<ExaminationDto>> getExaminationsSortedByUploadDate(
+            @RequestParam(defaultValue = "desc") String direction,
+            java.security.Principal principal,
+            @PageableDefault(size = 10) Pageable pageable) {
+        log.info("Received request to sort examinations by upload date ({}) for user: {}", direction, principal.getName());
+        return ResponseEntity.ok(examinationService.getExaminationsSortedByUploadDate(direction, principal.getName(), pageable));
+    }
+
+    @GetMapping("/filter/study-date")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<PageResponse<ExaminationDto>> getExaminationsFilteredByStudyDate(
+            @RequestParam @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate date,
+            java.security.Principal principal,
+            @PageableDefault(size = 10) Pageable pageable) {
+        log.info("Received request to filter examinations by study date ({}) for user: {}", date, principal.getName());
+        return ResponseEntity.ok(examinationService.getExaminationsFilteredByStudyDate(date, principal.getName(), pageable));
+    }
+
+    @GetMapping("/filter/upload-date")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<PageResponse<ExaminationDto>> getExaminationsFilteredByUploadDate(
+            @RequestParam @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate date,
+            java.security.Principal principal,
+            @PageableDefault(size = 10) Pageable pageable) {
+        log.info("Received request to filter examinations by upload date ({}) for user: {}", date, principal.getName());
+        return ResponseEntity.ok(examinationService.getExaminationsFilteredByUploadDate(date, principal.getName(), pageable));
+    }
+
     /**
      * Retrieves an examination by ID.
      *
@@ -76,6 +116,26 @@ public class ExaminationController {
             @PageableDefault(size = 10) Pageable pageable) {
         log.info("Received request to get examinations by patient id: {}", patientId);
         return ResponseEntity.ok(examinationService.getExaminationsByPatientId(patientId, pageable));
+    }
+
+    /**
+     * Retrieves examinations by patient ID filtered by study month.
+     *
+     * @param patientId The patient ID.
+     * @param year The year to filter by.
+     * @param month The month to filter by.
+     * @param pageable The pagination parameters.
+     * @return A paginated list of examinations for the patient in the given month.
+     */
+    @GetMapping("/patient/{patientId}/filter/study-month")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<PageResponse<ExaminationDto>> getExaminationsByPatientIdAndStudyMonth(
+            @PathVariable Long patientId,
+            @RequestParam int year,
+            @RequestParam int month,
+            @PageableDefault(size = 10) Pageable pageable) {
+        log.info("Received request to get examinations for patient id: {} in {}/{}", patientId, month, year);
+        return ResponseEntity.ok(examinationService.getExaminationsByPatientIdAndStudyMonth(patientId, year, month, pageable));
     }
 
     /**

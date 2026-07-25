@@ -15,6 +15,11 @@ import org.springframework.data.web.PageableDefault;
 import com.g93.be.dto.PageResponse;
 import com.g93.be.dto.PatientFilterRequest;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import com.g93.be.security.CustomUserDetails;
+import java.time.LocalDate;
 
 
 /**
@@ -92,5 +97,23 @@ public class PatientController {
     @PreAuthorize("hasAuthority('VIEW_PATIENT_DETAIL')")
     public ResponseEntity<com.g93.be.dto.PatientDetailsResponse> getPatientDetailsWithImages(@PathVariable String patientId) {
         return ResponseEntity.ok(patientService.getPatientDetailsWithImages(patientId));
+    }
+
+    /**
+     * Retrieves patients filtered by upload date.
+     *
+     * @param date     The upload date to filter by.
+     * @param pageable The pagination parameters.
+     * @return A paginated list of patients.
+     */
+    @GetMapping("/filter/upload-date")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<PageResponse<PatientResponse>> getPatientsByUploadDate(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            @PageableDefault(size = 10) Pageable pageable) {
+        log.info("Received request to get patients by upload date: {}", date);
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+        return ResponseEntity.ok(patientService.getPatientsByUploadDate(date, pageable, userDetails));
     }
 }
