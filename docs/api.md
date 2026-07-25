@@ -4,7 +4,58 @@
 
 All paths below are relative to the configured `/api/v1` context path.
 
-## Optimize Branch API Updates
+## Recent API Updates
+
+### KL result confirmation and adjustment
+
+The reviewing doctor must choose exactly one final-result action. A doctor assigned to the examination can confirm the AI prediction, or adjust it to a clinically determined Kellgren-Lawrence grade. A department head inherits both actions and can review examinations outside their own assignment.
+
+#### `PUT /ai/results/{aiResultId}/confirm`
+
+Confirms the AI-predicted KL grade as the final result. An assigned doctor requires the `DOCTOR` role and `CONFIRM_CONCLUSION` authority. Department heads can confirm using either department-head role.
+
+No request body is required.
+
+#### `PUT /ai/results/{aiResultId}/kl-grade`
+
+Adjusts the final KL grade while retaining the original AI prediction. Doctors require the `DOCTOR` role and `OVERRIDE_AI_GRADE` authority. Department heads can adjust using either department-head role.
+
+Request:
+
+```json
+{
+  "confirmedKlGrade": 3,
+  "reviewNote": "Clinical findings support KL grade 3"
+}
+```
+
+`confirmedKlGrade` must be an integer from `0` to `4`. `reviewNote` is required and limited to 2000 characters.
+
+Response:
+
+```json
+{
+  "reviewId": 23,
+  "aiResultId": 19,
+  "examinationId": 11,
+  "predictedKlGrade": 2,
+  "confirmedKlGrade": 3,
+  "decision": "DOCTOR_ADJUSTED",
+  "reviewNote": "Clinical findings support KL grade 3",
+  "reviewedByDoctorId": 7,
+  "reviewedAt": "2026-07-25T09:30:00"
+}
+```
+
+The response decision is `AI_CONFIRMED` when the reviewer accepts the prediction and `DOCTOR_ADJUSTED` when the reviewer changes it. Subsequent examination responses expose `predictedGrade`, `confirmedGrade`, `effectiveGrade`, and `reviewDecision` for each AI result.
+
+Successful confirm and adjust operations are recorded by the audit-log aspect with action codes `CONFIRM_AI_GRADE` and `OVERRIDE_AI_GRADE`, respectively.
+
+After all AI results in every latest analysis have a review decision, the examination moves to `VERIFIED`. Review changes are rejected after the examination reaches `REPORT_GENERATED`.
+
+PDF export reads only the latest AI analysis for each DICOM image and requires every exported AI result to have a review decision. For `AI_CONFIRMED`, the final exported KL grade is the original AI prediction. For `DOCTOR_ADJUSTED`, it is the reviewer-entered grade. Missing or unconfirmed AI results cause PDF export to return `400 Bad Request`. A successful export moves the examination to `REPORT_GENERATED`.
+
+Status codes for both review endpoints: `200 OK`, `400 Bad Request` for invalid input or an unknown AI result, `401 Unauthorized`, `403 Forbidden` when the required role, authority, or examination ownership is missing.
 
 ### `POST /auth/login` response update
 

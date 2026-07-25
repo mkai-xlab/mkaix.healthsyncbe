@@ -185,6 +185,7 @@ public class AiServiceImpl implements AiService {
                                     .aiAnalysisId(analysis.getId())
                                     .aiResultId(aiResult.getId())
                                     .predictedGrade(aiResult.getPredictedGrade())
+                                    .effectiveGrade(aiResult.getPredictedGrade())
                                     .confidence(aiResult.getConfidence())
                                     .description(aiResult.getDescription())
                                     .details(p.getDetails())

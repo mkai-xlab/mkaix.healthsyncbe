@@ -169,7 +169,7 @@ erDiagram
         bigint doctor_id FK
         bigint ai_result_id FK
         int confirmed_kl_grade
-        text doctor_diagnosis
+        varchar decision
         text review_note
         datetime reviewed_at
     }

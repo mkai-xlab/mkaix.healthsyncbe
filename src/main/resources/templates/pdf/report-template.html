@@ -156,11 +156,20 @@
             <h3 style="margin-top: 0;">Ảnh #<span th:text="${iterStat.count}">1</span></h3>
             <table class="info-table">
                 <tr>
-                    <td class="info-label">Đánh giá KL Grade:</td>
+                    <td class="info-label">Kết quả KL cuối cùng:</td>
                     <td>
                         <strong th:text="${result.klGrade}" style="color: #e74c3c;">2</strong> 
-                        (Độ tin cậy: <span th:text="${result.confidence}">95.5</span>%)
+                        (<span th:text="${result.decision == 'AI_CONFIRMED' ? 'Xác nhận kết quả AI' : 'Bác sĩ/Trưởng khoa điều chỉnh'}">Nguồn kết quả</span>)
                     </td>
+                </tr>
+                <tr>
+                    <td class="info-label">Kết quả AI ban đầu:</td>
+                    <td>KL <span th:text="${result.aiPredictedGrade}">2</span>
+                        (Độ tin cậy AI: <span th:text="${result.confidence}">95.5</span>%)</td>
+                </tr>
+                <tr th:if="${result.reviewNote != null}">
+                    <td class="info-label">Ghi chú xác nhận:</td>
+                    <td th:text="${result.reviewNote}">Ghi chú</td>
                 </tr>
                 <tr>
                     <td class="info-label">Kết luận tự động:</td>
