@@ -1,0 +1,15 @@
+meta {
+  name: Get Medical Staff List
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/users/staff
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}

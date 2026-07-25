@@ -59,4 +59,12 @@ public interface ExaminationRepository extends JpaRepository<Examination, Long> 
         "GROUP BY e.maxPredictedGrade"
     )
     List<GradePatientCountProjection> countPatientsByLatestGradeForDoctor(@org.springframework.data.repository.query.Param("doctorId") Long doctorId);
+
+    Page<Examination> findByStudyDate(java.time.LocalDate studyDate, Pageable pageable);
+    Page<Examination> findByDoctorIdAndStudyDate(Long doctorId, java.time.LocalDate studyDate, Pageable pageable);
+    
+    Page<Examination> findByCreatedAtBetween(java.time.LocalDateTime start, java.time.LocalDateTime end, Pageable pageable);
+    Page<Examination> findByDoctorIdAndCreatedAtBetween(Long doctorId, java.time.LocalDateTime start, java.time.LocalDateTime end, Pageable pageable);
+    
+    Page<Examination> findByPatientIdAndStudyDateBetween(Long patientId, java.time.LocalDate startDate, java.time.LocalDate endDate, Pageable pageable);
 }

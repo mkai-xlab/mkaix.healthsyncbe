@@ -8,6 +8,16 @@ This project can follow semantic versioning when formal releases start.
 
 ### Added
 
+- Added explicit KL review decisions: assigned doctors can confirm or adjust AI results; department heads inherit both review actions across assignments; both actions are audit logged.
+- Added persistent diagnosis reviews that retain the original AI grade and expose the decision, confirmed grade, and effective grade in examination responses.
+- Updated PDF export to use only the latest confirmed AI analysis and select the final KL grade from either the confirmed AI prediction or the doctor/department-head adjustment.
+- Added examination status transitions from `NEED_VERIFY` to `VERIFIED` after all latest AI results are reviewed, then to `REPORT_GENERATED` after a successful PDF export.
+- Added service, RBAC, mapper, PDF, and Bruno tests for KL confirmation and adjustment.
+- Added `fullName` to successful login responses.
+- Added `GET /notifications` to retrieve all notifications for the authenticated user, including read items.
+- Added admin-only `DELETE /permissions/{id}` and `DELETE /features/{id}` endpoints with dependent RBAC relationship cleanup and audit logging.
+- Added focused unit and Bruno tests for the new authentication, notification, permission, and feature behavior.
+- Added 4 separate endpoints for Examination filtering and sorting (`/examinations/sort/study-date`, `/examinations/sort/upload-date`, `/examinations/filter/study-date`, `/examinations/filter/upload-date`).
 - Added `GET /audit-logs` endpoint for admins to view user activities.
 - Implemented AOP-based Audit Logging pattern to track state modifications automatically via `@LogAction`.
 - Added `GET /doctors/profile` and `PUT /doctors/profile` endpoints for doctors to view and edit their own profiles.

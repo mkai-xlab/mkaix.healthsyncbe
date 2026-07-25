@@ -82,3 +82,9 @@ This document outlines the standard coding rules and project-specific convention
 
 ## 16. Configuration & Environment Variables
 - **Secrets Management**: Never hardcode sensitive credentials (database passwords, Redis URLs, external API keys, JWT secrets) directly in Java classes. Always inject them via `@Value("${...}")` or `@ConfigurationProperties` to allow environment-specific overrides in `application.yml`.
+
+## 17. Unit Tests and Test Report Synchronization (Required)
+- **Mandatory Coverage**: Every behavior change, endpoint addition, response payload change, or bug fix MUST include or update focused automated unit tests in the same task. Cover the successful path and material failure, authorization, and boundary paths.
+- **Mandatory Execution**: Run the affected unit-test classes before completing the task. Never record a test as passed unless the command completed successfully.
+- **Mandatory Report Update**: After tests pass, update `docs/unit-test-report.md` in the same task with the exact command, test cases, classifications, execution date, and totals from Surefire reports.
+- **API Change Set**: An API change is incomplete until implementation, unit tests, Bruno requests, `docs/api.md`, `CHANGELOG.md`, and `docs/unit-test-report.md` are synchronized.

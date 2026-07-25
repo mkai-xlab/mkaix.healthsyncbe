@@ -1,12 +1,10 @@
 package com.g93.be.mapper;
 
-
-import com.g93.be.entity.DicomInstance;
-import com.g93.be.entity.Examination;
-import com.g93.be.entity.AiAnalysis;
-import com.g93.be.entity.AiResult;
 import com.g93.be.dto.ExaminationDto;
 import com.g93.be.dto.ExaminationImageDto;
+import com.g93.be.entity.AiAnalysis;
+import com.g93.be.entity.AiResult;
+import com.g93.be.entity.DiagnosisReview;
 import com.g93.be.entity.DicomInstance;
 import com.g93.be.entity.Examination;
 import lombok.RequiredArgsConstructor;
@@ -85,6 +83,9 @@ public class ExaminationMapper {
                 img.setStatus(ex.getStatus() != null ? ex.getStatus().name() : null);
                 img.setVisitTime(ex.getVisitTime());
                 img.setImageUrl(baseUrl + "/dicom/instances/" + instance.getId() + "/image");
+                if (instance.getAnnotatedImage() != null) {
+                    img.setAnnotatedImageUrl(baseUrl + "/ai/image/" + instance.getAnnotatedImage().getId());
+                }
 
                 // Map aiResults lazily
                 List<com.g93.be.dto.AiPredictionResultDto> aiResList = new ArrayList<>();
@@ -92,6 +93,7 @@ public class ExaminationMapper {
                     for (AiAnalysis analysis : instance.getAiAnalyses()) {
                         if (analysis.getAiResults() != null) {
                             for (AiResult aiRes : analysis.getAiResults()) {
+                                DiagnosisReview review = aiRes.getDiagnosisReview();
                                 java.util.Map<String, Double> details = new java.util.HashMap<>();
                                 if (aiRes.getConfidenceScore() != null) {
                                     details.put("0Normal", aiRes.getConfidenceScore().getC0Confidence());
@@ -100,15 +102,30 @@ public class ExaminationMapper {
                                     details.put("3Moderate", aiRes.getConfidenceScore().getC3Confidence());
                                     details.put("4Severe", aiRes.getConfidenceScore().getC4Confidence());
                                 }
+                                
+                                String gradcamUrl = aiRes.getGradcamImage() != null ? baseUrl + "/ai/image/" + aiRes.getGradcamImage().getId() : 
+                                        (aiRes.getStorageHeatmapFilePath() != null ? baseUrl + "/ai/heatmap/" + aiRes.getId() : null);
+                                String roiUrl = aiRes.getRoiImage() != null ? baseUrl + "/ai/image/" + aiRes.getRoiImage().getId() : null;
+                                String annotatedUrl = instance.getAnnotatedImage() != null ? baseUrl + "/ai/image/" + instance.getAnnotatedImage().getId() : null;
+
                                 com.g93.be.dto.AiPredictionResultDto dto = com.g93.be.dto.AiPredictionResultDto.builder()
                                     .dicomInstanceId(instance.getId())
                                     .aiAnalysisId(analysis.getId())
                                     .aiResultId(aiRes.getId())
                                     .predictedGrade(aiRes.getPredictedGrade())
+                                    .confirmedGrade(review != null ? review.getConfirmedKlGrade() : null)
+                                    .effectiveGrade(review != null ? review.getConfirmedKlGrade() : aiRes.getPredictedGrade())
+                                    .reviewDecision(review != null ? review.getDecision().name() : null)
                                     .confidence(aiRes.getConfidence())
                                     .description(aiRes.getDescription())
                                     .details(details.isEmpty() ? null : details)
-                                    .gradcamImageUrl(aiRes.getStorageHeatmapFilePath() != null ? baseUrl + "/ai/heatmap/" + aiRes.getId() : null)
+                                    .kneeSide(aiRes.getKneeSide())
+                                    .gradcamImageUrl(gradcamUrl)
+                                    .roiImageUrl(roiUrl)
+                                    .annotatedImageUrl(annotatedUrl)
+                                    .reviewNote(review != null ? review.getReviewNote() : null)
+                                    .reviewedByDoctorId(review != null ? review.getDoctor().getId() : null)
+                                    .reviewedAt(review != null ? review.getReviewedAt() : null)
                                     .build();
                                 aiResList.add(dto);
                             }

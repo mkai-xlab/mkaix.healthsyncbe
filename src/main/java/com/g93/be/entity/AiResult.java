@@ -50,4 +50,7 @@ public class AiResult {
 
     @OneToOne(mappedBy = "aiResult", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private AiResultConfidenceScore confidenceScore;
+
+    @OneToOne(mappedBy = "aiResult", fetch = FetchType.LAZY)
+    private DiagnosisReview diagnosisReview;
 }

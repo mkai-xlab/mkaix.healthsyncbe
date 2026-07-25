@@ -1,6 +1,5 @@
 package com.g93.be.service.impl;
 
-
 import com.g93.be.entity.DicomInstanceStatus;
 import com.g93.be.dto.AiPredictionRequest;
 import com.g93.be.dto.AiPredictionResultDto;
@@ -9,6 +8,8 @@ import com.g93.be.dto.ExaminationDto;
 import com.g93.be.entity.*;
 import com.g93.be.repository.*;
 import com.g93.be.service.AiService;
+import com.g93.be.service.NotificationService;
+import com.g93.be.dto.SendNotificationRequest;
 import com.g93.be.mapper.ExaminationMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -40,6 +41,7 @@ public class AiServiceImpl implements AiService {
     private final AiResultConfidenceScoreRepository aiResultConfidenceScoreRepository;
     private final ImageRepository imageRepository;
     private final ExaminationMapper examinationMapper;
+    private final NotificationService notificationService;
 
     @Value("${app.storage.base-dir:D:/Capstone/data}")
     private String storageBaseDir;
@@ -67,9 +69,11 @@ public class AiServiceImpl implements AiService {
                 continue;
             }
 
-            String pngPath = instance.getImage() != null ? instance.getImage().getFilePath() : null; // e.g. /images/uuid.png
+            String pngPath = instance.getImage() != null ? instance.getImage().getFilePath() : null; // e.g.
+                                                                                                     // /images/uuid.png
             if (pngPath == null) {
-                throw new RuntimeException("Image/PNG path is NULL for instance ID: " + instanceId + ". This means the DICOM to PNG conversion failed during upload.");
+                throw new RuntimeException("Image/PNG path is NULL for instance ID: " + instanceId
+                        + ". This means the DICOM to PNG conversion failed during upload.");
             }
 
             String safePngPath = pngPath;
@@ -103,7 +107,8 @@ public class AiServiceImpl implements AiService {
                     String annotatedBase64 = aiData.getAnnotatedImage();
                     Image annotatedImageEntity = null;
                     if (annotatedBase64 != null) {
-                        String annotatedPath = saveBase64ToDisk(annotatedBase64, UUID.randomUUID().toString() + "_annotated.png");
+                        String annotatedPath = saveBase64ToDisk(annotatedBase64,
+                                UUID.randomUUID().toString() + "_annotated.png");
                         if (annotatedPath != null) {
                             annotatedImageEntity = new Image();
                             annotatedImageEntity.setFilePath(annotatedPath);
@@ -126,7 +131,8 @@ public class AiServiceImpl implements AiService {
                             // Decode ROI
                             Image roiImageEntity = null;
                             if (p.getRoiImage() != null) {
-                                String roiPath = saveBase64ToDisk(p.getRoiImage(), UUID.randomUUID().toString() + "_roi.png");
+                                String roiPath = saveBase64ToDisk(p.getRoiImage(),
+                                        UUID.randomUUID().toString() + "_roi.png");
                                 if (roiPath != null) {
                                     roiImageEntity = new Image();
                                     roiImageEntity.setFilePath(roiPath);
@@ -137,7 +143,8 @@ public class AiServiceImpl implements AiService {
                             // Decode GradCAM
                             Image gradcamImageEntity = null;
                             if (p.getGradcamImage() != null) {
-                                String gradcamPath = saveBase64ToDisk(p.getGradcamImage(), UUID.randomUUID().toString() + "_gradcam.png");
+                                String gradcamPath = saveBase64ToDisk(p.getGradcamImage(),
+                                        UUID.randomUUID().toString() + "_gradcam.png");
                                 if (gradcamPath != null) {
                                     gradcamImageEntity = new Image();
                                     gradcamImageEntity.setFilePath(gradcamPath);
@@ -155,7 +162,8 @@ public class AiServiceImpl implements AiService {
                             aiResult.setRoiImage(roiImageEntity);
                             aiResult.setGradcamImage(gradcamImageEntity);
                             if (gradcamImageEntity != null) {
-                                aiResult.setStorageHeatmapFilePath(gradcamImageEntity.getFilePath()); // keep backward compatibility
+                                aiResult.setStorageHeatmapFilePath(gradcamImageEntity.getFilePath()); // keep backward
+                                                                                                      // compatibility
                             }
                             aiResult = aiResultRepository.save(aiResult);
 
@@ -177,13 +185,17 @@ public class AiServiceImpl implements AiService {
                                     .aiAnalysisId(analysis.getId())
                                     .aiResultId(aiResult.getId())
                                     .predictedGrade(aiResult.getPredictedGrade())
+                                    .effectiveGrade(aiResult.getPredictedGrade())
                                     .confidence(aiResult.getConfidence())
                                     .description(aiResult.getDescription())
                                     .details(p.getDetails())
                                     .kneeSide(aiResult.getKneeSide())
                                     .roiImageUrl(roiImageEntity != null ? "/api/v1/ai/roi/" + aiResult.getId() : null)
-                                    .gradcamImageUrl(gradcamImageEntity != null ? "/api/v1/ai/heatmap/" + aiResult.getId() : null)
-                                    .annotatedImageUrl(annotatedImageEntity != null ? "/api/v1/ai/annotated/" + instanceId : null)
+                                    .gradcamImageUrl(
+                                            gradcamImageEntity != null ? "/api/v1/ai/heatmap/" + aiResult.getId()
+                                                    : null)
+                                    .annotatedImageUrl(
+                                            annotatedImageEntity != null ? "/api/v1/ai/annotated/" + instanceId : null)
                                     .build();
 
                             aiResultMap.computeIfAbsent(instanceId, k -> new ArrayList<>()).add(dto);
@@ -193,7 +205,7 @@ public class AiServiceImpl implements AiService {
                     // Update Examination Status and DicomInstance Status
                     instance.setStatus(DicomInstanceStatus.GET_RESULTED);
                     dicomInstanceRepository.save(instance);
-                    
+
                     Examination exam = instance.getExamination();
                     if (exam != null) {
                         exam.setStatus(ExaminationStatus.NEED_VERIFY);
@@ -242,13 +254,62 @@ public class AiServiceImpl implements AiService {
             }
         }
 
+        // --- WebSocket Notification Logic ---
+        Map<Long, Map<Long, Integer>> maxGradeByPatientByDoctor = new HashMap<>();
+
+        for (Examination exam : uniqueExams.values()) {
+            if (exam.getDoctor() == null || exam.getPatient() == null)
+                continue;
+            Long doctorId = exam.getDoctor().getId();
+            Long patientId = exam.getPatient().getId();
+            int currentMax = exam.getMaxPredictedGrade() != null ? exam.getMaxPredictedGrade() : -1;
+
+            maxGradeByPatientByDoctor
+                    .computeIfAbsent(doctorId, k -> new HashMap<>())
+                    .merge(patientId, currentMax, (a, b) -> Math.max(a, b));
+        }
+
+        for (Map.Entry<Long, Map<Long, Integer>> entry : maxGradeByPatientByDoctor.entrySet()) {
+            Long doctorId = entry.getKey();
+            Map<Long, Integer> patientGrades = entry.getValue();
+
+            int kl4 = 0, kl3 = 0, kl2 = 0, kl1 = 0;
+            for (Integer grade : patientGrades.values()) {
+                if (grade != null) {
+                    if (grade == 4)
+                        kl4++;
+                    else if (grade == 3)
+                        kl3++;
+                    else if (grade == 2)
+                        kl2++;
+                    else if (grade == 1)
+                        kl1++;
+                }
+            }
+
+            int totalPatients = patientGrades.size();
+            String message = String.format(
+                    "Phân tích AI hoàn tất cho %d bệnh nhân. Chi tiết: %d Bệnh Nhân mắc KL4, %d Bệnh Nhân mắc KL3, %d Bệnh Nhân mắc KL2, %d Bệnh Nhân mắc KL1.",
+                    totalPatients, kl4, kl3, kl2, kl1);
+
+            SendNotificationRequest req = new SendNotificationRequest(
+                    doctorId,
+                    "Thống kê kết quả AI",
+                    message,
+                    "INFO",
+                    null);
+            notificationService.sendNotification(req);
+        }
+
         return finalResults;
     }
 
     private String saveBase64ToDisk(String base64String, String fileName) {
-        if (base64String == null || !base64String.startsWith("data:image")) return null;
+        if (base64String == null || !base64String.startsWith("data:image"))
+            return null;
         String[] parts = base64String.split(",");
-        if (parts.length != 2) return null;
+        if (parts.length != 2)
+            return null;
 
         try {
             byte[] decodedImg = Base64.getDecoder().decode(parts[1]);

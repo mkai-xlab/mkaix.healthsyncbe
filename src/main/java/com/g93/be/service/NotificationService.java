@@ -23,6 +23,14 @@ public interface NotificationService {
     List<NotificationDto> getUnreadNotifications(String username);
 
     /**
+     * Retrieves all notifications for a specific user, including read notifications.
+     *
+     * @param username The username of the user.
+     * @return Notifications ordered from newest to oldest.
+     */
+    List<NotificationDto> getAllNotifications(String username);
+
+    /**
      * Marks a specific notification as read.
      * 
      * @param notificationId The ID of the notification.
