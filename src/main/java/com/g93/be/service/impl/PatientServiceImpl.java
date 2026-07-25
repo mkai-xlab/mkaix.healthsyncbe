@@ -1,5 +1,7 @@
 package com.g93.be.service.impl;
 
+
+import com.g93.be.entity.DicomInstance;
 import com.g93.be.dto.*;
 import com.g93.be.entity.*;
 import com.g93.be.mapper.PatientMapper;
@@ -12,6 +14,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.g93.be.security.CustomUserDetails;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -125,17 +130,16 @@ public class PatientServiceImpl implements PatientService {
             ed.setVisitTime(ex.getVisitTime());
             ed.setReferringPhysician(ex.getReferringPhysician());
 
-            List<com.g93.be.entity.DicomInstance> instances = dicomInstanceRepository.findByExaminationId(ex.getId());
+            List<DicomInstance> instances = dicomInstanceRepository.findByExaminationId(ex.getId());
             if (instances != null && !instances.isEmpty()) {
                 ed.setThumbnailUrl(baseUrl + "/dicom/instances/" + instances.get(0).getId() + "/image");
                 List<ExaminationImageDto> imageDtos = new ArrayList<>();
-                for (com.g93.be.entity.DicomInstance instance : instances) {
+                for (DicomInstance instance : instances) {
                     ExaminationImageDto img = new ExaminationImageDto();
                     img.setExaminationId(ex.getId());
                     img.setEncounterCode(ex.getEncounterCode());
                     img.setStatus(ex.getStatus().name());
                     img.setVisitTime(ex.getVisitTime());
-                    img.setBodyPart(instance.getBodyPart());
                     img.setImageUrl(baseUrl + "/dicom/instances/" + instance.getId() + "/image");
                     imageDtos.add(img);
                 }
@@ -146,5 +150,37 @@ public class PatientServiceImpl implements PatientService {
         pdr.setRecentExaminations(examDtos);
 
         return pdr;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<PatientResponse> getPatientsByUploadDate(LocalDate date, Pageable pageable, CustomUserDetails userDetails) {
+        Long filterDoctorId = null;
+        if (userDetails != null && userDetails.getUser() != null && userDetails.getUser().getRole() != null) {
+            String roleCode = userDetails.getUser().getRole().getCode();
+            if ("DOCTOR".equals(roleCode)) {
+                filterDoctorId = userDetails.getUser().getId();
+            }
+            // For DEPARTMENT_HEAD or ADMIN, filterDoctorId remains null, meaning fetch all patients
+        }
+
+        LocalDateTime startOfDay = date.atStartOfDay();
+        LocalDateTime startOfNextDay = date.plusDays(1).atStartOfDay();
+
+        Page<Patient> patientPage = patientRepository.findPatientsByUploadDateAndDoctor(
+                startOfDay, startOfNextDay, filterDoctorId, pageable);
+
+        List<PatientResponse> content = patientPage.getContent().stream()
+                .map(patientMapper::toResponse)
+                .toList();
+
+        return new PageResponse<>(
+                content,
+                patientPage.getNumber(),
+                patientPage.getSize(),
+                patientPage.getTotalElements(),
+                patientPage.getTotalPages(),
+                patientPage.isLast()
+        );
     }
 }

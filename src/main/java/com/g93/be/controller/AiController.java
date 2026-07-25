@@ -1,9 +1,13 @@
 package com.g93.be.controller;
 
+
+import com.g93.be.entity.AiResult;
 import com.g93.be.dto.AiPredictionRequest;
 import com.g93.be.dto.ExaminationDto;
 import com.g93.be.entity.AiResult;
+import com.g93.be.entity.Image;
 import com.g93.be.repository.AiResultRepository;
+import com.g93.be.repository.ImageRepository;
 import com.g93.be.service.AiService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,6 +30,7 @@ public class AiController {
 
     private final AiService aiService;
     private final AiResultRepository aiResultRepository;
+    private final ImageRepository imageRepository;
 
     @Value("${app.storage.base-dir:D:/Capstone/data}")
     private String storageBaseDir;
@@ -53,6 +58,27 @@ public class AiController {
                 }
             } catch (Exception e) {
                 log.error("Failed to read heatmap image", e);
+            }
+        }
+        return ResponseEntity.notFound().build();
+    }
+
+    @GetMapping("/image/{imageId}")
+    public ResponseEntity<Resource> getImage(@PathVariable Long imageId) {
+        Image image = imageRepository.findById(imageId).orElse(null);
+        if (image != null && image.getFilePath() != null) {
+            String imagePath = image.getFilePath();
+            try {
+                String relPath = imagePath.startsWith("/") ? imagePath.substring(1) : imagePath;
+                Path path = Paths.get(storageBaseDir, relPath);
+                Resource resource = new UrlResource(path.toUri());
+                if (resource.exists() || resource.isReadable()) {
+                    return ResponseEntity.ok()
+                            .header(HttpHeaders.CONTENT_TYPE, "image/jpeg")
+                            .body(resource);
+                }
+            } catch (Exception e) {
+                log.error("Failed to read image with id: {}", imageId, e);
             }
         }
         return ResponseEntity.notFound().build();

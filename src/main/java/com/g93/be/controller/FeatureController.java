@@ -33,4 +33,11 @@ public class FeatureController {
         FeatureResponse response = permissionService.updateFeature(id, request);
         return ResponseEntity.ok(response);
     }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Void> deleteFeature(@PathVariable Long id) {
+        permissionService.deleteFeature(id);
+        return ResponseEntity.noContent().build();
+    }
 }

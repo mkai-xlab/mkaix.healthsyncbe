@@ -1,0 +1,21 @@
+meta {
+  name: Filter by Upload Date
+  type: http
+  seq: 13
+}
+
+get {
+  url: {{baseUrl}}/examinations/filter/upload-date?date=2026-07-22&page=0&size=10
+  body: none
+  auth: bearer
+}
+
+query {
+  date: 2026-07-22
+  page: 0
+  size: 10
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}

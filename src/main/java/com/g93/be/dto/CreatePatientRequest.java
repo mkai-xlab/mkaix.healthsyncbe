@@ -1,5 +1,7 @@
 package com.g93.be.dto;
 
+
+import com.g93.be.entity.Gender;
 import com.g93.be.entity.Gender;
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;

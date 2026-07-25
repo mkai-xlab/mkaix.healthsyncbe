@@ -1,0 +1,15 @@
+meta {
+  name: get_my_total_severe_examinations
+  type: http
+  seq: 10
+}
+
+get {
+  url: {{baseUrl}}/examinations/my-total-severe
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}

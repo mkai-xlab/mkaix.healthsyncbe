@@ -93,7 +93,8 @@ public class DicomServiceImpl implements DicomService {
                 filePaths.put(originalFilename, tempFile);
                 tempFilesToClean.add(tempFile);
             }
-            com.g93.be.dto.BatchDicomUploadResponse response = processBatchPaths(filePaths, userId);
+            String uploadSessionId = java.util.UUID.randomUUID().toString();
+            com.g93.be.dto.BatchDicomUploadResponse response = processBatchPaths(filePaths, userId, uploadSessionId);
             response.getErrors().addAll(earlyErrors);
             return response;
         } catch (Exception e) {
@@ -107,7 +108,7 @@ public class DicomServiceImpl implements DicomService {
     }
 
     @Override
-    public void processZipBatch(Path zipFilePath, Long userId) {
+    public com.g93.be.dto.BatchDicomUploadResponse processZipBatch(Path zipFilePath, Long userId, String uploadSessionId) {
         log.info("Starting background processing of ZIP batch at: {}", zipFilePath);
         if (userId != null) {
             notificationService.sendNotification(new com.g93.be.dto.SendNotificationRequest(
@@ -153,7 +154,7 @@ public class DicomServiceImpl implements DicomService {
                 filePaths.put(dcmFile.getFileName().toString(), dcmFile);
             }
 
-            com.g93.be.dto.BatchDicomUploadResponse response = processBatchPaths(filePaths, userId);
+            com.g93.be.dto.BatchDicomUploadResponse response = processBatchPaths(filePaths, userId, uploadSessionId);
 
             if (dcmFiles.isEmpty()) {
                 response.getErrors().add(new com.g93.be.dto.FileUploadError(zipFilePath.getFileName().toString(), "No DICOM files found in the ZIP batch."));
@@ -164,9 +165,11 @@ public class DicomServiceImpl implements DicomService {
 
             log.info("Finished background processing of ZIP batch. Success: {}, Errors: {}",
                     response.getSuccessfulPatients().size(), response.getErrors().size());
+            return response;
 
         } catch (Exception e) {
             log.error("Error processing background ZIP batch", e);
+            throw new RuntimeException("Error processing background ZIP batch", e);
         } finally {
             if (workDir != null) {
                 try {
@@ -206,13 +209,14 @@ public class DicomServiceImpl implements DicomService {
 
     @Override
     @org.springframework.transaction.annotation.Transactional
-    public com.g93.be.dto.BatchDicomUploadResponse processBatchPaths(java.util.Map<String, Path> filePaths, Long userId) {
+    public com.g93.be.dto.BatchDicomUploadResponse processBatchPaths(java.util.Map<String, Path> filePaths, Long userId, String uploadSessionId) {
         List<com.g93.be.dto.FileUploadError> errors = new ArrayList<>();
         List<com.g93.be.dto.PatientDetailsResponse> successfulPatients = new ArrayList<>();
         java.util.Set<String> processedUids = new java.util.HashSet<>();
         
-        String uploadSessionId = UUID.randomUUID().toString();
         java.util.Map<String, com.g93.be.dto.PendingDicomUploadDTO> patientsMap = new java.util.HashMap<>();
+
+        try {
 
         if (userId != null) {
             notificationService.sendNotification(new com.g93.be.dto.SendNotificationRequest(
@@ -266,8 +270,8 @@ public class DicomServiceImpl implements DicomService {
                     studyInstanceUid = attrs.getString(org.dcm4che3.data.Tag.StudyInstanceUID, "");
                     studyDate = attrs.getDate(org.dcm4che3.data.Tag.StudyDate);
                     studyTime = attrs.getDate(org.dcm4che3.data.Tag.StudyTime);
-                    bodyPart = attrs.getString(org.dcm4che3.data.Tag.ProtocolName, "");
                     description = attrs.getString(org.dcm4che3.data.Tag.StudyDescription, "");
+                    bodyPart = attrs.getString(org.dcm4che3.data.Tag.BodyPartExamined, "");
                     referringPhysician = attrs.getString(org.dcm4che3.data.Tag.ReferringPhysicianName, "");
 
                     sopInstanceUid = attrs.getString(org.dcm4che3.data.Tag.SOPInstanceUID, "");
@@ -390,7 +394,7 @@ public class DicomServiceImpl implements DicomService {
                 pr.setPatientCode(pending.getPatientCode());
                 pr.setFullName(pending.getPatientName() != null ? pending.getPatientName().replace("^", " ").trim() : "Unknown");
                 if (pending.getPatientBirthDate() != null) {
-                    pr.setDateOfBirth(pending.getPatientBirthDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDate());
+                    pr.setDateOfBirth(java.time.Instant.ofEpochMilli(pending.getPatientBirthDate().getTime()).atZone(ZoneId.systemDefault()).toLocalDate());
                 }
                 if ("F".equalsIgnoreCase(pending.getPatientSex())) {
                     pr.setGender(Gender.FEMALE);
@@ -404,12 +408,12 @@ public class DicomServiceImpl implements DicomService {
                 examDto.setEncounterCode(pending.getStudyInstanceUid());
                 examDto.setDescription(pending.getDescription());
                 examDto.setReferringPhysician(pending.getReferringPhysician());
-                examDto.setStatus(ExaminationStatus.NEED_VERIFY.name());
+                examDto.setStatus(ExaminationStatus.AI_PROCESSING.name());
                 if (pending.getStudyDate() != null) {
-                    examDto.setStudyDate(pending.getStudyDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDate());
+                    examDto.setStudyDate(java.time.Instant.ofEpochMilli(pending.getStudyDate().getTime()).atZone(ZoneId.systemDefault()).toLocalDate());
                 }
                 if (pending.getStudyTime() != null) {
-                    examDto.setStudyTime(pending.getStudyTime().toInstant().atZone(ZoneId.systemDefault()).toLocalTime());
+                    examDto.setStudyTime(java.time.Instant.ofEpochMilli(pending.getStudyTime().getTime()).atZone(ZoneId.systemDefault()).toLocalTime());
                 }
                 
                 com.g93.be.dto.PatientDetailsResponse pdr = new com.g93.be.dto.PatientDetailsResponse();
@@ -419,7 +423,8 @@ public class DicomServiceImpl implements DicomService {
             }
         } catch (Exception e) {
             log.error("Failed to cache upload session", e);
-            throw new RuntimeException("Failed to cache upload session", e);
+            String rootCause = e.getCause() != null ? e.getCause().getMessage() : e.getMessage();
+            throw new RuntimeException("Failed to cache upload session: " + e.getClass().getSimpleName() + " - " + rootCause, e);
         }
         
         com.g93.be.dto.BatchDicomUploadResponse response = new com.g93.be.dto.BatchDicomUploadResponse();
@@ -429,27 +434,38 @@ public class DicomServiceImpl implements DicomService {
 
         if (userId != null) {
             try {
-                String responseJson = objectMapper.writeValueAsString(response);
                 notificationService.sendNotification(new SendNotificationRequest(
                         userId,
                         "DICOM Upload Complete (Pending Verify)",
-                        responseJson,
+                        "DICOM Upload Complete",
                         "DICOM_BATCH_RESULT",
                         null
                 ));
             } catch (Exception e) {
-                log.error("Failed to serialize notification payload", e);
-                notificationService.sendNotification(new SendNotificationRequest(
-                        userId,
-                        "DICOM Upload Complete",
-                        "Vui lòng xác nhận lưu dữ liệu (Session: " + uploadSessionId + ")",
-                        "SYSTEM",
-                        null
-                ));
+                log.error("Failed to send notification", e);
             }
         }
         
         return response;
+
+        } catch (Exception globalEx) {
+            log.error("Fatal error during background DICOM processing", globalEx);
+            if (userId != null) {
+                notificationService.sendNotification(new SendNotificationRequest(
+                        userId,
+                        "Lỗi xử lý DICOM",
+                        "Đã xảy ra lỗi nghiêm trọng: " + globalEx.getMessage(),
+                        "SYSTEM",
+                        null
+                ));
+            }
+            throw new RuntimeException("Background processing failed", globalEx);
+        }
+    }
+
+    @Override
+    public String getUploadSession(String sessionId) {
+        return stringRedisTemplate.opsForValue().get("uploadSession:" + sessionId);
     }
 }
 

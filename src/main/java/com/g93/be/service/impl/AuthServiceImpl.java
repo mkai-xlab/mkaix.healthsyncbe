@@ -13,9 +13,9 @@ import com.g93.be.repository.PasswordResetTokenRepository;
 import com.g93.be.repository.UserRepository;
 import com.g93.be.security.CustomUserDetails;
 import com.g93.be.security.JwtTokenProvider;
+import com.g93.be.service.AuthService;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import com.g93.be.service.AuthService;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -82,6 +82,7 @@ public class AuthServiceImpl implements AuthService {
                 refreshToken,
                 userDetails.getUser().getRole().getCode(),
                 userDetails.getUsername(),
+                userDetails.getUser().getFullName(),
                 userDetails.getPermissions()
         );
     }

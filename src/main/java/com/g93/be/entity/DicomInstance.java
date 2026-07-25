@@ -60,8 +60,16 @@ public class DicomInstance {
     @JoinColumn(name = "image_id")
     private Image image;
 
+    @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JoinColumn(name = "annotated_image_id")
+    private Image annotatedImage;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status")
+    private DicomInstanceStatus status;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "examination_id", nullable = false)
@@ -73,5 +81,8 @@ public class DicomInstance {
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
+        if (status == null) {
+            status = DicomInstanceStatus.AI_SENDING;
+        }
     }
 }

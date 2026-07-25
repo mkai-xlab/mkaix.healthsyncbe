@@ -1,9 +1,14 @@
 package com.g93.be.service.impl;
 
+
+import com.g93.be.entity.Doctor;
+import com.g93.be.entity.UserStatus;
+import com.g93.be.entity.Image;
 import com.g93.be.common.util.MailUtil;
 import com.g93.be.dto.CreateDoctorRequest;
 import com.g93.be.dto.DoctorResponse;
 import com.g93.be.dto.PageResponse;
+import com.g93.be.aspect.LogAction;
 import com.g93.be.entity.Doctor;
 import com.g93.be.entity.UserStatus;
 import com.g93.be.entity.Image;
@@ -63,7 +68,7 @@ public class DoctorServiceImpl implements DoctorService {
 
     @Override
     public List<DoctorResponse> getActiveDoctors() {
-        return doctorRepository.findAllByStatus(com.g93.be.entity.UserStatus.ACTIVE)
+        return doctorRepository.findAllByStatus(UserStatus.ACTIVE)
                 .stream()
                 .map(doctorMapper::toResponse)
                 .collect(Collectors.toList());
@@ -88,6 +93,7 @@ public class DoctorServiceImpl implements DoctorService {
     }
 
     @Override
+    @LogAction("EDIT_DOCTOR")
     public DoctorResponse editDoctor(Long id, EditDoctorRequest request) {
         Doctor doctor = doctorRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Doctor with id " + id + " not found"));
@@ -102,6 +108,7 @@ public class DoctorServiceImpl implements DoctorService {
     }
 
     @Override
+    @LogAction("EDIT_DOCTOR_PROFILE")
     public DoctorResponse editDoctorProfile(String username, EditDoctorRequest request) {
         Doctor doctor = doctorRepository.findByUsername(username)
                 .orElseThrow(() -> new IllegalArgumentException("Doctor not found for username: " + username));
@@ -141,6 +148,7 @@ public class DoctorServiceImpl implements DoctorService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
+    @LogAction("CREATE_DOCTOR")
     public DoctorResponse createDoctor(CreateDoctorRequest request) {
         log.info("Starting registration for doctor email: {}", request.getEmail());
 

@@ -1,0 +1,19 @@
+meta {
+  name: get_total_examinations
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/examinations/total?userId=1
+  body: none
+  auth: bearer
+}
+
+query {
+  userId: 1
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}

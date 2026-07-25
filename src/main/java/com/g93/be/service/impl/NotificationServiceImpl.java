@@ -79,6 +79,18 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public List<NotificationDto> getAllNotifications(String username) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        return notificationRepository.findByUserIdOrderByCreatedAtDesc(user.getId())
+                .stream()
+                .map(notificationMapper::toDto)
+                .toList();
+    }
+
+    @Override
     @Transactional
     public void markAsRead(Long notificationId, String username) {
         Notification notification = notificationRepository.findById(notificationId)
