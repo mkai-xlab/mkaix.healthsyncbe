@@ -263,8 +263,9 @@ public class ExaminationController {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Long> getMyTotalExaminations() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
-        Long userId = userDetails.getUser().getId();
+        String userEmail = (String) authentication.getPrincipal();
+        User user = userRepository.findByUsername(userEmail).orElseThrow(() -> new RuntimeException("User not found"));
+        Long userId = user.getId();
         log.info("Received request to get total examinations for my token, user id: {}", userId);
         return ResponseEntity.ok(examinationService.getTotalExaminations(userId));
     }
