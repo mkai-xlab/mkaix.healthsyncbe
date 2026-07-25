@@ -1,5 +1,7 @@
 package com.g93.be.dto;
 
+
+import com.g93.be.entity.UserStatus;
 import com.g93.be.entity.UserStatus;
 import lombok.AllArgsConstructor;
 import lombok.Data;

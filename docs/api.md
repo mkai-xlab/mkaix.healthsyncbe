@@ -2,7 +2,42 @@
 
 [Back to Documentation Index](README.md) | Previous: [Database](database.md) | Next: [Deployment Guide](deployment.md)
 
-No public API endpoints are currently implemented, except for authentication endpoints.
+All paths below are relative to the configured `/api/v1` context path.
+
+## Optimize Branch API Updates
+
+### `POST /auth/login` response update
+
+Successful login responses include the user's full name:
+
+```json
+{
+  "accessToken": "eyJhbGciOiJIUz...",
+  "refreshToken": "eyJhbGciOiJIUz...",
+  "role": "DOCTOR",
+  "username": "doctor.b",
+  "fullName": "Nguyen Van B",
+  "permissions": []
+}
+```
+
+### `GET /notifications`
+
+Returns all notifications owned by the authenticated user, including both read and unread items, ordered from newest to oldest.
+
+Status codes: `200 OK`, `401 Unauthorized`.
+
+### `DELETE /permissions/{id}`
+
+Deletes a permission and removes its role assignments and dependency references. Requires the `ADMIN` role and returns no response body.
+
+Status codes: `204 No Content`, `400 Bad Request` when the permission does not exist, `401 Unauthorized`, `403 Forbidden`.
+
+### `DELETE /features/{id}`
+
+Deletes a feature and its permissions after removing related role assignments and dependency references. Requires the `ADMIN` role and returns no response body.
+
+Status codes: `204 No Content`, `400 Bad Request` when the feature does not exist, `401 Unauthorized`, `403 Forbidden`.
 
 ## `POST /auth/change-password`
 
@@ -706,34 +741,103 @@ No response body.
 - `400 Bad Request`: Patient not found
 - `401 Unauthorized`: authentication is required
 
-## `POST /dicom/upload`
+## `POST /dicom/upload/batch`
 
-Uploads a DICOM file, parses metadata, extracts the image, creates patient and examination records.
+Uploads multiple DICOM files synchronously, parses metadata, extracts images, and returns a session for verification before persisting records.
 
 ### Request
 
 - **Content-Type**: `multipart/form-data`
 - **Parameters**:
-  - `file` (File): The multipart DICOM file.
+  - `files` (List of Files): Multiple `.dcm` files.
 
 ### Response
 
 ```json
 {
-  "patient": {
-    "id": 1,
-    "patientCode": null,
-    "fullName": "Nguyen Van A",
-    "email": "hn-2026-0099@healthsync.com"
-  },
-  "examinations": []
+  "message": null,
+  "uploadSessionId": "140d6df5-f47d-41d1-add1-2201a85bce7c",
+  "errors": [],
+  "successfulPatients": []
 }
 ```
 
 ### Status Codes
 
-- `200 OK`: Profile updated successfully
-- `400 Bad Request`: Invalid input fields
+- `200 OK`: Files processed successfully (pending verify)
+- `400 Bad Request`: Invalid file format or request
+- `401 Unauthorized`: Authentication is required
+
+## `POST /examinations/{id}/generate-report`
+
+Generates and saves a PDF report for a given examination.
+
+### Request
+
+No request body. Replace `{id}` with the examination ID.
+
+### Response
+
+```text
+Report generated and saved at: D:/HealthSync_Exports/report_EX-001_1a2b3c4d.pdf
+```
+
+### Status Codes
+
+- `200 OK`: Report generated successfully
+- `401 Unauthorized`: Authentication is required
+- `403 Forbidden`: Authenticated user does not have `GENERATE_PDF_REPORT` permission
+- `500 Internal Server Error`: Failed to generate PDF
+
+## `POST /dicom/upload/zip`
+
+Uploads a single ZIP file containing multiple DICOM files synchronously, extracts and processes them.
+
+### Request
+
+- **Content-Type**: `multipart/form-data`
+- **Parameters**:
+  - `file` (File): A `.zip` file containing `.dcm` files.
+
+### Response
+
+Returns the same `BatchDicomUploadResponse` structure as `/dicom/upload/batch`.
+
+
+
+Verifies and commits a pending DICOM upload session into the database.
+
+### Request
+
+```json
+{
+  "uploadSessionId": "140d6df5-f47d-41d1-add1-2201a85bce7c",
+  "acceptedPatientCodes": [
+    "PT001"
+  ]
+}
+```
+
+### Response
+
+`json
+[
+  {
+    "grade": 1,
+    "patientCount": 5
+  },
+  {
+    "grade": 2,
+    "patientCount": 3
+  }
+]
+
+
+
+### Status Codes
+
+- `200 OK`: Data saved successfully
+- `400 Bad Request`: Session expired or invalid patient codes
 - `401 Unauthorized`: Authentication is required
 - `403 Forbidden`: Authenticated user is not a DOCTOR
 
@@ -794,6 +898,110 @@ Trigger a test notification to a specific user.
 ```text
 Notification sent successfully
 ```
+
+## `GET /examinations/total`
+
+Retrieves the total number of examinations based on the user's role.
+
+### Query Parameters
+
+- `userId` (Required): The ID of the user requesting the total.
+
+### Request
+
+```http
+GET /examinations/total?userId=1
+```
+
+### Response
+
+```json
+150
+```
+
+### Status Codes
+
+- `200 OK`: Request successful
+- `400 Bad Request`: Missing user ID or invalid user
+- `401 Unauthorized`: Authentication is required
+
+## `GET /examinations/total-severe`
+
+Retrieves the total number of severe examinations (KL3, KL4) based on the user's role.
+
+### Query Parameters
+
+- `userId` (Required): The ID of the user.
+
+### Request
+
+```http
+GET /examinations/total-severe?userId=1
+```
+
+### Response
+
+```json
+25
+```
+
+### Status Codes
+
+- `200 OK`: Request successful
+- `400 Bad Request`: Missing user ID or invalid user
+- `401 Unauthorized`: Authentication is required
+
+## `GET /examinations/total-verified`
+
+Retrieves the total number of verified (REVIEWED) examinations based on the user's role.
+
+### Query Parameters
+
+- `userId` (Required): The ID of the user.
+
+### Request
+
+```http
+GET /examinations/total-verified?userId=1
+```
+
+### Response
+
+```json
+100
+```
+
+### Status Codes
+
+- `200 OK`: Request successful
+- `400 Bad Request`: Missing user ID or invalid user
+- `401 Unauthorized`: Authentication is required
+
+## `GET /examinations/total-unverified`
+
+Retrieves the total number of unverified examinations based on the user's role.
+
+### Query Parameters
+
+- `userId` (Required): The ID of the user.
+
+### Request
+
+```http
+GET /examinations/total-unverified?userId=1
+```
+
+### Response
+
+```json
+50
+```
+
+### Status Codes
+
+- `200 OK`: Request successful
+- `400 Bad Request`: Missing user ID or invalid user
+- `401 Unauthorized`: Authentication is required
 
 ## WebSocket Connection (STOMP)
 
@@ -2322,3 +2530,473 @@ Returns the physical DICOM file with content type `application/dicom`.
 - `200 OK`: Request successful, file attached.
 - `401 Unauthorized`: Authentication is required
 - `404 Not Found`: Instance or file not found.
+
+## `GET /audit-logs`
+
+Retrieves a paginated list of system audit logs. This API is used by administrators to track user activities (such as creating, updating, or deleting records). View (GET) actions are not recorded.
+
+### Request
+
+- `page` (optional): The page index (starts at 0).
+- `size` (optional): Number of records per page (default: 10).
+- `sort` (optional): Field to sort by (default: timeStamp,desc).
+
+### Response
+
+```json
+{
+  "content": [
+    {
+      "id": 1,
+      "username": "admin",
+      "title": "CREATE_DOCTOR",
+      "description": "[\"CreateDoctorRequest(fullName=John Doe, email=john@hospital.com...)\"]",
+      "ipAddress": "192.168.1.100",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)...",
+      "timeStamp": "2026-07-14T15:58:25"
+    }
+  ],
+  "pageNumber": 0,
+  "pageSize": 10,
+  "totalElements": 1,
+  "totalPages": 1,
+  "isLast": true
+}
+- `200 OK`: Request successful
+- `401 Unauthorized`: Authentication is required
+
+## `GET /examinations/{id}`
+
+Retrieves detailed information of an examination by ID, including patient details and associated DICOM images.
+
+### Path Parameters
+
+- `id`: The ID of the examination.
+
+### Response
+
+```json
+{
+  "examinationId": 1,
+  "encounterCode": "...",
+  "status": "CREATED",
+  "studyDate": "2023-10-15",
+  "visitTime": "2023-10-15T10:30:00",
+  "thumbnailUrl": "http://localhost:8080/api/v1/dicom/instances/1/thumbnail",
+  "bodyPart": "KNEE",
+  "referringPhysician": "Dr. Smith",
+  "patient": {
+    "id": 1,
+    "fullName": "Nguyen Van A"
+  },
+  "images": [
+    {
+      "examinationId": 1,
+      "encounterCode": "...",
+      "status": "CREATED",
+      "visitTime": "2023-10-15T10:30:00",
+      "imageUrl": "http://localhost:8080/api/v1/dicom/instances/1/image"
+    }
+  ]
+}
+```
+
+### Status Codes
+
+- `200 OK`: Request successful
+- `400 Bad Request`: Examination not found
+- `401 Unauthorized`: Authentication is required
+
+## `GET /examinations/doctor/{doctorId}`
+
+Retrieves a paginated list of examinations for a specific doctor.
+
+### Path Parameters
+
+- `doctorId`: The ID of the doctor.
+
+### Query Parameters
+
+- `page` (Optional): Page index (0-based, default: `0`).
+- `size` (Optional): Items per page (default: `10`).
+
+### Response
+
+```json
+{
+  "content": [
+    {
+      "examinationId": 1,
+      "encounterCode": "...",
+      "status": "CREATED",
+      "studyDate": "2023-10-15",
+      "visitTime": "2023-10-15T10:30:00",
+      "thumbnailUrl": "http://localhost:8080/api/v1/dicom/instances/1/thumbnail",
+      "bodyPart": "KNEE",
+      "referringPhysician": "Dr. Smith",
+      "patient": {
+        "id": 1,
+        "fullName": "Nguyen Van A"
+      },
+      "images": []
+    }
+  ],
+  "pageNumber": 0,
+  "pageSize": 10,
+  "totalElements": 1,
+  "totalPages": 1,
+  "isLast": true
+}
+```
+
+### Status Codes
+
+- `200 OK`: Request successful
+- `401 Unauthorized`: Authentication is required
+
+## `GET /examinations/patient/{patientId}`
+
+Retrieves a paginated list of examinations for a specific patient.
+
+### Path Parameters
+
+- `patientId`: The ID of the patient.
+
+### Query Parameters
+
+- `page` (Optional): Page index (0-based, default: `0`).
+- `size` (Optional): Items per page (default: `10`).
+
+### Response
+
+```json
+{
+  "content": [
+    {
+      "examinationId": 1,
+      "encounterCode": "...",
+      "status": "CREATED",
+      "studyDate": "2023-10-15",
+      "visitTime": "2023-10-15T10:30:00",
+      "thumbnailUrl": "http://localhost:8080/api/v1/dicom/instances/1/thumbnail",
+      "bodyPart": "KNEE",
+      "referringPhysician": "Dr. Smith",
+      "patient": {
+        "id": 1,
+        "fullName": "Nguyen Van A"
+      },
+      "images": []
+    }
+  ],
+  "pageNumber": 0,
+  "pageSize": 10,
+  "totalElements": 1,
+  "totalPages": 1,
+  "isLast": true
+}
+```
+
+### Status Codes
+
+- `200 OK`: Request successful
+- `401 Unauthorized`: Authentication is required
+
+## Navigation
+
+- [Back to Documentation Index](README.md)
+- [Previous: Database](database.md)
+- [Next: Deployment Guide](deployment.md)
+
+## `GET /dicom/instances/{id}/raw`
+
+Retrieves the raw DICOM file for a specific DICOM instance.
+
+### Path Parameters
+
+- `id`: The ID of the DICOM instance.
+
+### Response
+
+Returns the physical DICOM file with content type `application/dicom`.
+
+### Status Codes
+
+- `200 OK`: Request successful, file attached.
+- `401 Unauthorized`: Authentication is required
+- `404 Not Found`: Instance or file not found.
+
+## `GET /audit-logs`
+
+Retrieves a paginated list of system audit logs. This API is used by administrators to track user activities (such as creating, updating, or deleting records). View (GET) actions are not recorded.
+
+### Request
+
+- `page` (optional): The page index (starts at 0).
+- `size` (optional): Number of records per page (default: 10).
+- `sort` (optional): Field to sort by (default: timeStamp,desc).
+
+### Response
+
+```json
+{
+  "content": [
+    {
+      "id": 1,
+      "username": "admin",
+      "title": "CREATE_DOCTOR",
+      "description": "[\"CreateDoctorRequest(fullName=John Doe, email=john@hospital.com...)\"]",
+      "ipAddress": "192.168.1.100",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)...",
+      "timeStamp": "2026-07-14T15:58:25"
+    }
+  ],
+  "pageNumber": 0,
+  "pageSize": 10,
+  "totalElements": 1,
+  "totalPages": 1,
+  "isLast": true
+}
+```
+
+### Status Codes
+
+- `200 OK`: Request successful
+- `401 Unauthorized`: Authentication is required
+- `403 Forbidden`: Authenticated user is not an ADMIN
+
+ 
+ 
+
+## `GET /examinations/status`
+
+Retrieves a paginated list of examinations filtered by status. The results are automatically filtered based on the authenticated user's role (RBAC):
+- **DOCTOR**: Only returns their own assigned examinations.
+- **ADMIN / DEPARTMENT_HEAD**: Returns all examinations in the system.
+
+### Query Parameters
+
+- `status` (Required): Filter by ExaminationStatus (e.g., `AI_PROCESSING`, `NEED_VERIFY`, `VERIFIED`, `REPORT_GENERATED`).
+- `page` (Optional): Page index (0-based, default: `0`).
+- `size` (Optional): Items per page (default: `10`).
+
+### Request
+
+```http
+GET /examinations/status?status=NEED_VERIFY&page=0&size=10
+Authorization: Bearer <token>
+```
+
+### Response
+
+```json
+{
+  "content": [
+    {
+      "id": 1,
+      "status": "NEED_VERIFY"
+    }
+  ],
+  "pageNumber": 0,
+  "pageSize": 10,
+  "totalElements": 1,
+  "totalPages": 1,
+  "isLast": true
+}
+```
+
+### Status Codes
+
+- `200 OK`: Request successful
+- `401 Unauthorized`: User is not authenticated
+
+## GET /examinations/grade
+
+Retrieves examinations filtered by their max predicted grade. The results are automatically filtered based on the authenticated user's role (doctors only see their own, admins/department heads see all).
+
+### Request
+
+- grade (query parameter): The max predicted grade to filter by (e.g., 3, 4).
+- page (query parameter, optional): Page number (default: 0).
+- size (query parameter, optional): Page size (default: 10).
+
+Requires Bearer Token in Authorization header.
+
+### Response
+
+`json
+{
+  "content": [
+    {
+      "id": 1,
+      "maxPredictedGrade": 3
+    }
+  ],
+  "pageNumber": 0,
+  "pageSize": 10,
+  "totalElements": 1,
+  "totalPages": 1,
+  "isLast": true
+}
+`
+
+### Status Codes
+
+- 200 OK: Request successful
+- 401 Unauthorized: User is not authenticated
+## GET /examinations/statistics/patients-by-grade
+
+Retrieves the number of patients grouped by the max predicted grade of their latest examination.
+For doctors, it counts patients based on their latest examination with that specific doctor.
+For admins/department heads, it counts all patients based on their latest examination in the system.
+
+### Request
+
+- No query parameters required.
+
+Requires Bearer Token in Authorization header.
+
+### Response
+
+`json
+[
+  {
+    "grade": 1,
+    "patientCount": 15
+  },
+  {
+    "grade": 2,
+    "patientCount": 8
+  },
+  {
+    "grade": 3,
+    "patientCount": 2
+  }
+]
+`
+
+### Status Codes
+
+- 200 OK: Request successful
+- 401 Unauthorized: User is not authenticated
+
+
+## `GET /examinations/sort/study-date`
+
+Retrieves a paginated list of examinations sorted by study date. The results are automatically filtered based on the authenticated user's role (RBAC):
+- **DOCTOR**: Only returns their own assigned examinations.
+- **ADMIN / DEPARTMENT_HEAD**: Returns all examinations in the system.
+
+### Query Parameters
+
+- `direction` (Optional): Sort direction (`asc` or `desc`, default: `desc`).
+- `page` (Optional): Page index (0-based, default: `0`).
+- `size` (Optional): Items per page (default: `10`).
+
+### Request
+
+`http
+GET /examinations/sort/study-date?direction=desc&page=0&size=10
+Authorization: Bearer <token>
+`
+
+### Status Codes
+- 200 OK: Request successful
+- 401 Unauthorized: User is not authenticated
+
+## `GET /examinations/sort/upload-date`
+
+Retrieves a paginated list of examinations sorted by the date they were uploaded (created at). Role-based filtering applies.
+
+### Query Parameters
+
+- `direction` (Optional): Sort direction (`asc` or `desc`, default: `desc`).
+- `page` (Optional): Page index (0-based, default: `0`).
+- `size` (Optional): Items per page (default: `10`).
+
+### Request
+
+`http
+GET /examinations/sort/upload-date?direction=desc&page=0&size=10
+Authorization: Bearer <token>
+`
+
+### Status Codes
+- 200 OK: Request successful
+- 401 Unauthorized: User is not authenticated
+
+## `GET /examinations/filter/study-date`
+
+Retrieves a paginated list of examinations that occurred on a specific study date. Role-based filtering applies.
+
+### Query Parameters
+
+- `date` (Required): The study date to filter by (format: `YYYY-MM-DD`).
+- `page` (Optional): Page index (0-based, default: `0`).
+- `size` (Optional): Items per page (default: `10`).
+
+### Request
+
+`http
+GET /examinations/filter/study-date?date=2026-07-22&page=0&size=10
+Authorization: Bearer <token>
+`
+
+### Status Codes
+- 200 OK: Request successful
+- 400 Bad Request: Missing or invalid date format
+- 401 Unauthorized: User is not authenticated
+
+## `GET /examinations/filter/upload-date`
+
+Retrieves a paginated list of examinations that were uploaded (created) on a specific date. Role-based filtering applies.
+
+### Query Parameters
+
+- `date` (Required): The upload date to filter by (format: `YYYY-MM-DD`).
+- `page` (Optional): Page index (0-based, default: `0`).
+- `size` (Optional): Items per page (default: `10`).
+
+### Request
+
+`http
+GET /examinations/filter/upload-date?date=2026-07-22&page=0&size=10
+Authorization: Bearer <token>
+`
+
+### Status Codes
+- 200 OK: Request successful
+- 400 Bad Request: Missing or invalid date format
+- 401 Unauthorized: User is not authenticated
+
+
+## `GET /examinations/patient/{patientId}/filter/study-month`
+
+Retrieves a paginated list of examinations for a specific patient, filtered by the month and year of the study date.
+
+### Path Parameters
+
+- `patientId` (Required): The ID of the patient.
+
+### Query Parameters
+
+- `year` (Required): The year to filter by (e.g., `2026`).
+- `month` (Required): The month to filter by (e.g., `7`).
+- `page` (Optional): Page index (0-based, default: `0`).
+- `size` (Optional): Items per page (default: `10`).
+
+### Request
+
+`http
+GET /examinations/patient/1/filter/study-month?year=2026&month=7
+Authorization: Bearer <token>
+`
+
+### Response
+
+Returns a paginated list of `ExaminationDto`.
+
+### Status Codes
+- 200 OK: Request successful
+- 400 Bad Request: Missing or invalid date format
+- 401 Unauthorized: User is not authenticated
+

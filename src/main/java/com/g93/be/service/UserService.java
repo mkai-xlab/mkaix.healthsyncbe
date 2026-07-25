@@ -12,4 +12,5 @@ public interface UserService {
      * @return the created UserResponse
      */
     UserResponse createUser(CreateUserRequest request);
+    java.util.List<UserResponse> getStaffList();
 }

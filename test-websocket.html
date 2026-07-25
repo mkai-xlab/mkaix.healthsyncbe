@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>STOMP WebSocket Tester</title>
+    <!-- Thư viện STOMP.js để giao tiếp STOMP qua WebSocket -->
+    <script src="https://cdn.jsdelivr.net/npm/@stomp/stompjs@7.0.0/bundles/stomp.umd.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; font-weight: bold; margin-bottom: 5px; }
+        input[type="text"] { width: 100%; padding: 8px; box-sizing: border-box; }
+        button { padding: 10px 15px; cursor: pointer; }
+        #messages { border: 1px solid #ccc; padding: 10px; height: 300px; overflow-y: scroll; background: #f9f9f9; }
+        .log { color: #555; font-size: 0.9em; margin-bottom: 5px; }
+        .notification { color: green; font-weight: bold; margin-bottom: 5px; }
+    </style>
+</head>
+<body>
+
+<h2>Kiểm tra WebSocket & STOMP</h2>
+
+<div class="form-group">
+    <label>WebSocket URL (vd: ws://localhost:8080/ws hoặc ws://IP_DEV:8080/ws):</label>
+    <input type="text" id="wsUrl" value="ws://localhost:8080/ws">
+</div>
+
+<div class="form-group">
+    <label>Access Token (không cần ghi chữ Bearer, chỉ dán token vào đây):</label>
+    <input type="text" id="token" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...">
+</div>
+
+<button id="connectBtn" onclick="connect()">Kết nối & Subscribe</button>
+<button id="disconnectBtn" onclick="disconnect()" disabled>Ngắt kết nối</button>
+
+<h3 style="margin-top: 20px;">Logs & Notifications:</h3>
+<div id="messages"></div>
+
+<script>
+    let stompClient = null;
+
+    function logMessage(message, isNotification = false) {
+        const msgDiv = document.getElementById('messages');
+        const p = document.createElement('p');
+        p.className = isNotification ? 'notification' : 'log';
+        p.innerText = `[${new Date().toLocaleTimeString()}] ${message}`;
+        msgDiv.appendChild(p);
+        msgDiv.scrollTop = msgDiv.scrollHeight;
+    }
+
+    function connect() {
+        const url = document.getElementById('wsUrl').value;
+        const token = document.getElementById('token').value;
+
+        if (!token) {
+            alert("Vui lòng nhập Access Token!");
+            return;
+        }
+
+        logMessage(`Đang kết nối tới ${url}...`);
+
+        stompClient = new window.StompJs.Client({
+            brokerURL: url,
+            connectHeaders: {
+                Authorization: 'Bearer ' + token // Truyền token vào header CONNECT
+            },
+            debug: function (str) {
+                console.log(str); // In log ra console F12
+            },
+            reconnectDelay: 5000,
+            heartbeatIncoming: 4000,
+            heartbeatOutgoing: 4000,
+        });
+
+        stompClient.onConnect = function (frame) {
+            logMessage('Kết nối thành công! Đang subscribe vào /user/queue/notifications...');
+            document.getElementById('connectBtn').disabled = true;
+            document.getElementById('disconnectBtn').disabled = false;
+
+            // Subscribe vào queue
+            stompClient.subscribe('/user/queue/notifications', function (message) {
+                if (message.body) {
+                    logMessage(`NHẬN ĐƯỢC THÔNG BÁO: ${message.body}`, true);
+                } else {
+                    logMessage("Nhận được thông báo trống", true);
+                }
+            });
+        };
+
+        stompClient.onStompError = function (frame) {
+            logMessage('Broker báo lỗi: ' + frame.headers['message']);
+            logMessage('Chi tiết: ' + frame.body);
+        };
+
+        stompClient.onWebSocketError = function (event) {
+            logMessage('Lỗi WebSocket: ' + JSON.stringify(event));
+        }
+
+        stompClient.activate();
+    }
+
+    function disconnect() {
+        if (stompClient !== null) {
+            stompClient.deactivate();
+        }
+        logMessage("Đã ngắt kết nối.");
+        document.getElementById('connectBtn').disabled = false;
+        document.getElementById('disconnectBtn').disabled = true;
+    }
+</script>
+
+</body>
+</html>

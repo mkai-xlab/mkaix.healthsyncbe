@@ -1,5 +1,7 @@
 package com.g93.be.dto;
 
+
+import com.g93.be.entity.Role;
 import com.g93.be.entity.Role;
 import lombok.AllArgsConstructor;
 import lombok.Data;

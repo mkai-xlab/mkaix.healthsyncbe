@@ -57,4 +57,11 @@ public class PermissionController {
         PermissionResponse response = permissionService.updatePermission(id, request);
         return ResponseEntity.ok(response);
     }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Void> deletePermission(@PathVariable Long id) {
+        permissionService.deletePermission(id);
+        return ResponseEntity.noContent().build();
+    }
 }

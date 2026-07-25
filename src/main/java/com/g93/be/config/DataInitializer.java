@@ -4,6 +4,7 @@ import com.g93.be.entity.*;
 import com.g93.be.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
@@ -21,9 +22,14 @@ public class DataInitializer implements CommandLineRunner {
     private final PermissionRepository permissionRepository;
     private final RolePermissionRepository rolePermissionRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JdbcTemplate jdbcTemplate;
 
     @Override
     public void run(String... args) throws Exception {
+        System.out.println("Migrating old NEED_REVERIFY statuses to NEED_VERIFY...");
+        jdbcTemplate.update("UPDATE examinations SET status = 'NEED_VERIFY' WHERE status = 'NEED_REVERIFY'");
+        System.out.println("Migration completed.");
+
         // 1. Initialize Dynamic Roles and Permissions FIRST
         if (roleRepository.findByCode("ADMIN").isEmpty()) {
             Role adminRole = new Role(null, "ADMIN", "System Administrator", null, null);

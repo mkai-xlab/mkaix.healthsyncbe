@@ -1,5 +1,9 @@
 package com.g93.be.service.impl;
 
+
+import com.g93.be.entity.Role;
+import com.g93.be.entity.User;
+import com.g93.be.entity.UserStatus;
 import com.g93.be.common.util.MailUtil;
 import com.g93.be.dto.CreateUserRequest;
 import com.g93.be.dto.UserResponse;
@@ -81,6 +85,13 @@ public class UserServiceImpl implements UserService {
         sendWelcomeEmail(savedUser, tempPassword);
         
         return mapToResponse(savedUser);
+    }
+
+    @Override
+    public java.util.List<UserResponse> getStaffList() {
+        log.info("Fetching medical staff list");
+        java.util.List<User> staffUsers = userRepository.findByRoleCodeIn(java.util.List.of("HEAD_OF_DEPARTMENT", "DEPARTMENT_HEAD", "DOCTOR"));
+        return staffUsers.stream().map(this::mapToResponse).collect(java.util.stream.Collectors.toList());
     }
 
     private String generateUniqueUsername(String email) {

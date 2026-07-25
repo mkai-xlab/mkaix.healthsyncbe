@@ -1,5 +1,10 @@
 package com.g93.be.mapper;
 
+
+import com.g93.be.entity.DicomInstance;
+import com.g93.be.entity.Examination;
+import com.g93.be.entity.AiAnalysis;
+import com.g93.be.entity.AiResult;
 import com.g93.be.dto.ExaminationDto;
 import com.g93.be.dto.ExaminationImageDto;
 import com.g93.be.entity.DicomInstance;
@@ -79,15 +84,17 @@ public class ExaminationMapper {
                 img.setEncounterCode(ex.getEncounterCode());
                 img.setStatus(ex.getStatus() != null ? ex.getStatus().name() : null);
                 img.setVisitTime(ex.getVisitTime());
-                img.setBodyPart(instance.getBodyPart());
                 img.setImageUrl(baseUrl + "/dicom/instances/" + instance.getId() + "/image");
+                if (instance.getAnnotatedImage() != null) {
+                    img.setAnnotatedImageUrl(baseUrl + "/ai/image/" + instance.getAnnotatedImage().getId());
+                }
 
                 // Map aiResults lazily
                 List<com.g93.be.dto.AiPredictionResultDto> aiResList = new ArrayList<>();
                 if (instance.getAiAnalyses() != null) {
-                    for (com.g93.be.entity.AiAnalysis analysis : instance.getAiAnalyses()) {
+                    for (AiAnalysis analysis : instance.getAiAnalyses()) {
                         if (analysis.getAiResults() != null) {
-                            for (com.g93.be.entity.AiResult aiRes : analysis.getAiResults()) {
+                            for (AiResult aiRes : analysis.getAiResults()) {
                                 java.util.Map<String, Double> details = new java.util.HashMap<>();
                                 if (aiRes.getConfidenceScore() != null) {
                                     details.put("0Normal", aiRes.getConfidenceScore().getC0Confidence());
@@ -96,6 +103,12 @@ public class ExaminationMapper {
                                     details.put("3Moderate", aiRes.getConfidenceScore().getC3Confidence());
                                     details.put("4Severe", aiRes.getConfidenceScore().getC4Confidence());
                                 }
+                                
+                                String gradcamUrl = aiRes.getGradcamImage() != null ? baseUrl + "/ai/image/" + aiRes.getGradcamImage().getId() : 
+                                        (aiRes.getStorageHeatmapFilePath() != null ? baseUrl + "/ai/heatmap/" + aiRes.getId() : null);
+                                String roiUrl = aiRes.getRoiImage() != null ? baseUrl + "/ai/image/" + aiRes.getRoiImage().getId() : null;
+                                String annotatedUrl = instance.getAnnotatedImage() != null ? baseUrl + "/ai/image/" + instance.getAnnotatedImage().getId() : null;
+
                                 com.g93.be.dto.AiPredictionResultDto dto = com.g93.be.dto.AiPredictionResultDto.builder()
                                     .dicomInstanceId(instance.getId())
                                     .aiAnalysisId(analysis.getId())
@@ -104,7 +117,10 @@ public class ExaminationMapper {
                                     .confidence(aiRes.getConfidence())
                                     .description(aiRes.getDescription())
                                     .details(details.isEmpty() ? null : details)
-                                    .gradcamImageUrl(aiRes.getStorageHeatmapFilePath() != null ? baseUrl + "/ai/heatmap/" + aiRes.getId() : null)
+                                    .kneeSide(aiRes.getKneeSide())
+                                    .gradcamImageUrl(gradcamUrl)
+                                    .roiImageUrl(roiUrl)
+                                    .annotatedImageUrl(annotatedUrl)
                                     .build();
                                 aiResList.add(dto);
                             }
