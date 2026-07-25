@@ -15,12 +15,12 @@
 Lệnh kiểm thử:
 
 ```powershell
-mvn "-Dtest=AuthServiceTest,DoctorServiceTest,PermissionServiceTest,PdfExportServiceTest,JwtTokenProviderTest,ControllerRbacTest" test
+mvn "-Dtest=AuthServiceTest,DoctorServiceTest,NotificationServiceTest,PermissionServiceTest,PdfExportServiceTest,JwtTokenProviderTest,ControllerRbacTest" test
 ```
 
 | Passed | Failed | Untested | Normal (N) | Abnormal (A) | Boundary (B) | Total Test Cases | Success Rate |
 |---:|---:|---:|---:|---:|---:|---:|---:|
-| 56 | 0 | 0 | 29 | 24 | 3 | 56 | 100% |
+| 66 | 0 | 0 | 34 | 29 | 3 | 66 | 100% |
 
 Quy ước:
 
@@ -49,7 +49,7 @@ Quy ước:
 
 | UTCID | Test case | Condition / Precondition | Input | Confirm Return | Exception | Type | Expected Output | Actual Output | Result | Date | Defect ID |
 |---|---|---|---|---|---|:---:|---|---|:---:|---|---|
-| UTC-AUTH-LOGIN-01 | `login_Success` | AuthenticationManager trả user `test_user`, role `DOCTOR`, tài khoản đã kích hoạt | Username `test_user`; password `password123` | `LoginResponse(access_token, refresh_token, DOCTOR, test_user)` | Không | N | Trả đúng hai token, username và role | Tất cả giá trị trả về đúng expected | P | 24/07/2026 | - |
+| UTC-AUTH-LOGIN-01 | `login_Success` | AuthenticationManager trả user `test_user`, full name `Test Doctor`, role `DOCTOR`, tài khoản đã kích hoạt | Username `test_user`; password `password123` | `LoginResponse(access_token, refresh_token, DOCTOR, test_user, Test Doctor)` | Không | N | Trả đúng hai token, username, full name và role | Tất cả giá trị trả về đúng expected | P | 24/07/2026 | - |
 | UTC-AUTH-LOGIN-02 | `login_FirstTimeLogin_ThrowsException` | User có `isFirstActivated=true` | Username `test_user`; password `password123` | Không sinh token | `FirstTimeLoginException` | A | Từ chối login và không gọi JWT generator | Đúng exception; access/refresh generator không được gọi | P | 24/07/2026 | - |
 
 ### 2.2 Change Password
@@ -380,9 +380,67 @@ Quy ước:
 | UTC-PERM-UPDATE-01 | `updatePermissionClearsRequirementAndPreservesPriorityWhenOmitted` | Permission id 20 tồn tại, priority hiện tại 2 | Priority null; requiresPermissionId null | Priority vẫn 2; dependency null | Không | B | Giữ priority và xóa dependency | State và response đúng expected | P | 24/07/2026 | - |
 | UTC-PERM-UPDATE-02 | `updatePermissionRejectsSelfRequirement` | Permission id 20 tồn tại | Permission 20 yêu cầu chính id 20 | Không save | `IllegalArgumentException` | A | Message `Permission cannot require itself` | Đúng message; repository không save | P | 24/07/2026 | - |
 
+### 5.8 Delete Feature
+
+| Thuộc tính | Giá trị |
+|---|---|
+| Code Module | `PermissionServiceImpl` |
+| Method | `deleteFeature` |
+| Test Class | `PermissionServiceTest` |
+| Test Requirement | Xóa feature sau khi dọn permission, role assignment và dependency; xử lý feature không tồn tại. |
+
+| Passed | Failed | Untested | N | A | B | Total | Success Rate |
+|---:|---:|---:|---:|---:|---:|---:|---:|
+| 2 | 0 | 0 | 1 | 1 | 0 | 2 | 100% |
+
+| UTCID | Test case | Condition / Precondition | Input | Confirm Interaction | Exception | Type | Expected Output | Actual Output | Result | Date | Defect ID |
+|---|---|---|---|---|---|:---:|---|---|:---:|---|---|
+| UTC-FEATURE-DELETE-01 | `deleteFeatureRemovesPermissionRelationsBeforeFeature` | Feature 10 có permission 20 | Feature id `10` | Clear dependency; delete role mappings, permission và feature | Không | N | Toàn bộ liên kết được dọn trước khi xóa feature | Repository interactions đúng expected | P | 24/07/2026 | - |
+| UTC-FEATURE-DELETE-02 | `deleteFeatureRejectsUnknownFeature` | Feature 999 không tồn tại | Feature id `999` | Không delete feature | `IllegalArgumentException` | A | Message `Feature not found with ID: 999` | Đúng message; không gọi delete | P | 24/07/2026 | - |
+
+### 5.9 Delete Permission
+
+| Thuộc tính | Giá trị |
+|---|---|
+| Code Module | `PermissionServiceImpl` |
+| Method | `deletePermission` |
+| Test Class | `PermissionServiceTest` |
+| Test Requirement | Xóa permission sau khi dọn role assignment và dependency; xử lý permission không tồn tại. |
+
+| Passed | Failed | Untested | N | A | B | Total | Success Rate |
+|---:|---:|---:|---:|---:|---:|---:|---:|
+| 2 | 0 | 0 | 1 | 1 | 0 | 2 | 100% |
+
+| UTCID | Test case | Condition / Precondition | Input | Confirm Interaction | Exception | Type | Expected Output | Actual Output | Result | Date | Defect ID |
+|---|---|---|---|---|---|:---:|---|---|:---:|---|---|
+| UTC-PERM-DELETE-01 | `deletePermissionRemovesRelationsBeforePermission` | Permission 20 tồn tại | Permission id `20` | Clear dependency; delete role mappings và permission | Không | N | Liên kết được dọn trước khi xóa permission | Repository interactions đúng expected | P | 24/07/2026 | - |
+| UTC-PERM-DELETE-02 | `deletePermissionRejectsUnknownPermission` | Permission 999 không tồn tại | Permission id `999` | Không delete permission | `IllegalArgumentException` | A | Message `Permission not found with ID: 999` | Đúng message; không gọi delete | P | 24/07/2026 | - |
+
 ---
 
-## 6. Role-Based Access Control
+## 6. Notifications
+
+### 6.1 Get All Notifications
+
+| Thuộc tính | Giá trị |
+|---|---|
+| Code Module | `NotificationServiceImpl` |
+| Method | `getAllNotifications` |
+| Test Class | `NotificationServiceTest` |
+| Test Requirement | Trả cả notification đã đọc/chưa đọc theo thứ tự repository và xử lý user không tồn tại. |
+
+| Passed | Failed | Untested | N | A | B | Total | Success Rate |
+|---:|---:|---:|---:|---:|---:|---:|---:|
+| 2 | 0 | 0 | 1 | 1 | 0 | 2 | 100% |
+
+| UTCID | Test case | Condition / Precondition | Input | Confirm Return | Exception | Type | Expected Output | Actual Output | Result | Date | Defect ID |
+|---|---|---|---|---|---|:---:|---|---|:---:|---|---|
+| UTC-NOTI-ALL-01 | `getAllNotificationsReturnsReadAndUnreadNewestFirst` | User 7 có một notification chưa đọc và một đã đọc | Username `doctor` | Danh sách gồm cả hai trạng thái | Không | N | Giữ thứ tự mới nhất trước từ repository | DTO order và `isRead=[false,true]` đúng expected | P | 24/07/2026 | - |
+| UTC-NOTI-ALL-02 | `getAllNotificationsRejectsUnknownUser` | Username không tồn tại | Username `unknown` | Không query notification | `IllegalArgumentException` | A | Message `User not found` | Đúng message; notification repository không được gọi | P | 24/07/2026 | - |
+
+---
+
+## 7. Role-Based Access Control
 
 | Thuộc tính | Giá trị |
 |---|---|
@@ -393,7 +451,7 @@ Quy ước:
 
 | Passed | Failed | Untested | N | A | B | Total | Success Rate |
 |---:|---:|---:|---:|---:|---:|---:|---:|
-| 7 | 0 | 0 | 4 | 3 | 0 | 7 | 100% |
+| 11 | 0 | 0 | 6 | 5 | 0 | 11 | 100% |
 
 | UTCID | Test case | Condition / Precondition | Input Role/Authority | Confirm Return / Interaction | Exception | Type | Expected Output | Actual Output | Result | Date | Defect ID |
 |---|---|---|---|---|---|:---:|---|---|:---:|---|---|
@@ -404,10 +462,14 @@ Quy ước:
 | UTC-RBAC-05 | `doctorCanSearchDoctors` | Method security enabled | `ROLE_DOCTOR` | Trả `PageResponse` | Không | N | DOCTOR được search doctor | Không bị chặn; response đúng | P | 24/07/2026 | - |
 | UTC-RBAC-06 | `userWithPdfAuthorityCanGenerateReport` | Method security enabled | `GENERATE_PDF_REPORT` | Message path `report.pdf` | Không | N | Authority hợp lệ được export | Trả đúng message | P | 24/07/2026 | - |
 | UTC-RBAC-07 | `roleWithoutPdfAuthorityCannotGenerateReport` | Method security enabled | Chỉ `ROLE_ADMIN`, không có PDF authority | Service không được thực thi | `AccessDeniedException` | A | Bị chặn khi thiếu authority | Đúng exception | P | 24/07/2026 | - |
+| UTC-RBAC-08 | `adminCanDeleteFeature` | Method security enabled | `ROLE_ADMIN`; feature id 10 | `deleteFeature(10)` được gọi; HTTP 204 | Không | N | ADMIN được xóa feature | Status và service interaction đúng | P | 24/07/2026 | - |
+| UTC-RBAC-09 | `doctorCannotDeleteFeature` | Method security enabled | `ROLE_DOCTOR`; feature id 10 | Service không được thực thi | `AccessDeniedException` | A | DOCTOR bị chặn | Đúng exception | P | 24/07/2026 | - |
+| UTC-RBAC-10 | `adminCanDeletePermission` | Method security enabled | `ROLE_ADMIN`; permission id 20 | `deletePermission(20)` được gọi; HTTP 204 | Không | N | ADMIN được xóa permission | Status và service interaction đúng | P | 24/07/2026 | - |
+| UTC-RBAC-11 | `doctorCannotDeletePermission` | Method security enabled | `ROLE_DOCTOR`; permission id 20 | Service không được thực thi | `AccessDeniedException` | A | DOCTOR bị chặn | Đúng exception | P | 24/07/2026 | - |
 
 ---
 
-## 7. Export PDF Report
+## 8. Export PDF Report
 
 | Thuộc tính | Giá trị |
 |---|---|
@@ -428,16 +490,17 @@ Quy ước:
 
 ---
 
-## 8. Kết luận Unit Test
+## 9. Kết luận Unit Test
 
 | Test Class | Passed | Failed | Errors | Skipped | Total | Success Rate |
 |---|---:|---:|---:|---:|---:|---:|
 | `AuthServiceTest` | 13 | 0 | 0 | 0 | 13 | 100% |
 | `JwtTokenProviderTest` | 10 | 0 | 0 | 0 | 10 | 100% |
 | `DoctorServiceTest` | 11 | 0 | 0 | 0 | 11 | 100% |
-| `PermissionServiceTest` | 12 | 0 | 0 | 0 | 12 | 100% |
-| `ControllerRbacTest` | 7 | 0 | 0 | 0 | 7 | 100% |
+| `NotificationServiceTest` | 2 | 0 | 0 | 0 | 2 | 100% |
+| `PermissionServiceTest` | 16 | 0 | 0 | 0 | 16 | 100% |
+| `ControllerRbacTest` | 11 | 0 | 0 | 0 | 11 | 100% |
 | `PdfExportServiceTest` | 3 | 0 | 0 | 0 | 3 | 100% |
-| **TOTAL** | **56** | **0** | **0** | **0** | **56** | **100%** |
+| **TOTAL** | **66** | **0** | **0** | **0** | **66** | **100%** |
 
-Kết quả được xác nhận từ sáu XML Surefire tương ứng: `56 tests`, `0 failures`, `0 errors`, `0 skipped`.
+Kết quả được xác nhận từ bảy XML Surefire tương ứng: `66 tests`, `0 failures`, `0 errors`, `0 skipped`.

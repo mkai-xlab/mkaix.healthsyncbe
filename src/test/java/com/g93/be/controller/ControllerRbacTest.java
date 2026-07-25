@@ -38,6 +38,8 @@ class ControllerRbacTest {
     @Autowired
     private FeatureController featureController;
     @Autowired
+    private PermissionController permissionController;
+    @Autowired
     private ReportController reportController;
     @Autowired
     private DoctorService doctorService;
@@ -68,6 +70,32 @@ class ControllerRbacTest {
         CreateFeatureRequest request = new CreateFeatureRequest("Reports", "Report management");
 
         assertThrows(AccessDeniedException.class, () -> featureController.createFeature(request));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void adminCanDeleteFeature() {
+        assertEquals(204, featureController.deleteFeature(10L).getStatusCode().value());
+        verify(permissionService).deleteFeature(10L);
+    }
+
+    @Test
+    @WithMockUser(roles = "DOCTOR")
+    void doctorCannotDeleteFeature() {
+        assertThrows(AccessDeniedException.class, () -> featureController.deleteFeature(10L));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void adminCanDeletePermission() {
+        assertEquals(204, permissionController.deletePermission(20L).getStatusCode().value());
+        verify(permissionService).deletePermission(20L);
+    }
+
+    @Test
+    @WithMockUser(roles = "DOCTOR")
+    void doctorCannotDeletePermission() {
+        assertThrows(AccessDeniedException.class, () -> permissionController.deletePermission(20L));
     }
 
     @Test
@@ -135,6 +163,11 @@ class ControllerRbacTest {
         @Bean
         FeatureController featureController(PermissionService permissionService) {
             return new FeatureController(permissionService);
+        }
+
+        @Bean
+        PermissionController permissionController(PermissionService permissionService) {
+            return new PermissionController(permissionService);
         }
 
         @Bean

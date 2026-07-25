@@ -1,10 +1,6 @@
 package com.g93.be.service.impl;
 
-
-import com.g93.be.entity.Feature;
-import com.g93.be.entity.Permission;
-import com.g93.be.entity.Role;
-import com.g93.be.entity.RolePermission;
+import com.g93.be.aspect.LogAction;
 import com.g93.be.dto.FeatureResponse;
 import com.g93.be.dto.PermissionResponse;
 import com.g93.be.dto.UpdateRolePermissionsRequest;
@@ -130,6 +126,24 @@ public class PermissionServiceImpl implements PermissionService {
 
     @Override
     @Transactional
+    @LogAction("DELETE_FEATURE")
+    public void deleteFeature(Long id) {
+        Feature feature = featureRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Feature not found with ID: " + id));
+        List<Permission> permissions = permissionRepository.findByFeatureId(id);
+
+        if (!permissions.isEmpty()) {
+            List<Long> permissionIds = permissions.stream().map(Permission::getId).toList();
+            permissionIds.forEach(permissionRepository::clearRequiredPermissionReferences);
+            rolePermissionRepository.deleteByPermissionIdIn(permissionIds);
+            permissionRepository.deleteAll(permissions);
+        }
+
+        featureRepository.delete(feature);
+    }
+
+    @Override
+    @Transactional
     public PermissionResponse createPermission(CreatePermissionRequest request) {
         if (permissionRepository.existsByCode(request.code())) {
             throw new IllegalArgumentException("Permission code already exists: " + request.code());
@@ -183,5 +197,17 @@ public class PermissionServiceImpl implements PermissionService {
         permission = permissionRepository.save(permission);
         return new PermissionResponse(permission.getId(), permission.getCode(), permission.getName(), permission.getPriority(), permission.getPresentation(),
                 permission.getRequiresPermission() != null ? permission.getRequiresPermission().getId() : null);
+    }
+
+    @Override
+    @Transactional
+    @LogAction("DELETE_PERMISSION")
+    public void deletePermission(Long id) {
+        Permission permission = permissionRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Permission not found with ID: " + id));
+
+        permissionRepository.clearRequiredPermissionReferences(id);
+        rolePermissionRepository.deleteByPermissionId(id);
+        permissionRepository.delete(permission);
     }
 }

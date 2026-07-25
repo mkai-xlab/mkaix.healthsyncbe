@@ -71,6 +71,7 @@ class AuthServiceTest {
 
         mockUser = new User();
         mockUser.setUsername("test_user");
+        mockUser.setFullName("Test Doctor");
         mockUser.setEmail("test@hospital.com");
         mockUser.setPassword("encoded_password");
         mockUser.setRole(role);
@@ -103,6 +104,7 @@ class AuthServiceTest {
         assertEquals("access_token", response.accessToken());
         assertEquals("refresh_token", response.refreshToken());
         assertEquals("test_user", response.username());
+        assertEquals("Test Doctor", response.fullName());
         assertEquals("DOCTOR", response.role());
     }
 

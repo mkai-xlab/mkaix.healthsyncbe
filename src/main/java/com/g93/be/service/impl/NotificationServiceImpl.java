@@ -1,8 +1,5 @@
 package com.g93.be.service.impl;
 
-
-import com.g93.be.entity.Notification;
-import com.g93.be.entity.User;
 import com.g93.be.dto.NotificationDto;
 import com.g93.be.dto.SendNotificationRequest;
 import com.g93.be.entity.Notification;
@@ -79,6 +76,18 @@ public class NotificationServiceImpl implements NotificationService {
                 .stream()
                 .map(notificationMapper::toDto)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<NotificationDto> getAllNotifications(String username) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        return notificationRepository.findByUserIdOrderByCreatedAtDesc(user.getId())
+                .stream()
+                .map(notificationMapper::toDto)
+                .toList();
     }
 
     @Override
