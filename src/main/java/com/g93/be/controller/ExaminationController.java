@@ -14,6 +14,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import com.g93.be.security.CustomUserDetails;
 import com.g93.be.entity.ExaminationStatus;
+import com.g93.be.repository.UserRepository;
+import com.g93.be.entity.User;
 
 @RestController
 @RequestMapping("/examinations")
@@ -22,6 +24,7 @@ import com.g93.be.entity.ExaminationStatus;
 public class ExaminationController {
 
     private final ExaminationService examinationService;
+    private final UserRepository userRepository;
 
     /**
      * Retrieves examinations with pagination.
@@ -273,8 +276,9 @@ public class ExaminationController {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Long> getMyTotalSevereExaminations() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
-        Long userId = userDetails.getUser().getId();
+        String userEmail = (String) authentication.getPrincipal();
+        User user = userRepository.findByUsername(userEmail).orElseThrow(() -> new RuntimeException("User not found"));
+        Long userId = user.getId();
         log.info("Received request to get total severe examinations for my token, user id: {}", userId);
         return ResponseEntity.ok(examinationService.getTotalSevereExaminations(userId));
     }
@@ -286,8 +290,9 @@ public class ExaminationController {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Long> getMyTotalVerifiedExaminations() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
-        Long userId = userDetails.getUser().getId();
+        String userEmail = (String) authentication.getPrincipal();
+        User user = userRepository.findByUsername(userEmail).orElseThrow(() -> new RuntimeException("User not found"));
+        Long userId = user.getId();
         log.info("Received request to get total verified examinations for my token, user id: {}", userId);
         return ResponseEntity.ok(examinationService.getTotalVerifiedExaminations(userId));
     }
@@ -299,8 +304,9 @@ public class ExaminationController {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Long> getMyTotalUnverifiedExaminations() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
-        Long userId = userDetails.getUser().getId();
+        String userEmail = (String) authentication.getPrincipal();
+        User user = userRepository.findByUsername(userEmail).orElseThrow(() -> new RuntimeException("User not found"));
+        Long userId = user.getId();
         log.info("Received request to get total unverified examinations for my token, user id: {}", userId);
         return ResponseEntity.ok(examinationService.getTotalUnverifiedExaminations(userId));
     }
