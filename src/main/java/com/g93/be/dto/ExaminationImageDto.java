@@ -20,5 +20,6 @@ public class ExaminationImageDto {
     private String status;
     private LocalDateTime visitTime;
     private String imageUrl;
+    private String annotatedImageUrl;
     private java.util.List<AiPredictionResultDto> aiResults;
 }
