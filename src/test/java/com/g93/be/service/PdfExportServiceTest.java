@@ -195,27 +195,7 @@ class PdfExportServiceTest {
         verify(templateEngine, never()).process(anyString(), any(IContext.class));
     }
 
-    @Test
-    void generateAndSavePdfReport_UsesOnlyLatestAiAnalysis() {
-        AiResult oldUnconfirmedResult = new AiResult();
-        oldUnconfirmedResult.setId(18L);
-        oldUnconfirmedResult.setPredictedGrade(1);
-        AiResult latestConfirmedResult = aiResult(3, DiagnosisReviewDecision.AI_CONFIRMED, 3);
-        AiAnalysis oldAnalysis = analysis(17L, LocalDateTime.now().minusDays(1), oldUnconfirmedResult);
-        AiAnalysis latestAnalysis = analysis(20L, LocalDateTime.now(), latestConfirmedResult);
-        DicomInstance instance = new DicomInstance();
-        instance.setAiAnalyses(List.of(oldAnalysis, latestAnalysis));
-        when(examinationRepository.findById(1L)).thenReturn(Optional.of(mockExamination));
-        when(dicomInstanceRepository.findByExaminationId(1L)).thenReturn(List.of(instance));
-        when(templateEngine.process(eq("pdf/report-template"), any(IContext.class)))
-                .thenReturn("<html><body>Report</body></html>");
 
-        pdfExportService.generateAndSavePdfReport(1L);
-
-        PdfReportDataDto data = capturedReportData();
-        assertEquals(1, data.getAiResults().size());
-        assertEquals("3", data.getAiResults().getFirst().getKlGrade());
-    }
 
     private AiResult aiResult(
             Integer predictedGrade,
@@ -238,7 +218,7 @@ class PdfExportServiceTest {
     private DicomInstance instance(AiResult aiResult) {
         AiAnalysis analysis = analysis(17L, LocalDateTime.now(), aiResult);
         DicomInstance instance = new DicomInstance();
-        instance.setAiAnalyses(List.of(analysis));
+        instance.setAiAnalysis(analysis);
         return instance;
     }
 
