@@ -1,112 +1,92 @@
-# Email Integration and Testing with MailDev
+# Email Providers and SMTP Testing
 
 [Back to Documentation Index](README.md) | Previous: [Database](database.md) | Next: [API Documentation](api.md)
 
-This document describes how email integration is configured, how to use the `MailUtil` helper class, and how to verify sent emails locally using **MailDev**.
+HealthSync uses one mail configuration in `application.yaml`. Environment variables select the SMTP server, authentication, and STARTTLS behavior without changing the existing welcome and password-reset flows.
 
-## MailDev Setup
+## Local Environment File
 
-We use MailDev to catch and preview sent emails during local development without connecting to a real SMTP server.
+Docker Compose loads the ignored `.env` file in the backend directory. The checked-out local file contains non-secret placeholders for Google SMTP. Replace these values before testing:
 
-### Start MailDev
+```dotenv
+MAIL_FROM=your-account@gmail.com
+MAIL_SMTP_USERNAME=your-account@gmail.com
+MAIL_SMTP_PASSWORD=your-google-app-password
+```
 
-From `/home/viet/Capstone/be`, start MailDev with Docker Compose:
+Use a Google App Password, not the normal account password. The `.env` file is covered by `.gitignore` and must never be force-added to Git.
+
+After changing these values while containers are already running, recreate the backend so Docker reloads the environment:
 
 ```bash
-docker compose up -d maildev
+docker compose up -d --force-recreate be
 ```
 
-This starts MailDev with the following exposed ports:
-- **SMTP Server**: Port `1025` (no authentication, TLS disabled).
-- **Web UI**: [http://localhost:1080](http://localhost:1080) (preview and inspect sent emails).
+## Start with Docker Compose
 
-### Stop MailDev
+Build and start the database, Redis, and backend from the backend directory:
 
 ```bash
-docker compose stop maildev
+docker compose up -d --build mysql redis be
 ```
 
----
+Follow backend logs while testing:
 
-## Spring Boot Configuration
-
-The email integration is defined in `src/main/resources/application.yaml`:
-
-```yaml
-spring:
-  mail:
-    host: ${SPRING_MAIL_HOST:localhost}
-    port: ${SPRING_MAIL_PORT:1025}
-    properties:
-      mail:
-        smtp:
-          auth: false
-          starttls:
-            enable: false
+```bash
+docker compose logs -f be
 ```
 
-- **Host**: SMTP server host (`localhost` by default).
-- **Port**: SMTP server port (`1025` by default).
-- **Authentication / TLS**: Disabled for simple local testing.
+For Google SMTP, the provided `.env` selects `smtp.gmail.com:587`, SMTP authentication, and required STARTTLS.
 
----
+To use MailDev instead, change the mail section in `.env` to:
 
-## Using MailUtil
+```dotenv
+MAIL_PROVIDER=maildev
+MAIL_FROM=no-reply@healthsync.local
+MAIL_SMTP_HOST=maildev
+MAIL_SMTP_PORT=1025
+MAIL_SMTP_USERNAME=
+MAIL_SMTP_PASSWORD=
+MAIL_SMTP_AUTH=false
+MAIL_SMTP_STARTTLS_ENABLE=false
+MAIL_SMTP_STARTTLS_REQUIRED=false
+```
 
-We provide [MailUtil](file:///home/viet/Capstone/be/src/main/java/com/g93/be/common/util/MailUtil.java) to easily send plain text and Thymeleaf template emails.
+Then include MailDev when starting the stack:
 
-### 1. Sending Plain Text Email
+```bash
+docker compose up -d --build mysql redis maildev be
+```
 
-```java
-@Autowired
-private MailUtil mailUtil;
+Its inbox is available at [http://localhost:1080](http://localhost:1080).
 
-public void testPlainEmail() {
-    mailUtil.sendPlainTextMail(
-        "recipient@example.com",
-        "Test Subject",
-        "Hello! This is a plain text email."
-    );
+## Asynchronous Delivery
+
+Plain-text and Thymeleaf-template messages run through the dedicated `mailTaskExecutor`. Calling services queue the work without waiting for SMTP. Delivery failures are written to the backend logs.
+
+## Temporary Test Endpoint
+
+The following endpoint is intentionally unauthenticated for local SMTP setup:
+
+```http
+POST http://localhost:8000/api/v1/mail/test
+Content-Type: application/json
+
+{
+  "recipient": "recipient@example.com"
 }
 ```
 
-### 2. Sending HTML Thymeleaf Template Email
+PowerShell example:
 
-Create a template under `src/main/resources/templates/example-email.html`:
-
-```html
-<!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
-<head>
-    <title>Welcome</title>
-</head>
-<body>
-    <h1 th:text="'Hello, ' + ${name} + '!'">Hello, User!</h1>
-    <p>Welcome to our Capstone project.</p>
-</body>
-</html>
+```powershell
+Invoke-RestMethod -Method Post `
+  -Uri http://localhost:8000/api/v1/mail/test `
+  -ContentType application/json `
+  -Body '{"recipient":"recipient@example.com"}'
 ```
 
-Send the template email by supplying variables to [MailUtil](file:///home/viet/Capstone/be/src/main/java/com/g93/be/common/util/MailUtil.java):
-
-```java
-@Autowired
-private MailUtil mailUtil;
-
-public void testTemplateEmail() {
-    Map<String, Object> variables = Map.of(
-        "name", "Viet"
-    );
-    mailUtil.sendTemplateMail(
-        "recipient@example.com",
-        "Welcome to Capstone",
-        "example-email",
-        variables
-    );
-}
-```
-
----
+The endpoint returns `202 Accepted` when the background task is queued. Confirm success by receiving the message and checking the backend logs. Remove `MailTestController`, its DTO/service, tests, Bruno requests, and API documentation before deployment.
 
 ## Navigation
 

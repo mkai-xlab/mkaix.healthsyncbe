@@ -2,11 +2,12 @@ package com.g93.be.common.util;
 
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
@@ -15,12 +16,21 @@ import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 @Component
-@RequiredArgsConstructor
 @Slf4j
 public class MailUtil {
 
     private final JavaMailSender mailSender;
     private final TemplateEngine templateEngine;
+    private final String fromAddress;
+
+    public MailUtil(
+            JavaMailSender mailSender,
+            TemplateEngine templateEngine,
+            @Value("${app.mail.from:no-reply@healthsync.local}") String fromAddress) {
+        this.mailSender = mailSender;
+        this.templateEngine = templateEngine;
+        this.fromAddress = fromAddress;
+    }
 
     /**
      * Sends a plain text email.
@@ -29,10 +39,12 @@ public class MailUtil {
      * @param subject email subject
      * @param body    plain text body
      */
+    @Async("mailTaskExecutor")
     public void sendPlainTextMail(String to, String subject, String body) {
         log.info("Sending plain text email to {}", to);
         try {
             SimpleMailMessage message = new SimpleMailMessage();
+            message.setFrom(fromAddress);
             message.setTo(to);
             message.setSubject(subject);
             message.setText(body);
@@ -52,6 +64,7 @@ public class MailUtil {
      * @param templateName Thymeleaf template name (located under templates/)
      * @param variables    model attributes to be used in the template
      */
+    @Async("mailTaskExecutor")
     public void sendTemplateMail(String to, String subject, String templateName, Map<String, Object> variables) {
         log.info("Sending HTML email template '{}' to {}", templateName, to);
         try {
@@ -66,6 +79,7 @@ public class MailUtil {
                     StandardCharsets.UTF_8.name()
             );
 
+            helper.setFrom(fromAddress);
             helper.setTo(to);
             helper.setSubject(subject);
             helper.setText(htmlContent, true);

@@ -8,6 +8,9 @@ This project can follow semantic versioning when formal releases start.
 
 ### Added
 
+- Added environment-driven MailDev and Google SMTP configuration in the shared application YAML, with Docker Compose loading the ignored backend `.env` file.
+- Added dedicated asynchronous email execution and a temporary unauthenticated `POST /mail/test` endpoint for local SMTP connectivity checks.
+- Added focused mail utility, provider configuration, service, validation, and SMTP test endpoint coverage.
 - Added explicit KL review decisions: assigned doctors can confirm or adjust AI results; department heads inherit both review actions across assignments; both actions are audit logged.
 - Added persistent diagnosis reviews that retain the original AI grade and expose the decision, confirmed grade, and effective grade in examination responses.
 - Updated PDF export to use only the latest confirmed AI analysis and select the final KL grade from either the confirmed AI prediction or the doctor/department-head adjustment.

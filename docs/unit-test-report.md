@@ -561,6 +561,24 @@ Quy ước:
 
 ---
 
+### 9.5 SMTP provider and asynchronous mail coverage
+
+Command: `mvn -Dtest=MailProviderConfigurationTest,MailUtilTest,MailTestServiceTest,MailTestControllerTest,SmtpTestRequestTest,AuthServiceTest,DoctorServiceTest test`
+
+| Test Class | Test case | Classification | Result | Date |
+|---|---|---|:---:|---|
+| `MailProviderConfigurationTest` | `loadsMailDevConfigurationByDefault` | Configuration | P | 25/07/2026 |
+| `MailProviderConfigurationTest` | `loadsGoogleSmtpConfigurationFromEnvironment` | Configuration | P | 25/07/2026 |
+| `MailUtilTest` | `sendsPlainTextMailWithConfiguredFromAddress` | Normal | P | 25/07/2026 |
+| `MailUtilTest` | `sendsTemplateMailWithConfiguredFromAddress` | Normal | P | 25/07/2026 |
+| `MailUtilTest` | `mailMethodsUseDedicatedAsyncExecutor` | Configuration | P | 25/07/2026 |
+| `MailTestServiceTest` | `queuesTestEmailUsingConfiguredProvider` | Normal | P | 25/07/2026 |
+| `MailTestControllerTest` | `queuesSmtpTestEmailWithoutAuthentication` | Temporary local access | P | 25/07/2026 |
+| `SmtpTestRequestTest` | `acceptsValidRecipient` | Validation | P | 25/07/2026 |
+| `SmtpTestRequestTest` | `rejectsInvalidRecipient` | Validation failure | P | 25/07/2026 |
+
+Result: `33 tests`, `0 failures`, `0 errors`, `0 skipped`. This includes `9` new SMTP tests and `24` existing authentication and doctor-service regression tests that cover the password-reset and welcome-email callers.
+
 ## 10. Kết luận Unit Test
 
 | Test Class | Passed | Failed | Errors | Skipped | Total | Success Rate |

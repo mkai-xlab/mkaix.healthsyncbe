@@ -82,6 +82,8 @@ This document outlines the standard coding rules and project-specific convention
 
 ## 16. Configuration & Environment Variables
 - **Secrets Management**: Never hardcode sensitive credentials (database passwords, Redis URLs, external API keys, JWT secrets) directly in Java classes. Always inject them via `@Value("${...}")` or `@ConfigurationProperties` to allow environment-specific overrides in `application.yml`.
+- **Mail Provider Selection**: Configure SMTP through environment variables consumed by the shared `application.yaml`. Never hardcode SMTP credentials or replace existing business email flows to change mail servers.
+- **Asynchronous Mail**: Route application email through `MailUtil` and its dedicated `mailTaskExecutor`. Callers must treat the operation as queued and rely on logs or provider delivery status for asynchronous failures.
 
 ## 17. Unit Tests and Test Report Synchronization (Required)
 - **Mandatory Coverage**: Every behavior change, endpoint addition, response payload change, or bug fix MUST include or update focused automated unit tests in the same task. Cover the successful path and material failure, authorization, and boundary paths.

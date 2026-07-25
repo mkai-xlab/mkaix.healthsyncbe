@@ -6,6 +6,32 @@ All paths below are relative to the configured `/api/v1` context path.
 
 ## Recent API Updates
 
+### SMTP connectivity test
+
+#### `POST /mail/test`
+
+Queues a plain-text message through the configured SMTP provider. This temporary local endpoint does not require authentication and must be removed before deployment.
+
+Request:
+
+```json
+{
+  "recipient": "recipient@example.com"
+}
+```
+
+Response (`202 Accepted`):
+
+```json
+{
+  "status": "QUEUED",
+  "provider": "gmail",
+  "recipient": "recipient@example.com"
+}
+```
+
+`QUEUED` means the asynchronous mail executor accepted the task; it is not an SMTP delivery receipt. Status codes: `202 Accepted` and `400 Bad Request` for a blank or invalid recipient.
+
 ### KL result confirmation and adjustment
 
 The reviewing doctor must choose exactly one final-result action. A doctor assigned to the examination can confirm the AI prediction, or adjust it to a clinically determined Kellgren-Lawrence grade. A department head inherits both actions and can review examinations outside their own assignment.

@@ -1,0 +1,25 @@
+meta {
+  name: Test active SMTP provider
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/mail/test
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "recipient": "recipient@example.com"
+  }
+}
+
+tests {
+  test("queues an SMTP test email", function() {
+    expect(res.status).to.equal(202);
+    expect(res.body.status).to.equal("QUEUED");
+    expect(res.body.recipient).to.equal("recipient@example.com");
+  });
+}

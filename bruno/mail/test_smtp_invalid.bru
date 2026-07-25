@@ -1,0 +1,23 @@
+meta {
+  name: Reject invalid SMTP test recipient
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/mail/test
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "recipient": "not-an-email"
+  }
+}
+
+tests {
+  test("rejects an invalid recipient", function() {
+    expect(res.status).to.equal(400);
+  });
+}
