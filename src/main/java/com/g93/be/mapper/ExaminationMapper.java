@@ -1,12 +1,10 @@
 package com.g93.be.mapper;
 
-
-import com.g93.be.entity.DicomInstance;
-import com.g93.be.entity.Examination;
-import com.g93.be.entity.AiAnalysis;
-import com.g93.be.entity.AiResult;
 import com.g93.be.dto.ExaminationDto;
 import com.g93.be.dto.ExaminationImageDto;
+import com.g93.be.entity.AiAnalysis;
+import com.g93.be.entity.AiResult;
+import com.g93.be.entity.DiagnosisReview;
 import com.g93.be.entity.DicomInstance;
 import com.g93.be.entity.Examination;
 import lombok.RequiredArgsConstructor;
@@ -95,6 +93,7 @@ public class ExaminationMapper {
                     for (AiAnalysis analysis : instance.getAiAnalyses()) {
                         if (analysis.getAiResults() != null) {
                             for (AiResult aiRes : analysis.getAiResults()) {
+                                DiagnosisReview review = aiRes.getDiagnosisReview();
                                 java.util.Map<String, Double> details = new java.util.HashMap<>();
                                 if (aiRes.getConfidenceScore() != null) {
                                     details.put("0Normal", aiRes.getConfidenceScore().getC0Confidence());
@@ -114,6 +113,9 @@ public class ExaminationMapper {
                                     .aiAnalysisId(analysis.getId())
                                     .aiResultId(aiRes.getId())
                                     .predictedGrade(aiRes.getPredictedGrade())
+                                    .confirmedGrade(review != null ? review.getConfirmedKlGrade() : null)
+                                    .effectiveGrade(review != null ? review.getConfirmedKlGrade() : aiRes.getPredictedGrade())
+                                    .reviewDecision(review != null ? review.getDecision().name() : null)
                                     .confidence(aiRes.getConfidence())
                                     .description(aiRes.getDescription())
                                     .details(details.isEmpty() ? null : details)
@@ -121,6 +123,9 @@ public class ExaminationMapper {
                                     .gradcamImageUrl(gradcamUrl)
                                     .roiImageUrl(roiUrl)
                                     .annotatedImageUrl(annotatedUrl)
+                                    .reviewNote(review != null ? review.getReviewNote() : null)
+                                    .reviewedByDoctorId(review != null ? review.getDoctor().getId() : null)
+                                    .reviewedAt(review != null ? review.getReviewedAt() : null)
                                     .build();
                                 aiResList.add(dto);
                             }

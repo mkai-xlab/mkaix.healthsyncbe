@@ -1,0 +1,23 @@
+meta {
+  name: Confirm AI KL Grade
+  type: http
+  seq: 1
+}
+
+put {
+  url: {{baseUrl}}/ai/results/19/confirm
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+tests {
+  test("uses the AI prediction as the final KL grade", function() {
+    expect(res.status).to.equal(200);
+    expect(res.body.confirmedKlGrade).to.equal(res.body.predictedKlGrade);
+    expect(res.body.decision).to.equal("AI_CONFIRMED");
+  });
+}

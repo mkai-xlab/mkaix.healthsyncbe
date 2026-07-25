@@ -3,9 +3,12 @@ package com.g93.be.service;
 import com.g93.be.dto.PdfReportDataDto;
 import com.g93.be.entity.AiAnalysis;
 import com.g93.be.entity.AiResult;
+import com.g93.be.entity.DiagnosisReview;
 import com.g93.be.entity.DicomInstance;
 import com.g93.be.entity.Examination;
+import com.g93.be.entity.ExaminationStatus;
 import com.g93.be.entity.Patient;
+import com.g93.be.repository.DicomInstanceRepository;
 import com.g93.be.repository.ExaminationRepository;
 import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
 import lombok.RequiredArgsConstructor;
@@ -28,7 +31,9 @@ import java.nio.file.Paths;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 
 @Service
@@ -38,11 +43,12 @@ public class PdfExportService {
 
     private final SpringTemplateEngine templateEngine;
     private final ExaminationRepository examinationRepository;
+    private final DicomInstanceRepository dicomInstanceRepository;
 
     @Value("${app.pdf.export-dir:D:/HealthSync_Exports}")
     private String exportDir;
 
-    @Transactional(readOnly = true)
+    @Transactional
     public String generateAndSavePdfReport(Long examinationId) {
         // 1. Fetch data
         Examination examination = examinationRepository.findById(examinationId)
@@ -50,24 +56,8 @@ public class PdfExportService {
         
         Patient patient = examination.getPatient();
         
-        // 2. Prepare AI Results
-        List<PdfReportDataDto.AiResultExportDto> aiResultExportDtos = new ArrayList<>();
-        
-        // Ensure examination has dicomInstances and traverse them
-        // Note: You need to make sure the relationship is eager or fetched within a transaction. 
-        // For simplicity, assuming it's accessible or we can fetch manually.
-        // Assuming there is a way to get dicom instances. If not mapped bidirectionally, you'd need a repository query.
-        // The DBML shows examinations ||--o{ xray_images : "examination_id". In code it might be XrayImage or DicomInstance.
-        // Let's assume you have a way to fetch AiResults directly, or we can just mock it if it fails lazy loading.
-        
-        // To be safe against LazyInitializationException in this draft, we'll try catching errors or just leaving it empty if null.
-        try {
-            // This is a placeholder logic based on entity relationships. You might need to adjust it based on exact Fetch types.
-            // if you have a repository like dicomInstanceRepository.findByExaminationId, use it here.
-            // For now we will map empty results if we can't traverse.
-        } catch (Exception e) {
-            log.error("Error fetching AI results", e);
-        }
+        // 2. Export only the final grade explicitly confirmed by a reviewer.
+        List<PdfReportDataDto.AiResultExportDto> aiResultExportDtos = buildFinalAiResults(examinationId);
 
         DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
         DateTimeFormatter dobFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
@@ -116,12 +106,59 @@ public class PdfExportService {
             
             builder.toStream(os);
             builder.run();
+            examination.setStatus(ExaminationStatus.REPORT_GENERATED);
+            examinationRepository.save(examination);
             log.info("PDF exported successfully to: {}", outputFile.getAbsolutePath());
             return outputFile.getAbsolutePath();
         } catch (Exception e) {
             log.error("Failed to generate PDF", e);
             throw new RuntimeException("Failed to generate PDF: " + e.getMessage(), e);
         }
+    }
+
+    private List<PdfReportDataDto.AiResultExportDto> buildFinalAiResults(Long examinationId) {
+        List<PdfReportDataDto.AiResultExportDto> results = new ArrayList<>();
+        List<DicomInstance> instances = dicomInstanceRepository.findByExaminationId(examinationId);
+        if (instances.isEmpty()) {
+            throw new IllegalArgumentException("Examination has no AI results to export");
+        }
+        for (DicomInstance instance : instances) {
+            AiAnalysis latestAnalysis = instance.getAiAnalyses() == null
+                    ? null
+                    : instance.getAiAnalyses().stream()
+                            .max(Comparator
+                                    .comparing(AiAnalysis::getStartTime,
+                                            Comparator.nullsFirst(Comparator.naturalOrder()))
+                                    .thenComparing(AiAnalysis::getId,
+                                            Comparator.nullsFirst(Comparator.naturalOrder())))
+                            .orElse(null);
+            if (latestAnalysis == null
+                    || latestAnalysis.getAiResults() == null
+                    || latestAnalysis.getAiResults().isEmpty()) {
+                throw new IllegalArgumentException(
+                        "DICOM instance with ID " + instance.getId() + " has no AI results to export");
+            }
+            for (AiResult aiResult : latestAnalysis.getAiResults()) {
+                DiagnosisReview review = aiResult.getDiagnosisReview();
+                if (review == null) {
+                    throw new IllegalArgumentException(
+                            "AI result with ID " + aiResult.getId() + " has not been confirmed");
+                }
+                results.add(PdfReportDataDto.AiResultExportDto.builder()
+                        .klGrade(String.valueOf(review.getConfirmedKlGrade()))
+                        .aiPredictedGrade(String.valueOf(aiResult.getPredictedGrade()))
+                        .decision(review.getDecision().name())
+                        .confidence(formatConfidence(aiResult.getConfidence()))
+                        .interpretation(aiResult.getDescription())
+                        .reviewNote(review.getReviewNote())
+                        .build());
+            }
+        }
+        return results;
+    }
+
+    private String formatConfidence(Double confidence) {
+        return confidence == null ? "N/A" : String.format(Locale.US, "%.2f", confidence * 100);
     }
 
     private String fetchImageAsBase64(String imageUrl) {
