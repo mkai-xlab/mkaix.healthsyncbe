@@ -14,7 +14,7 @@ import org.springframework.context.annotation.Profile;
 @RequestMapping("/s3")
 @RequiredArgsConstructor
 @Slf4j
-@Profile("!prod")
+@Profile("local")
 public class TestS3Controller {
 
     private final StorageService storageService;
