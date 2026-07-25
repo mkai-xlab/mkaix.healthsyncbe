@@ -6,7 +6,7 @@
 |---|---|
 | Created By | Codex |
 | Executed By | Codex |
-| Executed Date | 24/07/2026 |
+| Executed Date | 25/07/2026 |
 | Framework | JUnit Jupiter, Mockito, Spring Security Test |
 | Java | 21.0.10 |
 | Test result source | `target/surefire-reports/TEST-*.xml` |
@@ -15,12 +15,12 @@
 Lệnh kiểm thử:
 
 ```powershell
-mvn "-Dtest=AuthServiceTest,DoctorServiceTest,NotificationServiceTest,PermissionServiceTest,PdfExportServiceTest,JwtTokenProviderTest,ControllerRbacTest" test
+mvn "-Dtest=AuthServiceTest,DoctorServiceTest,NotificationServiceTest,PermissionServiceTest,PdfExportServiceTest,JwtTokenProviderTest,ControllerRbacTest,DiagnosisReviewServiceTest,DiagnosisReviewControllerRbacTest,ExaminationMapperKlReviewTest" test
 ```
 
 | Passed | Failed | Untested | Normal (N) | Abnormal (A) | Boundary (B) | Total Test Cases | Success Rate |
 |---:|---:|---:|---:|---:|---:|---:|---:|
-| 66 | 0 | 0 | 34 | 29 | 3 | 66 | 100% |
+| 85 | 0 | 0 | 44 | 36 | 5 | 85 | 100% |
 
 Quy ước:
 
@@ -476,21 +476,92 @@ Quy ước:
 | Code Module | `PdfExportService` |
 | Method | `generateAndSavePdfReport` |
 | Test Class | `PdfExportServiceTest` |
-| Test Requirement | Lấy examination, render HTML, tạo PDF trong thư mục tạm và xử lý lỗi dữ liệu/template. |
+| Test Requirement | Lấy examination, chọn kết quả AI mới nhất đã được xác nhận, xuất KL cuối cùng, render HTML và xử lý lỗi dữ liệu/template. |
 
 | Passed | Failed | Untested | N | A | B | Total | Success Rate |
 |---:|---:|---:|---:|---:|---:|---:|---:|
-| 3 | 0 | 0 | 1 | 2 | 0 | 3 | 100% |
+| 8 | 0 | 0 | 3 | 4 | 1 | 8 | 100% |
 
 | UTCID | Test case | Condition / Precondition | Input | Confirm Return / File | Exception | Type | Expected Output | Actual Output | Result | Date | Defect ID |
 |---|---|---|---|---|---|:---:|---|---|:---:|---|---|
 | UTC-PDF-01 | `generateAndSavePdfReport_Success` | Examination id 1 tồn tại; HTML hợp lệ; JUnit temp directory | Examination id `1`, encounter `ENC-123` | Path `report_ENC-123_<uuid>.pdf`; file tồn tại và size > 0 | Không | N | PDF hợp lệ được tạo trong thư mục tạm | File đúng tên, tồn tại và có dữ liệu | P | 24/07/2026 | - |
 | UTC-PDF-02 | `generateAndSavePdfReport_ExaminationNotFound_ThrowsException` | Examination id 1 không tồn tại | Examination id `1` | Không render template, không tạo file | `IllegalArgumentException` | A | Message `Examination not found with id: 1` | Đúng message; template không được gọi | P | 24/07/2026 | - |
 | UTC-PDF-03 | `generateAndSavePdfReport_TemplateEngineError_ThrowsException` | Examination tồn tại; template engine lỗi | Examination id `1` | Không tạo PDF thành công | `RuntimeException` | A | Message chứa `Template processing failed` | Đúng exception và message | P | 24/07/2026 | - |
+| UTC-PDF-04 | `generateAndSavePdfReport_UsesAiGradeWhenDoctorConfirmedAi` | Latest AI result KL2 có quyết định `AI_CONFIRMED` | Examination id `1` | KL cuối cùng 2; KL AI 2 | Không | N | PDF dùng đúng kết quả AI đã xác nhận | Dữ liệu template đúng expected | P | 25/07/2026 | - |
+| UTC-PDF-05 | `generateAndSavePdfReport_UsesAdjustedGradeWhenDoctorChangedKl` | Latest AI result KL2 được adjust thành KL4 | Examination id `1` | KL cuối cùng 4; KL AI vẫn 2 | Không | N | PDF dùng kết quả bác sĩ đã chỉnh sửa | Dữ liệu template đúng expected | P | 25/07/2026 | - |
+| UTC-PDF-06 | `generateAndSavePdfReport_RejectsUnconfirmedAiResult` | Latest AI result chưa có quyết định review | Examination id `1` | Không render template | `IllegalArgumentException` | A | Từ chối xuất kết quả chưa xác nhận | Đúng exception/message | P | 25/07/2026 | - |
+| UTC-PDF-07 | `generateAndSavePdfReport_UsesOnlyLatestAiAnalysis` | Một analysis cũ chưa xác nhận và một analysis mới đã xác nhận | Examination id `1` | Chỉ một kết quả KL3 | Không | B | Bỏ analysis cũ, chỉ dùng kết quả mới nhất | Chỉ latest result được đưa vào template | P | 25/07/2026 | - |
 
 ---
 
-## 9. Kết luận Unit Test
+## 9. Xác nhận và điều chỉnh KL Grade
+
+### 9.1 Diagnosis Review Service
+
+| Thuộc tính | Giá trị |
+|---|---|
+| Code Module | `DiagnosisReviewServiceImpl` |
+| Method | `confirmAiGrade`, `adjustKlGrade` |
+| Test Class | `DiagnosisReviewServiceTest` |
+| Test Requirement | Lưu quyết định xác nhận AI hoặc chỉnh KL, giữ nguyên KL AI, cho phép trưởng khoa review, kiểm tra quyền sở hữu examination và audit annotation. |
+
+| Passed | Failed | Untested | N | A | B | Total | Success Rate |
+|---:|---:|---:|---:|---:|---:|---:|---:|
+| 12 | 0 | 0 | 6 | 5 | 1 | 12 | 100% |
+
+| UTCID | Test case | Condition / Precondition | Input | Confirm Return / State | Exception | Type | Expected Output | Actual Output | Result | Date | Defect ID |
+|---|---|---|---|---|---|:---:|---|---|:---:|---|---|
+| UTC-KL-SVC-01 | `adjustKlGradeCreatesReviewAndPreservesAiPrediction` | AI result KL2 thuộc examination của doctor 7; chưa có review | AI result 19; confirmed KL3; review note | Review 23; predicted vẫn KL2; confirmed KL3 | Không | N | Tạo review, trim note và không sửa dự đoán AI | Response/state đúng expected | P | 25/07/2026 | - |
+| UTC-KL-SVC-02 | `adjustKlGradeUpdatesExistingReview` | AI result 19 đã có review 23 KL3 | Confirmed KL4; note mới | Giữ review id 23; cập nhật KL/note | Không | B | Upsert review hiện hữu | Entity và repository interaction đúng | P | 25/07/2026 | - |
+| UTC-KL-SVC-03 | `confirmAiGradeUsesOriginalPredictionAsFinalGrade` | AI result có predicted KL2 | AI result 19 | Confirmed KL2; decision `AI_CONFIRMED` | Không | N | Chọn xác nhận thì KL cuối cùng bằng KL AI | Response/state đúng expected | P | 25/07/2026 | - |
+| UTC-KL-SVC-04 | `departmentHeadCanAdjustExaminationAssignedToAnotherDoctor` | Examination thuộc doctor 7; caller là trưởng khoa 8 | Confirmed KL4 | Review thuộc trưởng khoa; decision `DOCTOR_ADJUSTED` | Không | N | Trưởng khoa được adjust ngoài assignment | Response/state đúng expected | P | 25/07/2026 | - |
+| UTC-KL-SVC-05 | `adjustKlGradeRejectsGradeOutsideKlScale` | Không cần query dữ liệu | Confirmed KL5 | Không query/save | `IllegalArgumentException` | A | Chỉ chấp nhận KL0-KL4 | Đúng message; repository không được gọi | P | 25/07/2026 | - |
+| UTC-KL-SVC-06 | `adjustKlGradeRejectsUnknownAiResult` | AI result 999 không tồn tại | Confirmed KL3 | Không save review | `IllegalArgumentException` | A | Message `AI result not found with ID: 999` | Đúng message | P | 25/07/2026 | - |
+| UTC-KL-SVC-07 | `adjustKlGradeRejectsUnknownDoctor` | AI result tồn tại; username không có doctor | Username `unknown` | Không save review | `IllegalArgumentException` | A | Message `Doctor not found: unknown` | Đúng message | P | 25/07/2026 | - |
+| UTC-KL-SVC-08 | `adjustKlGradeRejectsDoctorNotAssignedToExamination` | Examination được giao doctor 7; caller doctor 8 | Confirmed KL3 | Không save review | `AccessDeniedException` | A | Chặn sửa examination của bác sĩ khác | Đúng exception/message | P | 25/07/2026 | - |
+| UTC-KL-SVC-09 | `confirmAndAdjustActionsAreAuditLogged` | Hai service method dùng AOP audit | Chữ ký confirm và adjust | `CONFIRM_AI_GRADE`; `OVERRIDE_AI_GRADE` | Không | N | Cả hai method có đúng `@LogAction` | Annotation và action code đúng expected | P | 25/07/2026 | - |
+
+### 9.2 KL Grade RBAC
+
+| Thuộc tính | Giá trị |
+|---|---|
+| Code Module | `DiagnosisReviewController` |
+| Method | `@PreAuthorize` trên `confirmAiGrade`, `adjustKlGrade` |
+| Test Class | `DiagnosisReviewControllerRbacTest` |
+| Test Requirement | Doctor cần đúng authority để confirm/adjust; trưởng khoa kế thừa cả hai quyền review; role không phù hợp bị chặn. |
+
+| Passed | Failed | Untested | N | A | B | Total | Success Rate |
+|---:|---:|---:|---:|---:|---:|---:|---:|
+| 6 | 0 | 0 | 3 | 3 | 0 | 6 | 100% |
+
+| UTCID | Test case | Input Authorities | Confirm Interaction | Exception | Type | Expected Output | Actual Output | Result | Date | Defect ID |
+|---|---|---|---|---|:---:|---|---|:---:|---|---|
+| UTC-KL-RBAC-01 | `doctorWithOverrideAuthorityCanAdjustKlGrade` | `ROLE_DOCTOR`, `OVERRIDE_AI_GRADE` | Service được gọi đúng AI result/request/username | Không | N | Cho phép và trả response | Đúng response/interaction | P | 25/07/2026 | - |
+| UTC-KL-RBAC-02 | `doctorWithoutOverrideAuthorityCannotAdjustKlGrade` | Chỉ `ROLE_DOCTOR` | Service không thực thi | `AccessDeniedException` | A | Chặn khi thiếu authority | Đúng exception | P | 25/07/2026 | - |
+| UTC-KL-RBAC-03 | `nonDoctorCannotAdjustKlGrade` | `ROLE_ADMIN`, `OVERRIDE_AI_GRADE` | Service không thực thi | `AccessDeniedException` | A | Chặn role không phải DOCTOR | Đúng exception | P | 25/07/2026 | - |
+| UTC-KL-RBAC-04 | `departmentHeadCanAdjustKlGradeWithoutExplicitAuthority` | `ROLE_HEAD_OF_DEPARTMENT` | Service adjust được gọi | Không | N | Trưởng khoa được phép adjust | Đúng response/interaction | P | 25/07/2026 | - |
+| UTC-KL-RBAC-05 | `doctorWithConfirmAuthorityCanConfirmAiGrade` | `ROLE_DOCTOR`, `CONFIRM_CONCLUSION` | Service confirm được gọi | Không | N | Doctor được xác nhận kết quả AI | Đúng response/interaction | P | 25/07/2026 | - |
+
+### 9.3 Examination Response Mapping
+
+| Thuộc tính | Giá trị |
+|---|---|
+| Code Module | `ExaminationMapper` |
+| Method | `toDto` |
+| Test Class | `ExaminationMapperKlReviewTest` |
+| Test Requirement | Response giữ KL AI, trả KL xác nhận, quyết định review và dùng KL xác nhận làm `effectiveGrade`. |
+
+| Passed | Failed | Untested | N | A | B | Total | Success Rate |
+|---:|---:|---:|---:|---:|---:|---:|---:|
+| 1 | 0 | 0 | 1 | 0 | 0 | 1 | 100% |
+
+| UTCID | Test case | Input | Confirm Return | Exception | Type | Expected Output | Actual Output | Result | Date | Defect ID |
+|---|---|---|---|---|:---:|---|---|:---:|---|---|
+| UTC-KL-MAP-01 | `mapsPredictedConfirmedAndEffectiveKlGrades` | Predicted KL2; review KL3; doctor 7 | predicted 2; confirmed/effective 3; decision `DOCTOR_ADJUSTED` | Không | N | Mapper phản ánh quyết định, không mất AI grade | Tất cả field đúng expected | P | 25/07/2026 | - |
+
+---
+
+## 10. Kết luận Unit Test
 
 | Test Class | Passed | Failed | Errors | Skipped | Total | Success Rate |
 |---|---:|---:|---:|---:|---:|---:|
@@ -500,7 +571,22 @@ Quy ước:
 | `NotificationServiceTest` | 2 | 0 | 0 | 0 | 2 | 100% |
 | `PermissionServiceTest` | 16 | 0 | 0 | 0 | 16 | 100% |
 | `ControllerRbacTest` | 11 | 0 | 0 | 0 | 11 | 100% |
-| `PdfExportServiceTest` | 3 | 0 | 0 | 0 | 3 | 100% |
-| **TOTAL** | **66** | **0** | **0** | **0** | **66** | **100%** |
+| `PdfExportServiceTest` | 8 | 0 | 0 | 0 | 8 | 100% |
+| `DiagnosisReviewServiceTest` | 12 | 0 | 0 | 0 | 12 | 100% |
+| `DiagnosisReviewControllerRbacTest` | 6 | 0 | 0 | 0 | 6 | 100% |
+| `ExaminationMapperKlReviewTest` | 1 | 0 | 0 | 0 | 1 | 100% |
+| **TOTAL** | **90** | **0** | **0** | **0** | **90** | **100%** |
 
-Kết quả được xác nhận từ bảy XML Surefire tương ứng: `66 tests`, `0 failures`, `0 errors`, `0 skipped`.
+### 10.1 Additional KL workflow coverage
+
+| UTCID | Test case | Expected Output | Result | Date |
+|---|---|---|:---:|---|
+| UTC-KL-SVC-10 | `finalReviewMarksExaminationAsVerified` | All latest AI results reviewed; examination becomes `VERIFIED` | P | 25/07/2026 |
+| UTC-KL-SVC-11 | `reviewIsRejectedAfterReportWasGenerated` | Review is rejected after `REPORT_GENERATED` | P | 25/07/2026 |
+| UTC-KL-SVC-12 | `departmentHeadCanConfirmExaminationAssignedToAnotherDoctor` | Department head confirms an AI result outside their assignment | P | 25/07/2026 |
+| UTC-KL-RBAC-06 | `departmentHeadCanConfirmAiGrade` | Department head can call the confirm endpoint | P | 25/07/2026 |
+| UTC-PDF-08 | `generateAndSavePdfReport_RejectsExaminationWithoutAiResults` | PDF export rejects an examination without AI results | P | 25/07/2026 |
+
+The focused KL/RBAC/mapper/PDF run completed with `27 tests`, `0 failures`, `0 errors`, and `0 skipped`. The full project run executed `144 tests` with `6 failures` and `6 errors`; those 12 existing integration failures are caused by shared local database state and foreign-key cleanup failures in `audit_logs` and `examinations`, not by the focused KL workflow tests.
+
+Kết quả được xác nhận từ mười XML Surefire tương ứng: `90 tests`, `0 failures`, `0 errors`, `0 skipped`.

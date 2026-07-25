@@ -1,0 +1,28 @@
+meta {
+  name: Adjust KL Grade AI Result Not Found
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{baseUrl}}/ai/results/999999/kl-grade
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "confirmedKlGrade": 3,
+    "reviewNote": "Clinical findings support KL grade 3"
+  }
+}
+
+tests {
+  test("rejects an unknown AI result", function() {
+    expect(res.status).to.equal(400);
+  });
+}
