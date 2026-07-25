@@ -14,7 +14,7 @@ import org.springframework.context.annotation.Profile;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-@Profile("!prod")
+@Profile("local")
 public class S3StorageServiceImpl implements StorageService {
 
     private final S3Client s3Client;
