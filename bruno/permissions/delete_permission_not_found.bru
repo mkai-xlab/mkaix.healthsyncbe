@@ -1,0 +1,21 @@
+meta {
+  name: Delete Permission Not Found
+  type: http
+  seq: 7
+}
+
+delete {
+  url: {{baseUrl}}/permissions/999999
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+tests {
+  test("rejects unknown permission", function() {
+    expect(res.status).to.equal(400);
+  });
+}

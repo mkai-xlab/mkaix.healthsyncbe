@@ -2,7 +2,42 @@
 
 [Back to Documentation Index](README.md) | Previous: [Database](database.md) | Next: [Deployment Guide](deployment.md)
 
-No public API endpoints are currently implemented, except for authentication endpoints.
+All paths below are relative to the configured `/api/v1` context path.
+
+## Optimize Branch API Updates
+
+### `POST /auth/login` response update
+
+Successful login responses include the user's full name:
+
+```json
+{
+  "accessToken": "eyJhbGciOiJIUz...",
+  "refreshToken": "eyJhbGciOiJIUz...",
+  "role": "DOCTOR",
+  "username": "doctor.b",
+  "fullName": "Nguyen Van B",
+  "permissions": []
+}
+```
+
+### `GET /notifications`
+
+Returns all notifications owned by the authenticated user, including both read and unread items, ordered from newest to oldest.
+
+Status codes: `200 OK`, `401 Unauthorized`.
+
+### `DELETE /permissions/{id}`
+
+Deletes a permission and removes its role assignments and dependency references. Requires the `ADMIN` role and returns no response body.
+
+Status codes: `204 No Content`, `400 Bad Request` when the permission does not exist, `401 Unauthorized`, `403 Forbidden`.
+
+### `DELETE /features/{id}`
+
+Deletes a feature and its permissions after removing related role assignments and dependency references. Requires the `ADMIN` role and returns no response body.
+
+Status codes: `204 No Content`, `400 Bad Request` when the feature does not exist, `401 Unauthorized`, `403 Forbidden`.
 
 ## `POST /auth/change-password`
 
