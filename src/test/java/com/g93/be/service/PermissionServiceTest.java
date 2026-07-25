@@ -177,6 +177,30 @@ class PermissionServiceTest {
     }
 
     @Test
+    void deleteFeatureRemovesPermissionRelationsBeforeFeature() {
+        when(featureRepository.findById(10L)).thenReturn(Optional.of(feature));
+        when(permissionRepository.findByFeatureId(10L)).thenReturn(List.of(viewPermission));
+
+        permissionService.deleteFeature(10L);
+
+        verify(permissionRepository).clearRequiredPermissionReferences(20L);
+        verify(rolePermissionRepository).deleteByPermissionIdIn(List.of(20L));
+        verify(permissionRepository).deleteAll(List.of(viewPermission));
+        verify(featureRepository).delete(feature);
+    }
+
+    @Test
+    void deleteFeatureRejectsUnknownFeature() {
+        when(featureRepository.findById(999L)).thenReturn(Optional.empty());
+
+        IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
+                () -> permissionService.deleteFeature(999L));
+
+        assertEquals("Feature not found with ID: 999", error.getMessage());
+        verify(featureRepository, never()).delete(any());
+    }
+
+    @Test
     void createPermissionUsesDefaultPriorityAndOptionalRequirement() {
         when(permissionRepository.existsByCode("CREATE_REPORT")).thenReturn(false);
         when(featureRepository.findById(10L)).thenReturn(Optional.of(feature));
@@ -231,6 +255,28 @@ class PermissionServiceTest {
 
         assertEquals("Permission cannot require itself", error.getMessage());
         verify(permissionRepository, never()).save(any());
+    }
+
+    @Test
+    void deletePermissionRemovesRelationsBeforePermission() {
+        when(permissionRepository.findById(20L)).thenReturn(Optional.of(viewPermission));
+
+        permissionService.deletePermission(20L);
+
+        verify(permissionRepository).clearRequiredPermissionReferences(20L);
+        verify(rolePermissionRepository).deleteByPermissionId(20L);
+        verify(permissionRepository).delete(viewPermission);
+    }
+
+    @Test
+    void deletePermissionRejectsUnknownPermission() {
+        when(permissionRepository.findById(999L)).thenReturn(Optional.empty());
+
+        IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
+                () -> permissionService.deletePermission(999L));
+
+        assertEquals("Permission not found with ID: 999", error.getMessage());
+        verify(permissionRepository, never()).delete(any());
     }
 
     private Role role(Long id, String code) {

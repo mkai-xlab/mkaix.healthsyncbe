@@ -1,0 +1,21 @@
+meta {
+  name: Delete Feature Not Found
+  type: http
+  seq: 4
+}
+
+delete {
+  url: {{baseUrl}}/features/999999
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+tests {
+  test("rejects unknown feature", function() {
+    expect(res.status).to.equal(400);
+  });
+}
