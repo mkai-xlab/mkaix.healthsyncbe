@@ -55,21 +55,6 @@ public class SecurityAndRbacIntegrationTest {
         @Autowired
         private JwtTokenProvider jwtTokenProvider;
 
-        @Autowired
-        private com.g93.be.repository.AuditLogRepository auditLogRepository;
-
-        @Autowired
-        private com.g93.be.repository.NotificationRepository notificationRepository;
-
-        @Autowired
-        private com.g93.be.repository.DicomInstanceRepository dicomInstanceRepository;
-
-        @Autowired
-        private com.g93.be.repository.ExaminationRepository examinationRepository;
-
-        @Autowired
-        private DoctorRepository doctorRepository;
-
         private final ObjectMapper objectMapper = new ObjectMapper();
 
         @MockitoBean
@@ -96,12 +81,6 @@ public class SecurityAndRbacIntegrationTest {
                 // Clear repositories to ensure isolation.
                 // We only clear users to avoid breaking lookup tables (Roles/Permissions/Features)
                 // populated by DataInitializer.
-                // populated by DataInitializer.
-                notificationRepository.deleteAll();
-                auditLogRepository.deleteAll();
-                dicomInstanceRepository.deleteAll();
-                examinationRepository.deleteAll();
-                doctorRepository.deleteAll();
                 userRepository.deleteAll();
 
                 // 1. Fetch existing Roles from database (populated by DataInitializer)

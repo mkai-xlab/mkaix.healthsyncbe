@@ -7,7 +7,6 @@ import com.g93.be.entity.Doctor;
 
 import com.g93.be.entity.UserStatus;
 import com.g93.be.repository.DoctorRepository;
-import com.g93.be.repository.UserRepository;
 import com.g93.be.service.DoctorService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -41,29 +40,9 @@ class DoctorRegistrationIntegrationTest {
     @MockitoBean
     private MailUtil mailUtil;
 
-    @Autowired
-    private com.g93.be.repository.ExaminationRepository examinationRepository;
-
-    @Autowired
-    private com.g93.be.repository.DicomInstanceRepository dicomInstanceRepository;
-
-    @Autowired
-    private com.g93.be.repository.NotificationRepository notificationRepository;
-
-    @Autowired
-    private com.g93.be.repository.AuditLogRepository auditLogRepository;
-
-    @Autowired
-    private UserRepository userRepository;
-
     @BeforeEach
     void setUp() {
-        notificationRepository.deleteAll();
-        auditLogRepository.deleteAll();
-        dicomInstanceRepository.deleteAll();
-        examinationRepository.deleteAll();
         doctorRepository.deleteAll();
-        userRepository.deleteAll();
     }
 
     @Test
