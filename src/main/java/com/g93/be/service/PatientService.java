@@ -1,4 +1,6 @@
 package com.g93.be.service;
+import com.g93.be.dto.PatientDetailsResponse;
+
 
 import com.g93.be.dto.CreatePatientRequest;
 import com.g93.be.dto.EditPatientRequest;
@@ -14,6 +16,7 @@ public interface PatientService {
     PageResponse<PatientResponse> getAllPatients(PatientFilterRequest filter, Pageable pageable);
     void deletePatient(Long id);
     PatientResponse editPatient(Long id, EditPatientRequest request);
-    com.g93.be.dto.PatientDetailsResponse getPatientDetailsWithImages(String patientId);
+    PatientDetailsResponse getPatientDetailsWithImages(String patientId);
     PageResponse<PatientResponse> getPatientsByUploadDate(LocalDate date, Pageable pageable, CustomUserDetails userDetails);
 }
+

@@ -1,4 +1,6 @@
 package com.g93.be.controller;
+import com.g93.be.dto.PatientGradeStatsDto;
+
 
 import com.g93.be.dto.ExaminationDto;
 import com.g93.be.dto.PageResponse;
@@ -185,7 +187,7 @@ public class ExaminationController {
      */
     @GetMapping("/statistics/patients-by-grade")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<java.util.List<com.g93.be.dto.PatientGradeStatsDto>> getPatientGradeStatistics(
+    public ResponseEntity<java.util.List<PatientGradeStatsDto>> getPatientGradeStatistics(
             java.security.Principal principal) {
         log.info("Received request to get patient grade statistics for user: {}", principal.getName());
         return ResponseEntity.ok(examinationService.getPatientGradeStatistics(principal.getName()));
@@ -312,3 +314,4 @@ public class ExaminationController {
         return ResponseEntity.ok(examinationService.getTotalUnverifiedExaminations(userId));
     }
 }
+

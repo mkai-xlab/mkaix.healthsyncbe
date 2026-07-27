@@ -1,4 +1,6 @@
 package com.g93.be.security;
+import com.g93.be.dto.PermissionResponse;
+
 
 
 import com.g93.be.entity.User;
@@ -14,16 +16,16 @@ import java.util.List;
 public class CustomUserDetails implements UserDetails {
 
     private final User user;
-    private final List<com.g93.be.dto.PermissionResponse> permissions;
+    private final List<PermissionResponse> permissions;
 
-    public CustomUserDetails(User user, List<com.g93.be.dto.PermissionResponse> permissions) {
+    public CustomUserDetails(User user, List<PermissionResponse> permissions) {
         this.user = user;
         this.permissions = permissions;
     }
 
     public List<String> getPermissionCodes() {
         if (permissions == null) return java.util.Collections.emptyList();
-        return permissions.stream().map(com.g93.be.dto.PermissionResponse::code).collect(java.util.stream.Collectors.toList());
+        return permissions.stream().map(PermissionResponse::code).collect(java.util.stream.Collectors.toList());
     }
 
     @Override
@@ -68,7 +70,8 @@ public class CustomUserDetails implements UserDetails {
         return user;
     }
 
-    public List<com.g93.be.dto.PermissionResponse> getPermissions() {
+    public List<PermissionResponse> getPermissions() {
         return permissions;
     }
 }
+

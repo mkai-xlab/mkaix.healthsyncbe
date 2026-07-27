@@ -1,6 +1,5 @@
 package com.g93.be.service.impl;
 
-
 import com.g93.be.entity.DicomInstance;
 import com.g93.be.dto.*;
 import com.g93.be.entity.*;
@@ -17,10 +16,6 @@ import org.springframework.transaction.annotation.Transactional;
 import com.g93.be.security.CustomUserDetails;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -42,15 +37,14 @@ public class PatientServiceImpl implements PatientService {
         List<PatientResponse> content = patientPage.getContent().stream()
                 .map(patientMapper::toResponse)
                 .toList();
-        
+
         return new PageResponse<>(
                 content,
                 patientPage.getNumber(),
                 patientPage.getSize(),
                 patientPage.getTotalElements(),
                 patientPage.getTotalPages(),
-                patientPage.isLast()
-        );
+                patientPage.isLast());
     }
 
     @Override
@@ -69,10 +63,14 @@ public class PatientServiceImpl implements PatientService {
         Patient patient = patientRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Patient with id " + id + " not found"));
 
-        if (request.getFullName() != null) patient.setFullName(request.getFullName());
-        if (request.getDateOfBirth() != null) patient.setDob(request.getDateOfBirth());
-        if (request.getGender() != null) patient.setGender(request.getGender());
-        if (request.getPhone() != null) patient.setPhone(request.getPhone());
+        if (request.getFullName() != null)
+            patient.setFullName(request.getFullName());
+        if (request.getDateOfBirth() != null)
+            patient.setDob(request.getDateOfBirth());
+        if (request.getGender() != null)
+            patient.setGender(request.getGender());
+        if (request.getPhone() != null)
+            patient.setPhone(request.getPhone());
         if (request.getEmail() != null && !request.getEmail().isBlank()) {
             patient.setEmail(request.getEmail());
         }
@@ -119,7 +117,8 @@ public class PatientServiceImpl implements PatientService {
         List<Examination> examinations = examinationRepository.findByPatientId(patient.getId());
         List<ExaminationDto> examDtos = new ArrayList<>();
 
-        String baseUrl = org.springframework.web.servlet.support.ServletUriComponentsBuilder.fromCurrentContextPath().build().toUriString();
+        String baseUrl = org.springframework.web.servlet.support.ServletUriComponentsBuilder.fromCurrentContextPath()
+                .build().toUriString();
 
         for (Examination ex : examinations) {
             ExaminationDto ed = new ExaminationDto();
@@ -154,14 +153,16 @@ public class PatientServiceImpl implements PatientService {
 
     @Override
     @Transactional(readOnly = true)
-    public PageResponse<PatientResponse> getPatientsByUploadDate(LocalDate date, Pageable pageable, CustomUserDetails userDetails) {
+    public PageResponse<PatientResponse> getPatientsByUploadDate(LocalDate date, Pageable pageable,
+            CustomUserDetails userDetails) {
         Long filterDoctorId = null;
         if (userDetails != null && userDetails.getUser() != null && userDetails.getUser().getRole() != null) {
             String roleCode = userDetails.getUser().getRole().getCode();
             if ("DOCTOR".equals(roleCode)) {
                 filterDoctorId = userDetails.getUser().getId();
             }
-            // For DEPARTMENT_HEAD or ADMIN, filterDoctorId remains null, meaning fetch all patients
+            // For DEPARTMENT_HEAD or ADMIN, filterDoctorId remains null, meaning fetch all
+            // patients
         }
 
         LocalDateTime startOfDay = date.atStartOfDay();
@@ -180,7 +181,6 @@ public class PatientServiceImpl implements PatientService {
                 patientPage.getSize(),
                 patientPage.getTotalElements(),
                 patientPage.getTotalPages(),
-                patientPage.isLast()
-        );
+                patientPage.isLast());
     }
 }
