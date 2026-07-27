@@ -1,4 +1,6 @@
 package com.g93.be.mapper;
+import com.g93.be.dto.AiPredictionResultDto;
+
 
 import com.g93.be.dto.ExaminationDto;
 import com.g93.be.dto.ExaminationImageDto;
@@ -88,7 +90,7 @@ public class ExaminationMapper {
                 }
 
                 // Map aiResults lazily
-                List<com.g93.be.dto.AiPredictionResultDto> aiResList = new ArrayList<>();
+                List<AiPredictionResultDto> aiResList = new ArrayList<>();
                 if (instance.getAiAnalyses() != null) {
                     for (AiAnalysis analysis : instance.getAiAnalyses()) {
                         if (analysis.getAiResults() != null) {
@@ -108,7 +110,7 @@ public class ExaminationMapper {
                                 String roiUrl = aiRes.getRoiImage() != null ? baseUrl + "/ai/image/" + aiRes.getRoiImage().getId() : null;
                                 String annotatedUrl = instance.getAnnotatedImage() != null ? baseUrl + "/ai/image/" + instance.getAnnotatedImage().getId() : null;
 
-                                com.g93.be.dto.AiPredictionResultDto dto = com.g93.be.dto.AiPredictionResultDto.builder()
+                                AiPredictionResultDto dto = AiPredictionResultDto.builder()
                                     .dicomInstanceId(instance.getId())
                                     .aiAnalysisId(analysis.getId())
                                     .aiResultId(aiRes.getId())
@@ -144,3 +146,4 @@ public class ExaminationMapper {
         return ed;
     }
 }
+
