@@ -1,8 +1,5 @@
 package com.g93.be.service.impl;
 
-
-import com.g93.be.entity.AuditLog;
-import com.g93.be.entity.User;
 import com.g93.be.entity.AuditLog;
 import com.g93.be.entity.User;
 import com.g93.be.repository.AuditLogRepository;
@@ -41,18 +38,19 @@ public class AuditLogServiceImpl implements AuditLogService {
             AuditLog auditLog = new AuditLog();
             auditLog.setUser(userOpt.get());
             auditLog.setTitle(title);
-            
-            // Limit description length if it's too long for TEXT column (though TEXT is usually 65KB)
+
+            // Limit description length if it's too long for TEXT column (though TEXT is
+            // usually 65KB)
             if (description != null && description.length() > 50000) {
                 description = description.substring(0, 50000) + "...";
             }
             auditLog.setDescription(description);
-            
+
             if (ipAddress != null && ipAddress.length() > 100) {
                 ipAddress = ipAddress.substring(0, 100);
             }
             auditLog.setIpAddress(ipAddress);
-            
+
             if (userAgent != null && userAgent.length() > 255) {
                 userAgent = userAgent.substring(0, 255);
             }

@@ -1,4 +1,6 @@
 package com.g93.be.controller;
+import com.g93.be.dto.PatientGradeStatsDto;
+
 
 
 import com.g93.be.entity.User;
@@ -62,15 +64,15 @@ public class DicomVerifyController {
                     gradeCountMap.put(grade, gradeCountMap.getOrDefault(grade, 0L) + 1);
                 }
 
-                List<com.g93.be.dto.PatientGradeStatsDto> statsList = gradeCountMap.entrySet().stream()
-                        .map(entry -> new com.g93.be.dto.PatientGradeStatsDto(entry.getKey(), entry.getValue()))
+                List<PatientGradeStatsDto> statsList = gradeCountMap.entrySet().stream()
+                        .map(entry -> new PatientGradeStatsDto(entry.getKey(), entry.getValue()))
                         .collect(java.util.stream.Collectors.toList());
                 
                 // Send success notification
                 SendNotificationRequest notifReq = new SendNotificationRequest(
                         finalUserId,
-                        "Phân tích AI hoàn tất",
-                        "Hệ thống đã phân tích thành công hình ảnh X-Quang từ phiên xác nhận.",
+                        "PhÃ¢n tÃ­ch AI hoÃ n táº¥t",
+                        "Há»‡ thá»‘ng Ä‘Ã£ phÃ¢n tÃ­ch thÃ nh cÃ´ng hÃ¬nh áº£nh X-Quang tá»« phiÃªn xÃ¡c nháº­n.",
                         "AI_RESULT",
                         null
                 );
@@ -83,8 +85,8 @@ public class DicomVerifyController {
                 try {
                     SendNotificationRequest errReq = new SendNotificationRequest(
                             finalUserId,
-                            "Lỗi phân tích AI",
-                            "Đã có lỗi xảy ra trong quá trình phân tích AI.",
+                            "Lá»—i phÃ¢n tÃ­ch AI",
+                            "ÄÃ£ cÃ³ lá»—i xáº£y ra trong quÃ¡ trÃ¬nh phÃ¢n tÃ­ch AI.",
                             "ERROR",
                             null
                     );
@@ -98,3 +100,4 @@ public class DicomVerifyController {
         return ResponseEntity.ok(java.util.Collections.emptyList());
     }
 }
+

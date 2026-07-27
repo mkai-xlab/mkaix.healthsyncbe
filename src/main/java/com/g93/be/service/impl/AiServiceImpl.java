@@ -1,4 +1,6 @@
 package com.g93.be.service.impl;
+import com.g93.be.dto.ExaminationImageDto;
+
 
 import com.g93.be.entity.DicomInstanceStatus;
 import com.g93.be.dto.AiPredictionRequest;
@@ -223,7 +225,7 @@ public class AiServiceImpl implements AiService {
 
             } catch (Exception e) {
                 log.error("Error during AI prediction for instance {}", instanceId, e);
-                throw new RuntimeException("Không thể kết nối đến Server AI: " + e.getMessage(), e);
+                throw new RuntimeException("KhÃ´ng thá»ƒ káº¿t ná»‘i Ä‘áº¿n Server AI: " + e.getMessage(), e);
             }
         }
 
@@ -234,7 +236,7 @@ public class AiServiceImpl implements AiService {
             int maxGrade = -1;
 
             if (examDto != null && examDto.getImages() != null) {
-                for (com.g93.be.dto.ExaminationImageDto img : examDto.getImages()) {
+                for (ExaminationImageDto img : examDto.getImages()) {
                     List<AiPredictionResultDto> aiResList = aiResultMap.get(img.getDicomInstanceId());
                     if (aiResList != null) {
                         img.setAiResults(aiResList);
@@ -289,12 +291,12 @@ public class AiServiceImpl implements AiService {
 
             int totalPatients = patientGrades.size();
             String message = String.format(
-                    "Phân tích AI hoàn tất cho %d bệnh nhân. Chi tiết: %d Bệnh Nhân mắc KL4, %d Bệnh Nhân mắc KL3, %d Bệnh Nhân mắc KL2, %d Bệnh Nhân mắc KL1.",
+                    "PhÃ¢n tÃ­ch AI hoÃ n táº¥t cho %d bá»‡nh nhÃ¢n. Chi tiáº¿t: %d Bá»‡nh NhÃ¢n máº¯c KL4, %d Bá»‡nh NhÃ¢n máº¯c KL3, %d Bá»‡nh NhÃ¢n máº¯c KL2, %d Bá»‡nh NhÃ¢n máº¯c KL1.",
                     totalPatients, kl4, kl3, kl2, kl1);
 
             SendNotificationRequest req = new SendNotificationRequest(
                     doctorId,
-                    "Thống kê kết quả AI",
+                    "Thá»‘ng kÃª káº¿t quáº£ AI",
                     message,
                     "INFO",
                     null);
@@ -326,3 +328,4 @@ public class AiServiceImpl implements AiService {
         }
     }
 }
+

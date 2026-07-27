@@ -1,4 +1,6 @@
 package com.g93.be.service.impl;
+import com.g93.be.dto.PatientGradeStatsDto;
+
 
 
 import com.g93.be.entity.DicomInstance;
@@ -277,7 +279,7 @@ public class ExaminationServiceImpl implements ExaminationService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<com.g93.be.dto.PatientGradeStatsDto> getPatientGradeStatistics(String username) {
+    public List<PatientGradeStatsDto> getPatientGradeStatistics(String username) {
         User user = userRepository.findByUsernameOrEmail(username, username)
                 .orElseThrow(() -> new IllegalArgumentException("User with username/email " + username + " not found"));
 
@@ -297,7 +299,7 @@ public class ExaminationServiceImpl implements ExaminationService {
         }
 
         return projections.stream()
-                .map(p -> new com.g93.be.dto.PatientGradeStatsDto(p.getGrade(), p.getPatientCount()))
+                .map(p -> new PatientGradeStatsDto(p.getGrade(), p.getPatientCount()))
                 .toList();
     }
 
@@ -430,3 +432,4 @@ public class ExaminationServiceImpl implements ExaminationService {
         );
     }
 }
+

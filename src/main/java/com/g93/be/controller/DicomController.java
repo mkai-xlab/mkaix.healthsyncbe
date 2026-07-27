@@ -1,4 +1,6 @@
 package com.g93.be.controller;
+import com.g93.be.dto.BatchDicomUploadResponse;
+
 
 
 import com.g93.be.entity.DicomInstance;
@@ -57,7 +59,7 @@ public class DicomController {
 
     @PostMapping(value = "/upload/batch", consumes = "multipart/form-data")
     // @PreAuthorize("hasAuthority('UPLOAD_DICOM_IMAGE')")
-    public ResponseEntity<com.g93.be.dto.BatchDicomUploadResponse> uploadBatch(
+    public ResponseEntity<BatchDicomUploadResponse> uploadBatch(
             @RequestParam("files") List<MultipartFile> files,
             java.security.Principal principal) {
         log.info("Received request to upload batch of {} DICOM files", files.size());
@@ -89,7 +91,7 @@ public class DicomController {
             String uploadSessionId = java.util.UUID.randomUUID().toString();
 
             // Run synchronously
-            com.g93.be.dto.BatchDicomUploadResponse response = dicomService.processBatchPaths(tempFilePaths, userId, uploadSessionId);
+            BatchDicomUploadResponse response = dicomService.processBatchPaths(tempFilePaths, userId, uploadSessionId);
 
             return ResponseEntity.ok(response);
         } catch (java.io.IOException e) {
@@ -136,7 +138,7 @@ public class DicomController {
             String uploadSessionId = java.util.UUID.randomUUID().toString();
             
             // Run synchronously
-            com.g93.be.dto.BatchDicomUploadResponse response = dicomService.processZipBatch(tempZipFile, userId, uploadSessionId);
+            BatchDicomUploadResponse response = dicomService.processZipBatch(tempZipFile, userId, uploadSessionId);
             
             return ResponseEntity.ok(response);
         } catch (java.io.IOException e) {
@@ -215,3 +217,4 @@ public class DicomController {
         return ResponseEntity.notFound().build();
     }
 }
+

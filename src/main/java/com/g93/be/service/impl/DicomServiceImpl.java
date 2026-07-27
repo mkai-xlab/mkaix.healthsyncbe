@@ -1,4 +1,12 @@
 package com.g93.be.service.impl;
+import com.g93.be.dto.BatchDicomUploadResponse;
+import com.g93.be.dto.FileUploadError;
+import com.g93.be.dto.PatientDetailsResponse;
+import com.g93.be.dto.PendingDicomUploadDTO;
+import com.g93.be.dto.DicomUploadSessionDTO;
+import com.g93.be.dto.PatientResponse;
+import com.g93.be.dto.ExaminationDto;
+
 
 import com.g93.be.dto.DicomTagResponse;
 import com.g93.be.entity.*;
@@ -77,15 +85,15 @@ public class DicomServiceImpl implements DicomService {
 
     @Override
     @org.springframework.transaction.annotation.Transactional
-    public com.g93.be.dto.BatchDicomUploadResponse uploadBatch(List<MultipartFile> files, Long userId) {
+    public BatchDicomUploadResponse uploadBatch(List<MultipartFile> files, Long userId) {
         java.util.Map<String, Path> filePaths = new java.util.LinkedHashMap<>();
         List<Path> tempFilesToClean = new ArrayList<>();
-        List<com.g93.be.dto.FileUploadError> earlyErrors = new ArrayList<>();
+        List<FileUploadError> earlyErrors = new ArrayList<>();
         try {
             for (MultipartFile file : files) {
                 String originalFilename = file.getOriginalFilename();
                 if (originalFilename == null || !originalFilename.toLowerCase().endsWith(".dcm")) {
-                    earlyErrors.add(new com.g93.be.dto.FileUploadError(originalFilename, "Invalid file format. Only .dcm files are allowed."));
+                    earlyErrors.add(new FileUploadError(originalFilename, "Invalid file format. Only .dcm files are allowed."));
                     continue;
                 }
                 Path tempFile = Files.createTempFile("batch_", ".dcm");
@@ -94,7 +102,7 @@ public class DicomServiceImpl implements DicomService {
                 tempFilesToClean.add(tempFile);
             }
             String uploadSessionId = java.util.UUID.randomUUID().toString();
-            com.g93.be.dto.BatchDicomUploadResponse response = processBatchPaths(filePaths, userId, uploadSessionId);
+            BatchDicomUploadResponse response = processBatchPaths(filePaths, userId, uploadSessionId);
             response.getErrors().addAll(earlyErrors);
             return response;
         } catch (Exception e) {
@@ -108,13 +116,13 @@ public class DicomServiceImpl implements DicomService {
     }
 
     @Override
-    public com.g93.be.dto.BatchDicomUploadResponse processZipBatch(Path zipFilePath, Long userId, String uploadSessionId) {
+    public BatchDicomUploadResponse processZipBatch(Path zipFilePath, Long userId, String uploadSessionId) {
         log.info("Starting background processing of ZIP batch at: {}", zipFilePath);
         if (userId != null) {
-            notificationService.sendNotification(new com.g93.be.dto.SendNotificationRequest(
+            notificationService.sendNotification(new SendNotificationRequest(
                     userId,
-                    "Tiếp nhận File ZIP",
-                    "Hệ thống đang tiến hành giải nén và kiểm tra file ZIP...",
+                    "Tiáº¿p nháº­n File ZIP",
+                    "Há»‡ thá»‘ng Ä‘ang tiáº¿n hÃ nh giáº£i nÃ©n vÃ  kiá»ƒm tra file ZIP...",
                     "SYSTEM",
                     null
             ));
@@ -154,13 +162,13 @@ public class DicomServiceImpl implements DicomService {
                 filePaths.put(dcmFile.getFileName().toString(), dcmFile);
             }
 
-            com.g93.be.dto.BatchDicomUploadResponse response = processBatchPaths(filePaths, userId, uploadSessionId);
+            BatchDicomUploadResponse response = processBatchPaths(filePaths, userId, uploadSessionId);
 
             if (dcmFiles.isEmpty()) {
-                response.getErrors().add(new com.g93.be.dto.FileUploadError(zipFilePath.getFileName().toString(), "No DICOM files found in the ZIP batch."));
+                response.getErrors().add(new FileUploadError(zipFilePath.getFileName().toString(), "No DICOM files found in the ZIP batch."));
             }
             for (Path strange : strangeFiles) {
-                response.getErrors().add(new com.g93.be.dto.FileUploadError(strange.getFileName().toString(), "Strange file detected (not .dcm or .zip). Ignored."));
+                response.getErrors().add(new FileUploadError(strange.getFileName().toString(), "Strange file detected (not .dcm or .zip). Ignored."));
             }
 
             log.info("Finished background processing of ZIP batch. Success: {}, Errors: {}",
@@ -209,20 +217,20 @@ public class DicomServiceImpl implements DicomService {
 
     @Override
     @org.springframework.transaction.annotation.Transactional
-    public com.g93.be.dto.BatchDicomUploadResponse processBatchPaths(java.util.Map<String, Path> filePaths, Long userId, String uploadSessionId) {
-        List<com.g93.be.dto.FileUploadError> errors = new ArrayList<>();
-        List<com.g93.be.dto.PatientDetailsResponse> successfulPatients = new ArrayList<>();
+    public BatchDicomUploadResponse processBatchPaths(java.util.Map<String, Path> filePaths, Long userId, String uploadSessionId) {
+        List<FileUploadError> errors = new ArrayList<>();
+        List<PatientDetailsResponse> successfulPatients = new ArrayList<>();
         java.util.Set<String> processedUids = new java.util.HashSet<>();
         
-        java.util.Map<String, com.g93.be.dto.PendingDicomUploadDTO> patientsMap = new java.util.HashMap<>();
+        java.util.Map<String, PendingDicomUploadDTO> patientsMap = new java.util.HashMap<>();
 
         try {
 
         if (userId != null) {
-            notificationService.sendNotification(new com.g93.be.dto.SendNotificationRequest(
+            notificationService.sendNotification(new SendNotificationRequest(
                     userId,
-                    "Đang xử lý DICOM",
-                    "Hệ thống đang trích xuất dữ liệu từ " + filePaths.size() + " file DICOM...",
+                    "Äang xá»­ lÃ½ DICOM",
+                    "Há»‡ thá»‘ng Ä‘ang trÃ­ch xuáº¥t dá»¯ liá»‡u tá»« " + filePaths.size() + " file DICOM...",
                     "SYSTEM",
                     null
             ));
@@ -282,13 +290,13 @@ public class DicomServiceImpl implements DicomService {
 
                 if (sopInstanceUid == null || sopInstanceUid.isEmpty()) {
                     log.warn("Missing SOPInstanceUID for file {}", originalFilename);
-                    errors.add(new com.g93.be.dto.FileUploadError(originalFilename, "File DICOM không hợp lệ (thiếu SOPInstanceUID)."));
+                    errors.add(new FileUploadError(originalFilename, "File DICOM khÃ´ng há»£p lá»‡ (thiáº¿u SOPInstanceUID)."));
                     continue;
                 }
 
                 if (processedUids.contains(sopInstanceUid) || dicomInstanceRepository.existsBySopInstanceUid(sopInstanceUid)) {
                     log.warn("Duplicate SOPInstanceUID for file {}", originalFilename);
-                    errors.add(new com.g93.be.dto.FileUploadError(originalFilename, "File DICOM đã tồn tại trên hệ thống."));
+                    errors.add(new FileUploadError(originalFilename, "File DICOM Ä‘Ã£ tá»“n táº¡i trÃªn há»‡ thá»‘ng."));
                     continue;
                 }
                 
@@ -296,9 +304,9 @@ public class DicomServiceImpl implements DicomService {
 
                 final String finalPatientId = (patientId != null && !patientId.isEmpty()) ? patientId : "UNKNOWN";
                 
-                com.g93.be.dto.PendingDicomUploadDTO pendingUpload = patientsMap.get(finalPatientId);
+                PendingDicomUploadDTO pendingUpload = patientsMap.get(finalPatientId);
                 if (pendingUpload == null) {
-                    pendingUpload = com.g93.be.dto.PendingDicomUploadDTO.builder()
+                    pendingUpload = PendingDicomUploadDTO.builder()
                         .patientCode(finalPatientId)
                         .patientName(patientName)
                         .patientBirthDate(patientBirthDate)
@@ -340,7 +348,7 @@ public class DicomServiceImpl implements DicomService {
                             ImageIO.write(bi, "png", targetPng.toFile());
                             pendingUpload.getPhysicalFilePaths().put(dbPngPath, targetPng.toAbsolutePath().toString());
                             
-                            pendingUpload.getParsedImages().add(com.g93.be.dto.PendingDicomUploadDTO.ImageCacheDTO.builder()
+                            pendingUpload.getParsedImages().add(PendingDicomUploadDTO.ImageCacheDTO.builder()
                                 .sopInstanceUid(sopInstanceUid)
                                 .originalFilename(originalFilename)
                                 .storedFilePath(dbPngPath)
@@ -353,14 +361,14 @@ public class DicomServiceImpl implements DicomService {
                     log.error("Failed to extract image for {}", originalFilename, e);
                 }
 
-                pendingUpload.getParsedImages().add(com.g93.be.dto.PendingDicomUploadDTO.ImageCacheDTO.builder()
+                pendingUpload.getParsedImages().add(PendingDicomUploadDTO.ImageCacheDTO.builder()
                     .sopInstanceUid(sopInstanceUid)
                     .originalFilename(originalFilename)
                     .storedFilePath(dbDcmPath)
                     .mimeType("application/dicom")
                     .build());
 
-                pendingUpload.getParsedInstances().add(com.g93.be.dto.PendingDicomUploadDTO.InstanceCacheDTO.builder()
+                pendingUpload.getParsedInstances().add(PendingDicomUploadDTO.InstanceCacheDTO.builder()
                     .sopInstanceUid(sopInstanceUid)
                     .filePath(dbDcmPath)
                     .bodyPart(bodyPart)
@@ -368,14 +376,14 @@ public class DicomServiceImpl implements DicomService {
 
             } catch (Exception e) {
                 log.error("Error processing file {}", originalFilename, e);
-                errors.add(new com.g93.be.dto.FileUploadError(originalFilename, "Processing error: " + e.getMessage()));
+                errors.add(new FileUploadError(originalFilename, "Processing error: " + e.getMessage()));
             }
         }
         log.info("Finished background processing for {} DICOM files, mapping to DTOs", filePaths.size());
         
         // Cache session to Redis
         try {
-            com.g93.be.dto.DicomUploadSessionDTO sessionDTO = com.g93.be.dto.DicomUploadSessionDTO.builder()
+            DicomUploadSessionDTO sessionDTO = DicomUploadSessionDTO.builder()
                 .uploadSessionId(uploadSessionId)
                 .uploaderUserId(userId)
                 .patients(patientsMap)
@@ -389,8 +397,8 @@ public class DicomServiceImpl implements DicomService {
             log.info("Saved upload session {} to Redis", uploadSessionId);
             
             // Build temporary responses for the user to review
-            for (com.g93.be.dto.PendingDicomUploadDTO pending : patientsMap.values()) {
-                com.g93.be.dto.PatientResponse pr = new com.g93.be.dto.PatientResponse();
+            for (PendingDicomUploadDTO pending : patientsMap.values()) {
+                PatientResponse pr = new PatientResponse();
                 pr.setPatientCode(pending.getPatientCode());
                 pr.setFullName(pending.getPatientName() != null ? pending.getPatientName().replace("^", " ").trim() : "Unknown");
                 if (pending.getPatientBirthDate() != null) {
@@ -404,7 +412,7 @@ public class DicomServiceImpl implements DicomService {
                     pr.setGender(Gender.OTHER);
                 }
                 
-                com.g93.be.dto.ExaminationDto examDto = new com.g93.be.dto.ExaminationDto();
+                ExaminationDto examDto = new ExaminationDto();
                 examDto.setEncounterCode(pending.getStudyInstanceUid());
                 examDto.setDescription(pending.getDescription());
                 examDto.setReferringPhysician(pending.getReferringPhysician());
@@ -416,7 +424,7 @@ public class DicomServiceImpl implements DicomService {
                     examDto.setStudyTime(java.time.Instant.ofEpochMilli(pending.getStudyTime().getTime()).atZone(ZoneId.systemDefault()).toLocalTime());
                 }
                 
-                com.g93.be.dto.PatientDetailsResponse pdr = new com.g93.be.dto.PatientDetailsResponse();
+                PatientDetailsResponse pdr = new PatientDetailsResponse();
                 pdr.setPatient(pr);
                 pdr.setRecentExaminations(java.util.Collections.singletonList(examDto));
                 successfulPatients.add(pdr);
@@ -427,7 +435,7 @@ public class DicomServiceImpl implements DicomService {
             throw new RuntimeException("Failed to cache upload session: " + e.getClass().getSimpleName() + " - " + rootCause, e);
         }
         
-        com.g93.be.dto.BatchDicomUploadResponse response = new com.g93.be.dto.BatchDicomUploadResponse();
+        BatchDicomUploadResponse response = new BatchDicomUploadResponse();
         response.setUploadSessionId(uploadSessionId);
         response.setErrors(errors);
         response.setSuccessfulPatients(successfulPatients);
@@ -453,8 +461,8 @@ public class DicomServiceImpl implements DicomService {
             if (userId != null) {
                 notificationService.sendNotification(new SendNotificationRequest(
                         userId,
-                        "Lỗi xử lý DICOM",
-                        "Đã xảy ra lỗi nghiêm trọng: " + globalEx.getMessage(),
+                        "Lá»—i xá»­ lÃ½ DICOM",
+                        "ÄÃ£ xáº£y ra lá»—i nghiÃªm trá»ng: " + globalEx.getMessage(),
                         "SYSTEM",
                         null
                 ));
@@ -468,4 +476,5 @@ public class DicomServiceImpl implements DicomService {
         return stringRedisTemplate.opsForValue().get("uploadSession:" + sessionId);
     }
 }
+
 
