@@ -118,8 +118,16 @@ public class AiServiceImpl implements AiService {
                     }
 
                     // Save AiAnalysis
-                    AiAnalysis analysis = new AiAnalysis();
-                    analysis.setDicomInstance(instance);
+                    AiAnalysis analysis = instance.getAiAnalysis();
+                    if (analysis == null) {
+                        analysis = new AiAnalysis();
+                        analysis.setDicomInstance(instance);
+                    } else {
+                        if (analysis.getAiResults() != null) {
+                            aiResultRepository.deleteAll(analysis.getAiResults());
+                            analysis.getAiResults().clear();
+                        }
+                    }
                     analysis.setStartTime(LocalDateTime.now());
                     analysis.setDuration(duration);
                     analysis.setStatus("SUCCESS");

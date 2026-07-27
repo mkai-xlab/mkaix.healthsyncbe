@@ -86,7 +86,7 @@ class DiagnosisReviewServiceTest {
         aiResult.setPredictedGrade(2);
         aiResult.setAiAnalysis(analysis);
         analysis.setAiResults(List.of(aiResult));
-        instance.setAiAnalyses(List.of(analysis));
+        instance.setAiAnalysis(analysis);
     }
 
     @Test

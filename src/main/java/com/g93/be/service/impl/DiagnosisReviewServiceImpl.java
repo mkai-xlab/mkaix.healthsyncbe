@@ -23,7 +23,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.Comparator;
+
 import java.util.List;
 import java.util.Objects;
 
@@ -119,7 +119,7 @@ public class DiagnosisReviewServiceImpl implements DiagnosisReviewService {
         }
 
         for (DicomInstance instance : instances) {
-            AiAnalysis latestAnalysis = latestAnalysis(instance);
+            AiAnalysis latestAnalysis = instance.getAiAnalysis();
             if (latestAnalysis == null
                     || latestAnalysis.getAiResults() == null
                     || latestAnalysis.getAiResults().isEmpty()) {
@@ -133,19 +133,6 @@ public class DiagnosisReviewServiceImpl implements DiagnosisReviewService {
 
         examination.setStatus(ExaminationStatus.VERIFIED);
         examinationRepository.save(examination);
-    }
-
-    private AiAnalysis latestAnalysis(DicomInstance instance) {
-        if (instance.getAiAnalyses() == null) {
-            return null;
-        }
-        return instance.getAiAnalyses().stream()
-                .max(Comparator
-                        .comparing(AiAnalysis::getStartTime,
-                                Comparator.nullsFirst(Comparator.naturalOrder()))
-                        .thenComparing(AiAnalysis::getId,
-                                Comparator.nullsFirst(Comparator.naturalOrder())))
-                .orElse(null);
     }
 
     private boolean isDepartmentHead(Doctor reviewer) {
