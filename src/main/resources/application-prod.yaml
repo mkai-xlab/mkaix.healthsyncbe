@@ -31,7 +31,7 @@ spring:
 
 app:
   storage:
-    base-dir: ${APP_STORAGE_BASE_DIR:/home/ubuntu/healthsync/mkaix.healthsyncbe/data}
+    base-dir: ${APP_STORAGE_BASE_DIR:/app/data}
 
 logging:
   level:
