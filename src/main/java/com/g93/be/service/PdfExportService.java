@@ -20,18 +20,16 @@ import org.springframework.transaction.annotation.Transactional;
 import org.thymeleaf.context.Context;
 import org.thymeleaf.spring6.SpringTemplateEngine;
 
-import java.io.ByteArrayOutputStream;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.net.URL;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Base64;
-import java.util.Comparator;
+
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
@@ -123,15 +121,7 @@ public class PdfExportService {
             throw new IllegalArgumentException("Examination has no AI results to export");
         }
         for (DicomInstance instance : instances) {
-            AiAnalysis latestAnalysis = instance.getAiAnalyses() == null
-                    ? null
-                    : instance.getAiAnalyses().stream()
-                            .max(Comparator
-                                    .comparing(AiAnalysis::getStartTime,
-                                            Comparator.nullsFirst(Comparator.naturalOrder()))
-                                    .thenComparing(AiAnalysis::getId,
-                                            Comparator.nullsFirst(Comparator.naturalOrder())))
-                            .orElse(null);
+            AiAnalysis latestAnalysis = instance.getAiAnalysis();
             if (latestAnalysis == null
                     || latestAnalysis.getAiResults() == null
                     || latestAnalysis.getAiResults().isEmpty()) {
