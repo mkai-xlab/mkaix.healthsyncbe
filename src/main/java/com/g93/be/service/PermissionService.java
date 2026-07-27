@@ -1,4 +1,10 @@
 package com.g93.be.service;
+import com.g93.be.dto.CreateFeatureRequest;
+import com.g93.be.dto.UpdateFeatureRequest;
+import com.g93.be.dto.PermissionResponse;
+import com.g93.be.dto.CreatePermissionRequest;
+import com.g93.be.dto.UpdatePermissionRequest;
+
 
 import com.g93.be.dto.FeatureResponse;
 import com.g93.be.dto.UpdateRolePermissionsRequest;
@@ -9,11 +15,12 @@ public interface PermissionService {
     List<Long> getRolePermissions(String roleName);
     void updateRolePermissions(String roleName, UpdateRolePermissionsRequest request);
     
-    FeatureResponse createFeature(com.g93.be.dto.CreateFeatureRequest request);
-    FeatureResponse updateFeature(Long id, com.g93.be.dto.UpdateFeatureRequest request);
+    FeatureResponse createFeature(CreateFeatureRequest request);
+    FeatureResponse updateFeature(Long id, UpdateFeatureRequest request);
     void deleteFeature(Long id);
     
-    com.g93.be.dto.PermissionResponse createPermission(com.g93.be.dto.CreatePermissionRequest request);
-    com.g93.be.dto.PermissionResponse updatePermission(Long id, com.g93.be.dto.UpdatePermissionRequest request);
+    PermissionResponse createPermission(CreatePermissionRequest request);
+    PermissionResponse updatePermission(Long id, UpdatePermissionRequest request);
     void deletePermission(Long id);
 }
+

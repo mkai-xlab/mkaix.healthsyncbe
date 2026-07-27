@@ -1,4 +1,6 @@
 package com.g93.be.controller;
+import com.g93.be.dto.PatientDetailsResponse;
+
 
 import com.g93.be.dto.CreatePatientRequest;
 import com.g93.be.dto.EditPatientRequest;
@@ -95,7 +97,7 @@ public class PatientController {
      */
     @GetMapping("/{patientId}/details")
     @PreAuthorize("hasAuthority('VIEW_PATIENT_DETAIL')")
-    public ResponseEntity<com.g93.be.dto.PatientDetailsResponse> getPatientDetailsWithImages(@PathVariable String patientId) {
+    public ResponseEntity<PatientDetailsResponse> getPatientDetailsWithImages(@PathVariable String patientId) {
         return ResponseEntity.ok(patientService.getPatientDetailsWithImages(patientId));
     }
 
@@ -117,3 +119,4 @@ public class PatientController {
         return ResponseEntity.ok(patientService.getPatientsByUploadDate(date, pageable, userDetails));
     }
 }
+
