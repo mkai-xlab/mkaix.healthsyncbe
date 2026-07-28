@@ -75,8 +75,8 @@ public class DicomInstance {
     @JoinColumn(name = "examination_id", nullable = false)
     private Examination examination;
 
-    @OneToMany(mappedBy = "dicomInstance", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private java.util.List<AiAnalysis> aiAnalyses;
+    @OneToOne(mappedBy = "dicomInstance", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private AiAnalysis aiAnalysis;
 
     @PrePersist
     protected void onCreate() {

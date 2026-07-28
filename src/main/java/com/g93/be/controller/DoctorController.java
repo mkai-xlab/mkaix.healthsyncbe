@@ -1,4 +1,6 @@
 package com.g93.be.controller;
+import com.g93.be.dto.EditDoctorRequest;
+
 
 
 import com.g93.be.entity.UserStatus;
@@ -55,7 +57,7 @@ public class DoctorController {
      */
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<DoctorResponse> editDoctor(@PathVariable Long id, @Valid @RequestBody com.g93.be.dto.EditDoctorRequest request) {
+    public ResponseEntity<DoctorResponse> editDoctor(@PathVariable Long id, @Valid @RequestBody EditDoctorRequest request) {
         log.info("Received request to edit doctor with ID: {}", id);
         DoctorResponse response = doctorService.editDoctor(id, request);
         return ResponseEntity.ok(response);
@@ -84,7 +86,7 @@ public class DoctorController {
      */
     @PutMapping("/profile")
     @PreAuthorize("hasRole('DOCTOR')")
-    public ResponseEntity<DoctorResponse> editProfile(java.security.Principal principal, @Valid @RequestBody com.g93.be.dto.EditDoctorProfileRequest request) {
+    public ResponseEntity<DoctorResponse> editProfile(java.security.Principal principal, @Valid @RequestBody EditDoctorRequest request) {
         log.info("Received request to edit profile for doctor: {}", principal.getName());
         DoctorResponse response = doctorService.editDoctorProfile(principal.getName(), request);
         return ResponseEntity.ok(response);
@@ -175,3 +177,4 @@ public class DoctorController {
         return ResponseEntity.ok().build();
     }
 }
+

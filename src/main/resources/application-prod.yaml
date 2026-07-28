@@ -1,0 +1,41 @@
+spring:
+  datasource:
+    url: jdbc:mysql://host.docker.internal:3306/capstone?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        show_sql: false
+
+  data:
+    redis:
+      client-type: jedis
+      host: redis
+      port: 6379
+
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${SPRING_MAIL_USERNAME}
+    password: ${SPRING_MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+app:
+  storage:
+    base-dir: ${APP_STORAGE_BASE_DIR:/app/data}
+  ai:
+    api-url: http://ai:8005/api/v1/predict
+
+logging:
+  level:
+    root: INFO
+    com.g93.be: INFO

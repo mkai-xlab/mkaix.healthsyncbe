@@ -62,7 +62,7 @@ class ExaminationMapperKlReviewTest {
         review.setAiResult(aiResult);
         aiResult.setDiagnosisReview(review);
         analysis.setAiResults(List.of(aiResult));
-        instance.setAiAnalyses(List.of(analysis));
+        instance.setAiAnalysis(analysis);
 
         ExaminationDto result = mapper.toDto(examination, List.of(instance));
         AiPredictionResultDto mappedResult = result.getImages().getFirst().getAiResults().getFirst();
