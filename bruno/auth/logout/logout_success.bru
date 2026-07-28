@@ -1,0 +1,27 @@
+meta {
+  name: Logout Success
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/auth/logout
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "refreshToken": "{{refreshToken}}"
+  }
+}
+
+tests {
+  test("revokes access and refresh tokens", function() {
+    expect(res.status).to.equal(204);
+  });
+}
