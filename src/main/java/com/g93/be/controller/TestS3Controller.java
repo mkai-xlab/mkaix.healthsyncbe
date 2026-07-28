@@ -1,7 +1,7 @@
 package com.g93.be.controller;
 
 import com.g93.be.service.StorageService;
-import lombok.RequiredArgsConstructor;
+
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -10,11 +10,14 @@ import org.springframework.security.access.prepost.PreAuthorize;
 
 @RestController
 @RequestMapping("/s3")
-@RequiredArgsConstructor
 @Slf4j
 public class TestS3Controller {
 
     private final StorageService storageService;
+
+    public TestS3Controller(@org.springframework.beans.factory.annotation.Qualifier("s3StorageServiceImpl") StorageService storageService) {
+        this.storageService = storageService;
+    }
 
     /**
      * Endpoint to test uploading a real file (image) to S3.

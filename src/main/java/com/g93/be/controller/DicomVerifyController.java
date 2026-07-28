@@ -1,4 +1,6 @@
 package com.g93.be.controller;
+import com.g93.be.dto.PatientGradeStatsDto;
+
 
 
 import com.g93.be.entity.User;
@@ -62,8 +64,8 @@ public class DicomVerifyController {
                     gradeCountMap.put(grade, gradeCountMap.getOrDefault(grade, 0L) + 1);
                 }
 
-                List<com.g93.be.dto.PatientGradeStatsDto> statsList = gradeCountMap.entrySet().stream()
-                        .map(entry -> new com.g93.be.dto.PatientGradeStatsDto(entry.getKey(), entry.getValue()))
+                List<PatientGradeStatsDto> statsList = gradeCountMap.entrySet().stream()
+                        .map(entry -> new PatientGradeStatsDto(entry.getKey(), entry.getValue()))
                         .collect(java.util.stream.Collectors.toList());
                 
                 // Send success notification
@@ -98,3 +100,4 @@ public class DicomVerifyController {
         return ResponseEntity.ok(java.util.Collections.emptyList());
     }
 }
+
