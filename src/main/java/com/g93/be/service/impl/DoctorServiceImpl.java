@@ -26,6 +26,8 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import com.g93.be.mapper.DoctorMapper;
 
@@ -34,6 +36,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import com.g93.be.dto.EditDoctorRequest;
+import com.g93.be.dto.EditDoctorProfileRequest;
+import com.g93.be.service.AvatarStorageService;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 @RequiredArgsConstructor
@@ -46,6 +51,7 @@ public class DoctorServiceImpl implements DoctorService {
     private final PasswordEncoder passwordEncoder;
     private final MailUtil mailUtil;
     private final DoctorMapper doctorMapper;
+    private final AvatarStorageService avatarStorageService;
 
     @Value("${app.login-url:http://localhost:3000/login}")
     private String loginUrl;
@@ -95,24 +101,90 @@ public class DoctorServiceImpl implements DoctorService {
     @Override
     @LogAction("EDIT_DOCTOR")
     public DoctorResponse editDoctor(Long id, EditDoctorRequest request) {
-        Doctor doctor = doctorRepository.findById(id)
+        Doctor doctor = doctorRepository.findDetailsById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Doctor with id " + id + " not found"));
         return updateDoctorFields(doctor, request);
     }
 
     @Override
     public DoctorResponse getDoctorProfile(String username) {
-        Doctor doctor = doctorRepository.findByUsername(username)
+        Doctor doctor = doctorRepository.findProfileByUsername(username)
                 .orElseThrow(() -> new IllegalArgumentException("Doctor not found for username: " + username));
         return doctorMapper.toResponse(doctor);
     }
 
     @Override
     @LogAction("EDIT_DOCTOR_PROFILE")
-    public DoctorResponse editDoctorProfile(String username, EditDoctorRequest request) {
-        Doctor doctor = doctorRepository.findByUsername(username)
+    public DoctorResponse editDoctorProfile(String username, EditDoctorProfileRequest request) {
+        Doctor doctor = doctorRepository.findProfileByUsername(username)
                 .orElseThrow(() -> new IllegalArgumentException("Doctor not found for username: " + username));
-        return updateDoctorFields(doctor, request);
+        if (request.getFullName() != null)
+            doctor.setFullName(request.getFullName());
+        if (request.getEmail() != null)
+            doctor.setEmail(request.getEmail());
+        if (request.getPhone() != null)
+            doctor.setPhone(request.getPhone());
+        if (request.getYearsOfExperience() != null)
+            doctor.setYearsOfExperience(request.getYearsOfExperience());
+        if (request.getDegree() != null)
+            doctor.setDegree(request.getDegree());
+        if (request.getBiography() != null)
+            doctor.setBiography(request.getBiography());
+        return saveAndMap(doctor);
+    }
+
+    @Override
+    @Transactional
+    @LogAction("UPDATE_DOCTOR_AVATAR")
+    public DoctorResponse updateDoctorAvatar(String username, MultipartFile file) {
+        Doctor doctor = doctorRepository.findProfileByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("Doctor not found for username: " + username));
+        AvatarStorageService.StoredAvatar storedAvatar = avatarStorageService.store(doctor.getId(), file);
+        String previousAvatarUrl = doctor.getAvatar() != null ? doctor.getAvatar().getFilePath() : null;
+        try {
+            Image avatar = doctor.getAvatar();
+            if (avatar == null) {
+                avatar = new Image();
+                doctor.setAvatar(avatar);
+            }
+            avatar.setFilePath(storedAvatar.publicUrl());
+            avatar.setExtension(storedAvatar.extension());
+
+            DoctorResponse response = saveAndMap(doctor);
+            scheduleAvatarCleanup(previousAvatarUrl, storedAvatar.publicUrl());
+            return response;
+        } catch (RuntimeException exception) {
+            deleteAvatarQuietly(storedAvatar.publicUrl());
+            throw exception;
+        }
+    }
+
+    private void scheduleAvatarCleanup(String previousAvatarUrl, String newAvatarUrl) {
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            deleteAvatarQuietly(previousAvatarUrl);
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                deleteAvatarQuietly(previousAvatarUrl);
+            }
+
+            @Override
+            public void afterCompletion(int status) {
+                if (status == TransactionSynchronization.STATUS_ROLLED_BACK) {
+                    deleteAvatarQuietly(newAvatarUrl);
+                }
+            }
+        });
+    }
+
+    private void deleteAvatarQuietly(String avatarUrl) {
+        try {
+            avatarStorageService.delete(avatarUrl);
+        } catch (RuntimeException exception) {
+            log.warn("Could not delete avatar file {}: {}", avatarUrl, exception.getMessage());
+        }
     }
 
     private DoctorResponse updateDoctorFields(Doctor doctor, EditDoctorRequest request) {
@@ -123,16 +195,8 @@ public class DoctorServiceImpl implements DoctorService {
             doctor.setEmail(request.getEmail());
         if (request.getPhone() != null)
             doctor.setPhone(request.getPhone());
-        if (request.getAvatarUrl() != null) {
-            if (doctor.getAvatar() == null) {
-                Image avatar = new Image();
-                avatar.setExtension("png");
-                avatar.setFilePath(request.getAvatarUrl());
-                doctor.setAvatar(avatar);
-            } else {
-                doctor.getAvatar().setFilePath(request.getAvatarUrl());
-            }
-        }
+        if (request.getAvatarUrl() != null)
+            updateAvatar(doctor, request.getAvatarUrl());
 
         if (request.getYearsOfExperience() != null)
             doctor.setYearsOfExperience(request.getYearsOfExperience());
@@ -141,9 +205,40 @@ public class DoctorServiceImpl implements DoctorService {
         if (request.getBiography() != null)
             doctor.setBiography(request.getBiography());
 
+        return saveAndMap(doctor);
+    }
+
+    private DoctorResponse saveAndMap(Doctor doctor) {
         Doctor saved = doctorRepository.save(doctor);
         log.info("Edited doctor with id {}", saved.getId());
         return doctorMapper.toResponse(saved);
+    }
+
+    private void updateAvatar(Doctor doctor, String avatarUrl) {
+        Image avatar = doctor.getAvatar();
+        if (avatar == null) {
+            avatar = new Image();
+            doctor.setAvatar(avatar);
+        }
+        avatar.setFilePath(avatarUrl);
+        avatar.setExtension(extractExtension(avatarUrl));
+    }
+
+    private String extractExtension(String avatarUrl) {
+        String path;
+        try {
+            path = java.net.URI.create(avatarUrl).getPath();
+        } catch (IllegalArgumentException exception) {
+            path = avatarUrl;
+        }
+        if (path == null) return null;
+        int separatorIndex = Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\'));
+        int dotIndex = path.lastIndexOf('.');
+        if (dotIndex <= separatorIndex || dotIndex == path.length() - 1) {
+            return null;
+        }
+        String extension = path.substring(dotIndex + 1).toLowerCase(java.util.Locale.ROOT);
+        return extension.length() <= 20 ? extension : null;
     }
 
     @Override

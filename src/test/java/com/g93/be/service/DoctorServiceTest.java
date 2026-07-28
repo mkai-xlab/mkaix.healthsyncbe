@@ -14,6 +14,7 @@ import com.g93.be.repository.DoctorRepository;
 import com.g93.be.repository.RoleRepository;
 import com.g93.be.repository.UserRepository;
 import com.g93.be.service.impl.DoctorServiceImpl;
+import org.springframework.mock.web.MockMultipartFile;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -27,6 +28,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.List;
 import java.util.Optional;
@@ -55,6 +58,8 @@ class DoctorServiceTest {
     private MailUtil mailUtil;
     @Mock
     private DoctorMapper doctorMapper;
+    @Mock
+    private AvatarStorageService avatarStorageService;
 
     @InjectMocks
     private DoctorServiceImpl doctorService;
@@ -171,7 +176,7 @@ class DoctorServiceTest {
         EditDoctorRequest request = new EditDoctorRequest(
                 "Updated Doctor", "updated@hospital.com", "0900000000",
                 "https://cdn/avatar.png", 12, "MD", "Biography");
-        when(doctorRepository.findById(7L)).thenReturn(Optional.of(doctor));
+        when(doctorRepository.findDetailsById(7L)).thenReturn(Optional.of(doctor));
         when(doctorRepository.save(doctor)).thenReturn(doctor);
         when(doctorMapper.toResponse(doctor)).thenReturn(response);
 
@@ -196,7 +201,7 @@ class DoctorServiceTest {
         doctor.setAvatar(avatar);
         EditDoctorRequest request = new EditDoctorRequest(
                 null, null, null, "new.png", null, null, null);
-        when(doctorRepository.findById(7L)).thenReturn(Optional.of(doctor));
+        when(doctorRepository.findDetailsById(7L)).thenReturn(Optional.of(doctor));
         when(doctorRepository.save(doctor)).thenReturn(doctor);
         when(doctorMapper.toResponse(doctor)).thenReturn(response);
 
@@ -208,7 +213,7 @@ class DoctorServiceTest {
 
     @Test
     void editDoctorRejectsUnknownDoctor() {
-        when(doctorRepository.findById(99L)).thenReturn(Optional.empty());
+        when(doctorRepository.findDetailsById(99L)).thenReturn(Optional.empty());
 
         IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
                 () -> doctorService.editDoctor(99L, new EditDoctorRequest()));
@@ -242,9 +247,47 @@ class DoctorServiceTest {
 
     @Test
     void getDoctorProfileMapsDoctorByUsername() {
-        when(doctorRepository.findByUsername("doctor.one")).thenReturn(Optional.of(doctor));
+        when(doctorRepository.findProfileByUsername("doctor.one")).thenReturn(Optional.of(doctor));
         when(doctorMapper.toResponse(doctor)).thenReturn(response);
 
         assertSame(response, doctorService.getDoctorProfile("doctor.one"));
+        verify(doctorRepository).findProfileByUsername("doctor.one");
+    }
+
+    @Test
+    void updateDoctorAvatarReplacesCurrentUserAvatarAndReturnsUpdatedProfile() {
+        Image currentAvatar = new Image();
+        currentAvatar.setId(15L);
+        currentAvatar.setFilePath("https://cdn.example.com/avatar/old.png");
+        currentAvatar.setExtension("png");
+        doctor.setAvatar(currentAvatar);
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "new-photo.jpg", "image/jpeg", new byte[] {(byte) 0xFF, (byte) 0xD8, (byte) 0xFF});
+        AvatarStorageService.StoredAvatar storedAvatar = new AvatarStorageService.StoredAvatar(
+                "/api/v1/files/avatars/7/new-photo.jpg", "jpg");
+        response.setAvatarUrl(storedAvatar.publicUrl());
+        when(doctorRepository.findProfileByUsername("doctor.one")).thenReturn(Optional.of(doctor));
+        when(avatarStorageService.store(7L, file)).thenReturn(storedAvatar);
+        when(doctorRepository.save(doctor)).thenReturn(doctor);
+        when(doctorMapper.toResponse(doctor)).thenReturn(response);
+
+        TransactionSynchronizationManager.initSynchronization();
+        try {
+            DoctorResponse result = doctorService.updateDoctorAvatar("doctor.one", file);
+
+            assertSame(response, result);
+            assertSame(currentAvatar, doctor.getAvatar());
+            assertEquals(storedAvatar.publicUrl(), doctor.getAvatar().getFilePath());
+            assertEquals("jpg", doctor.getAvatar().getExtension());
+            verify(doctorRepository).save(doctor);
+            verify(doctorMapper).toResponse(doctor);
+            verify(avatarStorageService, never()).delete("https://cdn.example.com/avatar/old.png");
+
+            TransactionSynchronizationManager.getSynchronizations()
+                    .forEach(TransactionSynchronization::afterCommit);
+            verify(avatarStorageService).delete("https://cdn.example.com/avatar/old.png");
+        } finally {
+            TransactionSynchronizationManager.clearSynchronization();
+        }
     }
 }
