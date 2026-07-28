@@ -32,6 +32,8 @@ spring:
 app:
   storage:
     base-dir: ${APP_STORAGE_BASE_DIR:/app/data}
+  ai:
+    api-url: http://ai:8005/api/v1/predict
 
 logging:
   level:
