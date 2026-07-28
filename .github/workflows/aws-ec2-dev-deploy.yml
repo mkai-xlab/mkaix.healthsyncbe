@@ -1,0 +1,38 @@
+name: Deploy Development to AWS EC2
+
+on:
+  push:
+    branches:
+      - dev
+    paths:
+      - "src/**"
+      - pom.xml
+      - Dockerfile
+      - docker-compose.yaml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backend-aws-ec2-development
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Deliver backend via SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.EC2_PUBLIC_IP }}
+          username: ubuntu
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            set -e
+            cd ~/healthsync/mkaix.healthsyncbe/
+            git checkout dev
+            git pull --ff-only origin dev
+            docker compose config --quiet
+            docker compose up -d --build be
