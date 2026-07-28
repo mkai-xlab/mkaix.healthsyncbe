@@ -28,8 +28,11 @@ public class PdfReportDataDto {
     @Builder
     public static class AiResultExportDto {
         private String klGrade;
+        private String aiPredictedGrade;
+        private String decision;
         private String confidence;
         private String interpretation;
+        private String reviewNote;
         private String gradcamBase64;
     }
 }

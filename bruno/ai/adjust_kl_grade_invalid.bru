@@ -1,0 +1,28 @@
+meta {
+  name: Adjust KL Grade Invalid Grade
+  type: http
+  seq: 3
+}
+
+put {
+  url: {{baseUrl}}/ai/results/19/kl-grade
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "confirmedKlGrade": 5,
+    "reviewNote": "Invalid KL grade"
+  }
+}
+
+tests {
+  test("rejects grade outside the KL 0-4 scale", function() {
+    expect(res.status).to.equal(400);
+  });
+}
