@@ -109,7 +109,7 @@ public class AiServiceImpl implements AiService {
                     String annotatedBase64 = aiData.getAnnotatedImage();
                     Image annotatedImageEntity = null;
                     if (annotatedBase64 != null) {
-                        String annotatedPath = saveBase64ToDisk(annotatedBase64,
+                        String annotatedPath = saveBase64ToDisk(annotatedBase64, "anno",
                                 UUID.randomUUID().toString() + "_annotated.png");
                         if (annotatedPath != null) {
                             annotatedImageEntity = new Image();
@@ -141,7 +141,7 @@ public class AiServiceImpl implements AiService {
                             // Decode ROI
                             Image roiImageEntity = null;
                             if (p.getRoiImage() != null) {
-                                String roiPath = saveBase64ToDisk(p.getRoiImage(),
+                                String roiPath = saveBase64ToDisk(p.getRoiImage(), "roi",
                                         UUID.randomUUID().toString() + "_roi.png");
                                 if (roiPath != null) {
                                     roiImageEntity = new Image();
@@ -153,7 +153,7 @@ public class AiServiceImpl implements AiService {
                             // Decode GradCAM
                             Image gradcamImageEntity = null;
                             if (p.getGradcamImage() != null) {
-                                String gradcamPath = saveBase64ToDisk(p.getGradcamImage(),
+                                String gradcamPath = saveBase64ToDisk(p.getGradcamImage(), "gradcam",
                                         UUID.randomUUID().toString() + "_gradcam.png");
                                 if (gradcamPath != null) {
                                     gradcamImageEntity = new Image();
@@ -233,7 +233,7 @@ public class AiServiceImpl implements AiService {
 
             } catch (Exception e) {
                 log.error("Error during AI prediction for instance {}", instanceId, e);
-                throw new RuntimeException("KhÃ´ng thá»ƒ káº¿t ná»‘i Ä‘áº¿n Server AI: " + e.getMessage(), e);
+                throw new RuntimeException("Không thể kết nối đến Server AI: " + e.getMessage(), e);
             }
         }
 
@@ -299,12 +299,12 @@ public class AiServiceImpl implements AiService {
 
             int totalPatients = patientGrades.size();
             String message = String.format(
-                    "PhÃ¢n tÃ­ch AI hoÃ n táº¥t cho %d bá»‡nh nhÃ¢n. Chi tiáº¿t: %d Bá»‡nh NhÃ¢n máº¯c KL4, %d Bá»‡nh NhÃ¢n máº¯c KL3, %d Bá»‡nh NhÃ¢n máº¯c KL2, %d Bá»‡nh NhÃ¢n máº¯c KL1.",
+                    "Phân tích AI hoàn tất cho %d bệnh nhân. Chi tiết: %d Bệnh Nhân mắc KL4, %d Bệnh Nhân mắc KL3, %d Bệnh Nhân mắc KL2, %d Bệnh Nhân mắc KL1.",
                     totalPatients, kl4, kl3, kl2, kl1);
 
             SendNotificationRequest req = new SendNotificationRequest(
                     doctorId,
-                    "Thá»‘ng kÃª káº¿t quáº£ AI",
+                    "Thống kê kết quả AI",
                     message,
                     "INFO",
                     null);
@@ -314,7 +314,7 @@ public class AiServiceImpl implements AiService {
         return finalResults;
     }
 
-    private String saveBase64ToDisk(String base64String, String fileName) {
+    private String saveBase64ToDisk(String base64String, String subDir, String fileName) {
         if (base64String == null || !base64String.startsWith("data:image"))
             return null;
         String[] parts = base64String.split(",");
@@ -323,8 +323,8 @@ public class AiServiceImpl implements AiService {
 
         try {
             byte[] decodedImg = Base64.getDecoder().decode(parts[1]);
-            String filePath = "/images/" + fileName;
-            Path targetPath = Paths.get(storageBaseDir, "images", fileName);
+            String filePath = "/images/" + subDir + "/" + fileName;
+            Path targetPath = Paths.get(storageBaseDir, "images", subDir, fileName);
             targetPath.getParent().toFile().mkdirs();
             try (FileOutputStream fos = new FileOutputStream(targetPath.toFile())) {
                 fos.write(decodedImg);
