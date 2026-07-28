@@ -71,8 +71,8 @@ public class DicomVerifyController {
                 // Send success notification
                 SendNotificationRequest notifReq = new SendNotificationRequest(
                         finalUserId,
-                        "PhÃ¢n tÃ­ch AI hoÃ n táº¥t",
-                        "Há»‡ thá»‘ng Ä‘Ã£ phÃ¢n tÃ­ch thÃ nh cÃ´ng hÃ¬nh áº£nh X-Quang tá»« phiÃªn xÃ¡c nháº­n.",
+                        "Phân tích AI hoàn tất",
+                        "Hệ thống đã phân tích thành công hình ảnh X-Quang từ phiên xác nhận.",
                         "AI_RESULT",
                         null
                 );
@@ -85,8 +85,8 @@ public class DicomVerifyController {
                 try {
                     SendNotificationRequest errReq = new SendNotificationRequest(
                             finalUserId,
-                            "Lá»—i phÃ¢n tÃ­ch AI",
-                            "ÄÃ£ cÃ³ lá»—i xáº£y ra trong quÃ¡ trÃ¬nh phÃ¢n tÃ­ch AI.",
+                            "Lỗi phân tích AI",
+                            "Đã có lỗi xảy ra trong quá trình phân tích AI.",
                             "ERROR",
                             null
                     );

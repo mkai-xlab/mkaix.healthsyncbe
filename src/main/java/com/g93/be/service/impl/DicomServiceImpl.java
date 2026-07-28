@@ -1,4 +1,5 @@
 package com.g93.be.service.impl;
+
 import com.g93.be.dto.BatchDicomUploadResponse;
 import com.g93.be.dto.FileUploadError;
 import com.g93.be.dto.PatientDetailsResponse;
@@ -6,7 +7,6 @@ import com.g93.be.dto.PendingDicomUploadDTO;
 import com.g93.be.dto.DicomUploadSessionDTO;
 import com.g93.be.dto.PatientResponse;
 import com.g93.be.dto.ExaminationDto;
-
 
 import com.g93.be.dto.DicomTagResponse;
 import com.g93.be.entity.*;
@@ -56,7 +56,7 @@ public class DicomServiceImpl implements DicomService {
     private final org.springframework.data.redis.core.StringRedisTemplate stringRedisTemplate;
     private final com.g93.be.mapper.PatientMapper patientMapper;
     private final com.g93.be.mapper.ExaminationMapper examinationMapper;
-    
+
     private static final com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper()
             .registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule())
             .disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
@@ -66,7 +66,9 @@ public class DicomServiceImpl implements DicomService {
 
     @jakarta.annotation.PostConstruct
     public void fixDbEnum() {
-        try (java.sql.Connection conn = java.sql.DriverManager.getConnection("jdbc:mysql://localhost:3306/capstone?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC", "root", "capstone_root_password")) {
+        try (java.sql.Connection conn = java.sql.DriverManager.getConnection(
+                "jdbc:mysql://localhost:3306/capstone?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC",
+                "root", "capstone_root_password")) {
             java.sql.Statement stmt = conn.createStatement();
             stmt.executeUpdate("ALTER TABLE examinations MODIFY COLUMN status VARCHAR(255) NOT NULL");
             log.info("Successfully altered examinations.status to VARCHAR(255)");
@@ -77,7 +79,8 @@ public class DicomServiceImpl implements DicomService {
 
     @Override
     public List<DicomTagResponse> extractMetadata(MultipartFile file) {
-        // ... keeping the previous implementation simplified or stubbed to focus on the batch
+        // ... keeping the previous implementation simplified or stubbed to focus on the
+        // batch
         return new ArrayList<>();
     }
 
@@ -93,7 +96,8 @@ public class DicomServiceImpl implements DicomService {
             for (MultipartFile file : files) {
                 String originalFilename = file.getOriginalFilename();
                 if (originalFilename == null || !originalFilename.toLowerCase().endsWith(".dcm")) {
-                    earlyErrors.add(new FileUploadError(originalFilename, "Invalid file format. Only .dcm files are allowed."));
+                    earlyErrors.add(
+                            new FileUploadError(originalFilename, "Invalid file format. Only .dcm files are allowed."));
                     continue;
                 }
                 Path tempFile = Files.createTempFile("batch_", ".dcm");
@@ -110,7 +114,10 @@ public class DicomServiceImpl implements DicomService {
             throw new RuntimeException("Failed to process uploaded batch files", e);
         } finally {
             for (Path p : tempFilesToClean) {
-                try { Files.deleteIfExists(p); } catch (IOException ignored) {}
+                try {
+                    Files.deleteIfExists(p);
+                } catch (IOException ignored) {
+                }
             }
         }
     }
@@ -121,11 +128,10 @@ public class DicomServiceImpl implements DicomService {
         if (userId != null) {
             notificationService.sendNotification(new SendNotificationRequest(
                     userId,
-                    "Tiáº¿p nháº­n File ZIP",
-                    "Há»‡ thá»‘ng Ä‘ang tiáº¿n hÃ nh giáº£i nÃ©n vÃ  kiá»ƒm tra file ZIP...",
+                    "Tiếp nhận File ZIP",
+                    "Hệ thống đang tiến hành giải nén và kiểm tra file ZIP...",
                     "SYSTEM",
-                    null
-            ));
+                    null));
         }
         Path workDir = null;
         try {
@@ -155,7 +161,8 @@ public class DicomServiceImpl implements DicomService {
                 }
             });
 
-            log.info("Found {} DICOM files and {} strange files in the ZIP batch", dcmFiles.size(), strangeFiles.size());
+            log.info("Found {} DICOM files and {} strange files in the ZIP batch", dcmFiles.size(),
+                    strangeFiles.size());
 
             java.util.Map<String, Path> filePaths = new java.util.LinkedHashMap<>();
             for (Path dcmFile : dcmFiles) {
@@ -165,10 +172,12 @@ public class DicomServiceImpl implements DicomService {
             BatchDicomUploadResponse response = processBatchPaths(filePaths, userId, uploadSessionId);
 
             if (dcmFiles.isEmpty()) {
-                response.getErrors().add(new FileUploadError(zipFilePath.getFileName().toString(), "No DICOM files found in the ZIP batch."));
+                response.getErrors().add(new FileUploadError(zipFilePath.getFileName().toString(),
+                        "No DICOM files found in the ZIP batch."));
             }
             for (Path strange : strangeFiles) {
-                response.getErrors().add(new FileUploadError(strange.getFileName().toString(), "Strange file detected (not .dcm or .zip). Ignored."));
+                response.getErrors().add(new FileUploadError(strange.getFileName().toString(),
+                        "Strange file detected (not .dcm or .zip). Ignored."));
             }
 
             log.info("Finished background processing of ZIP batch. Success: {}, Errors: {}",
@@ -185,10 +194,14 @@ public class DicomServiceImpl implements DicomService {
                             .sorted(java.util.Comparator.reverseOrder())
                             .map(Path::toFile)
                             .forEach(java.io.File::delete);
-                } catch (IOException ignored) {}
+                } catch (IOException ignored) {
+                }
             }
             if (zipFilePath != null) {
-                try { Files.deleteIfExists(zipFilePath); } catch (IOException ignored) {}
+                try {
+                    Files.deleteIfExists(zipFilePath);
+                } catch (IOException ignored) {
+                }
             }
         }
     }
@@ -217,255 +230,263 @@ public class DicomServiceImpl implements DicomService {
 
     @Override
     @org.springframework.transaction.annotation.Transactional
-    public BatchDicomUploadResponse processBatchPaths(java.util.Map<String, Path> filePaths, Long userId, String uploadSessionId) {
+    public BatchDicomUploadResponse processBatchPaths(java.util.Map<String, Path> filePaths, Long userId,
+            String uploadSessionId) {
         List<FileUploadError> errors = new ArrayList<>();
         List<PatientDetailsResponse> successfulPatients = new ArrayList<>();
         java.util.Set<String> processedUids = new java.util.HashSet<>();
-        
+
         java.util.Map<String, PendingDicomUploadDTO> patientsMap = new java.util.HashMap<>();
 
         try {
 
-        if (userId != null) {
-            notificationService.sendNotification(new SendNotificationRequest(
-                    userId,
-                    "Äang xá»­ lÃ½ DICOM",
-                    "Há»‡ thá»‘ng Ä‘ang trÃ­ch xuáº¥t dá»¯ liá»‡u tá»« " + filePaths.size() + " file DICOM...",
-                    "SYSTEM",
-                    null
-            ));
-        }
-
-        Path baseDicomDir = Paths.get(storageBaseDir, "dicom");
-        Path baseImageDir = Paths.get(storageBaseDir, "images");
-        try {
-            Files.createDirectories(baseDicomDir);
-            Files.createDirectories(baseImageDir);
-        } catch (IOException e) {
-            log.error("Cannot create base dir", e);
-            throw new RuntimeException("Cannot create storage directories");
-        }
-
-        for (java.util.Map.Entry<String, Path> entry : filePaths.entrySet()) {
-            String originalFilename = entry.getKey();
-            Path tempFile = entry.getValue();
-
-            try {
-                String patientId = null;
-                String patientName = null;
-                Date patientBirthDate = null;
-                String patientSex = null;
-
-                String studyInstanceUid = null;
-                Date studyDate = null;
-                Date studyTime = null;
-                String bodyPart = null;
-                String description = null;
-                String referringPhysician = null;
-
-                String sopInstanceUid = null;
-                String imageLaterality = null;
-                int imageRows = 0;
-                int imageColumns = 0;
-
-                try (DicomInputStream dis = new DicomInputStream(tempFile.toFile())) {
-                    Attributes attrs = dis.readDataset();
-                    patientId = attrs.getString(org.dcm4che3.data.Tag.PatientID, "");
-                    patientName = attrs.getString(org.dcm4che3.data.Tag.PatientName, "");
-                    patientBirthDate = attrs.getDate(org.dcm4che3.data.Tag.PatientBirthDate);
-                    patientSex = attrs.getString(org.dcm4che3.data.Tag.PatientSex, "");
-
-                    studyInstanceUid = attrs.getString(org.dcm4che3.data.Tag.StudyInstanceUID, "");
-                    studyDate = attrs.getDate(org.dcm4che3.data.Tag.StudyDate);
-                    studyTime = attrs.getDate(org.dcm4che3.data.Tag.StudyTime);
-                    description = attrs.getString(org.dcm4che3.data.Tag.StudyDescription, "");
-                    bodyPart = attrs.getString(org.dcm4che3.data.Tag.BodyPartExamined, "");
-                    referringPhysician = attrs.getString(org.dcm4che3.data.Tag.ReferringPhysicianName, "");
-
-                    sopInstanceUid = attrs.getString(org.dcm4che3.data.Tag.SOPInstanceUID, "");
-                    imageLaterality = attrs.getString(org.dcm4che3.data.Tag.ImageLaterality, "");
-                    imageRows = attrs.getInt(org.dcm4che3.data.Tag.Rows, 0);
-                    imageColumns = attrs.getInt(org.dcm4che3.data.Tag.Columns, 0);
-                }
-
-                if (sopInstanceUid == null || sopInstanceUid.isEmpty()) {
-                    log.warn("Missing SOPInstanceUID for file {}", originalFilename);
-                    errors.add(new FileUploadError(originalFilename, "File DICOM khÃ´ng há»£p lá»‡ (thiáº¿u SOPInstanceUID)."));
-                    continue;
-                }
-
-                if (processedUids.contains(sopInstanceUid) || dicomInstanceRepository.existsBySopInstanceUid(sopInstanceUid)) {
-                    log.warn("Duplicate SOPInstanceUID for file {}", originalFilename);
-                    errors.add(new FileUploadError(originalFilename, "File DICOM Ä‘Ã£ tá»“n táº¡i trÃªn há»‡ thá»‘ng."));
-                    continue;
-                }
-                
-                processedUids.add(sopInstanceUid);
-
-                final String finalPatientId = (patientId != null && !patientId.isEmpty()) ? patientId : "UNKNOWN";
-                
-                PendingDicomUploadDTO pendingUpload = patientsMap.get(finalPatientId);
-                if (pendingUpload == null) {
-                    pendingUpload = PendingDicomUploadDTO.builder()
-                        .patientCode(finalPatientId)
-                        .patientName(patientName)
-                        .patientBirthDate(patientBirthDate)
-                        .patientSex(patientSex)
-                        .studyInstanceUid(studyInstanceUid)
-                        .studyDate(studyDate)
-                        .studyTime(studyTime)
-                        .description(description)
-                        .referringPhysician(referringPhysician)
-                        .physicalFilePaths(new java.util.HashMap<>())
-                        .parsedImages(new ArrayList<>())
-                        .parsedInstances(new ArrayList<>())
-                        .build();
-                    patientsMap.put(finalPatientId, pendingUpload);
-                }
-
-                // Move file and extract image
-                String uniqueName = UUID.randomUUID().toString();
-                Path targetDcm = baseDicomDir.resolve(uniqueName + ".dcm");
-                Path targetPng = baseImageDir.resolve(uniqueName + ".png");
-                
-                String dbDcmPath = "/dicom/" + uniqueName + ".dcm";
-                String dbPngPath = "/images/" + uniqueName + ".png";
-                
-                Files.move(tempFile, targetDcm, StandardCopyOption.REPLACE_EXISTING);
-                
-                // Store physical file paths for potential cleanup
-                pendingUpload.getPhysicalFilePaths().put(dbDcmPath, targetDcm.toAbsolutePath().toString());
-                
-                boolean hasPng = false;
-                ImageIO.scanForPlugins();
-                try (ImageInputStream iis = ImageIO.createImageInputStream(targetDcm.toFile())) {
-                    Iterator<ImageReader> iter = ImageIO.getImageReadersByFormatName("DICOM");
-                    if (iter.hasNext()) {
-                        ImageReader reader = iter.next();
-                        reader.setInput(iis, false);
-                        BufferedImage bi = reader.read(0);
-                        if (bi != null) {
-                            ImageIO.write(bi, "png", targetPng.toFile());
-                            pendingUpload.getPhysicalFilePaths().put(dbPngPath, targetPng.toAbsolutePath().toString());
-                            
-                            pendingUpload.getParsedImages().add(PendingDicomUploadDTO.ImageCacheDTO.builder()
-                                .sopInstanceUid(sopInstanceUid)
-                                .originalFilename(originalFilename)
-                                .storedFilePath(dbPngPath)
-                                .mimeType("image/png")
-                                .build());
-                            hasPng = true;
-                        }
-                    }
-                } catch (Exception e) {
-                    log.error("Failed to extract image for {}", originalFilename, e);
-                }
-
-                pendingUpload.getParsedImages().add(PendingDicomUploadDTO.ImageCacheDTO.builder()
-                    .sopInstanceUid(sopInstanceUid)
-                    .originalFilename(originalFilename)
-                    .storedFilePath(dbDcmPath)
-                    .mimeType("application/dicom")
-                    .build());
-
-                pendingUpload.getParsedInstances().add(PendingDicomUploadDTO.InstanceCacheDTO.builder()
-                    .sopInstanceUid(sopInstanceUid)
-                    .filePath(dbDcmPath)
-                    .bodyPart(bodyPart)
-                    .build());
-
-            } catch (Exception e) {
-                log.error("Error processing file {}", originalFilename, e);
-                errors.add(new FileUploadError(originalFilename, "Processing error: " + e.getMessage()));
-            }
-        }
-        log.info("Finished background processing for {} DICOM files, mapping to DTOs", filePaths.size());
-        
-        // Cache session to Redis
-        try {
-            DicomUploadSessionDTO sessionDTO = DicomUploadSessionDTO.builder()
-                .uploadSessionId(uploadSessionId)
-                .uploaderUserId(userId)
-                .patients(patientsMap)
-                .errors(errors)
-                .createdAt(System.currentTimeMillis())
-                .build();
-                
-            String json = objectMapper.writeValueAsString(sessionDTO);
-            stringRedisTemplate.opsForValue().set("uploadSession:" + uploadSessionId, json, java.time.Duration.ofMinutes(15));
-            stringRedisTemplate.opsForZSet().add("uploadSessionTimeouts", uploadSessionId, System.currentTimeMillis());
-            log.info("Saved upload session {} to Redis", uploadSessionId);
-            
-            // Build temporary responses for the user to review
-            for (PendingDicomUploadDTO pending : patientsMap.values()) {
-                PatientResponse pr = new PatientResponse();
-                pr.setPatientCode(pending.getPatientCode());
-                pr.setFullName(pending.getPatientName() != null ? pending.getPatientName().replace("^", " ").trim() : "Unknown");
-                if (pending.getPatientBirthDate() != null) {
-                    pr.setDateOfBirth(java.time.Instant.ofEpochMilli(pending.getPatientBirthDate().getTime()).atZone(ZoneId.systemDefault()).toLocalDate());
-                }
-                if ("F".equalsIgnoreCase(pending.getPatientSex())) {
-                    pr.setGender(Gender.FEMALE);
-                } else if ("M".equalsIgnoreCase(pending.getPatientSex())) {
-                    pr.setGender(Gender.MALE);
-                } else {
-                    pr.setGender(Gender.OTHER);
-                }
-                
-                ExaminationDto examDto = new ExaminationDto();
-                examDto.setEncounterCode(pending.getStudyInstanceUid());
-                examDto.setDescription(pending.getDescription());
-                examDto.setReferringPhysician(pending.getReferringPhysician());
-                examDto.setStatus(ExaminationStatus.AI_PROCESSING.name());
-                if (pending.getStudyDate() != null) {
-                    examDto.setStudyDate(java.time.Instant.ofEpochMilli(pending.getStudyDate().getTime()).atZone(ZoneId.systemDefault()).toLocalDate());
-                }
-                if (pending.getStudyTime() != null) {
-                    examDto.setStudyTime(java.time.Instant.ofEpochMilli(pending.getStudyTime().getTime()).atZone(ZoneId.systemDefault()).toLocalTime());
-                }
-                
-                PatientDetailsResponse pdr = new PatientDetailsResponse();
-                pdr.setPatient(pr);
-                pdr.setRecentExaminations(java.util.Collections.singletonList(examDto));
-                successfulPatients.add(pdr);
-            }
-        } catch (Exception e) {
-            log.error("Failed to cache upload session", e);
-            String rootCause = e.getCause() != null ? e.getCause().getMessage() : e.getMessage();
-            throw new RuntimeException("Failed to cache upload session: " + e.getClass().getSimpleName() + " - " + rootCause, e);
-        }
-        
-        BatchDicomUploadResponse response = new BatchDicomUploadResponse();
-        response.setUploadSessionId(uploadSessionId);
-        response.setErrors(errors);
-        response.setSuccessfulPatients(successfulPatients);
-
-        if (userId != null) {
-            try {
+            if (userId != null) {
                 notificationService.sendNotification(new SendNotificationRequest(
                         userId,
-                        "DICOM Upload Complete (Pending Verify)",
-                        "DICOM Upload Complete",
-                        "DICOM_BATCH_RESULT",
-                        null
-                ));
-            } catch (Exception e) {
-                log.error("Failed to send notification", e);
+                        "Đang xử lý DICOM",
+                        "Hệ thống đang trích xuất dữ liệu từ " + filePaths.size() + " file DICOM...",
+                        "SYSTEM",
+                        null));
             }
-        }
-        
-        return response;
+
+            Path baseDicomDir = Paths.get(storageBaseDir, "dicom");
+            Path baseImageDir = Paths.get(storageBaseDir, "images", "raw_dicom_image");
+            try {
+                Files.createDirectories(baseDicomDir);
+                Files.createDirectories(baseImageDir);
+            } catch (IOException e) {
+                log.error("Cannot create base dir", e);
+                throw new RuntimeException("Cannot create storage directories");
+            }
+
+            for (java.util.Map.Entry<String, Path> entry : filePaths.entrySet()) {
+                String originalFilename = entry.getKey();
+                Path tempFile = entry.getValue();
+
+                try {
+                    String patientId = null;
+                    String patientName = null;
+                    Date patientBirthDate = null;
+                    String patientSex = null;
+
+                    String studyInstanceUid = null;
+                    Date studyDate = null;
+                    Date studyTime = null;
+                    String bodyPart = null;
+                    String description = null;
+                    String referringPhysician = null;
+
+                    String sopInstanceUid = null;
+                    String imageLaterality = null;
+                    int imageRows = 0;
+                    int imageColumns = 0;
+
+                    try (DicomInputStream dis = new DicomInputStream(tempFile.toFile())) {
+                        Attributes attrs = dis.readDataset();
+                        patientId = attrs.getString(org.dcm4che3.data.Tag.PatientID, "");
+                        patientName = attrs.getString(org.dcm4che3.data.Tag.PatientName, "");
+                        patientBirthDate = attrs.getDate(org.dcm4che3.data.Tag.PatientBirthDate);
+                        patientSex = attrs.getString(org.dcm4che3.data.Tag.PatientSex, "");
+
+                        studyInstanceUid = attrs.getString(org.dcm4che3.data.Tag.StudyInstanceUID, "");
+                        studyDate = attrs.getDate(org.dcm4che3.data.Tag.StudyDate);
+                        studyTime = attrs.getDate(org.dcm4che3.data.Tag.StudyTime);
+                        description = attrs.getString(org.dcm4che3.data.Tag.StudyDescription, "");
+                        bodyPart = attrs.getString(org.dcm4che3.data.Tag.BodyPartExamined, "");
+                        referringPhysician = attrs.getString(org.dcm4che3.data.Tag.ReferringPhysicianName, "");
+
+                        sopInstanceUid = attrs.getString(org.dcm4che3.data.Tag.SOPInstanceUID, "");
+                        imageLaterality = attrs.getString(org.dcm4che3.data.Tag.ImageLaterality, "");
+                        imageRows = attrs.getInt(org.dcm4che3.data.Tag.Rows, 0);
+                        imageColumns = attrs.getInt(org.dcm4che3.data.Tag.Columns, 0);
+                    }
+
+                    if (sopInstanceUid == null || sopInstanceUid.isEmpty()) {
+                        log.warn("Missing SOPInstanceUID for file {}", originalFilename);
+                        errors.add(new FileUploadError(originalFilename,
+                                "File DICOM không hợp lệ (thiếu SOPInstanceUID)."));
+                        continue;
+                    }
+
+                    if (processedUids.contains(sopInstanceUid)
+                            || dicomInstanceRepository.existsBySopInstanceUid(sopInstanceUid)) {
+                        log.warn("Duplicate SOPInstanceUID for file {}", originalFilename);
+                        errors.add(new FileUploadError(originalFilename, "File DICOM đã tồn tại trên hệ thống."));
+                        continue;
+                    }
+
+                    processedUids.add(sopInstanceUid);
+
+                    final String finalPatientId = (patientId != null && !patientId.isEmpty()) ? patientId : "UNKNOWN";
+
+                    PendingDicomUploadDTO pendingUpload = patientsMap.get(finalPatientId);
+                    if (pendingUpload == null) {
+                        pendingUpload = PendingDicomUploadDTO.builder()
+                                .patientCode(finalPatientId)
+                                .patientName(patientName)
+                                .patientBirthDate(patientBirthDate)
+                                .patientSex(patientSex)
+                                .studyInstanceUid(studyInstanceUid)
+                                .studyDate(studyDate)
+                                .studyTime(studyTime)
+                                .description(description)
+                                .referringPhysician(referringPhysician)
+                                .physicalFilePaths(new java.util.HashMap<>())
+                                .parsedImages(new ArrayList<>())
+                                .parsedInstances(new ArrayList<>())
+                                .build();
+                        patientsMap.put(finalPatientId, pendingUpload);
+                    }
+
+                    // Move file and extract image
+                    String uniqueName = UUID.randomUUID().toString();
+                    Path targetDcm = baseDicomDir.resolve(uniqueName + ".dcm");
+                    Path targetPng = baseImageDir.resolve(uniqueName + ".png");
+
+                    String dbDcmPath = "/dicom/" + uniqueName + ".dcm";
+                    String dbPngPath = "/images/raw_dicom_image/" + uniqueName + ".png";
+
+                    Files.move(tempFile, targetDcm, StandardCopyOption.REPLACE_EXISTING);
+
+                    // Store physical file paths for potential cleanup
+                    pendingUpload.getPhysicalFilePaths().put(dbDcmPath, targetDcm.toAbsolutePath().toString());
+
+                    boolean hasPng = false;
+                    ImageIO.scanForPlugins();
+                    try (ImageInputStream iis = ImageIO.createImageInputStream(targetDcm.toFile())) {
+                        Iterator<ImageReader> iter = ImageIO.getImageReadersByFormatName("DICOM");
+                        if (iter.hasNext()) {
+                            ImageReader reader = iter.next();
+                            reader.setInput(iis, false);
+                            BufferedImage bi = reader.read(0);
+                            if (bi != null) {
+                                ImageIO.write(bi, "png", targetPng.toFile());
+                                pendingUpload.getPhysicalFilePaths().put(dbPngPath,
+                                        targetPng.toAbsolutePath().toString());
+
+                                pendingUpload.getParsedImages().add(PendingDicomUploadDTO.ImageCacheDTO.builder()
+                                        .sopInstanceUid(sopInstanceUid)
+                                        .originalFilename(originalFilename)
+                                        .storedFilePath(dbPngPath)
+                                        .mimeType("image/png")
+                                        .build());
+                                hasPng = true;
+                            }
+                        }
+                    } catch (Exception e) {
+                        log.error("Failed to extract image for {}", originalFilename, e);
+                    }
+
+                    pendingUpload.getParsedImages().add(PendingDicomUploadDTO.ImageCacheDTO.builder()
+                            .sopInstanceUid(sopInstanceUid)
+                            .originalFilename(originalFilename)
+                            .storedFilePath(dbDcmPath)
+                            .mimeType("application/dicom")
+                            .build());
+
+                    pendingUpload.getParsedInstances().add(PendingDicomUploadDTO.InstanceCacheDTO.builder()
+                            .sopInstanceUid(sopInstanceUid)
+                            .filePath(dbDcmPath)
+                            .bodyPart(bodyPart)
+                            .build());
+
+                } catch (Exception e) {
+                    log.error("Error processing file {}", originalFilename, e);
+                    errors.add(new FileUploadError(originalFilename, "Processing error: " + e.getMessage()));
+                }
+            }
+            log.info("Finished background processing for {} DICOM files, mapping to DTOs", filePaths.size());
+
+            // Cache session to Redis
+            try {
+                DicomUploadSessionDTO sessionDTO = DicomUploadSessionDTO.builder()
+                        .uploadSessionId(uploadSessionId)
+                        .uploaderUserId(userId)
+                        .patients(patientsMap)
+                        .errors(errors)
+                        .createdAt(System.currentTimeMillis())
+                        .build();
+
+                String json = objectMapper.writeValueAsString(sessionDTO);
+                stringRedisTemplate.opsForValue().set("uploadSession:" + uploadSessionId, json,
+                        java.time.Duration.ofMinutes(15));
+                stringRedisTemplate.opsForZSet().add("uploadSessionTimeouts", uploadSessionId,
+                        System.currentTimeMillis());
+                log.info("Saved upload session {} to Redis", uploadSessionId);
+
+                // Build temporary responses for the user to review
+                for (PendingDicomUploadDTO pending : patientsMap.values()) {
+                    PatientResponse pr = new PatientResponse();
+                    pr.setPatientCode(pending.getPatientCode());
+                    pr.setFullName(pending.getPatientName() != null ? pending.getPatientName().replace("^", " ").trim()
+                            : "Unknown");
+                    if (pending.getPatientBirthDate() != null) {
+                        pr.setDateOfBirth(java.time.Instant.ofEpochMilli(pending.getPatientBirthDate().getTime())
+                                .atZone(ZoneId.systemDefault()).toLocalDate());
+                    }
+                    if ("F".equalsIgnoreCase(pending.getPatientSex())) {
+                        pr.setGender(Gender.FEMALE);
+                    } else if ("M".equalsIgnoreCase(pending.getPatientSex())) {
+                        pr.setGender(Gender.MALE);
+                    } else {
+                        pr.setGender(Gender.OTHER);
+                    }
+
+                    ExaminationDto examDto = new ExaminationDto();
+                    examDto.setEncounterCode(pending.getStudyInstanceUid());
+                    examDto.setDescription(pending.getDescription());
+                    examDto.setReferringPhysician(pending.getReferringPhysician());
+                    examDto.setStatus(ExaminationStatus.AI_PROCESSING.name());
+                    if (pending.getStudyDate() != null) {
+                        examDto.setStudyDate(java.time.Instant.ofEpochMilli(pending.getStudyDate().getTime())
+                                .atZone(ZoneId.systemDefault()).toLocalDate());
+                    }
+                    if (pending.getStudyTime() != null) {
+                        examDto.setStudyTime(java.time.Instant.ofEpochMilli(pending.getStudyTime().getTime())
+                                .atZone(ZoneId.systemDefault()).toLocalTime());
+                    }
+
+                    PatientDetailsResponse pdr = new PatientDetailsResponse();
+                    pdr.setPatient(pr);
+                    pdr.setRecentExaminations(java.util.Collections.singletonList(examDto));
+                    successfulPatients.add(pdr);
+                }
+            } catch (Exception e) {
+                log.error("Failed to cache upload session", e);
+                String rootCause = e.getCause() != null ? e.getCause().getMessage() : e.getMessage();
+                throw new RuntimeException(
+                        "Failed to cache upload session: " + e.getClass().getSimpleName() + " - " + rootCause, e);
+            }
+
+            BatchDicomUploadResponse response = new BatchDicomUploadResponse();
+            response.setUploadSessionId(uploadSessionId);
+            response.setErrors(errors);
+            response.setSuccessfulPatients(successfulPatients);
+
+            if (userId != null) {
+                try {
+                    notificationService.sendNotification(new SendNotificationRequest(
+                            userId,
+                            "DICOM Upload Complete (Pending Verify)",
+                            "DICOM Upload Complete",
+                            "DICOM_BATCH_RESULT",
+                            null));
+                } catch (Exception e) {
+                    log.error("Failed to send notification", e);
+                }
+            }
+
+            return response;
 
         } catch (Exception globalEx) {
             log.error("Fatal error during background DICOM processing", globalEx);
             if (userId != null) {
                 notificationService.sendNotification(new SendNotificationRequest(
                         userId,
-                        "Lá»—i xá»­ lÃ½ DICOM",
-                        "ÄÃ£ xáº£y ra lá»—i nghiÃªm trá»ng: " + globalEx.getMessage(),
+                        "Lỗi xử lý DICOM",
+                        "Đã xảy ra lỗi nghiêm trọng: " + globalEx.getMessage(),
                         "SYSTEM",
-                        null
-                ));
+                        null));
             }
             throw new RuntimeException("Background processing failed", globalEx);
         }
@@ -476,5 +497,3 @@ public class DicomServiceImpl implements DicomService {
         return stringRedisTemplate.opsForValue().get("uploadSession:" + sessionId);
     }
 }
-
-
