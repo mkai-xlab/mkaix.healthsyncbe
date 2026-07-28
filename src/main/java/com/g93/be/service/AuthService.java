@@ -20,6 +20,11 @@ public interface AuthService {
     LoginResponse login(LoginRequest request);
 
     /**
+     * Revokes the current access token and its paired refresh token.
+     */
+    void logout(String accessToken, String refreshToken, String username);
+
+    /**
      * Changes the password for a user.
      *
      * @param request The change password request.

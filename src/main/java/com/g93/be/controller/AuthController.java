@@ -4,15 +4,21 @@ import com.g93.be.dto.ChangePasswordRequest;
 import com.g93.be.dto.ForgotPasswordRequest;
 import com.g93.be.dto.LoginRequest;
 import com.g93.be.dto.LoginResponse;
+import com.g93.be.dto.LogoutRequest;
 import com.g93.be.dto.ResetPasswordRequest;
 import com.g93.be.service.AuthService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 import jakarta.validation.Valid;
 import org.springframework.security.access.prepost.PreAuthorize;
+
+import java.security.Principal;
 
 /**
  * Controller for handling authentication-related REST API requests.
@@ -39,6 +45,30 @@ public class AuthController {
         // Perform login via AuthService
         LoginResponse response = authService.login(request);
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/logout")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Void> logout(
+            @RequestHeader(HttpHeaders.AUTHORIZATION) String authorizationHeader,
+            @Valid @RequestBody LogoutRequest request,
+            Principal principal) {
+        authService.logout(
+                extractBearerToken(authorizationHeader),
+                request.refreshToken(),
+                principal.getName());
+        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+    }
+
+    private String extractBearerToken(String authorizationHeader) {
+        if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
+            throw new IllegalArgumentException("Bearer access token is required");
+        }
+        String token = authorizationHeader.substring(7).trim();
+        if (token.isEmpty()) {
+            throw new IllegalArgumentException("Bearer access token is required");
+        }
+        return token;
     }
 
     /**
