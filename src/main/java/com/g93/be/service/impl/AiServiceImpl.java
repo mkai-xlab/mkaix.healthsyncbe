@@ -48,7 +48,7 @@ public class AiServiceImpl implements AiService {
     @Value("${app.storage.base-dir:D:/Capstone/data}")
     private String storageBaseDir;
 
-    @Value("${app.ai.api-url:http://54.254.113.71:8005/api/v1/predict}")
+    @Value("${app.ai.api-url}")
     private String aiApiUrl;
 
     @Override

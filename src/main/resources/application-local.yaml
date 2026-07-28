@@ -35,3 +35,5 @@ app:
       bucket: ${AWS_BUCKET_NAME:test-bucket-819109476069-ap-southeast-1-an}
   storage:
     base-dir: ${APP_STORAGE_BASE_DIR:D:/Capstone/data}
+  ai:
+    api-url: http://54.254.113.71:8005/api/v1/predict
