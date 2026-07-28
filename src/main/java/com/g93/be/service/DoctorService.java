@@ -19,6 +19,7 @@ public interface DoctorService {
     void activateDoctor(Long id);
     DoctorResponse editDoctor(Long id, EditDoctorRequest request);
     DoctorResponse getDoctorProfile(String username);
-    DoctorResponse editDoctorProfile(String username, EditDoctorRequest request);
+    DoctorResponse editDoctorProfile(String username, EditDoctorProfileRequest request);
+    DoctorResponse updateDoctorAvatar(String username, org.springframework.web.multipart.MultipartFile file);
 }
 

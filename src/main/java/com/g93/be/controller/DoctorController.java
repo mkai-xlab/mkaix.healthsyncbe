@@ -20,6 +20,8 @@ import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.http.MediaType;
+import org.springframework.web.multipart.MultipartFile;
 
 /**
  * Controller for managing doctor-related operations.
@@ -88,6 +90,15 @@ public class DoctorController {
         log.info("Received request to edit profile for doctor: {}", principal.getName());
         DoctorResponse response = doctorService.editDoctorProfile(principal.getName(), request);
         return ResponseEntity.ok(response);
+    }
+
+    @PutMapping(value = "/profile/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasRole('DOCTOR')")
+    public ResponseEntity<DoctorResponse> updateProfileAvatar(
+            java.security.Principal principal,
+            @RequestParam("file") MultipartFile file) {
+        log.info("Received avatar upload for doctor: {}, size: {}", principal.getName(), file.getSize());
+        return ResponseEntity.ok(doctorService.updateDoctorAvatar(principal.getName(), file));
     }
 
     /**
