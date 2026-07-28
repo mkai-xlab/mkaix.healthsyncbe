@@ -43,8 +43,8 @@ spring:
 app:
   jwt:
     issuer: capstone-ai-knee-diagnosis
-    access-secret: ${JWT_ACCESS_SECRET}
-    refresh-secret: ${JWT_REFRESH_SECRET}
+    access-secret: ${JWT_ACCESS_SECRET:dGVzdC1hY2Nlc3Mtc2VjcmV0LWtleS1tdXN0LWJlLWF0LWxlYXN0LTI1Ni1iaXRzLWxvbmc=}
+    refresh-secret: ${JWT_REFRESH_SECRET:dGVzdC1yZWZyZXNoLXNlY3JldC1rZXktbXVzdC1iZS1hdC1sZWFzdC0yNTYtYml0cy1sb25n}
     access-expiration-ms: 900000 # 15 minutes
     refresh-expiration-ms: 604800000 # 7 days
   aws:
@@ -53,6 +53,8 @@ app:
       bucket: ${AWS_BUCKET_NAME:test-bucket-819109476069-ap-southeast-1-an}
   storage:
     base-dir: ${APP_STORAGE_BASE_DIR:D:/Capstone/data}
+  ai:
+    api-url: ${APP_AI_API_URL:http://localhost:8005/api/v1/predict}
 
 logging:
   level:
