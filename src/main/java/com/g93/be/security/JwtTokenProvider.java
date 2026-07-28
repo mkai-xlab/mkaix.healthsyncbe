@@ -15,6 +15,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.List;
 import java.util.ArrayList;
+import java.time.Duration;
+import java.util.UUID;
 import java.util.function.Function;
 
 /**
@@ -63,6 +65,7 @@ public class JwtTokenProvider {
     private String buildToken(Map<String, Object> extraClaims, String subject, long expirationMs, SecretKey key) {
         return Jwts.builder()
                 .claims(extraClaims)
+                .id(UUID.randomUUID().toString())
                 .subject(subject)
                 .issuer(issuer)
                 .issuedAt(new Date(System.currentTimeMillis()))
@@ -141,6 +144,27 @@ public class JwtTokenProvider {
         } catch (JwtException | IllegalArgumentException e) {
             return false;
         }
+    }
+
+    public boolean isRefreshTokenValid(String token) {
+        try {
+            return !isTokenExpired(token, refreshKey);
+        } catch (JwtException | IllegalArgumentException e) {
+            return false;
+        }
+    }
+
+    public Duration getAccessTokenRemainingValidity(String token) {
+        return getRemainingValidity(token, accessKey);
+    }
+
+    public Duration getRefreshTokenRemainingValidity(String token) {
+        return getRemainingValidity(token, refreshKey);
+    }
+
+    private Duration getRemainingValidity(String token, SecretKey key) {
+        long remainingMillis = extractExpiration(token, key).getTime() - System.currentTimeMillis();
+        return Duration.ofMillis(Math.max(remainingMillis, 0));
     }
 
     private boolean isTokenExpired(String token, SecretKey key) {
