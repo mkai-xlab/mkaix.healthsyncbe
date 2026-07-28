@@ -1,5 +1,6 @@
 package com.g93.be.service;
 import com.g93.be.dto.EditDoctorRequest;
+import com.g93.be.dto.EditDoctorProfileRequest;
 
 
 
