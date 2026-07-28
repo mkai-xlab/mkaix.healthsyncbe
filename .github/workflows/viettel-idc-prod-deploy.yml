@@ -1,0 +1,39 @@
+name: Deliver Production to Viettel IDC
+run-name: Viettel IDC production delivery requested by @${{ github.actor }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_delivery:
+        description: "Confirm deployment of the latest main branch to Viettel IDC"
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backend-viettel-idc-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: inputs.confirm_delivery
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Deliver backend via SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.VIETTEL_PUBLIC_IP }}
+          username: root
+          password: ${{ secrets.VIETTEL_PASSWORD }}
+          script: |
+            set -e
+            cd ~/healthsync/mkaix.healthsyncbe/
+            git checkout main
+            git pull --ff-only origin main
+            docker compose config --quiet
+            docker compose up -d --build be

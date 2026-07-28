@@ -1,4 +1,6 @@
 package com.g93.be.service.impl;
+import com.g93.be.dto.ExaminationImageDto;
+
 
 import com.g93.be.entity.DicomInstanceStatus;
 import com.g93.be.dto.AiPredictionRequest;
@@ -46,7 +48,7 @@ public class AiServiceImpl implements AiService {
     @Value("${app.storage.base-dir:D:/Capstone/data}")
     private String storageBaseDir;
 
-    @Value("${app.ai.api-url:http://54.254.113.71:8005/api/v1/predict}")
+    @Value("${app.ai.api-url}")
     private String aiApiUrl;
 
     @Override
@@ -107,7 +109,7 @@ public class AiServiceImpl implements AiService {
                     String annotatedBase64 = aiData.getAnnotatedImage();
                     Image annotatedImageEntity = null;
                     if (annotatedBase64 != null) {
-                        String annotatedPath = saveBase64ToDisk(annotatedBase64,
+                        String annotatedPath = saveBase64ToDisk(annotatedBase64, "anno",
                                 UUID.randomUUID().toString() + "_annotated.png");
                         if (annotatedPath != null) {
                             annotatedImageEntity = new Image();
@@ -118,8 +120,16 @@ public class AiServiceImpl implements AiService {
                     }
 
                     // Save AiAnalysis
-                    AiAnalysis analysis = new AiAnalysis();
-                    analysis.setDicomInstance(instance);
+                    AiAnalysis analysis = instance.getAiAnalysis();
+                    if (analysis == null) {
+                        analysis = new AiAnalysis();
+                        analysis.setDicomInstance(instance);
+                    } else {
+                        if (analysis.getAiResults() != null) {
+                            aiResultRepository.deleteAll(analysis.getAiResults());
+                            analysis.getAiResults().clear();
+                        }
+                    }
                     analysis.setStartTime(LocalDateTime.now());
                     analysis.setDuration(duration);
                     analysis.setStatus("SUCCESS");
@@ -131,7 +141,7 @@ public class AiServiceImpl implements AiService {
                             // Decode ROI
                             Image roiImageEntity = null;
                             if (p.getRoiImage() != null) {
-                                String roiPath = saveBase64ToDisk(p.getRoiImage(),
+                                String roiPath = saveBase64ToDisk(p.getRoiImage(), "roi",
                                         UUID.randomUUID().toString() + "_roi.png");
                                 if (roiPath != null) {
                                     roiImageEntity = new Image();
@@ -143,7 +153,7 @@ public class AiServiceImpl implements AiService {
                             // Decode GradCAM
                             Image gradcamImageEntity = null;
                             if (p.getGradcamImage() != null) {
-                                String gradcamPath = saveBase64ToDisk(p.getGradcamImage(),
+                                String gradcamPath = saveBase64ToDisk(p.getGradcamImage(), "gradcam",
                                         UUID.randomUUID().toString() + "_gradcam.png");
                                 if (gradcamPath != null) {
                                     gradcamImageEntity = new Image();
@@ -234,7 +244,7 @@ public class AiServiceImpl implements AiService {
             int maxGrade = -1;
 
             if (examDto != null && examDto.getImages() != null) {
-                for (com.g93.be.dto.ExaminationImageDto img : examDto.getImages()) {
+                for (ExaminationImageDto img : examDto.getImages()) {
                     List<AiPredictionResultDto> aiResList = aiResultMap.get(img.getDicomInstanceId());
                     if (aiResList != null) {
                         img.setAiResults(aiResList);
@@ -304,7 +314,7 @@ public class AiServiceImpl implements AiService {
         return finalResults;
     }
 
-    private String saveBase64ToDisk(String base64String, String fileName) {
+    private String saveBase64ToDisk(String base64String, String subDir, String fileName) {
         if (base64String == null || !base64String.startsWith("data:image"))
             return null;
         String[] parts = base64String.split(",");
@@ -313,8 +323,8 @@ public class AiServiceImpl implements AiService {
 
         try {
             byte[] decodedImg = Base64.getDecoder().decode(parts[1]);
-            String filePath = "/images/" + fileName;
-            Path targetPath = Paths.get(storageBaseDir, "images", fileName);
+            String filePath = "/images/" + subDir + "/" + fileName;
+            Path targetPath = Paths.get(storageBaseDir, "images", subDir, fileName);
             targetPath.getParent().toFile().mkdirs();
             try (FileOutputStream fos = new FileOutputStream(targetPath.toFile())) {
                 fos.write(decodedImg);
@@ -326,3 +336,4 @@ public class AiServiceImpl implements AiService {
         }
     }
 }
+
