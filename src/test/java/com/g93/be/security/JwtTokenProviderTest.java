@@ -62,6 +62,14 @@ class JwtTokenProviderTest {
     }
 
     @Test
+    void generatedTokensAreUniquePerLoginSession() {
+        String firstToken = jwtTokenProvider.generateAccessToken(mockUserDetails);
+        String secondToken = jwtTokenProvider.generateAccessToken(mockUserDetails);
+
+        assertNotEquals(firstToken, secondToken);
+    }
+
+    @Test
     void extractRoleFromAccessToken_Success() {
         String token = jwtTokenProvider.generateAccessToken(mockUserDetails);
         
@@ -135,6 +143,19 @@ class JwtTokenProviderTest {
         
         boolean isValid = jwtTokenProvider.isRefreshTokenValid(token, mockUserDetails);
         assertTrue(isValid);
+    }
+
+    @Test
+    void remainingValidityMatchesConfiguredTokenLifetime() {
+        String accessToken = jwtTokenProvider.generateAccessToken(mockUserDetails);
+        String refreshToken = jwtTokenProvider.generateRefreshToken(mockUserDetails);
+
+        long accessTtl = jwtTokenProvider.getAccessTokenRemainingValidity(accessToken).toMillis();
+        long refreshTtl = jwtTokenProvider.getRefreshTokenRemainingValidity(refreshToken).toMillis();
+
+        assertTrue(accessTtl > 0 && accessTtl <= accessExpirationMs);
+        assertTrue(refreshTtl > 0 && refreshTtl <= refreshExpirationMs);
+        assertTrue(jwtTokenProvider.isRefreshTokenValid(refreshToken));
     }
 
     @Test

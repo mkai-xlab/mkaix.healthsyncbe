@@ -14,6 +14,7 @@ import com.g93.be.repository.UserRepository;
 import com.g93.be.security.CustomUserDetails;
 import com.g93.be.security.JwtTokenProvider;
 import com.g93.be.service.AuthService;
+import com.g93.be.service.TokenBlacklistService;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -37,14 +38,23 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordEncoder passwordEncoder;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final MailUtil mailUtil;
+    private final TokenBlacklistService tokenBlacklistService;
 
-    public AuthServiceImpl(AuthenticationManager authenticationManager, JwtTokenProvider jwtTokenProvider, UserRepository userRepository, PasswordEncoder passwordEncoder, PasswordResetTokenRepository passwordResetTokenRepository, MailUtil mailUtil) {
+    public AuthServiceImpl(
+            AuthenticationManager authenticationManager,
+            JwtTokenProvider jwtTokenProvider,
+            UserRepository userRepository,
+            PasswordEncoder passwordEncoder,
+            PasswordResetTokenRepository passwordResetTokenRepository,
+            MailUtil mailUtil,
+            TokenBlacklistService tokenBlacklistService) {
         this.authenticationManager = authenticationManager;
         this.jwtTokenProvider = jwtTokenProvider;
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.passwordResetTokenRepository = passwordResetTokenRepository;
         this.mailUtil = mailUtil;
+        this.tokenBlacklistService = tokenBlacklistService;
     }
 
     /**
@@ -85,6 +95,27 @@ public class AuthServiceImpl implements AuthService {
                 userDetails.getUser().getFullName(),
                 userDetails.getPermissions()
         );
+    }
+
+    @Override
+    public void logout(String accessToken, String refreshToken, String username) {
+        if (!jwtTokenProvider.isAccessTokenValid(accessToken)
+                || !jwtTokenProvider.isRefreshTokenValid(refreshToken)) {
+            throw new IllegalArgumentException("Invalid or expired token");
+        }
+
+        String accessTokenUsername = jwtTokenProvider.extractUsernameFromAccessToken(accessToken);
+        String refreshTokenUsername = jwtTokenProvider.extractUsernameFromRefreshToken(refreshToken);
+        if (!username.equals(accessTokenUsername) || !username.equals(refreshTokenUsername)) {
+            throw new IllegalArgumentException("Tokens do not belong to the authenticated user");
+        }
+
+        tokenBlacklistService.blacklistAccessToken(
+                accessToken,
+                jwtTokenProvider.getAccessTokenRemainingValidity(accessToken));
+        tokenBlacklistService.blacklistRefreshToken(
+                refreshToken,
+                jwtTokenProvider.getRefreshTokenRemainingValidity(refreshToken));
     }
 
     /**
