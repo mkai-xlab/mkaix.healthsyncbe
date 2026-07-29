@@ -4,6 +4,7 @@ import com.g93.be.dto.CreateFeatureRequest;
 import com.g93.be.dto.DoctorResponse;
 import com.g93.be.dto.FeatureResponse;
 import com.g93.be.dto.PageResponse;
+import com.g93.be.dto.ReportResponse;
 import com.g93.be.service.DoctorService;
 import com.g93.be.service.PdfExportService;
 import com.g93.be.service.PermissionService;
@@ -12,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -19,6 +21,7 @@ import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 
 import java.util.List;
+import java.time.LocalDateTime;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -124,16 +127,62 @@ class ControllerRbacTest {
     @Test
     @WithMockUser(authorities = "GENERATE_PDF_REPORT")
     void userWithPdfAuthorityCanGenerateReport() {
-        when(pdfExportService.generateAndSavePdfReport(42L)).thenReturn("report.pdf");
+        ReportResponse response = new ReportResponse(
+                9L, 42L, "report.pdf", 100L, "application/pdf", LocalDateTime.now(),
+                "/api/v1/reports/9/preview", "/api/v1/reports/9/download");
+        when(pdfExportService.generateAndSavePdfReport(42L, "doctor")).thenReturn(response);
 
-        assertEquals("Report generated and saved at: report.pdf",
-                reportController.generatePdfReport(42L).getBody());
+        assertEquals(response,
+                reportController.generatePdfReport(42L, () -> "doctor").getBody());
     }
 
     @Test
     @WithMockUser(roles = "ADMIN")
     void roleWithoutPdfAuthorityCannotGenerateReport() {
-        assertThrows(AccessDeniedException.class, () -> reportController.generatePdfReport(42L));
+        assertThrows(AccessDeniedException.class,
+                () -> reportController.generatePdfReport(42L, () -> "admin"));
+    }
+
+    @Test
+    @WithMockUser(authorities = "GENERATE_PDF_REPORT")
+    void userWithGenerateAuthorityCanPreviewReport() {
+        when(pdfExportService.getReportFile(9L, "doctor")).thenReturn(reportFile());
+
+        assertEquals(200, reportController.previewReport(9L, () -> "doctor")
+                .getStatusCode().value());
+    }
+
+    @Test
+    @WithMockUser(authorities = "EXPORT_DOWNLOAD_PDF")
+    void userWithDownloadAuthorityCanDownloadReport() {
+        when(pdfExportService.getReportFile(9L, "doctor")).thenReturn(reportFile());
+
+        assertEquals(200, reportController.downloadReport(9L, () -> "doctor")
+                .getStatusCode().value());
+    }
+
+    @Test
+    @WithMockUser(authorities = "GENERATE_PDF_REPORT")
+    void generateAuthorityAloneCannotDownloadReport() {
+        assertThrows(AccessDeniedException.class,
+                () -> reportController.downloadReport(9L, () -> "doctor"));
+    }
+
+    @Test
+    @WithMockUser(roles = "HEAD_OF_DEPARTMENT")
+    void departmentHeadCanDownloadReportWithoutExplicitAuthority() {
+        when(pdfExportService.getReportFile(9L, "head")).thenReturn(reportFile());
+
+        assertEquals(200, reportController.downloadReport(9L, () -> "head")
+                .getStatusCode().value());
+    }
+
+    private PdfExportService.ReportFile reportFile() {
+        return new PdfExportService.ReportFile(
+                new ByteArrayResource(new byte[]{1}),
+                "report.pdf",
+                "application/pdf",
+                1L);
     }
 
     @Configuration(proxyBeanMethods = false)

@@ -1,5 +1,6 @@
 package com.g93.be.security;
 
+import com.g93.be.service.TokenBlacklistService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -22,9 +23,13 @@ import java.util.ArrayList;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtTokenProvider jwtTokenProvider;
+    private final TokenBlacklistService tokenBlacklistService;
 
-    public JwtAuthenticationFilter(JwtTokenProvider jwtTokenProvider) {
+    public JwtAuthenticationFilter(
+            JwtTokenProvider jwtTokenProvider,
+            TokenBlacklistService tokenBlacklistService) {
         this.jwtTokenProvider = jwtTokenProvider;
+        this.tokenBlacklistService = tokenBlacklistService;
     }
 
     @Override
@@ -44,6 +49,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         jwt = authHeader.substring(7);
         try {
+            if (tokenBlacklistService.isAccessTokenBlacklisted(jwt)) {
+                filterChain.doFilter(request, response);
+                return;
+            }
             userEmail = jwtTokenProvider.extractUsernameFromAccessToken(jwt);
             if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 // Stateless validation: Extract authorities from JWT directly
