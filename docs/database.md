@@ -353,8 +353,8 @@ To avoid duplicating fields (like timestamps and user properties) while preservi
 * **`AuditLog`** (`com.g93.be.entity.AuditLog`): Maps to `audit_logs`. It tracks security context fields including `user_agent`, client `ip_address`, transaction `payload` (JSON), and execution `is_success`.
 
 ### Clinical Reporting, Reviews & Metadata
-* **`DiagnosisReview`** (`com.g93.be.entity.DiagnosisReview`): Maps to `diagnosis_reviews`. Stores the doctor's clinical review and validation of AI-predicted KL grades and details.
-* **`ClinicalReport`** (`com.g93.be.entity.ClinicalReport`): Maps to `clinical_reports`. Stores generated/exported clinical PDF reports, utilizing `is_confirmed` and `confirmed_at` to represent the doctor's confirmation.
+* **`DiagnosisReview`** (`com.g93.be.entity.DiagnosisReview`): Maps to `diagnosis_reviews`. Stores the original AI-result relationship, final `confirmed_kl_grade`, decision (`AI_CONFIRMED` or `DOCTOR_ADJUSTED`), review note, reviewing doctor, and review time.
+* **`Report`** (`com.g93.be.entity.Report`): Maps to `report`. Stores the examination and operating doctor relationships, clinical summary, generated file path/name, content type, file size, and creation time. PDF bytes are stored on the filesystem under `app.pdf.export-dir`, not as a database BLOB.
 * **`DicomInformation`** (`com.g93.be.entity.DicomInformation`): Maps to `dicom_informations` (linked 1-to-1 with `XrayImage`). Stores parsed DICOM metadata tags (Patient ID, Name, Birth Date, Sex, SOP Instance UID, etc.) for uploaded files.
 
 ---

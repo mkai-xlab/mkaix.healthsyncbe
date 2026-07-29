@@ -19,13 +19,14 @@ This folder contains backend documentation for the Capstone project.
 13. [Security Guide](security.md)
 14. [API Design Guidelines](api-design-guidelines.md)
 15. [Code Style](code-style.md)
-16. [Database Migration](database-migration.md)
-17. [Observability](observability.md)
-18. [Runbook](runbook.md)
-19. [Release Process](release-process.md)
-20. [Contributing Guide](contributing.md)
-21. [DICOM to PNG Processing Pipeline](dicom-processor.md)
-22. [Architecture Decision Records](adr/README.md)
+16. [Frontend Examination Report Integration](frontend-examination-report.md)
+17. [Database Migration](database-migration.md)
+18. [Observability](observability.md)
+19. [Runbook](runbook.md)
+20. [Release Process](release-process.md)
+21. [Contributing Guide](contributing.md)
+22. [DICOM to PNG Processing Pipeline](dicom-processor.md)
+23. [Architecture Decision Records](adr/README.md)
 
 ## Assets
 
@@ -48,7 +49,7 @@ This folder contains backend documentation for the Capstone project.
 
 ## Current State
 
-The backend is currently a Spring Boot application with MySQL datasource configuration and no implemented public controllers or API routes yet.
+The backend is a Spring Boot application with JWT-authenticated REST APIs for users, patients, DICOM processing, AI-assisted diagnosis review, notifications, and finalized PDF reports.
 
 Keep these docs updated whenever new modules are added, especially when introducing:
 
