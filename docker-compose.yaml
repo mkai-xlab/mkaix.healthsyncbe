@@ -52,6 +52,7 @@ services:
       - ../env/be.env
     environment:
       APP_AVATAR_STORAGE_DIR: /app/data/avatars
+      APP_PDF_EXPORT_DIR: /app/data/reports
     extra_hosts:
       - "host.docker.internal:host-gateway"
       # depends_on:
