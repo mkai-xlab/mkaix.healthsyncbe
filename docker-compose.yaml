@@ -2,6 +2,10 @@ name: capstone
 
 services:
   mysql:
+    # MySQL is optional on VPS deployments. Enable it locally with:
+    # docker compose --profile database up -d mysql
+    profiles:
+      - database
     image: dhi.io/mysql:9
     container_name: capstone-mysql
     restart: unless-stopped
