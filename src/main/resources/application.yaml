@@ -55,6 +55,8 @@ app:
     base-dir: ${APP_STORAGE_BASE_DIR:D:/Capstone/data}
   avatar:
     storage-dir: ${APP_AVATAR_STORAGE_DIR:${app.storage.base-dir}/avatars}
+  pdf:
+    export-dir: ${APP_PDF_EXPORT_DIR:${app.storage.base-dir}/reports}
   ai:
     api-url: ${APP_AI_API_URL:http://localhost:8005/api/v1/predict}
 

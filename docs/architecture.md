@@ -29,9 +29,14 @@ The application now actively exposes various RESTful API endpoints securely unde
 
 ## PDF Reporting Engine
 
-The system uses a combination of **Thymeleaf** and **OpenHTMLToPDF** to dynamically generate and export clinical PDF reports containing patient details and AI analysis results. 
+The system uses a combination of **Thymeleaf** and **OpenHTMLToPDF** to generate finalized clinical PDF reports containing patient details and reviewed AI analysis results.
 - **Thymeleaf** binds dynamic Java Data Transfer Objects (DTOs) into HTML templates (stored in `src/main/resources/templates/pdf`).
-- **OpenHTMLToPDF** renders the finalized HTML strings into binary PDF streams, complete with custom typography (e.g., Roboto for Vietnamese) and embedded Base64-encoded AI GradCAM images.
+- **OpenHTMLToPDF** renders the finalized HTML strings into binary PDF files with a classpath-loaded Tahoma font for Vietnamese and embedded Base64-encoded AI Grad-CAM images.
+- Report generation requires examination status `VERIFIED`, stores the PDF under `app.pdf.export-dir`, persists metadata in the `report` table, and changes the examination to `REPORT_GENERATED`.
+- Preview and download stream the stored file after authorization. Preview uses `inline`; download uses `attachment` and is audit logged.
+- PDF export uses `DiagnosisReview.confirmedKlGrade`, so an AI confirmation exports the AI grade and a doctor adjustment exports the doctor's final grade.
+
+The complete frontend contract is documented in [Frontend Examination Report Integration](frontend-examination-report.md).
 
 ## Application Entry Point
 

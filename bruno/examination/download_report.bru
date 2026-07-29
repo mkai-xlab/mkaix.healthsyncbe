@@ -1,0 +1,23 @@
+meta {
+  name: Download PDF Report
+  type: http
+  seq: 16
+}
+
+get {
+  url: {{baseUrl}}/reports/{{reportId}}/download
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+tests {
+  test("returns PDF as attachment", function() {
+    expect(res.status).to.equal(200);
+    expect(res.headers["content-type"]).to.include("application/pdf");
+    expect(res.headers["content-disposition"]).to.include("attachment");
+  });
+}​

@@ -100,7 +100,12 @@ mvn test
 
 ## API Status
 
-Controllers and public API endpoints are actively being implemented (Auth, Patients, Permissions, DICOM). Full API documentation is available under `docs/api.md`.
+The backend exposes APIs for authentication, patients, DICOM processing, AI diagnosis review, notifications, and PDF reports. Full API documentation is available in [docs/api.md](docs/api.md), with the review/report frontend contract in [docs/frontend-examination-report.md](docs/frontend-examination-report.md).
+
+When the application is running:
+
+- Swagger UI: `http://localhost:8080/api/v1/swagger-ui/index.html`
+- OpenAPI JSON: `http://localhost:8080/api/v1/v3/api-docs`
 
 ## Documentation
 

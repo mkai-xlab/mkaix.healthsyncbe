@@ -42,11 +42,25 @@ public class Report {
     @Column(name = "clinical_summary", columnDefinition = "TEXT")
     private String clinicalSummary;
 
+    @Column(name = "file_path", length = 512)
+    private String filePath;
+
+    @Column(name = "file_name", length = 255)
+    private String fileName;
+
+    @Column(name = "content_type", length = 100)
+    private String contentType;
+
+    @Column(name = "file_size")
+    private Long fileSize;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
     @PrePersist
     protected void onCreate() {
-        createdAt = LocalDateTime.now();
+        if (createdAt == null) {
+            createdAt = LocalDateTime.now();
+        }
     }
 }
