@@ -27,6 +27,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.LocalDateTime;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Optional;
 
@@ -56,6 +57,9 @@ class AuthServiceTest {
 
     @Mock
     private MailUtil mailUtil;
+
+    @Mock
+    private TokenBlacklistService tokenBlacklistService;
 
     @InjectMocks
     private AuthServiceImpl authService;
@@ -122,6 +126,36 @@ class AuthServiceTest {
         
         verify(jwtTokenProvider, never()).generateAccessToken(any());
         verify(jwtTokenProvider, never()).generateRefreshToken(any());
+    }
+
+    @Test
+    void logout_RevokesAccessAndRefreshTokens() {
+        Duration accessTtl = Duration.ofMinutes(10);
+        Duration refreshTtl = Duration.ofDays(6);
+        when(jwtTokenProvider.isAccessTokenValid("access_token")).thenReturn(true);
+        when(jwtTokenProvider.isRefreshTokenValid("refresh_token")).thenReturn(true);
+        when(jwtTokenProvider.extractUsernameFromAccessToken("access_token")).thenReturn("test_user");
+        when(jwtTokenProvider.extractUsernameFromRefreshToken("refresh_token")).thenReturn("test_user");
+        when(jwtTokenProvider.getAccessTokenRemainingValidity("access_token")).thenReturn(accessTtl);
+        when(jwtTokenProvider.getRefreshTokenRemainingValidity("refresh_token")).thenReturn(refreshTtl);
+
+        authService.logout("access_token", "refresh_token", "test_user");
+
+        verify(tokenBlacklistService).blacklistAccessToken("access_token", accessTtl);
+        verify(tokenBlacklistService).blacklistRefreshToken("refresh_token", refreshTtl);
+    }
+
+    @Test
+    void logout_RejectsTokenFromAnotherUser() {
+        when(jwtTokenProvider.isAccessTokenValid("access_token")).thenReturn(true);
+        when(jwtTokenProvider.isRefreshTokenValid("refresh_token")).thenReturn(true);
+        when(jwtTokenProvider.extractUsernameFromAccessToken("access_token")).thenReturn("test_user");
+        when(jwtTokenProvider.extractUsernameFromRefreshToken("refresh_token")).thenReturn("other_user");
+
+        assertThrows(IllegalArgumentException.class,
+                () -> authService.logout("access_token", "refresh_token", "test_user"));
+
+        verifyNoInteractions(tokenBlacklistService);
     }
 
     // --- CHANGE PASSWORD TESTS ---
