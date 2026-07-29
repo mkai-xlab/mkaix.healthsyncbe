@@ -2,202 +2,80 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8"/>
-    <title>Báo cáo Y tế</title>
+    <title>Phieu thu thap so lieu</title>
     <style>
-        * {
-            font-weight: normal !important;
-            font-style: normal !important;
-        }
-
-        body {
-            font-family: 'Tahoma', sans-serif;
-            font-size: 14px;
-            color: #333;
-            margin: 0;
-            padding: 20px;
-        }
-
-        .header {
-            text-align: center;
-            margin-bottom: 30px;
-            border-bottom: 2px solid #2c3e50;
-            padding-bottom: 10px;
-        }
-
-        .header h1 {
-            color: #2c3e50;
-            margin: 0;
-            font-size: 24px;
-        }
-
-        .header h2 {
-            margin: 5px 0 0 0;
-            font-size: 16px;
-            color: #7f8c8d;
-        }
-
-        .section {
-            margin-bottom: 25px;
-        }
-
-        .section-title {
-            background-color: #ecf0f1;
-            padding: 8px;
-            font-weight: bold;
-            font-size: 16px;
-            margin-bottom: 10px;
-            border-left: 4px solid #3498db;
-        }
-
-        .info-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        .info-table td {
-            padding: 5px;
-            vertical-align: top;
-        }
-
-        .info-label {
-            font-weight: bold;
-            width: 150px;
-            color: #555;
-        }
-
-        .ai-result-item {
-            margin-bottom: 20px;
-            border: 1px solid #ddd;
-            padding: 15px;
-            page-break-inside: avoid;
-        }
-
-        .ai-image {
-            text-align: center;
-            margin-top: 15px;
-        }
-
-        .ai-image img {
-            max-width: 90%;
-            max-height: 400px;
-            border: 1px solid #ccc;
-        }
-
-        .footer {
-            margin-top: 50px;
-            text-align: right;
-            page-break-inside: avoid;
-        }
-
-        .signature-box {
-            display: inline-block;
-            text-align: center;
-            width: 250px;
-        }
+        * { font-family: Tahoma, sans-serif; box-sizing: border-box; }
+        body { font-size: 11px; color: #222; margin: 18px; }
+        h1 { text-align: center; font-size: 17px; margin: 0 0 4px; }
+        h2 { text-align: center; font-size: 12px; margin: 0 0 16px; font-weight: normal; }
+        h3 { background: #e9eef5; border-left: 4px solid #315b87; padding: 6px; font-size: 12px; margin: 14px 0 7px; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
+        td, th { border: 1px solid #aeb7c2; padding: 4px; vertical-align: top; }
+        th { background: #f3f5f7; text-align: left; }
+        .label { width: 23%; font-weight: bold; }
+        .wide { width: 54%; }
+        .result { page-break-inside: avoid; margin-bottom: 12px; }
+        .blank { color: #777; }
+        .signature { text-align: right; margin-top: 35px; }
+        .image { max-width: 340px; max-height: 230px; }
     </style>
 </head>
 <body>
+<h1>PHI&#7870;U THU TH&#7852;P S&#7888; LI&#7878;U C&#193; NH&#194;N</h1>
+<h2>&#272;&#7873; t&#224;i: Nghi&#234;n c&#7913;u x&#226;y d&#7921;ng &#7913;ng d&#7909;ng AI h&#7895; tr&#7907; ch&#7849;n &#273;o&#225;n tho&#225;i h&#243;a kh&#7899;p g&#7889;i</h2>
 
-    <div class="header">
-        <h1>KẾT QUẢ CHỤP X-QUANG VÀ PHÂN TÍCH AI</h1>
-        <h2>BỆNH VIỆN / PHÒNG KHÁM HEALTHSYNC</h2>
+<h3>I. TH&#212;NG TIN CHUNG</h3>
+<table>
+    <tr><td class="label">H&#7885; t&#234;n ng&#432;&#7901;i b&#7879;nh</td><td th:text="${data.patientName}"></td><td class="label">M&#227; h&#7891; s&#417;/m&#227; b&#7879;nh nh&#226;n</td><td th:text="${data.patientCode}"></td></tr>
+    <tr><td class="label">Tu&#7893;i</td><td th:text="${data.age}"></td><td class="label">Gi&#7899;i t&#237;nh</td><td th:text="${data.gender}"></td></tr>
+    <tr><td class="label">Ng&#224;y sinh</td><td th:text="${data.dob}"></td><td class="label">&#272;&#7883;a ch&#7881;</td><td th:text="${data.address}"></td></tr>
+    <tr><td class="label">M&#227; ca kh&#225;m</td><td th:text="${data.encounterCode}"></td><td class="label">Ng&#224;y kh&#225;m</td><td th:text="${data.visitTime}"></td></tr>
+    <tr><td class="label">D&#7883; v&#7853;t kim lo&#7841;i/ti&#7873;n s&#7917; ph&#7851;u thu&#7853;t g&#7889;i</td><td colspan="3" class="blank"> </td></tr>
+</table>
+
+<div th:if="${data.aiResults != null}" th:each="result, stat : ${data.aiResults}" class="result">
+    <h3>II. TH&#212;NG S&#7888; K&#7928; THU&#7852;T H&#204;NH &#7842;NH - &#7842;NH #<span th:text="${stat.count}"></span></h3>
+    <table>
+        <tr><td class="label">M&#227; file DICOM (ID &#7843;nh)</td><td th:text="${result.dicomInstanceId}"></td><td class="label">Modality</td><td th:text="${result.modality}"></td></tr>
+        <tr><td class="label">B&#234;n g&#7889;i</td><td th:text="${result.kneeSide}"></td><td class="label">&#272;&#7883;nh d&#7841;ng file</td><td th:text="${result.imageFormat}"></td></tr>
+        <tr><td class="label">Nh&#224; s&#7843;n xu&#7845;t/d&#242;ng m&#225;y</td><td th:text="${result.manufacturer}"></td><td class="label">T&#432; th&#7871; ch&#7909;p</td><td th:text="${result.acquisitionPosition}"></td></tr>
+        <tr><td class="label">&#272;&#225;nh gi&#225; ch&#7845;t l&#432;&#7907;ng &#7843;nh</td><td colspan="3" th:text="${result.imageQuality}"></td></tr>
+    </table>
+
+    <h3>III. NH&#195;N THAM CHI&#7870;U - TI&#202;U CHU&#7848;N V&#192;NG</h3>
+    <table>
+        <tr><th>Ti&#234;u ch&#237;</th><th>Ng&#432;&#7901;i &#273;&#7885;c 1</th><th>Ng&#432;&#7901;i &#273;&#7885;c 2</th></tr>
+        <tr><td>Gai x&#432;&#417;ng</td><td th:text="${result.readerOneOsteophyte}"></td><td th:text="${result.readerTwoOsteophyte}"></td></tr>
+        <tr><td>H&#7865;p khe kh&#7899;p</td><td th:text="${result.readerOneJointSpace}"></td><td th:text="${result.readerTwoJointSpace}"></td></tr>
+        <tr><td>&#272;&#7863;c x&#432;&#417;ng d&#432;&#7899;i s&#7909;n</td><td th:text="${result.readerOneSubchondralSclerosis}"></td><td th:text="${result.readerTwoSubchondralSclerosis}"></td></tr>
+        <tr><td>Bi&#7871;n d&#7841;ng &#273;&#7847;u x&#432;&#417;ng</td><td th:text="${result.readerOneBoneDeformity}"></td><td th:text="${result.readerTwoBoneDeformity}"></td></tr>
+        <tr><td>K&#7871;t lu&#7853;n KL</td><td th:text="${result.readerOneKlGrade}"></td><td th:text="${result.readerTwoKlGrade}"></td></tr>
+        <tr><td>&#272;&#7891;ng thu&#7853;n cu&#7889;i c&#249;ng</td><td colspan="2" th:text="${result.consensusKlGrade}"></td></tr>
+        <tr><td>Th&#7901;i gian x&#7917; l&#253;</td><td th:text="${result.readerOneProcessingTime}"></td><td th:text="${result.readerTwoProcessingTime}"></td></tr>
+    </table>
+
+    <h3>IV. K&#7870;T QU&#7842; &#272;&#7846;U RA C&#7910;A PH&#7846;N M&#7872;M AI</h3>
+    <table>
+        <tr><td class="label">KL do AI d&#7921; &#273;o&#225;n</td><td th:text="${result.aiPredictedGrade}"></td><td class="label">M&#7913;c &#273;&#7897; t&#7921; tin</td><td><span th:text="${result.confidence}"></span><span th:if="${result.confidence != null and !#strings.isEmpty(result.confidence)}">%</span></td></tr>
+        <tr><td class="label">KL cu&#7889;i c&#249;ng &#273;&#432;&#7907;c x&#225;c nh&#7853;n</td><td th:text="${result.klGrade}"></td><td class="label">Quy&#7871;t &#273;&#7883;nh</td><td th:text="${result.decision}"></td></tr>
+        <tr><td class="label">Th&#7901;i gian AI x&#7917; l&#253;</td><td th:text="${result.inferenceTime}"></td><td class="label">Ghi ch&#250; review</td><td th:text="${result.reviewNote}"></td></tr>
+        <tr><td class="label">AI khoanh v&#249;ng &#273;&#250;ng gai x&#432;&#417;ng</td><td th:text="${result.osteophyteDetection}"></td><td class="label">AI &#273;&#225;nh d&#7845;u &#273;&#250;ng khe kh&#7899;p h&#7865;p</td><td th:text="${result.jointSpaceDetection}"></td></tr>
+        <tr><td class="label">K&#7871;t lu&#7853;n t&#7921; &#273;&#7897;ng</td><td colspan="3" th:text="${result.interpretation}"></td></tr>
+    </table>
+    <div th:if="${result.gradcamBase64 != null and !#strings.isEmpty(result.gradcamBase64)}">
+        <p>H&#236;nh &#7843;nh &#273;&#225;nh d&#7845;u v&#249;ng t&#7893;n th&#432;&#417;ng (GradCAM):</p>
+        <img class="image" th:src="${'data:image/jpeg;base64,' + result.gradcamBase64}" alt="GradCAM"/>
     </div>
 
-    <div class="section">
-        <div class="section-title">I. THÔNG TIN BỆNH NHÂN</div>
-        <table class="info-table">
-            <tr>
-                <td class="info-label">Mã bệnh nhân:</td>
-                <td th:text="${data.patientCode}">PT-001</td>
-                <td class="info-label">Giới tính:</td>
-                <td th:text="${data.gender}">Nam</td>
-            </tr>
-            <tr>
-                <td class="info-label">Họ và tên:</td>
-                <td th:text="${data.patientName}">Nguyễn Văn A</td>
-                <td class="info-label">Tuổi/Năm sinh:</td>
-                <td th:text="${data.dob}">01/01/1990</td>
-            </tr>
-            <tr>
-                <td class="info-label">Địa chỉ:</td>
-                <td colspan="3" th:text="${data.address}">Hà Nội</td>
-            </tr>
-        </table>
-    </div>
+    <h3>V. &#272;&#193;NH GI&#193; T&#205;NH &#272;&#7890;NG NH&#7844;T V&#192; PH&#194;N T&#205;CH SAI S&#7888;</h3>
+    <table>
+        <tr><td class="label">K&#7871;t qu&#7843; so s&#225;nh</td><td th:text="${result.comparisonResult == 'MATCH' ? 'Kh&#7899;p ho&#224;n to&#224;n' : (result.comparisonResult == 'AI_HIGHER' ? 'AI &#273;&#225;nh gi&#225; cao h&#417;n' : (result.comparisonResult == 'AI_LOWER' ? 'AI &#273;&#225;nh gi&#225; th&#7845;p h&#417;n' : ''))}"></td></tr>
+        <tr><td class="label">Ghi ch&#250; nguy&#234;n nh&#226;n sai l&#7879;ch</td><td th:text="${result.errorAnalysisNote}"></td></tr>
+    </table>
+</div>
 
-    <div class="section">
-        <div class="section-title">II. THÔNG TIN KHÁM</div>
-        <table class="info-table">
-            <tr>
-                <td class="info-label">Mã ca khám:</td>
-                <td th:text="${data.encounterCode}">EX-001</td>
-                <td class="info-label">Ngày khám:</td>
-                <td th:text="${data.visitTime}">20/07/2026</td>
-            </tr>
-            <tr>
-                <td class="info-label">Bác sĩ chỉ định:</td>
-                <td colspan="3" th:text="${data.doctorName}">BS. Trần B</td>
-            </tr>
-            <tr>
-                <td class="info-label">Chẩn đoán lâm sàng:</td>
-                <td colspan="3" th:text="${data.clinicalNotes}">Đau nhức khớp gối phải</td>
-            </tr>
-        </table>
-    </div>
-
-    <div class="section">
-        <div class="section-title">III. KẾT QUẢ PHÂN TÍCH AI (X-QUANG KHỚP GỐI)</div>
-        
-        <div th:if="${data.aiResults == null or data.aiResults.isEmpty()}">
-            <p>Không có dữ liệu phân tích AI cho ca khám này.</p>
-        </div>
-
-        <div th:each="result, iterStat : ${data.aiResults}" class="ai-result-item">
-            <h3 style="margin-top: 0;">Ảnh #<span th:text="${iterStat.count}">1</span></h3>
-            <table class="info-table">
-                <tr>
-                    <td class="info-label">Kết quả KL cuối cùng:</td>
-                    <td>
-                        <strong th:text="${result.klGrade}" style="color: #e74c3c;">2</strong> 
-                        (<span th:text="${result.decision == 'AI_CONFIRMED' ? 'Xác nhận kết quả AI' : 'Bác sĩ/Trưởng khoa điều chỉnh'}">Nguồn kết quả</span>)
-                    </td>
-                </tr>
-                <tr>
-                    <td class="info-label">Kết quả AI ban đầu:</td>
-                    <td>KL <span th:text="${result.aiPredictedGrade}">2</span>
-                        (Độ tin cậy AI: <span th:text="${result.confidence}">95.5</span>%)</td>
-                </tr>
-                <tr th:if="${result.reviewNote != null}">
-                    <td class="info-label">Ghi chú xác nhận:</td>
-                    <td th:text="${result.reviewNote}">Ghi chú</td>
-                </tr>
-                <tr>
-                    <td class="info-label">Kết luận tự động:</td>
-                    <td th:text="${result.interpretation}">Có dấu hiệu thoái hóa khớp gối nhẹ.</td>
-                </tr>
-            </table>
-
-            <div class="ai-image" th:if="${result.gradcamBase64 != null}">
-                <p><i>Hình ảnh đánh dấu vùng tổn thương (GradCAM):</i></p>
-                <!-- Sử dụng data URI base64 để openhtmltopdf dễ dàng render mà không cần tải qua mạng -->
-                <img th:src="${'data:image/jpeg;base64,' + result.gradcamBase64}" alt="GradCAM Image"/>
-            </div>
-        </div>
-    </div>
-    
-    <div class="section" th:if="${data.finalDiagnosis != null}">
-        <div class="section-title">IV. KẾT LUẬN CỦA BÁC SĨ</div>
-        <p th:text="${data.finalDiagnosis}">Thoái hóa khớp gối độ 2, cần tập vật lý trị liệu.</p>
-    </div>
-
-    <div class="footer">
-        <div class="signature-box">
-            <p><i>Ngày ..... tháng ..... năm .......</i></p>
-            <p><strong>BÁC SĨ CHUYÊN KHOA</strong></p>
-            <br/><br/><br/><br/>
-            <p th:text="${data.doctorName}">BS. Trần B</p>
-        </div>
-    </div>
-
+<h3>K&#7870;T LU&#7852;N C&#7910;A B&#193;C S&#296;</h3>
+<table><tr><td class="label">Ch&#7849;n &#273;o&#225;n l&#226;m s&#224;ng</td><td th:text="${data.clinicalNotes}"></td></tr><tr><td class="label">Ch&#7849;n &#273;o&#225;n cu&#7889;i</td><td th:text="${data.finalDiagnosis}"></td></tr></table>
+<div class="signature"><p>Ng&#224;y ..... th&#225;ng ..... n&#259;m .......</p><p><strong>B&#193;C S&#296; CHUY&#202;N KHOA</strong></p><br/><br/><p th:text="${data.doctorName}"></p></div>
 </body>
 </html>

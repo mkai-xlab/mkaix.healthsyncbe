@@ -1,0 +1,24 @@
+meta {
+  name: Preview PDF Report
+  type: http
+  seq: 15
+}
+
+get {
+  url: {{baseUrl}}/reports/{{reportId}}/preview
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+tests {
+  test("returns PDF inline", function() {
+    expect(res.status).to.equal(200);
+    expect(res.headers["content-type"]).to.include("application/pdf");
+    expect(res.headers["content-disposition"]).to.include("inline");
+  });
+}
+​
