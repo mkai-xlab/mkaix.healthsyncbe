@@ -109,6 +109,122 @@ Clean and rebuild:
 mvn clean package
 ```
 
+## Deployment Environments
+
+The backend has two deployment targets:
+
+| Environment | Host | Trigger | SSH authentication | Remote user |
+| --- | --- | --- | --- | --- |
+| Development | AWS EC2 | Push to `dev` | `EC2_PUBLIC_IP` + `SSH_PRIVATE_KEY` | `ubuntu` |
+| Production | Viettel IDC | Manual Actions workflow | `VIETTEL_PUBLIC_IP` + `VIETTEL_PASSWORD` | `root` |
+
+Both deployments build only the backend service:
+
+```bash
+docker compose up -d --build be
+```
+
+Do not use `docker compose up -d --build` for deployment; that starts every
+service in the Compose file. MySQL is assigned to the `database` profile and
+is not started by the deployment command.
+
+## AWS EC2 Development Deployment
+
+The workflow is [aws-ec2-dev-deploy.yml](../.github/workflows/aws-ec2-dev-deploy.yml).
+It runs automatically after a qualifying push to `dev` (source changes,
+`pom.xml`, `Dockerfile`, or `docker-compose.yaml`). The remote commands are:
+
+```bash
+cd ~/healthsync/mkaix.healthsyncbe/
+git checkout dev
+git pull --ff-only origin dev
+docker compose config --quiet
+docker compose up -d --build be
+```
+
+Required repository secrets:
+
+- `EC2_PUBLIC_IP`
+- `SSH_PRIVATE_KEY`
+
+The AWS host must contain the environment file required by the `be` service:
+
+```text
+/home/ubuntu/healthsync/env/be.env
+```
+
+`database.env` is not required unless MySQL is deliberately enabled. To run
+MySQL manually on the host, provide that file and use:
+
+```bash
+docker compose --profile database up -d mysql
+```
+
+## Viettel IDC Production Deployment
+
+The workflow is [viettel-idc-prod-deploy.yml](../.github/workflows/viettel-idc-prod-deploy.yml).
+It never deploys on a push automatically. To deploy, open **Actions**, select
+**Deliver Production to Viettel IDC**, click **Run workflow**, enable the
+confirmation checkbox, and click **Run workflow** again.
+
+Required repository secrets:
+
+- `VIETTEL_PUBLIC_IP`
+- `VIETTEL_PASSWORD`
+
+The workflow connects as `root` and runs:
+
+```bash
+cd ~/healthsync/mkaix.healthsyncbe/
+git checkout main
+git pull --ff-only origin main
+docker compose config --quiet
+docker compose up -d --build be
+```
+
+The Viettel host must contain:
+
+```text
+/root/healthsync/env/be.env
+```
+
+Do not store `be.env`, database credentials, JWT secrets, or SSH/password
+credentials in Git. Keep them on the server or in GitHub Secrets.
+
+## Deployment Verification
+
+After either deployment, connect to the target host and check the backend:
+
+```bash
+cd ~/healthsync/mkaix.healthsyncbe/
+docker compose ps be
+docker compose logs --tail=100 be
+curl -i http://127.0.0.1:8000/actuator/health
+```
+
+The `be` container should be running and the health endpoint should return a
+successful HTTP response. If the container exits, inspect the first startup
+error in `docker compose logs be`; common causes are a missing `be.env`, an
+incorrect external database address, or an unavailable Redis host.
+
+## Rollback
+
+From the target host, identify a known-good commit and redeploy that commit:
+
+```bash
+cd ~/healthsync/mkaix.healthsyncbe/
+git fetch origin
+git log --oneline -10
+git checkout <known-good-commit>
+docker compose config --quiet
+docker compose up -d --build be
+docker compose ps be
+```
+
+After the incident is resolved, return the checkout to the appropriate branch
+(`dev` on AWS or `main` on Viettel IDC) before the next automated/manual
+deployment.
+
 ## Navigation
 
 - [Back to Documentation Index](README.md)
