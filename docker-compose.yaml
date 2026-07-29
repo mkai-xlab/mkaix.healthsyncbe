@@ -59,11 +59,6 @@ services:
       APP_PDF_EXPORT_DIR: /app/data/reports
     extra_hosts:
       - "host.docker.internal:host-gateway"
-      # depends_on:
-      # mysql:
-      #   condition: service_healthy
-      # maildev:
-      #   condition: service_started
     volumes:
       - ./data:/app/data
 
