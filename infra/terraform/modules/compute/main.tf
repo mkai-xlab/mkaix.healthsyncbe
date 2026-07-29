@@ -101,6 +101,22 @@ resource "aws_security_group" "server_sg" {
   }
 
   ingress {
+    description = "Allow Flutter development UI"
+    from_port   = 3000
+    to_port     = 3000
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description = "Allow FastAPI"
+    from_port   = 8005
+    to_port     = 8005
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
     description = "Allow MySQL Port"
     from_port   = 3306
     to_port     = 3306

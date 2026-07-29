@@ -57,6 +57,37 @@ PDF export reads only the latest AI analysis for each DICOM image and requires e
 
 Status codes for both review endpoints: `200 OK`, `400 Bad Request` for invalid input or an unknown AI result, `401 Unauthorized`, `403 Forbidden` when the required role, authority, or examination ownership is missing.
 
+### PDF report generation, preview, and download
+
+#### `POST /examinations/{examinationId}/generate-report`
+
+Generates and stores the finalized PDF for a `VERIFIED` examination. The response contains report metadata plus authenticated preview and download URLs. Calling the endpoint again returns the existing report while its stored file is available.
+
+```json
+{
+  "reportId": 1,
+  "examinationId": 1,
+  "fileName": "report_STUDY001_a1b2c3d4.pdf",
+  "fileSize": 38826,
+  "contentType": "application/pdf",
+  "generatedAt": "2026-07-29T14:32:14",
+  "previewUrl": "/api/v1/reports/1/preview",
+  "downloadUrl": "/api/v1/reports/1/download"
+}
+```
+
+#### `GET /reports/{reportId}/preview`
+
+Returns PDF bytes with `Content-Type: application/pdf` and `Content-Disposition: inline`. The frontend must fetch this URL with the Bearer token and display the resulting Blob URL.
+
+#### `GET /reports/{reportId}/download`
+
+Returns the same PDF bytes with `Content-Disposition: attachment`. The frontend must fetch with the Bearer token, create a Blob URL, and trigger an anchor download. The operation is recorded in the audit log.
+
+Do not navigate directly to either URL because normal browser navigation does not attach the Bearer token. See [Frontend Examination Report Integration](frontend-examination-report.md) for the full state flow, JavaScript examples, authorization matrix, and error handling.
+
+Swagger UI is available at `/api/v1/swagger-ui/index.html`; the OpenAPI JSON is available at `/api/v1/v3/api-docs`.
+
 ### `POST /auth/login` response update
 
 Successful login responses include the user's full name:
