@@ -475,12 +475,12 @@ Quy ước:
 |---|---|
 | Code Module | `PdfExportService` |
 | Method | `generateAndSavePdfReport` |
-| Test Class | `PdfExportServiceTest` |
+| Test Class | `PdfExportServiceTest`, `ReportControllerTest`, `PdfReportTemplateTest` |
 | Test Requirement | Lấy examination, chọn kết quả AI mới nhất đã được xác nhận, xuất KL cuối cùng, render HTML và xử lý lỗi dữ liệu/template. |
 
 | Passed | Failed | Untested | N | A | B | Total | Success Rate |
 |---:|---:|---:|---:|---:|---:|---:|---:|
-| 8 | 0 | 0 | 3 | 4 | 1 | 8 | 100% |
+| 17 | 0 | 0 | 8 | 8 | 1 | 17 | 100% |
 
 | UTCID | Test case | Condition / Precondition | Input | Confirm Return / File | Exception | Type | Expected Output | Actual Output | Result | Date | Defect ID |
 |---|---|---|---|---|---|:---:|---|---|:---:|---|---|
@@ -491,6 +491,20 @@ Quy ước:
 | UTC-PDF-05 | `generateAndSavePdfReport_UsesAdjustedGradeWhenDoctorChangedKl` | Latest AI result KL2 được adjust thành KL4 | Examination id `1` | KL cuối cùng 4; KL AI vẫn 2 | Không | N | PDF dùng kết quả bác sĩ đã chỉnh sửa | Dữ liệu template đúng expected | P | 25/07/2026 | - |
 | UTC-PDF-06 | `generateAndSavePdfReport_RejectsUnconfirmedAiResult` | Latest AI result chưa có quyết định review | Examination id `1` | Không render template | `IllegalArgumentException` | A | Từ chối xuất kết quả chưa xác nhận | Đúng exception/message | P | 25/07/2026 | - |
 | UTC-PDF-07 | `generateAndSavePdfReport_UsesOnlyLatestAiAnalysis` | Một analysis cũ chưa xác nhận và một analysis mới đã xác nhận | Examination id `1` | Chỉ một kết quả KL3 | Không | B | Bỏ analysis cũ, chỉ dùng kết quả mới nhất | Chỉ latest result được đưa vào template | P | 25/07/2026 | - |
+
+---
+
+### Current PDF coverage update (29/07/2026)
+
+The current targeted run contains 17 PDF-specific tests: 14 service tests, 2 controller streaming tests, and 1 real-template/font packaging test. All 17 passed. Coverage added after the original table includes:
+
+- Mapping available collection-form fields while leaving unavailable fields blank.
+- Returning an existing stored report without rendering a duplicate.
+- Rejecting unassigned doctors and report paths outside the configured export directory.
+- Returning the stored PDF for an assigned doctor and a department head.
+- Removing an incomplete PDF when database persistence fails.
+- Returning `Content-Disposition: inline` for preview and `attachment` for download.
+- Rendering the production report template with the packaged Tahoma font through an input stream.
 
 ---
 
