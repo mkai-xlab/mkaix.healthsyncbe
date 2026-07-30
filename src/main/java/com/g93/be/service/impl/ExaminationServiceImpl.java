@@ -126,7 +126,7 @@ public class ExaminationServiceImpl implements ExaminationService {
         }
 
         String roleCode = user.getRole().getCode();
-        if ("DEPARTMENT_HEAD".equalsIgnoreCase(roleCode) || "HEAD_OF_DEPARTMENT".equalsIgnoreCase(roleCode)) {
+        if ("DEPARTMENT_HEAD".equalsIgnoreCase(roleCode) || "HEAD_OF_DEPARTMENT".equalsIgnoreCase(roleCode) || "ADMIN".equalsIgnoreCase(roleCode)) {
             return examinationRepository.count();
         } else if ("DOCTOR".equalsIgnoreCase(roleCode)) {
             return examinationRepository.countByDoctorId(userId);
@@ -148,7 +148,7 @@ public class ExaminationServiceImpl implements ExaminationService {
         List<Integer> severeGrades = List.of(3, 4);
         String roleCode = user.getRole().getCode();
         
-        if ("DEPARTMENT_HEAD".equalsIgnoreCase(roleCode) || "HEAD_OF_DEPARTMENT".equalsIgnoreCase(roleCode)) {
+        if ("DEPARTMENT_HEAD".equalsIgnoreCase(roleCode) || "HEAD_OF_DEPARTMENT".equalsIgnoreCase(roleCode) || "ADMIN".equalsIgnoreCase(roleCode)) {
             return examinationRepository.countByMaxPredictedGradeIn(severeGrades);
         } else if ("DOCTOR".equalsIgnoreCase(roleCode)) {
             return examinationRepository.countByDoctorIdAndMaxPredictedGradeIn(userId, severeGrades);
@@ -170,7 +170,7 @@ public class ExaminationServiceImpl implements ExaminationService {
         String roleCode = user.getRole().getCode();
         ExaminationStatus verifiedStatus = ExaminationStatus.VERIFIED;
         
-        if ("DEPARTMENT_HEAD".equalsIgnoreCase(roleCode) || "HEAD_OF_DEPARTMENT".equalsIgnoreCase(roleCode)) {
+        if ("DEPARTMENT_HEAD".equalsIgnoreCase(roleCode) || "HEAD_OF_DEPARTMENT".equalsIgnoreCase(roleCode) || "ADMIN".equalsIgnoreCase(roleCode)) {
             return examinationRepository.countByStatus(verifiedStatus);
         } else if ("DOCTOR".equalsIgnoreCase(roleCode)) {
             return examinationRepository.countByDoctorIdAndStatus(userId, verifiedStatus);
@@ -192,7 +192,7 @@ public class ExaminationServiceImpl implements ExaminationService {
         String roleCode = user.getRole().getCode();
         ExaminationStatus verifiedStatus = ExaminationStatus.VERIFIED;
         
-        if ("DEPARTMENT_HEAD".equalsIgnoreCase(roleCode) || "HEAD_OF_DEPARTMENT".equalsIgnoreCase(roleCode)) {
+        if ("DEPARTMENT_HEAD".equalsIgnoreCase(roleCode) || "HEAD_OF_DEPARTMENT".equalsIgnoreCase(roleCode) || "ADMIN".equalsIgnoreCase(roleCode)) {
             return examinationRepository.countByStatusNot(verifiedStatus);
         } else if ("DOCTOR".equalsIgnoreCase(roleCode)) {
             return examinationRepository.countByDoctorIdAndStatusNot(userId, verifiedStatus);
