@@ -5,13 +5,17 @@ meta {
 }
 
 get {
-  url: {{baseUrl}}/reports/{{reportId}}/preview
+  url: {{baseUrl}}/reports/{{examinationId}}/preview
   body: none
   auth: bearer
 }
 
 auth:bearer {
   token: {{accessToken}}
+}
+
+vars:pre-request {
+  examinationId: 1
 }
 
 tests {
@@ -21,4 +25,3 @@ tests {
     expect(res.headers["content-disposition"]).to.include("inline");
   });
 }
-​

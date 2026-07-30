@@ -130,8 +130,8 @@ class PdfExportServiceTest {
         assertEquals(31L, response.reportId());
         assertTrue(response.fileName().startsWith("report_ENC-123_"));
         assertTrue(response.fileName().endsWith(".pdf"));
-        assertEquals("/api/v1/reports/31/preview", response.previewUrl());
-        assertEquals("/api/v1/reports/31/download", response.downloadUrl());
+        assertEquals("/api/v1/reports/1/preview", response.previewUrl());
+        assertEquals("/api/v1/reports/1/download", response.downloadUrl());
 
         File createdFile = tempDirectory.resolve(response.fileName()).toFile();
         assertTrue(createdFile.exists());
@@ -266,38 +266,54 @@ class PdfExportServiceTest {
     }
 
     @Test
-    void getReportFile_RejectsUnassignedDoctor() {
+    void getReportFileByExaminationId_RejectsUnassignedDoctor() {
         Doctor otherDoctor = new Doctor();
         otherDoctor.setId(8L);
         otherDoctor.setUsername("other");
         when(userRepository.findByUsername("other")).thenReturn(Optional.of(otherDoctor));
-        when(reportRepository.findById(31L)).thenReturn(Optional.of(report("existing.pdf")));
+        when(reportRepository.findFirstByExaminationIdOrderByCreatedAtDesc(1L))
+                .thenReturn(Optional.of(report("existing.pdf")));
 
         assertThrows(AccessDeniedException.class,
-                () -> pdfExportService.getReportFile(31L, "other"));
+                () -> pdfExportService.getReportFileByExaminationId(1L, "other"));
     }
 
     @Test
-    void getReportFile_RejectsPathOutsideReportDirectory() {
+    void getReportFileByExaminationId_RejectsPathOutsideReportDirectory() {
         Report report = report("existing.pdf");
         report.setFilePath("../secret.pdf");
-        when(reportRepository.findById(31L)).thenReturn(Optional.of(report));
+        when(reportRepository.findFirstByExaminationIdOrderByCreatedAtDesc(1L))
+                .thenReturn(Optional.of(report));
 
         assertThrows(AccessDeniedException.class,
-                () -> pdfExportService.getReportFile(31L, "doctor"));
+                () -> pdfExportService.getReportFileByExaminationId(1L, "doctor"));
     }
 
     @Test
-    void getReportFile_ReturnsStoredPdfForAssignedDoctor() throws Exception {
+    void getReportFileByExaminationId_ReturnsLatestStoredPdfForAssignedDoctor() throws Exception {
         Files.write(tempDirectory.resolve("existing.pdf"), new byte[]{1, 2, 3});
-        when(reportRepository.findById(31L)).thenReturn(Optional.of(report("existing.pdf")));
+        when(reportRepository.findFirstByExaminationIdOrderByCreatedAtDesc(1L))
+                .thenReturn(Optional.of(report("existing.pdf")));
 
-        PdfExportService.ReportFile reportFile = pdfExportService.getReportFile(31L, "doctor");
+        PdfExportService.ReportFile reportFile = pdfExportService
+                .getReportFileByExaminationId(1L, "doctor");
 
         assertEquals("existing.pdf", reportFile.fileName());
         assertEquals("application/pdf", reportFile.contentType());
         assertEquals(3L, reportFile.fileSize());
         assertTrue(reportFile.resource().exists());
+    }
+
+    @Test
+    void getReportFileByExaminationId_RejectsExaminationWithoutReport() {
+        when(reportRepository.findFirstByExaminationIdOrderByCreatedAtDesc(1L))
+                .thenReturn(Optional.empty());
+
+        IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
+                () -> pdfExportService.getReportFileByExaminationId(1L, "doctor"));
+
+        assertEquals("Report not found for examination with id: 1", error.getMessage());
+        verify(userRepository, never()).findByUsername(anyString());
     }
 
     @Test
@@ -320,7 +336,7 @@ class PdfExportServiceTest {
     }
 
     @Test
-    void getReportFile_AllowsDepartmentHeadForUnassignedExamination() throws Exception {
+    void getReportFileByExaminationId_AllowsDepartmentHeadForUnassignedExamination() throws Exception {
         Doctor departmentHead = new Doctor();
         departmentHead.setId(99L);
         departmentHead.setUsername("head");
@@ -329,9 +345,11 @@ class PdfExportServiceTest {
         departmentHead.setRole(role);
         Files.write(tempDirectory.resolve("existing.pdf"), new byte[]{1, 2, 3});
         when(userRepository.findByUsername("head")).thenReturn(Optional.of(departmentHead));
-        when(reportRepository.findById(31L)).thenReturn(Optional.of(report("existing.pdf")));
+        when(reportRepository.findFirstByExaminationIdOrderByCreatedAtDesc(1L))
+                .thenReturn(Optional.of(report("existing.pdf")));
 
-        PdfExportService.ReportFile reportFile = pdfExportService.getReportFile(31L, "head");
+        PdfExportService.ReportFile reportFile = pdfExportService
+                .getReportFileByExaminationId(1L, "head");
 
         assertEquals("existing.pdf", reportFile.fileName());
     }
