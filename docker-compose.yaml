@@ -1,4 +1,4 @@
-name: capstone
+name: knee-oa-be
 
 services:
   mysql:
@@ -7,7 +7,7 @@ services:
     profiles:
       - database
     image: dhi.io/mysql:9
-    container_name: knee-oai-mysql
+    container_name: knee-oa-mysql
     restart: unless-stopped
     env_file:
       - ../env/database.env
@@ -16,7 +16,7 @@ services:
     volumes:
       - mysql_data:/var/lib/mysql
     networks:
-      - knee-oai-net
+      - knee-oa-net
     healthcheck:
       test:
         [
@@ -30,17 +30,17 @@ services:
 
   maildev:
     image: maildev/maildev:2.1.0
-    container_name: knee-oai-maildev
+    container_name: knee-oa-maildev
     restart: unless-stopped
     ports:
       - "1080:1080" # Web UI
       - "1025:1025" # SMTP Port
     networks:
-      - knee-oai-net
+      - knee-oa-net
 
   redis:
     image: dhi.io/redis:8-alpine
-    container_name: knee-oai-redis
+    container_name: knee-oa-redis
     restart: unless-stopped
     # env_file:
     #   - ../env/redis.env
@@ -48,13 +48,13 @@ services:
       - "6379:6379"
     command: redis-server --protected-mode no
     networks:
-      - knee-oai-net
+      - knee-oa-net
 
   be:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: knee-oai-be
+    container_name: knee-oa-be
     restart: unless-stopped
     ports:
       - "8000:8080"
@@ -66,7 +66,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
-      - knee-oai-net
+      - knee-oa-net
     volumes:
       - ./data:/app/data
 
@@ -74,5 +74,5 @@ volumes:
   mysql_data:
 
 networks:
-  knee-oai-net:
-    name: knee-oai-net
+  knee-oa-net:
+    name: knee-oa-net
