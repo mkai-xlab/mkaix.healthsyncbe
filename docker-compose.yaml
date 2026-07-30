@@ -73,4 +73,5 @@ volumes:
 
 networks:
   knee-oa-net:
+    external: true
     name: knee-oa-net
