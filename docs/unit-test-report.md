@@ -604,3 +604,41 @@ The current targeted run contains 17 PDF-specific tests: 14 service tests, 2 con
 The focused KL/RBAC/mapper/PDF run completed with `27 tests`, `0 failures`, `0 errors`, and `0 skipped`. The full project run executed `144 tests` with `6 failures` and `6 errors`; those 12 existing integration failures are caused by shared local database state and foreign-key cleanup failures in `audit_logs` and `examinations`, not by the focused KL workflow tests.
 
 Kết quả được xác nhận từ mười XML Surefire tương ứng: `90 tests`, `0 failures`, `0 errors`, `0 skipped`.
+
+## 11. DoctorControllerTest (Thực thi ngày 30/07/2026)
+
+Lệnh kiểm thử: `mvn test -Dtest=DoctorControllerTest`
+
+| UTCID | API | Trường hợp | Expected Output | Status |
+|---|---|---|---|:---:|
+| UTC-DOC-01 | `POST /doctors` | `Normal`: Dữ liệu hợp lệ, role ADMIN | 201 Created | P |
+| UTC-DOC-02 | `POST /doctors` | `Abnormal`: Thiếu Body Request | 400 Bad Request | P |
+| UTC-DOC-03 | `POST /doctors` | `Abnormal`: `fullName` null/blank/>100 ký tự | 400 Bad Request | P |
+| UTC-DOC-04 | `POST /doctors` | `Abnormal`: `email` null/blank/sai format/>150 ký tự | 400 Bad Request | P |
+| UTC-DOC-05 | `POST /doctors` | `Abnormal`: `phone` null/blank/chứa chữ/>20 ký tự | 400 Bad Request | P |
+| UTC-DOC-06 | `POST /doctors` | `Abnormal`: `degree` >100 ký tự | 400 Bad Request | P |
+| UTC-DOC-07 | `POST /doctors` | `Abnormal`: Security - role DOCTOR | 403 Forbidden | P |
+| UTC-DOC-08 | `PUT /doctors/{id}` | `Normal`: Dữ liệu hợp lệ, role ADMIN | 200 OK | P |
+| UTC-DOC-09 | `PUT /doctors/{id}` | `Abnormal`: Thiếu Body Request | 400 Bad Request | P |
+| UTC-DOC-10 | `PUT /doctors/{id}` | `Abnormal`: `email` sai format | 400 Bad Request | P |
+| UTC-DOC-11 | `PUT /doctors/{id}` | `Abnormal`: `degree` >100 ký tự | 400 Bad Request | P |
+| UTC-DOC-12 | `PUT /doctors/{id}` | `Abnormal`: Không tìm thấy ID bác sĩ | 400 Bad Request | P |
+| UTC-DOC-13 | `PUT /doctors/{id}` | `Abnormal`: Security - role DOCTOR | 403 Forbidden | P |
+| UTC-DOC-14 | `GET /doctors/profile` | `Normal`: Lấy profile của chính mình | 200 OK | P |
+| UTC-DOC-15 | `GET /doctors/profile` | `Abnormal`: Không tìm thấy user | 400 Bad Request | P |
+| UTC-DOC-16 | `GET /doctors/profile` | `Abnormal`: Security - role PATIENT | 403 Forbidden | P |
+| UTC-DOC-17 | `PUT /doctors/profile` | `Normal`: Sửa profile của chính mình hợp lệ | 200 OK | P |
+| UTC-DOC-18 | `PUT /doctors/profile` | `Abnormal`: `email` sai format | 400 Bad Request | P |
+| UTC-DOC-19 | `PUT /doctors/profile` | `Abnormal`: `degree` >100 ký tự | 400 Bad Request | P |
+| UTC-DOC-20 | `PUT /doctors/profile` | `Abnormal`: Security - role PATIENT | 403 Forbidden | P |
+| UTC-DOC-21 | `GET /doctors/active` | `Normal`: Lấy danh sách bác sĩ đang active | 200 OK | P |
+| UTC-DOC-22 | `GET /doctors/active` | `Abnormal`: Security - role PATIENT | 403 Forbidden | P |
+| UTC-DOC-23 | `POST /doctors/{id}/activate` | `Normal`: Kích hoạt bác sĩ theo ID (ADMIN) | 200 OK | P |
+| UTC-DOC-24 | `POST /doctors/{id}/activate` | `Abnormal`: ID không tồn tại | 400 Bad Request | P |
+| UTC-DOC-25 | `POST /doctors/{id}/activate` | `Abnormal`: Security - role DOCTOR | 403 Forbidden | P |
+| UTC-DOC-26 | `POST /doctors/{id}/deactivate` | `Normal`: Hủy kích hoạt POST (ADMIN) | 200 OK | P |
+| UTC-DOC-27 | `POST /doctors/{id}/deactivate` | `Abnormal`: Security - role DOCTOR | 403 Forbidden | P |
+| UTC-DOC-28 | `DELETE /doctors/{id}` | `Normal`: Hủy kích hoạt DELETE (ADMIN) | 200 OK | P |
+| UTC-DOC-29 | `DELETE /doctors/{id}` | `Abnormal`: Security - role DOCTOR | 403 Forbidden | P |
+
+Kết quả: **29/29 tests passed (100% Success Rate).** Các lỗi `400 Bad Request` do validation hoặc không tìm thấy dữ liệu đều đã được GlobalExceptionHandler bắt và xử lý triệt để (không rớt về 500). Toàn bộ RBAC security cũng đã được verify bằng MockMvc + Spring Security.
