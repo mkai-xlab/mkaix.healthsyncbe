@@ -135,18 +135,20 @@ public class PdfExportService {
     }
 
     @Transactional(readOnly = true)
-    public ReportFile getReportFile(Long reportId, String username) {
-        Report report = reportRepository.findById(reportId)
-                .orElseThrow(() -> new IllegalArgumentException("Report not found with id: " + reportId));
+    public ReportFile getReportFileByExaminationId(Long examinationId, String username) {
+        Report report = reportRepository.findFirstByExaminationIdOrderByCreatedAtDesc(examinationId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Report not found for examination with id: " + examinationId));
         authorizeReportAccess(report.getExamination(), getUser(username));
 
         Path reportPath = resolveReportPath(report);
         if (!Files.isRegularFile(reportPath)) {
-            throw new IllegalStateException("PDF file is missing for report with id: " + reportId);
+            throw new IllegalStateException(
+                    "PDF file is missing for examination with id: " + examinationId);
         }
         Resource resource = new FileSystemResource(reportPath);
         String fileName = report.getFileName() == null || report.getFileName().isBlank()
-                ? "report-" + reportId + ".pdf"
+                ? "report-" + examinationId + ".pdf"
                 : report.getFileName();
         return new ReportFile(
                 resource,
@@ -272,8 +274,9 @@ public class PdfExportService {
     }
 
     private ReportResponse toResponse(Report report) {
-        String previewUrl = "/api/v1/reports/" + report.getId() + "/preview";
-        String downloadUrl = "/api/v1/reports/" + report.getId() + "/download";
+        Long examinationId = report.getExamination().getId();
+        String previewUrl = "/api/v1/reports/" + examinationId + "/preview";
+        String downloadUrl = "/api/v1/reports/" + examinationId + "/download";
         return new ReportResponse(
                 report.getId(),
                 report.getExamination().getId(),

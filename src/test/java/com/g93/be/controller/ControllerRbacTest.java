@@ -129,7 +129,7 @@ class ControllerRbacTest {
     void userWithPdfAuthorityCanGenerateReport() {
         ReportResponse response = new ReportResponse(
                 9L, 42L, "report.pdf", 100L, "application/pdf", LocalDateTime.now(),
-                "/api/v1/reports/9/preview", "/api/v1/reports/9/download");
+                "/api/v1/reports/42/preview", "/api/v1/reports/42/download");
         when(pdfExportService.generateAndSavePdfReport(42L, "doctor")).thenReturn(response);
 
         assertEquals(response,
@@ -146,7 +146,7 @@ class ControllerRbacTest {
     @Test
     @WithMockUser(authorities = "GENERATE_PDF_REPORT")
     void userWithGenerateAuthorityCanPreviewReport() {
-        when(pdfExportService.getReportFile(9L, "doctor")).thenReturn(reportFile());
+        when(pdfExportService.getReportFileByExaminationId(9L, "doctor")).thenReturn(reportFile());
 
         assertEquals(200, reportController.previewReport(9L, () -> "doctor")
                 .getStatusCode().value());
@@ -155,7 +155,7 @@ class ControllerRbacTest {
     @Test
     @WithMockUser(authorities = "EXPORT_DOWNLOAD_PDF")
     void userWithDownloadAuthorityCanDownloadReport() {
-        when(pdfExportService.getReportFile(9L, "doctor")).thenReturn(reportFile());
+        when(pdfExportService.getReportFileByExaminationId(9L, "doctor")).thenReturn(reportFile());
 
         assertEquals(200, reportController.downloadReport(9L, () -> "doctor")
                 .getStatusCode().value());
@@ -171,7 +171,7 @@ class ControllerRbacTest {
     @Test
     @WithMockUser(roles = "HEAD_OF_DEPARTMENT")
     void departmentHeadCanDownloadReportWithoutExplicitAuthority() {
-        when(pdfExportService.getReportFile(9L, "head")).thenReturn(reportFile());
+        when(pdfExportService.getReportFileByExaminationId(9L, "head")).thenReturn(reportFile());
 
         assertEquals(200, reportController.downloadReport(9L, () -> "head")
                 .getStatusCode().value());

@@ -34,23 +34,23 @@ public class ReportController {
                 pdfExportService.generateAndSavePdfReport(id, principal.getName()));
     }
 
-    @GetMapping("/reports/{reportId}/preview")
+    @GetMapping("/reports/{examinationId}/preview")
     @PreAuthorize("hasAnyRole('DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT') or hasAuthority('GENERATE_PDF_REPORT')")
     public ResponseEntity<Resource> previewReport(
-            @PathVariable Long reportId,
+            @PathVariable Long examinationId,
             Principal principal) {
         return fileResponse(
-                pdfExportService.getReportFile(reportId, principal.getName()), false);
+                pdfExportService.getReportFileByExaminationId(examinationId, principal.getName()), false);
     }
 
-    @GetMapping("/reports/{reportId}/download")
+    @GetMapping("/reports/{examinationId}/download")
     @PreAuthorize("hasAnyRole('DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT') or hasAuthority('EXPORT_DOWNLOAD_PDF')")
     @LogAction("DOWNLOAD_PDF_REPORT")
     public ResponseEntity<Resource> downloadReport(
-            @PathVariable Long reportId,
+            @PathVariable Long examinationId,
             Principal principal) {
         return fileResponse(
-                pdfExportService.getReportFile(reportId, principal.getName()), true);
+                pdfExportService.getReportFileByExaminationId(examinationId, principal.getName()), true);
     }
 
     private ResponseEntity<Resource> fileResponse(
