@@ -30,6 +30,8 @@ class PdfReportTemplateTest {
         Context context = new Context();
         context.setVariable("data", reportData());
         String html = templateEngine.process("pdf/report-template", context);
+        assertTrue(html.contains("PAT-001"));
+        assertTrue(html.contains("Doctor Test"));
 
         ClassPathResource font = new ClassPathResource("fonts/tahoma.ttf");
         assertTrue(font.exists());
@@ -98,6 +100,9 @@ class PdfReportTemplateTest {
                 .doctorName("Doctor Test")
                 .clinicalNotes("")
                 .finalDiagnosis("")
+                .leftKlGrade("")
+                .rightKlGrade("3")
+                .processingTime("0.12")
                 .aiResults(List.of(result))
                 .build();
     }

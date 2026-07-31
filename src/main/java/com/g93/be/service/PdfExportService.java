@@ -35,6 +35,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.UncheckedIOException;
 import java.net.URL;
+import java.text.Normalizer;
 import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -45,9 +46,11 @@ import java.time.Period;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -91,8 +94,8 @@ public class PdfExportService {
         }
 
         Patient patient = examination.getPatient();
-        List<PdfReportDataDto.AiResultExportDto> aiResultExportDtos = buildFinalAiResults(examinationId);
-        PdfReportDataDto dataDto = buildReportData(examination, patient, aiResultExportDtos);
+        FinalAiResults finalAiResults = buildFinalAiResults(examinationId);
+        PdfReportDataDto dataDto = buildReportData(examination, patient, finalAiResults);
 
         Context context = new Context();
         context.setVariable("data", dataDto);
@@ -160,9 +163,10 @@ public class PdfExportService {
     private PdfReportDataDto buildReportData(
             Examination examination,
             Patient patient,
-            List<PdfReportDataDto.AiResultExportDto> aiResults) {
+            FinalAiResults finalAiResults) {
         DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
         DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        List<PdfReportDataDto.AiResultExportDto> aiResults = finalAiResults.results();
         return PdfReportDataDto.builder()
                 .patientCode(patient.getPatientCode())
                 .patientName(patient.getFullName())
@@ -177,6 +181,10 @@ public class PdfExportService {
                         ? valueOrBlank(examination.getDoctor().getFullName()) : "")
                 .clinicalNotes(valueOrBlank(examination.getClinicalNotes()))
                 .finalDiagnosis(valueOrBlank(examination.getFinalDiagnosis()))
+                .leftKlGrade(finalGradeForSide(aiResults, "LEFT"))
+                .rightKlGrade(finalGradeForSide(aiResults, "RIGHT"))
+                .processingTime(finalAiResults.totalDurationMillis() == null
+                        ? "" : formatDuration(finalAiResults.totalDurationMillis()))
                 .aiResults(aiResults)
                 .build();
     }
@@ -288,8 +296,11 @@ public class PdfExportService {
                 downloadUrl);
     }
 
-    private List<PdfReportDataDto.AiResultExportDto> buildFinalAiResults(Long examinationId) {
+    private FinalAiResults buildFinalAiResults(Long examinationId) {
         List<PdfReportDataDto.AiResultExportDto> results = new ArrayList<>();
+        Set<Long> countedAnalysisIds = new HashSet<>();
+        long totalDurationMillis = 0L;
+        boolean hasDuration = false;
         List<DicomInstance> instances = dicomInstanceRepository.findByExaminationId(examinationId);
         if (instances.isEmpty()) {
             throw new IllegalArgumentException("Examination has no AI results to export");
@@ -302,6 +313,11 @@ public class PdfExportService {
                 throw new IllegalArgumentException(
                         "DICOM instance with ID " + instance.getId() + " has no AI results to export");
             }
+            if (latestAnalysis.getDuration() != null
+                    && (latestAnalysis.getId() == null || countedAnalysisIds.add(latestAnalysis.getId()))) {
+                totalDurationMillis += latestAnalysis.getDuration();
+                hasDuration = true;
+            }
             for (AiResult aiResult : latestAnalysis.getAiResults()) {
                 DiagnosisReview review = aiResult.getDiagnosisReview();
                 if (review == null) {
@@ -309,8 +325,8 @@ public class PdfExportService {
                             "AI result with ID " + aiResult.getId() + " has not been confirmed");
                 }
                 results.add(PdfReportDataDto.AiResultExportDto.builder()
-                        .dicomInstanceId(String.valueOf(instance.getId()))
-                        .kneeSide(valueOrBlank(aiResult.getKneeSide()))
+                        .dicomInstanceId(dicomIdentifier(instance))
+                        .kneeSide(resolveKneeSide(aiResult, instance))
                         .klGrade(String.valueOf(review.getConfirmedKlGrade()))
                         .aiPredictedGrade(String.valueOf(aiResult.getPredictedGrade()))
                         .decision(review.getDecision().name())
@@ -350,7 +366,54 @@ public class PdfExportService {
                         .build());
             }
         }
-        return results;
+        return new FinalAiResults(results, hasDuration ? totalDurationMillis : null);
+    }
+
+    private String dicomIdentifier(DicomInstance instance) {
+        if (instance.getSopInstanceUid() != null && !instance.getSopInstanceUid().isBlank()) {
+            return instance.getSopInstanceUid();
+        }
+        return instance.getId() == null ? "" : String.valueOf(instance.getId());
+    }
+
+    private String resolveKneeSide(AiResult aiResult, DicomInstance instance) {
+        String side = valueOrBlank(aiResult.getKneeSide());
+        if (side.isBlank()) {
+            side = valueOrBlank(instance.getImageLaterality());
+        }
+        return normalizeKneeSide(side);
+    }
+
+    private String finalGradeForSide(
+            List<PdfReportDataDto.AiResultExportDto> aiResults,
+            String expectedSide) {
+        return aiResults.stream()
+                .filter(result -> expectedSide.equals(normalizeKneeSide(result.getKneeSide())))
+                .map(PdfReportDataDto.AiResultExportDto::getKlGrade)
+                .filter(grade -> grade != null && !grade.isBlank())
+                .map(Integer::valueOf)
+                .max(Integer::compareTo)
+                .map(String::valueOf)
+                .orElse("");
+    }
+
+    private String normalizeKneeSide(String side) {
+        if (side == null) {
+            return "";
+        }
+        String normalized = Normalizer.normalize(side, Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "")
+                .trim()
+                .toUpperCase(Locale.ROOT);
+        if (normalized.equals("L") || normalized.equals("LEFT")
+                || normalized.equals("TRAI") || normalized.equals("GOI TRAI")) {
+            return "LEFT";
+        }
+        if (normalized.equals("R") || normalized.equals("RIGHT")
+                || normalized.equals("PHAI") || normalized.equals("GOI PHAI")) {
+            return "RIGHT";
+        }
+        return normalized;
     }
 
     private String formatConfidence(Double confidence) {
@@ -443,5 +506,10 @@ public class PdfExportService {
             String fileName,
             String contentType,
             Long fileSize) {
+    }
+
+    private record FinalAiResults(
+            List<PdfReportDataDto.AiResultExportDto> results,
+            Long totalDurationMillis) {
     }
 }
