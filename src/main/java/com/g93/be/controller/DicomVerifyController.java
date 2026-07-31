@@ -43,61 +43,62 @@ public class DicomVerifyController {
         final Long finalUserId = (userId != null) ? userId : 1L;
 
         if (savedInstanceIds != null && !savedInstanceIds.isEmpty()) {
-            try {
-                AiPredictionRequest aiRequest = new AiPredictionRequest(savedInstanceIds);
-                List<ExaminationDto> aiResultsList = aiService.predictBatch(aiRequest);
-                
-                // Calculate patient statistics based on max_predicted_grade for this specific batch
-                java.util.Map<Long, Integer> patientToMaxGrade = new java.util.HashMap<>();
-                for (ExaminationDto exam : aiResultsList) {
-                    if (exam.getPatient() != null && exam.getMaxPredictedGrade() != null) {
-                        Long patId = exam.getPatient().getId();
-                        Integer currentMax = patientToMaxGrade.getOrDefault(patId, -1);
-                        if (exam.getMaxPredictedGrade() > currentMax) {
-                            patientToMaxGrade.put(patId, exam.getMaxPredictedGrade());
+            java.util.concurrent.CompletableFuture.runAsync(() -> {
+                try {
+                    AiPredictionRequest aiRequest = new AiPredictionRequest(savedInstanceIds);
+                    List<ExaminationDto> aiResultsList = aiService.predictBatch(aiRequest);
+                    
+                    // Calculate patient statistics based on max_predicted_grade for this specific batch
+                    java.util.Map<Long, Integer> patientToMaxGrade = new java.util.HashMap<>();
+                    for (ExaminationDto exam : aiResultsList) {
+                        if (exam.getPatient() != null && exam.getMaxPredictedGrade() != null) {
+                            Long patId = exam.getPatient().getId();
+                            Integer currentMax = patientToMaxGrade.getOrDefault(patId, -1);
+                            if (exam.getMaxPredictedGrade() > currentMax) {
+                                patientToMaxGrade.put(patId, exam.getMaxPredictedGrade());
+                            }
                         }
                     }
-                }
 
-                java.util.Map<Integer, Long> gradeCountMap = new java.util.HashMap<>();
-                for (Integer grade : patientToMaxGrade.values()) {
-                    gradeCountMap.put(grade, gradeCountMap.getOrDefault(grade, 0L) + 1);
-                }
+                    java.util.Map<Integer, Long> gradeCountMap = new java.util.HashMap<>();
+                    for (Integer grade : patientToMaxGrade.values()) {
+                        gradeCountMap.put(grade, gradeCountMap.getOrDefault(grade, 0L) + 1);
+                    }
 
-                List<PatientGradeStatsDto> statsList = gradeCountMap.entrySet().stream()
-                        .map(entry -> new PatientGradeStatsDto(entry.getKey(), entry.getValue()))
-                        .collect(java.util.stream.Collectors.toList());
-                
-                // Send success notification
-                SendNotificationRequest notifReq = new SendNotificationRequest(
-                        finalUserId,
-                        "Phân tích AI hoàn tất",
-                        "Hệ thống đã phân tích thành công hình ảnh X-Quang từ phiên xác nhận.",
-                        "AI_RESULT",
-                        null
-                );
-                notificationService.sendNotification(notifReq);
-
-                return ResponseEntity.ok(statsList);
-            } catch (Exception e) {
-                e.printStackTrace();
-                // Send error notification
-                try {
-                    SendNotificationRequest errReq = new SendNotificationRequest(
+                    List<PatientGradeStatsDto> statsList = gradeCountMap.entrySet().stream()
+                            .map(entry -> new PatientGradeStatsDto(entry.getKey(), entry.getValue()))
+                            .collect(java.util.stream.Collectors.toList());
+                    
+                    // Send success notification
+                    SendNotificationRequest notifReq = new SendNotificationRequest(
                             finalUserId,
-                            "Lỗi phân tích AI",
-                            "Đã có lỗi xảy ra trong quá trình phân tích AI.",
-                            "ERROR",
-                            null
+                            "Phân tích AI hoàn tất",
+                            "Hệ thống đã phân tích thành công hình ảnh X-Quang từ phiên xác nhận.",
+                            "AI_RESULT",
+                            statsList
                     );
-                    notificationService.sendNotification(errReq);
-                } catch (Exception ignored) {}
+                    notificationService.sendNotification(notifReq);
 
-                return ResponseEntity.status(500).body("Error processing AI prediction: " + e.getMessage());
-            }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    // Send error notification
+                    try {
+                        SendNotificationRequest errReq = new SendNotificationRequest(
+                                finalUserId,
+                                "Lỗi phân tích AI",
+                                "Đã có lỗi xảy ra trong quá trình phân tích AI.",
+                                "ERROR",
+                                null
+                        );
+                        notificationService.sendNotification(errReq);
+                    } catch (Exception ignored) {}
+                }
+            });
+            
+            return ResponseEntity.ok(java.util.Map.of("message", "Xác nhận thành công, hệ thống đang xử lý AI"));
         }
         
-        return ResponseEntity.ok(java.util.Collections.emptyList());
+        return ResponseEntity.ok(java.util.Map.of("message", "Không có phiên ảnh nào được xác nhận"));
     }
 }
 

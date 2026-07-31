@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import java.time.LocalDateTime;
+import org.hibernate.annotations.ColumnDefault;
 
 @Entity
 @Table(name = "examinations")
@@ -64,7 +65,8 @@ public class Examination {
     @Column(name = "referring_physician", length = 255)
     private String referringPhysician;
 
-    @Column(name = "is_viewed", columnDefinition = "TINYINT DEFAULT 0")
+    @Column(name = "is_viewed", columnDefinition = "TINYINT")
+    @ColumnDefault("0")
     private Integer isViewed = 0;
 
     @Column(name = "max_predicted_grade")

@@ -92,6 +92,13 @@ Successful response:
 
 Generation stores the PDF on the backend and report metadata in MySQL. It does not download the file to the doctor's device. Repeating the request returns the existing report while its stored file is available.
 
+The numeric segment in `previewUrl` and `downloadUrl` is the `examinationId`, not the `reportId`. Both endpoints resolve the latest report generated for that examination.
+
+```http
+GET /reports/{examinationId}/preview
+GET /reports/{examinationId}/download
+```
+
 ## Frontend API Helpers
 
 The response URLs already include `/api/v1`, so resolve them against the server origin rather than appending them to an API base that also contains `/api/v1`.
@@ -171,7 +178,7 @@ export async function downloadReport(report, accessToken) {
   const objectUrl = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
   anchor.href = objectUrl;
-  anchor.download = report.fileName ?? `report-${report.reportId}.pdf`;
+  anchor.download = report.fileName ?? `report-${report.examinationId}.pdf`;
   document.body.appendChild(anchor);
   anchor.click();
   anchor.remove();
