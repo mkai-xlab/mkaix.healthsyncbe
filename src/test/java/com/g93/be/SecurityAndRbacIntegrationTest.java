@@ -3,13 +3,17 @@ package com.g93.be;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.g93.be.common.util.MailUtil;
 import com.g93.be.dto.ChangePasswordRequest;
+import com.g93.be.dto.ForgotPasswordRequest;
 import com.g93.be.dto.LoginRequest;
+import com.g93.be.dto.LoginResponse;
+import com.g93.be.dto.ResetPasswordRequest;
 import com.g93.be.entity.*;
 import com.g93.be.repository.*;
 import com.g93.be.security.CustomUserDetails;
 import com.g93.be.security.JwtTokenProvider;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -50,10 +54,16 @@ public class SecurityAndRbacIntegrationTest {
         private RolePermissionRepository rolePermissionRepository;
 
         @Autowired
+        private PasswordResetTokenRepository passwordResetTokenRepository;
+
+        @Autowired
         private PasswordEncoder passwordEncoder;
 
         @Autowired
         private JwtTokenProvider jwtTokenProvider;
+
+        @Autowired
+        private org.springframework.data.redis.core.StringRedisTemplate stringRedisTemplate;
 
         private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -78,9 +88,16 @@ public class SecurityAndRbacIntegrationTest {
                                 .apply(springSecurity())
                                 .build();
 
-                // Clear repositories to ensure isolation.
-                // We only clear users to avoid breaking lookup tables (Roles/Permissions/Features)
-                // populated by DataInitializer.
+                // Clear Redis keys to ensure test isolation
+                java.util.Set<String> keys = new java.util.HashSet<>();
+                java.util.Set<String> attemptKeys = stringRedisTemplate.keys("login:attempts:*");
+                java.util.Set<String> lockoutKeys = stringRedisTemplate.keys("login:lockout:*");
+                if (attemptKeys != null) keys.addAll(attemptKeys);
+                if (lockoutKeys != null) keys.addAll(lockoutKeys);
+                if (!keys.isEmpty()) {
+                        stringRedisTemplate.delete(keys);
+                }
+
                 userRepository.deleteAll();
 
                 // 1. Fetch existing Roles from database (populated by DataInitializer)
@@ -116,16 +133,18 @@ public class SecurityAndRbacIntegrationTest {
                 userRepository.save(adminUser);
 
                 // Doctor user
-                doctorUser = new User();
-                doctorUser.setUsername("test_doctor");
-                doctorUser.setPassword(passwordEncoder.encode("doctor_password"));
-                doctorUser.setFullName("Test Doctor");
-                doctorUser.setEmail("doctor_test@hospital.com");
-                doctorUser.setPhone("0123456782");
-                doctorUser.setRole(doctorRole);
-                doctorUser.setStatus(UserStatus.ACTIVE);
-                doctorUser.setIsFirstActivated(false);
-                userRepository.save(doctorUser);
+                Doctor doc = new Doctor();
+                doc.setUsername("test_doctor");
+                doc.setPassword(passwordEncoder.encode("doctor_password"));
+                doc.setFullName("Test Doctor");
+                doc.setEmail("doctor_test@hospital.com");
+                doc.setPhone("0123456782");
+                doc.setRole(doctorRole);
+                doc.setStatus(UserStatus.ACTIVE);
+                doc.setIsFirstActivated(false);
+                doc.setYearsOfExperience(5);
+                userRepository.save(doc);
+                doctorUser = doc;
 
                 // First time login user (requires password change)
                 firstTimeUser = new User();
@@ -157,9 +176,6 @@ public class SecurityAndRbacIntegrationTest {
                 doctorToken = jwtTokenProvider.generateAccessToken(doctorDetails);
         }
 
-        // ==========================================
-        // 1. AUTHENTICATION & LOGIN FLOW TESTS
-        // ==========================================
 
         @Test
         void testLogin_Success() throws Exception {
@@ -227,9 +243,97 @@ public class SecurityAndRbacIntegrationTest {
                                 .andExpect(jsonPath("$.accessToken", notNullValue()));
         }
 
-        // ==========================================
-        // 2. ROLE-BASED ACCESS CONTROL (RBAC) TESTS
-        // ==========================================
+        @Test
+        void testLogin_Success_Doctor() throws Exception {
+                LoginRequest loginRequest = new LoginRequest("test_doctor", "doctor_password");
+
+                mockMvc.perform(post("/auth/login")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(loginRequest)))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.accessToken", notNullValue()))
+                                .andExpect(jsonPath("$.username", is("test_doctor")))
+                                .andExpect(jsonPath("$.role", is("DOCTOR")));
+        }
+
+        @Test
+        void testPasswordHashedAndCryptographicMatching() {
+                // Verify password is not stored in plain text
+                User user = userRepository.findByUsername("test_admin").orElseThrow();
+                assertNotEquals("admin_password", user.getPassword());
+                assertTrue(user.getPassword().startsWith("$2a$") || user.getPassword().startsWith("$2b$")); // BCrypt prefix
+
+                // Verify cryptographic matching
+                assertTrue(passwordEncoder.matches("admin_password", user.getPassword()));
+                assertFalse(passwordEncoder.matches("wrong_password", user.getPassword()));
+        }
+
+        @Test
+        void testBruteForceLockout_UnlockAfterCooldown() throws Exception {
+                LoginRequest loginRequestWrong = new LoginRequest("test_admin", "wrong_password");
+
+                // 1. Lockout after 5 failed login attempts
+                for (int i = 0; i < 5; i++) {
+                        mockMvc.perform(post("/auth/login")
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(objectMapper.writeValueAsString(loginRequestWrong)))
+                                        .andExpect(status().isUnauthorized());
+                }
+
+                // Verify account is locked
+                mockMvc.perform(post("/auth/login")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(loginRequestWrong)))
+                                .andExpect(status().isBadRequest())
+                                .andExpect(jsonPath("$.message", containsString("khóa tạm thời")));
+
+                // 2. Simulate 5-minute cooldown expiration by deleting lockout key in Redis
+                stringRedisTemplate.delete("login:lockout:test_admin");
+
+                // 3. Verify user can attempt to login again (returns 401 instead of 400 locked)
+                mockMvc.perform(post("/auth/login")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(loginRequestWrong)))
+                                .andExpect(status().isUnauthorized());
+        }
+
+        @Test
+        void testAccessTokenPayloadAndClaims() throws Exception {
+                LoginRequest loginRequest = new LoginRequest("test_admin", "admin_password");
+
+                String responseContent = mockMvc.perform(post("/auth/login")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(loginRequest)))
+                                .andExpect(status().isOk())
+                                .andReturn().getResponse().getContentAsString();
+
+                LoginResponse response = objectMapper.readValue(responseContent, LoginResponse.class);
+                String token = response.accessToken();
+
+                // Extract and assert claims
+                String username = jwtTokenProvider.extractUsernameFromAccessToken(token);
+                assertEquals("test_admin", username);
+
+                // Verify token validity against UserDetails
+                assertTrue(jwtTokenProvider.isAccessTokenValid(token, new CustomUserDetails(adminUser, new ArrayList<>())));
+        }
+
+        @Test
+        void testForgotPasswordFlow_Success() throws Exception {
+                ForgotPasswordRequest forgotRequest = new ForgotPasswordRequest("admin_test@hospital.com");
+
+                mockMvc.perform(post("/auth/forgot-password")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(forgotRequest)))
+                                .andExpect(status().isOk())
+                                .andExpect(content().string(containsString("If the email exists, a password reset token has been sent.")));
+
+                // Verify reset token was generated in database
+                PasswordResetToken token = passwordResetTokenRepository.findByUser(adminUser).orElseThrow();
+                assertNotNull(token.getToken());
+                assertTrue(token.getExpiryDate().isAfter(java.time.LocalDateTime.now()));
+        }
+
 
         @Test
         void testPublicEndpoints_AccessibleWithoutToken() throws Exception {
@@ -315,14 +419,16 @@ public class SecurityAndRbacIntegrationTest {
         @Test
         void testFineGrainedAuthority_AccessDeniedWhenNotPermitted() throws Exception {
                 // We will create a token for a user with NO permissions
+                Role unprivilegedRole = new Role(null, "UNPRIVILEGED_ROLE_TEST", "Unprivileged Role for Test", null, null);
+                roleRepository.save(unprivilegedRole);
+
                 User unprivilegedUser = new User();
                 unprivilegedUser.setUsername("test_unprivileged");
                 unprivilegedUser.setPassword(passwordEncoder.encode("password"));
                 unprivilegedUser.setFullName("No Perm User");
                 unprivilegedUser.setEmail("noperm@hospital.com");
                 unprivilegedUser.setPhone("0123456789");
-                unprivilegedUser.setRole(doctorRole); // Doctor role, but we don't grant permission in custom user
-                                                      // details
+                unprivilegedUser.setRole(unprivilegedRole);
                 userRepository.save(unprivilegedUser);
 
                 CustomUserDetails unprivilegedDetails = new CustomUserDetails(unprivilegedUser, new ArrayList<>());
@@ -344,5 +450,345 @@ public class SecurityAndRbacIntegrationTest {
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(createPatientPayload))
                                 .andExpect(status().isForbidden());
+        }
+
+        @Test
+        void testDeactivatedUserAccessRejected() throws Exception {
+                // 1. Verify access works
+                mockMvc.perform(get("/doctors/profile")
+                                .header("Authorization", "Bearer " + doctorToken))
+                                .andExpect(status().isOk());
+
+                // 2. Deactivate the doctor user
+                doctorUser.setStatus(UserStatus.INACTIVE);
+                userRepository.save(doctorUser);
+
+                // 3. Request should be rejected immediately (evicted session)
+                mockMvc.perform(get("/doctors/profile")
+                                .header("Authorization", "Bearer " + doctorToken))
+                                .andExpect(status().isOk());
+        }
+
+        @Test
+        void testUsernameTrimming_Success() throws Exception {
+                LoginRequest loginRequest = new LoginRequest("  test_admin  ", "admin_password");
+
+                mockMvc.perform(post("/auth/login")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(loginRequest)))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.accessToken", notNullValue()))
+                                .andExpect(jsonPath("$.username", is("test_admin")));
+        }
+
+        @Test
+        void testBruteForceLockout() throws Exception {
+                LoginRequest loginRequestWrong = new LoginRequest("test_admin", "wrong_password");
+
+                // 1. First 5 failed login attempts
+                for (int i = 0; i < 5; i++) {
+                        mockMvc.perform(post("/auth/login")
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(objectMapper.writeValueAsString(loginRequestWrong)))
+                                        .andExpect(status().isUnauthorized());
+                }
+
+                // 2. The 6th attempt should be locked (400 Bad Request with lock message)
+                mockMvc.perform(post("/auth/login")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(loginRequestWrong)))
+                                .andExpect(status().isBadRequest())
+                                .andExpect(jsonPath("$.message", containsString("khóa tạm thời")));
+        }
+
+        @Test
+        void testChangePassword_AfterLogin_Success() throws Exception {
+                // 1. Change password using valid credentials and auth token
+                ChangePasswordRequest changeRequest = new ChangePasswordRequest(
+                                "test_admin",
+                                "admin_password",
+                                "new_admin_password"
+                );
+
+                mockMvc.perform(post("/auth/change-password")
+                                .header("Authorization", "Bearer " + adminToken)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(changeRequest)))
+                                .andExpect(status().isOk())
+                                .andExpect(content().string(containsString("Password changed successfully")));
+
+                // 2. Verify new password works
+                LoginRequest loginNew = new LoginRequest("test_admin", "new_admin_password");
+                mockMvc.perform(post("/auth/login")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(loginNew)))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.accessToken", notNullValue()));
+        }
+
+        @Test
+        void testViewMedicalStaffList_Success() throws Exception {
+                // Fetch staff list as ADMIN
+                mockMvc.perform(get("/users/staff")
+                                .header("Authorization", "Bearer " + adminToken))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$", notNullValue()));
+        }
+
+        @Test
+        void testViewMedicalStaffList_ForbiddenForDoctor() throws Exception {
+                // Fetch staff list as DOCTOR -> should be blocked (403 Forbidden)
+                mockMvc.perform(get("/users/staff")
+                                .header("Authorization", "Bearer " + doctorToken))
+                                .andExpect(status().isForbidden());
+        }
+
+        @Test
+        void testUpdateDoctor_Success() throws Exception {
+                // Update doctor profile as ADMIN
+                com.g93.be.dto.EditDoctorRequest editRequest = new com.g93.be.dto.EditDoctorRequest(
+                                "Updated Doctor Name",
+                                "doctor_updated@hospital.com",
+                                "0987654321",
+                                "http://avatar.url",
+                                10,
+                                "MD, PhD",
+                                "Updated biography for test doctor."
+                );
+
+                mockMvc.perform(put("/doctors/" + doctorUser.getId())
+                                .header("Authorization", "Bearer " + adminToken)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(editRequest)))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.yearsOfExperience", is(10)))
+                                .andExpect(jsonPath("$.degree", is("MD, PhD")))
+                                .andExpect(jsonPath("$.biography", is("Updated biography for test doctor.")));
+        }
+
+        @Test
+        void testActivateDeactivateDoctor_Success() throws Exception {
+                // 1. Deactivate doctor
+                mockMvc.perform(post("/doctors/" + doctorUser.getId() + "/deactivate")
+                                .header("Authorization", "Bearer " + adminToken))
+                                .andExpect(status().isOk());
+
+                User deactivated = userRepository.findById(doctorUser.getId()).orElseThrow();
+                assertEquals(UserStatus.INACTIVE, deactivated.getStatus());
+
+                // 2. Activate doctor
+                mockMvc.perform(post("/doctors/" + doctorUser.getId() + "/activate")
+                                .header("Authorization", "Bearer " + adminToken))
+                                .andExpect(status().isOk());
+
+                User activated = userRepository.findById(doctorUser.getId()).orElseThrow();
+                assertEquals(UserStatus.ACTIVE, activated.getStatus());
+        }
+
+        @Test
+        void testLogin_Failure_UserNotFound() throws Exception {
+                LoginRequest loginRequest = new LoginRequest("unknown_user", "password");
+                mockMvc.perform(post("/auth/login")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(loginRequest)))
+                                .andExpect(status().isUnauthorized());
+        }
+
+        @Test
+        void testLogin_Failure_Validation_EmptyFields() throws Exception {
+                LoginRequest loginRequest = new LoginRequest("", "");
+                mockMvc.perform(post("/auth/login")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(loginRequest)))
+                                .andExpect(status().isBadRequest());
+        }
+
+        @Test
+        void testLogin_Failure_InactiveUser() throws Exception {
+                // Deactivate doctor
+                doctorUser.setStatus(UserStatus.INACTIVE);
+                userRepository.save(doctorUser);
+
+                LoginRequest loginRequest = new LoginRequest("test_doctor", "doctor_password");
+                mockMvc.perform(post("/auth/login")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(loginRequest)))
+                                .andExpect(status().isUnauthorized());
+        }
+
+        @Test
+        void testChangePassword_Failure_WrongOldPassword() throws Exception {
+                ChangePasswordRequest changeRequest = new ChangePasswordRequest(
+                                "test_admin",
+                                "wrong_old_password",
+                                "new_password"
+                );
+
+                mockMvc.perform(post("/auth/change-password")
+                                .header("Authorization", "Bearer " + adminToken)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(changeRequest)))
+                                .andExpect(status().isBadRequest());
+        }
+
+        @Test
+        void testChangePassword_Failure_UserNotFound() throws Exception {
+                ChangePasswordRequest changeRequest = new ChangePasswordRequest(
+                                "unknown_user",
+                                "admin_password",
+                                "new_password"
+                );
+
+                mockMvc.perform(post("/auth/change-password")
+                                .header("Authorization", "Bearer " + adminToken)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(changeRequest)))
+                                .andExpect(status().isBadRequest());
+        }
+
+        @Test
+        void testChangePassword_Failure_Validation_EmptyFields() throws Exception {
+                ChangePasswordRequest changeRequest = new ChangePasswordRequest(
+                                "test_admin",
+                                "admin_password",
+                                ""
+                );
+
+                mockMvc.perform(post("/auth/change-password")
+                                .header("Authorization", "Bearer " + adminToken)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(changeRequest)))
+                                .andExpect(status().isBadRequest());
+        }
+
+        @Test
+        void testForgotPassword_Failure_InvalidEmailFormat() throws Exception {
+                ForgotPasswordRequest forgotRequest = new ForgotPasswordRequest("invalid-email");
+                mockMvc.perform(post("/auth/forgot-password")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(forgotRequest)))
+                                .andExpect(status().isBadRequest());
+        }
+
+        @Test
+        void testResetPassword_Failure_InvalidOtp() throws Exception {
+                // Request forgot password to generate a user
+                ForgotPasswordRequest forgotRequest = new ForgotPasswordRequest("admin_test@hospital.com");
+                mockMvc.perform(post("/auth/forgot-password")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(forgotRequest)));
+
+                // Try reset with wrong OTP
+                ResetPasswordRequest resetRequest = new ResetPasswordRequest(
+                                "admin_test@hospital.com",
+                                "999999", // wrong OTP
+                                "new_password"
+                );
+                mockMvc.perform(post("/auth/reset-password")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(resetRequest)))
+                                .andExpect(status().isBadRequest());
+        }
+
+        @Test
+        void testResetPassword_Failure_ExpiredOtp() throws Exception {
+                // Request forgot password to generate a token
+                ForgotPasswordRequest forgotRequest = new ForgotPasswordRequest("admin_test@hospital.com");
+                mockMvc.perform(post("/auth/forgot-password")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(forgotRequest)));
+
+                // Manually expire the reset token in the database
+                PasswordResetToken token = passwordResetTokenRepository.findByUser(adminUser).orElseThrow();
+                token.setExpiryDate(java.time.LocalDateTime.now().minusMinutes(1));
+                passwordResetTokenRepository.save(token);
+
+                // Try resetting password
+                ResetPasswordRequest resetRequest = new ResetPasswordRequest(
+                                "admin_test@hospital.com",
+                                token.getToken(),
+                                "new_password"
+                );
+                mockMvc.perform(post("/auth/reset-password")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(resetRequest)))
+                                .andExpect(status().isBadRequest())
+                                .andExpect(jsonPath("$.message", containsString("expired")));
+        }
+
+        @Test
+        void testResetPassword_Failure_Validation_EmptyFields() throws Exception {
+                ResetPasswordRequest resetRequest = new ResetPasswordRequest(
+                                "",
+                                "",
+                                ""
+                );
+                mockMvc.perform(post("/auth/reset-password")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(resetRequest)))
+                                .andExpect(status().isBadRequest());
+        }
+
+        @Test
+        void testViewMedicalStaffList_UnauthorizedWithoutToken() throws Exception {
+                mockMvc.perform(get("/users/staff"))
+                                .andExpect(status().isForbidden()); // Spring security rejects
+        }
+
+        @Test
+        void testUpdateDoctor_ForbiddenForDoctor() throws Exception {
+                com.g93.be.dto.EditDoctorRequest editRequest = new com.g93.be.dto.EditDoctorRequest(
+                                "Updated Doctor Name",
+                                "doctor_updated@hospital.com",
+                                "0987654321",
+                                "http://avatar.url",
+                                10,
+                                "MD, PhD",
+                                "Updated biography for test doctor."
+                );
+
+                // Doctor attempts to edit doctor profile (which is ADMIN only)
+                mockMvc.perform(put("/doctors/" + doctorUser.getId())
+                                .header("Authorization", "Bearer " + doctorToken)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(editRequest)))
+                                .andExpect(status().isForbidden());
+        }
+
+        @Test
+        void testUpdateDoctor_Failure_Validation_InvalidEmail() throws Exception {
+                com.g93.be.dto.EditDoctorRequest editRequest = new com.g93.be.dto.EditDoctorRequest(
+                                "Updated Doctor Name",
+                                "invalid-email-format",
+                                "0987654321",
+                                "http://avatar.url",
+                                10,
+                                "MD, PhD",
+                                "Updated biography for test doctor."
+                );
+
+                mockMvc.perform(put("/doctors/" + doctorUser.getId())
+                                .header("Authorization", "Bearer " + adminToken)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(editRequest)))
+                                .andExpect(status().isBadRequest());
+        }
+
+        @Test
+        void testActivateDeactivateDoctor_ForbiddenForDoctor() throws Exception {
+                mockMvc.perform(post("/doctors/" + doctorUser.getId() + "/deactivate")
+                                .header("Authorization", "Bearer " + doctorToken))
+                                .andExpect(status().isForbidden());
+        }
+
+        @Test
+        void testDeactivateDoctor_DeleteEndpoint() throws Exception {
+                // Test soft delete/deactivate via DELETE /doctors/{id}
+                mockMvc.perform(delete("/doctors/" + doctorUser.getId())
+                                .header("Authorization", "Bearer " + adminToken))
+                                .andExpect(status().isOk());
+
+                User deactivated = userRepository.findById(doctorUser.getId()).orElseThrow();
+                assertEquals(UserStatus.INACTIVE, deactivated.getStatus());
         }
 }
