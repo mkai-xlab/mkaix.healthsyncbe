@@ -21,6 +21,9 @@ public class PdfReportDataDto {
     private String doctorName;
     private String clinicalNotes;
     private String finalDiagnosis;
+    private String leftKlGrade;
+    private String rightKlGrade;
+    private String processingTime;
 
     // AI Results
     private List<AiResultExportDto> aiResults;
