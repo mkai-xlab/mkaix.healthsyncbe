@@ -187,6 +187,7 @@ class PdfExportServiceTest {
         assertEquals("2", data.getAiResults().getFirst().getKlGrade());
         assertEquals("2", data.getAiResults().getFirst().getAiPredictedGrade());
         assertEquals("AI_CONFIRMED", data.getAiResults().getFirst().getDecision());
+        assertEquals("", data.getProcessingTime());
     }
 
     @Test
@@ -211,6 +212,7 @@ class PdfExportServiceTest {
         aiResult.setKneeSide("RIGHT");
         DicomInstance dicom = instance(aiResult);
         dicom.setId(44L);
+        dicom.setSopInstanceUid("1.2.840.113619.44");
         dicom.setModality("CR");
         dicom.getAiAnalysis().setDuration(12L);
         when(examinationRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(mockExamination));
@@ -222,15 +224,45 @@ class PdfExportServiceTest {
 
         PdfReportDataDto data = capturedReportData();
         PdfReportDataDto.AiResultExportDto result = data.getAiResults().getFirst();
-        assertEquals("44", result.getDicomInstanceId());
+        assertEquals("1.2.840.113619.44", result.getDicomInstanceId());
         assertEquals("RIGHT", result.getKneeSide());
         assertEquals("CR", result.getModality());
         assertEquals("DICOM", result.getImageFormat());
         assertEquals("0.01", result.getInferenceTime());
         assertEquals("3", result.getConsensusKlGrade());
         assertEquals("AI_LOWER", result.getComparisonResult());
+        assertEquals("3", data.getRightKlGrade());
+        assertEquals("", data.getLeftKlGrade());
+        assertEquals("0.01", data.getProcessingTime());
         assertEquals("", result.getReaderOneKlGrade());
         assertEquals("", result.getManufacturer());
+    }
+
+    @Test
+    void generateAndSavePdfReportMapsFinalConfirmedGradesForBothKnees() {
+        AiResult right = aiResult(2, DiagnosisReviewDecision.AI_CONFIRMED, 2);
+        right.setKneeSide("R");
+        AiResult left = aiResult(1, DiagnosisReviewDecision.DOCTOR_ADJUSTED, 4);
+        left.setKneeSide("Gối trái");
+
+        AiAnalysis analysis = analysis(17L, LocalDateTime.now(), right);
+        analysis.setAiResults(List.of(right, left));
+        analysis.setDuration(2_500L);
+        DicomInstance dicom = new DicomInstance();
+        dicom.setId(44L);
+        dicom.setAiAnalysis(analysis);
+
+        when(examinationRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(mockExamination));
+        when(dicomInstanceRepository.findByExaminationId(1L)).thenReturn(List.of(dicom));
+        when(templateEngine.process(eq("pdf/report-template"), any(IContext.class)))
+                .thenReturn("<html><body>Report</body></html>");
+
+        pdfExportService.generateAndSavePdfReport(1L, "doctor");
+
+        PdfReportDataDto data = capturedReportData();
+        assertEquals("2", data.getRightKlGrade());
+        assertEquals("4", data.getLeftKlGrade());
+        assertEquals("2.50", data.getProcessingTime());
     }
 
     @Test
