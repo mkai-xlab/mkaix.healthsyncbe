@@ -1,7 +1,5 @@
 package com.g93.be.repository;
 
-
-import com.g93.be.entity.Role;
 import com.g93.be.entity.Role;
 import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.Optional;

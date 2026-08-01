@@ -5,7 +5,6 @@ import com.g93.be.dto.*;
 import com.g93.be.entity.*;
 import com.g93.be.mapper.PatientMapper;
 import com.g93.be.repository.*;
-import com.g93.be.repository.specification.PatientSpecification;
 import com.g93.be.service.PatientService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -13,12 +12,14 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.g93.be.security.CustomUserDetails;
+import com.g93.be.entity.User;
+import com.g93.be.repository.UserRepository;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import com.g93.be.entity.ExaminationStatus;
 
 @Service
 @RequiredArgsConstructor
@@ -28,12 +29,52 @@ public class PatientServiceImpl implements PatientService {
     private final PatientRepository patientRepository;
     private final ExaminationRepository examinationRepository;
     private final DicomInstanceRepository dicomInstanceRepository;
+    private final UserRepository userRepository;
     private final PatientMapper patientMapper;
 
     @Override
     @Transactional(readOnly = true)
-    public PageResponse<PatientResponse> getAllPatients(PatientFilterRequest filter, Pageable pageable) {
-        Page<Patient> patientPage = patientRepository.findAll(PatientSpecification.filter(filter), pageable);
+    public PageResponse<PatientResponse> getAllPatients(PatientFilterRequest filter, Pageable pageable, String username) {
+        Long doctorId = null;
+        if (username != null) {
+            User user = userRepository.findByUsername(username).orElse(null);
+            if (user != null && user.getRole() != null && "DOCTOR".equals(user.getRole().getCode())) {
+                doctorId = user.getId();
+            }
+        }
+
+        String keyword = null;
+        if (filter.getKeyword() != null && !filter.getKeyword().isBlank()) {
+            keyword = filter.getKeyword().trim();
+        }
+
+        boolean hasStatuses = filter.getStatuses() != null && !filter.getStatuses().isEmpty();
+        List<ExaminationStatus> statuses = new ArrayList<>();
+        if (hasStatuses) {
+            for (String s : filter.getStatuses()) {
+                try {
+                    statuses.add(ExaminationStatus.valueOf(s));
+                } catch (IllegalArgumentException e) {
+                    log.warn("Invalid examination status: {}", s);
+                }
+            }
+        }
+        if (statuses.isEmpty()) {
+            hasStatuses = false;
+        }
+
+        boolean hasSeverities = filter.getSeverities() != null && !filter.getSeverities().isEmpty();
+        List<Integer> severities = filter.getSeverities();
+
+        Page<Patient> patientPage = patientRepository.findAllByCustomFilters(
+                keyword,
+                hasStatuses,
+                hasStatuses ? statuses : null,
+                hasSeverities,
+                hasSeverities ? severities : null,
+                doctorId,
+                pageable);
+
         List<PatientResponse> content = patientPage.getContent().stream()
                 .map(patientMapper::toResponse)
                 .toList();
@@ -153,16 +194,13 @@ public class PatientServiceImpl implements PatientService {
 
     @Override
     @Transactional(readOnly = true)
-    public PageResponse<PatientResponse> getPatientsByUploadDate(LocalDate date, Pageable pageable,
-            CustomUserDetails userDetails) {
+    public PageResponse<PatientResponse> getPatientsByUploadDate(LocalDate date, Pageable pageable, String username) {
         Long filterDoctorId = null;
-        if (userDetails != null && userDetails.getUser() != null && userDetails.getUser().getRole() != null) {
-            String roleCode = userDetails.getUser().getRole().getCode();
-            if ("DOCTOR".equals(roleCode)) {
-                filterDoctorId = userDetails.getUser().getId();
+        if (username != null) {
+            User user = userRepository.findByUsername(username).orElse(null);
+            if (user != null && user.getRole() != null && "DOCTOR".equals(user.getRole().getCode())) {
+                filterDoctorId = user.getId();
             }
-            // For DEPARTMENT_HEAD or ADMIN, filterDoctorId remains null, meaning fetch all
-            // patients
         }
 
         LocalDateTime startOfDay = date.atStartOfDay();

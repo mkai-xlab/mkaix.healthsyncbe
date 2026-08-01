@@ -29,7 +29,7 @@ public class Patient {
     private String phone;
 
     @Column(name = "dob")
-    private java.time.LocalDate dob;
+    private LocalDate dob;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "gender", length = 20)
@@ -48,18 +48,18 @@ public class Patient {
     private String emergencyContactPhone;
 
     @Column(name = "created_at", nullable = false, updatable = false)
-    private java.time.LocalDateTime createdAt;
+    private LocalDateTime createdAt;
 
     @Column(name = "updated_at")
-    private java.time.LocalDateTime updatedAt;
+    private LocalDateTime updatedAt;
 
     @PrePersist
     protected void onCreate() {
-        createdAt = java.time.LocalDateTime.now();
+        createdAt = LocalDateTime.now();
     }
 
     @PreUpdate
     protected void onUpdate() {
-        updatedAt = java.time.LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
     }
 }

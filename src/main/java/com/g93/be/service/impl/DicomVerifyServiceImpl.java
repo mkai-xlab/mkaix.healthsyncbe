@@ -1,8 +1,6 @@
 package com.g93.be.service.impl;
 
 
-import com.g93.be.entity.UserStatus;
-import com.g93.be.entity.Role;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.g93.be.dto.DicomUploadSessionDTO;
 import com.g93.be.dto.DicomVerifyRequest;
@@ -21,16 +19,22 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.security.access.AccessDeniedException;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.ArrayList;
+import java.util.Map;
+import java.util.HashMap;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -43,7 +47,6 @@ public class DicomVerifyServiceImpl implements DicomVerifyService {
     private final DicomInstanceRepository dicomInstanceRepository;
     private final ImageRepository imageRepository;
     private final DoctorRepository doctorRepository;
-    private final RoleRepository roleRepository;
     private final DicomRawRepository dicomRawRepository;
     private final AiService aiService;
     private final NotificationService notificationService;
@@ -55,7 +58,7 @@ public class DicomVerifyServiceImpl implements DicomVerifyService {
 
     @Override
     @Transactional
-    public java.util.List<Long> verifySession(DicomVerifyRequest request) {
+    public List<Long> verifySession(DicomVerifyRequest request) {
         String sessionId = request.getUploadSessionId();
         String redisKey = "uploadSession:" + sessionId;
 
@@ -73,7 +76,7 @@ public class DicomVerifyServiceImpl implements DicomVerifyService {
         }
 
         List<String> acceptedCodes = request.getAcceptedPatientCodes() != null ? request.getAcceptedPatientCodes() : List.of();
-        java.util.List<Long> savedInstanceIds = new java.util.ArrayList<>();
+        List<Long> savedInstanceIds = new ArrayList<>();
 
         for (PendingDicomUploadDTO pending : sessionDTO.getPatients().values()) {
             if (acceptedCodes.contains(pending.getPatientCode())) {
@@ -91,15 +94,15 @@ public class DicomVerifyServiceImpl implements DicomVerifyService {
         return savedInstanceIds;
     }
 
-    private java.util.List<Long> savePatientData(PendingDicomUploadDTO pending, Long uploaderUserId) {
-        java.util.List<Long> instanceIds = new java.util.ArrayList<>();
+    private List<Long> savePatientData(PendingDicomUploadDTO pending, Long uploaderUserId) {
+        List<Long> instanceIds = new ArrayList<>();
         final String finalStudyUid = (pending.getStudyInstanceUid() != null && !pending.getStudyInstanceUid().isEmpty())
                 ? pending.getStudyInstanceUid()
                 : "UNKNOWN_STUDY_" + System.currentTimeMillis();
 
-        java.time.LocalDate studyDateForGrouping = (pending.getStudyDate() != null)
+        LocalDate studyDateForGrouping = (pending.getStudyDate() != null)
                 ? pending.getStudyDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDate()
-                : java.time.LocalDate.now();
+                : LocalDate.now();
 
         Optional<Examination> existingExamOpt = examinationRepository.findFirstByPatientPatientCodeAndStudyDateOrderByCreatedAtDesc(pending.getPatientCode(), studyDateForGrouping);
         Examination examination;
@@ -160,23 +163,7 @@ public class DicomVerifyServiceImpl implements DicomVerifyService {
                 doctor = doctorRepository.findById(uploaderUserId).orElse(null);
             }
             if (doctor == null) {
-                doctor = doctorRepository.findAll().stream().findFirst().orElseGet(() -> {
-                    Doctor d = new Doctor();
-                    d.setUsername("dummy_doc_" + UUID.randomUUID().toString().substring(0, 8));
-                    d.setPassword("temp");
-                    d.setEmail("dummy_doc_" + UUID.randomUUID().toString().substring(0, 8) + "@temp.com");
-                    d.setFullName("System Doctor");
-                    d.setStatus(UserStatus.ACTIVE);
-                    Role doctorRole = roleRepository.findByCode("DOCTOR").orElseGet(() -> {
-                        Role r = new Role();
-                        r.setCode("DOCTOR");
-                        r.setName("Doctor Role");
-                        return roleRepository.save(r);
-                    });
-                    d.setRole(doctorRole);
-                    d.setYearsOfExperience(0);
-                    return doctorRepository.save(d);
-                });
+                throw new AccessDeniedException("Bạn không có quyền truy cập hoặc hệ thống không tìm thấy thông tin Bác sĩ (Missing/Invalid Doctor ID).");
             }
             examination.setDoctor(doctor);
 
@@ -194,8 +181,8 @@ public class DicomVerifyServiceImpl implements DicomVerifyService {
 
         // Images and Instances
         String firstPngPath = null;
-        java.util.Map<String, Image> pngMap = new java.util.HashMap<>();
-        java.util.Map<String, DicomRaw> rawMap = new java.util.HashMap<>();
+        Map<String, Image> pngMap = new HashMap<>();
+        Map<String, DicomRaw> rawMap = new HashMap<>();
 
         for (PendingDicomUploadDTO.ImageCacheDTO imageCache : pending.getParsedImages()) {
             if ("image/png".equals(imageCache.getMimeType())) {
@@ -223,6 +210,7 @@ public class DicomVerifyServiceImpl implements DicomVerifyService {
             instance.setStudyInstanceUid(finalStudyUid);
             instance.setBodyPart(instCache.getBodyPart());
             instance.setCreatedAt(LocalDateTime.now());
+            instance.setStatus(DicomInstanceStatus.AI_SENDING);
             
             Image matchedImage = pngMap.get(instCache.getSopInstanceUid());
             if (matchedImage == null && !pngMap.isEmpty()) {
@@ -259,7 +247,7 @@ public class DicomVerifyServiceImpl implements DicomVerifyService {
 
     @Override
     @org.springframework.scheduling.annotation.Async
-    public void processVerifiedSessionAsync(java.util.List<Long> savedInstanceIds, String username) {
+    public void processVerifiedSessionAsync(List<Long> savedInstanceIds, String username) {
         if (savedInstanceIds == null || savedInstanceIds.isEmpty()) {
             return;
         }
@@ -278,7 +266,7 @@ public class DicomVerifyServiceImpl implements DicomVerifyService {
             List<ExaminationDto> aiResultsList = aiService.predictBatch(aiRequest);
             
             // Calculate patient statistics based on max_predicted_grade for this specific batch
-            java.util.Map<Long, Integer> patientToMaxGrade = new java.util.HashMap<>();
+            Map<Long, Integer> patientToMaxGrade = new HashMap<>();
             for (ExaminationDto exam : aiResultsList) {
                 if (exam.getPatient() != null && exam.getMaxPredictedGrade() != null) {
                     Long patId = exam.getPatient().getId();
@@ -289,14 +277,14 @@ public class DicomVerifyServiceImpl implements DicomVerifyService {
                 }
             }
 
-            java.util.Map<Integer, Long> gradeCountMap = new java.util.HashMap<>();
+            Map<Integer, Long> gradeCountMap = new HashMap<>();
             for (Integer grade : patientToMaxGrade.values()) {
                 gradeCountMap.put(grade, gradeCountMap.getOrDefault(grade, 0L) + 1);
             }
 
             List<PatientGradeStatsDto> statsList = gradeCountMap.entrySet().stream()
                     .map(entry -> new PatientGradeStatsDto(entry.getKey(), entry.getValue()))
-                    .collect(java.util.stream.Collectors.toList());
+                    .collect(Collectors.toList());
             
             // Send success notification
             SendNotificationRequest notifReq = new SendNotificationRequest(

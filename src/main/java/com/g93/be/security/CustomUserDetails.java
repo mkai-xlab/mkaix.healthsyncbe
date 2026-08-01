@@ -1,10 +1,7 @@
 package com.g93.be.security;
+
 import com.g93.be.dto.PermissionResponse;
 
-
-
-import com.g93.be.entity.User;
-import com.g93.be.entity.UserStatus;
 import com.g93.be.entity.User;
 import com.g93.be.entity.UserStatus;
 import org.springframework.security.core.GrantedAuthority;
@@ -24,7 +21,8 @@ public class CustomUserDetails implements UserDetails {
     }
 
     public List<String> getPermissionCodes() {
-        if (permissions == null) return java.util.Collections.emptyList();
+        if (permissions == null)
+            return java.util.Collections.emptyList();
         return permissions.stream().map(PermissionResponse::code).collect(java.util.stream.Collectors.toList());
     }
 
@@ -74,4 +72,3 @@ public class CustomUserDetails implements UserDetails {
         return permissions;
     }
 }
-
