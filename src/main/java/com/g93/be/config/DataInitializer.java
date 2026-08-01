@@ -49,15 +49,15 @@ public class DataInitializer implements CommandLineRunner {
             featureRepository.saveAll(java.util.List.of(fUser, fPatient, fDicom, fAi, fHist, fRev, fRep, fDashDoc, fDashAdm));
 
             // Create Base Permissions (No Dependencies)
-            Permission pAuth01 = new Permission(null, "READ_OWN_PROFILE", "Read own profile", 1, null, fUser, null);
-            Permission pAuth02 = new Permission(null, "REQUEST_PASSWORD_RESET", "Request password reset", 2, null, fUser, null);
-            Permission pAuth03 = new Permission(null, "VIEW_USER_LIST", "View user list", 3, null, fUser, null);
+            Permission pAuth01 = new Permission(null, "READ_OWN_PROFILE", "Read own profile", 7, null, fUser, null);
+            Permission pAuth02 = new Permission(null, "REQUEST_PASSWORD_RESET", "Request password reset", 5, null, fUser, null);
+            Permission pAuth03 = new Permission(null, "VIEW_USER_LIST", "View user list", 3, "user_list_page", fUser, null);
             
-            Permission pPat01 = new Permission(null, "READ_PATIENT_LIST", "Read patient list", 4, null, fPatient, null);
-            Permission pPat03 = new Permission(null, "CREATE_PATIENT_EXAM", "Create patient exam", 5, null, fPatient, null);
+            Permission pPat01 = new Permission(null, "READ_PATIENT_LIST", "Danh sách bệnh nhân", 2, "patient_list_page", fPatient, null);
+            Permission pPat03 = new Permission(null, "CREATE_PATIENT_EXAM", "Danh sách ca khám", 3, "examination_list_page", fPatient, null);
             
-            Permission pImg01 = new Permission(null, "VIEW_IMAGE_LIST", "View image list", 6, null, fDicom, null);
-            Permission pImg02 = new Permission(null, "UPLOAD_DICOM_IMAGE", "Upload DICOM image", 7, null, fDicom, null);
+            Permission pImg01 = new Permission(null, "VIEW_IMAGE_LIST", "View image list", 3, null, fDicom, null);
+            Permission pImg02 = new Permission(null, "UPLOAD_DICOM_IMAGE", "Tải lên DICOM file", 2, "file_upload_page", fDicom, null);
             
             Permission pAi01 = new Permission(null, "TRIGGER_AI_ANALYSIS", "Trigger AI analysis", 8, null, fAi, null);
             Permission pAi02 = new Permission(null, "VIEW_AI_RESULT", "View AI result", 9, null, fAi, null);
@@ -68,7 +68,7 @@ public class DataInitializer implements CommandLineRunner {
             
             Permission pRep01 = new Permission(null, "GENERATE_PDF_REPORT", "Generate PDF report", 12, null, fRep, null);
             
-            Permission pDash01 = new Permission(null, "VIEW_DOCTOR_DASHBOARD", "View doctor dashboard", 13, null, fDashDoc, null);
+            Permission pDash01 = new Permission(null, "VIEW_DOCTOR_DASHBOARD", "Trang chủ", 1, "doctor_dashboard_page", fDashDoc, null);
             Permission pAdm01 = new Permission(null, "VIEW_ADMIN_DASHBOARD", "View admin dashboard", 14, null, fDashAdm, null);
 
             permissionRepository.saveAll(java.util.List.of(
@@ -78,7 +78,7 @@ public class DataInitializer implements CommandLineRunner {
 
             // Create Dependent Permissions
             Permission pAuth04 = new Permission(null, "MANAGE_USER_ROLE", "Manage user role", 15, null, fUser, pAuth03);
-            Permission pPat02 = new Permission(null, "VIEW_PATIENT_DETAIL", "View patient detail", 16, null, fPatient, pPat01);
+            Permission pPat02 = new Permission(null, "VIEW_PATIENT_DETAIL", "Xem chi tiết bệnh nhân", 2, "patient_detail_page", fPatient, pPat01);
             Permission pAi03 = new Permission(null, "COMPARE_XAI_SIDE_BY_SIDE", "Compare XAI side by side", 17, null, fAi, pAi02);
             Permission pRev02 = new Permission(null, "ADD_CLINICAL_COMMENT", "Add clinical comment", 18, null, fRev, pRev01);
             Permission pRev03 = new Permission(null, "OVERRIDE_AI_GRADE", "Override AI grade", 19, null, fRev, pRev01);
@@ -89,6 +89,10 @@ public class DataInitializer implements CommandLineRunner {
             permissionRepository.saveAll(java.util.List.of(
                     pAuth04, pPat02, pAi03, pRev02, pRev03, pRev04, pRep02, pAdm02
             ));
+
+            // Keep VIEW_IMAGE_LIST at seed ID 6 while linking it to VIEW_PATIENT_DETAIL (seed ID 16).
+            pImg01.setRequiresPermission(pPat02);
+            permissionRepository.save(pImg01);
 
             // Bind to Roles
             java.util.List<RolePermission> rps = new java.util.ArrayList<>();
