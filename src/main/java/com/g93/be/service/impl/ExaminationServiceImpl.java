@@ -9,15 +9,16 @@ import com.g93.be.entity.User;
 import com.g93.be.entity.ExaminationStatus;
 import com.g93.be.dto.ExaminationDto;
 import com.g93.be.dto.PageResponse;
-import com.g93.be.entity.DicomInstance;
-import com.g93.be.entity.Examination;
 import com.g93.be.repository.DicomInstanceRepository;
 import com.g93.be.repository.ExaminationRepository;
+import com.g93.be.repository.UserRepository;
 import com.g93.be.service.ExaminationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,12 +34,12 @@ public class ExaminationServiceImpl implements ExaminationService {
     private final ExaminationRepository examinationRepository;
     private final DicomInstanceRepository dicomInstanceRepository;
     private final ExaminationMapper examinationMapper;
-    private final com.g93.be.repository.UserRepository userRepository;
+    private final UserRepository userRepository;
 
     @Override
     @Transactional(readOnly = true)
     public PageResponse<ExaminationDto> getAllExaminations(Pageable pageable) {
-        Page<Examination> examinationPage = examinationRepository.findAll(pageable);
+        Page<Examination> examinationPage = examinationRepository.findAll(getCustomSortPageable(pageable));
         List<ExaminationDto> content = examinationPage.getContent().stream()
                 .map(ex -> {
                     List<DicomInstance> instances = dicomInstanceRepository.findByExaminationId(ex.getId());
@@ -67,7 +68,7 @@ public class ExaminationServiceImpl implements ExaminationService {
     @Override
     @Transactional(readOnly = true)
     public PageResponse<ExaminationDto> getExaminationsByDoctorId(Long doctorId, Pageable pageable) {
-        Page<Examination> examinationPage = examinationRepository.findByDoctorId(doctorId, pageable);
+        Page<Examination> examinationPage = examinationRepository.findByDoctorId(doctorId, getCustomSortPageable(pageable));
         List<ExaminationDto> content = examinationPage.getContent().stream()
                 .map(ex -> {
                     List<DicomInstance> instances = dicomInstanceRepository.findByExaminationId(ex.getId());
@@ -88,7 +89,7 @@ public class ExaminationServiceImpl implements ExaminationService {
     @Override
     @Transactional(readOnly = true)
     public PageResponse<ExaminationDto> getExaminationsByPatientId(Long patientId, Pageable pageable) {
-        Page<Examination> examinationPage = examinationRepository.findByPatientId(patientId, pageable);
+        Page<Examination> examinationPage = examinationRepository.findByPatientId(patientId, getCustomSortPageable(pageable));
         List<ExaminationDto> content = examinationPage.getContent().stream()
                 .map(ex -> {
                     List<DicomInstance> instances = dicomInstanceRepository.findByExaminationId(ex.getId());
@@ -430,6 +431,14 @@ public class ExaminationServiceImpl implements ExaminationService {
                 examinationPage.getTotalPages(),
                 examinationPage.isLast()
         );
+    }
+
+    private Pageable getCustomSortPageable(Pageable pageable) {
+        Sort sort = Sort.by(
+            Sort.Order.desc("maxPredictedGrade").nullsLast(),
+            Sort.Order.desc("createdAt")
+        );
+        return PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), sort);
     }
 }
 

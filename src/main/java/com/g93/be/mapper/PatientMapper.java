@@ -1,9 +1,7 @@
 package com.g93.be.mapper;
 
-
 import com.g93.be.entity.Patient;
 import com.g93.be.dto.PatientResponse;
-import com.g93.be.entity.Patient;
 import org.springframework.stereotype.Component;
 
 /**
@@ -35,7 +33,6 @@ public class PatientMapper {
                 patient.getEmergencyContactName(),
                 patient.getEmergencyContactPhone(),
                 patient.getCreatedAt(),
-                patient.getUpdatedAt()
-        );
+                patient.getUpdatedAt());
     }
 }

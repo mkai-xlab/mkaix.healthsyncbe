@@ -1,14 +1,12 @@
 package com.g93.be.controller;
+
 import com.g93.be.dto.EditDoctorRequest;
 import com.g93.be.dto.EditDoctorProfileRequest;
-
-
 
 import com.g93.be.entity.UserStatus;
 import com.g93.be.dto.CreateDoctorRequest;
 import com.g93.be.dto.DoctorResponse;
 import com.g93.be.dto.PageResponse;
-import com.g93.be.entity.UserStatus;
 import com.g93.be.service.DoctorService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -52,13 +50,14 @@ public class DoctorController {
     /**
      * Updates an existing doctor.
      *
-     * @param id The ID of the doctor to update.
+     * @param id      The ID of the doctor to update.
      * @param request The update payload.
      * @return The updated DoctorResponse.
      */
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<DoctorResponse> editDoctor(@PathVariable Long id, @Valid @RequestBody EditDoctorRequest request) {
+    public ResponseEntity<DoctorResponse> editDoctor(@PathVariable Long id,
+            @Valid @RequestBody EditDoctorRequest request) {
         log.info("Received request to edit doctor with ID: {}", id);
         DoctorResponse response = doctorService.editDoctor(id, request);
         return ResponseEntity.ok(response);
@@ -82,12 +81,13 @@ public class DoctorController {
      * Updates the profile of the currently authenticated doctor.
      *
      * @param principal The authenticated user's principal.
-     * @param request The update payload.
+     * @param request   The update payload.
      * @return The updated DoctorResponse.
      */
     @PutMapping("/profile")
     @PreAuthorize("hasRole('DOCTOR')")
-    public ResponseEntity<DoctorResponse> editProfile(java.security.Principal principal, @Valid @RequestBody EditDoctorProfileRequest request) {
+    public ResponseEntity<DoctorResponse> editProfile(java.security.Principal principal,
+            @Valid @RequestBody EditDoctorProfileRequest request) {
         log.info("Received request to edit profile for doctor: {}", principal.getName());
         DoctorResponse response = doctorService.editDoctorProfile(principal.getName(), request);
         return ResponseEntity.ok(response);
@@ -105,10 +105,11 @@ public class DoctorController {
     /**
      * Retrieves doctors with pagination, search, sorting, and filtering.
      *
-     * @param keyword Optional search term (code, name, email, phone, specialization).
+     * @param keyword        Optional search term (code, name, email, phone,
+     *                       specialization).
      * @param specialization Optional exact or partial match for specialization.
-     * @param status Optional filter by status.
-     * @param pageable Pagination and sorting properties.
+     * @param status         Optional filter by status.
+     * @param pageable       Pagination and sorting properties.
      * @return A paginated list of DoctorResponse.
      */
     @GetMapping
@@ -118,7 +119,7 @@ public class DoctorController {
             @RequestParam(required = false) String specialization,
             @RequestParam(required = false) UserStatus status,
             @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        
+
         log.info("Fetching doctors with keyword: {}, specialization: {}, status: {}", keyword, specialization, status);
         PageResponse<DoctorResponse> response = doctorService.searchDoctors(keyword, specialization, status, pageable);
         return ResponseEntity.ok(response);
@@ -127,7 +128,8 @@ public class DoctorController {
     /**
      * Retrieves only active doctors.
      *
-     * @return A list of DoctorResponse objects for active doctors wrapped in ResponseEntity.
+     * @return A list of DoctorResponse objects for active doctors wrapped in
+     *         ResponseEntity.
      */
     @GetMapping("/active")
     @PreAuthorize("hasAnyRole('ADMIN', 'DOCTOR')")
@@ -178,4 +180,3 @@ public class DoctorController {
         return ResponseEntity.ok().build();
     }
 }
-

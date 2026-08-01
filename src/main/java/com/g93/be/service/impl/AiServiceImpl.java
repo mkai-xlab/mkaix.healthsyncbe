@@ -162,10 +162,21 @@ public class AiServiceImpl implements AiService {
                                 }
                             }
 
-                            // Save AiResult
                             AiResult aiResult = new AiResult();
                             aiResult.setAiAnalysis(analysis);
-                            aiResult.setPredictedGrade(p.getPredictedClass());
+                            
+                            Integer pGrade = p.getPredictedClass();
+                            if (pGrade == null && p.getPredictedGrade() != null) {
+                                try {
+                                    String gradeStr = p.getPredictedGrade().replaceAll("[^0-9]", "");
+                                    if (!gradeStr.isEmpty()) {
+                                        pGrade = Integer.parseInt(gradeStr.substring(0, 1));
+                                    }
+                                } catch (Exception ignored) {}
+                            }
+                            if (pGrade == null) pGrade = 0; // ultimate fallback
+                            
+                            aiResult.setPredictedGrade(pGrade);
                             aiResult.setConfidence(p.getConfidence());
                             aiResult.setDescription(p.getDescription());
                             aiResult.setKneeSide(p.getKneeSide());
