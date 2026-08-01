@@ -41,6 +41,9 @@ public class SecurityAndRbacIntegrationTest {
         private UserRepository userRepository;
 
         @Autowired
+        private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
+
+        @Autowired
         private RoleRepository roleRepository;
 
         @Autowired
@@ -79,9 +82,12 @@ public class SecurityAndRbacIntegrationTest {
                                 .build();
 
                 // Clear repositories to ensure isolation.
-                // We only clear users to avoid breaking lookup tables (Roles/Permissions/Features)
-                // populated by DataInitializer.
-                userRepository.deleteAll();
+                jdbcTemplate.execute("SET FOREIGN_KEY_CHECKS = 0;");
+                jdbcTemplate.execute("TRUNCATE TABLE audit_logs;");
+                jdbcTemplate.execute("TRUNCATE TABLE dicom_instances;");
+                jdbcTemplate.execute("TRUNCATE TABLE examinations;");
+                jdbcTemplate.execute("TRUNCATE TABLE users;");
+                jdbcTemplate.execute("SET FOREIGN_KEY_CHECKS = 1;");
 
                 // 1. Fetch existing Roles from database (populated by DataInitializer)
                 adminRole = roleRepository.findByCode("ADMIN")
