@@ -1,7 +1,5 @@
 package com.g93.be.dto;
 
-
-import com.g93.be.entity.Gender;
 import com.g93.be.entity.Gender;
 import lombok.AllArgsConstructor;
 import lombok.Data;

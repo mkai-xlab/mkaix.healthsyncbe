@@ -20,7 +20,6 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import com.g93.be.security.CustomUserDetails;
 import java.time.LocalDate;
 
 
@@ -59,9 +58,11 @@ public class PatientController {
     @GetMapping
     @PreAuthorize("hasAuthority('READ_PATIENT_LIST')")
     public ResponseEntity<PageResponse<PatientResponse>> getAllPatients(
-            @ModelAttribute PatientFilterRequest filter,
+            @Valid @ModelAttribute PatientFilterRequest filter,
             @PageableDefault(size = 10) Pageable pageable) {
-        return ResponseEntity.ok(patientService.getAllPatients(filter, pageable));
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = authentication != null ? authentication.getName() : null;
+        return ResponseEntity.ok(patientService.getAllPatients(filter, pageable, username));
     }
 
     /**
@@ -115,8 +116,8 @@ public class PatientController {
             @PageableDefault(size = 10) Pageable pageable) {
         log.info("Received request to get patients by upload date: {}", date);
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
-        return ResponseEntity.ok(patientService.getPatientsByUploadDate(date, pageable, userDetails));
+        String username = authentication != null ? authentication.getName() : null;
+        return ResponseEntity.ok(patientService.getPatientsByUploadDate(date, pageable, username));
     }
 }
 

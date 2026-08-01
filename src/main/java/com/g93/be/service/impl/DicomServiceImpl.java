@@ -18,6 +18,11 @@ import org.dcm4che3.data.Attributes;
 import org.dcm4che3.io.DicomInputStream;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import javax.imageio.ImageIO;
 import javax.imageio.ImageReader;
@@ -44,11 +49,11 @@ public class DicomServiceImpl implements DicomService {
 
     private final DicomInstanceRepository dicomInstanceRepository;
     private final NotificationService notificationService;
-    private final org.springframework.data.redis.core.StringRedisTemplate stringRedisTemplate;
+    private final StringRedisTemplate stringRedisTemplate;
     private final UserRepository userRepository;
 
-    private static final com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper()
-            .registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule())
+    private static final ObjectMapper objectMapper = new ObjectMapper()
+            .registerModule(new JavaTimeModule())
             .disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
     @Value("${app.storage.base-dir:D:/Capstone/data}")
@@ -151,14 +156,14 @@ public class DicomServiceImpl implements DicomService {
     }
 
     @Override
-    public org.springframework.core.io.Resource getInstanceImageResource(Long id) {
+    public Resource getInstanceImageResource(Long id) {
         DicomInstance instance = dicomInstanceRepository.findById(id).orElse(null);
         if (instance != null && instance.getImage() != null && instance.getImage().getFilePath() != null) {
             String imagePath = instance.getImage().getFilePath();
             try {
                 String relPath = imagePath.startsWith("/") ? imagePath.substring(1) : imagePath;
                 Path path = Paths.get(storageBaseDir, relPath);
-                org.springframework.core.io.Resource resource = new org.springframework.core.io.UrlResource(path.toUri());
+                Resource resource = new UrlResource(path.toUri());
                 if (resource.exists() || resource.isReadable()) {
                     return resource;
                 }
@@ -170,14 +175,14 @@ public class DicomServiceImpl implements DicomService {
     }
 
     @Override
-    public org.springframework.core.io.Resource getInstanceRawResource(Long id) {
+    public Resource getInstanceRawResource(Long id) {
         DicomInstance instance = dicomInstanceRepository.findById(id).orElse(null);
         if (instance != null && instance.getDicomRaw() != null && instance.getDicomRaw().getFilePath() != null) {
             String rawPath = instance.getDicomRaw().getFilePath();
             try {
                 String relPath = rawPath.startsWith("/") ? rawPath.substring(1) : rawPath;
                 Path path = Paths.get(storageBaseDir, relPath);
-                org.springframework.core.io.Resource resource = new org.springframework.core.io.UrlResource(path.toUri());
+                Resource resource = new UrlResource(path.toUri());
                 if (resource.exists() || resource.isReadable()) {
                     return resource;
                 }
