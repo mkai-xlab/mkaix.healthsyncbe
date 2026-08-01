@@ -335,5 +335,24 @@ public class AiServiceImpl implements AiService {
             return null;
         }
     }
+
+    @Override
+    public org.springframework.core.io.Resource getHeatmapImageResource(Long aiResultId) {
+        AiResult result = aiResultRepository.findById(aiResultId).orElse(null);
+        if (result != null && result.getStorageHeatmapFilePath() != null) {
+            String imagePath = result.getStorageHeatmapFilePath();
+            try {
+                String relPath = imagePath.startsWith("/") ? imagePath.substring(1) : imagePath;
+                Path path = Paths.get(storageBaseDir, relPath);
+                org.springframework.core.io.Resource resource = new org.springframework.core.io.UrlResource(path.toUri());
+                if (resource.exists() || resource.isReadable()) {
+                    return resource;
+                }
+            } catch (Exception e) {
+                log.error("Failed to read heatmap image for result id: {}", aiResultId, e);
+            }
+        }
+        return null;
+    }
 }
 
