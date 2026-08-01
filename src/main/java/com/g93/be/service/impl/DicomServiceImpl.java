@@ -7,7 +7,6 @@ import com.g93.be.dto.PendingDicomUploadDTO;
 import com.g93.be.dto.DicomUploadSessionDTO;
 import com.g93.be.dto.PatientResponse;
 import com.g93.be.dto.ExaminationDto;
-
 import com.g93.be.dto.DicomTagResponse;
 import com.g93.be.entity.*;
 import com.g93.be.service.DicomService;
@@ -29,33 +28,24 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.time.LocalDateTime;
+import java.util.UUID;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
 import com.g93.be.dto.SendNotificationRequest;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.ApplicationContext;
 
 @Service
 @Slf4j
 @RequiredArgsConstructor
 public class DicomServiceImpl implements DicomService {
 
-    private final PatientRepository patientRepository;
-    private final ExaminationRepository examinationRepository;
     private final DicomInstanceRepository dicomInstanceRepository;
-    private final ImageRepository imageRepository;
-    private final RoleRepository roleRepository;
-    private final DoctorRepository doctorRepository;
     private final NotificationService notificationService;
     private final org.springframework.data.redis.core.StringRedisTemplate stringRedisTemplate;
-    private final com.g93.be.mapper.PatientMapper patientMapper;
-    private final com.g93.be.mapper.ExaminationMapper examinationMapper;
+    private final UserRepository userRepository;
 
     private static final com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper()
             .registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule())
@@ -83,8 +73,6 @@ public class DicomServiceImpl implements DicomService {
         // batch
         return new ArrayList<>();
     }
-
-    private final ApplicationContext applicationContext;
 
     @Override
     @org.springframework.transaction.annotation.Transactional
@@ -120,6 +108,84 @@ public class DicomServiceImpl implements DicomService {
                 }
             }
         }
+    }
+
+    private Long resolveUserId(String username) {
+        if (username != null) {
+            User user = userRepository.findByUsername(username).orElse(null);
+            if (user != null) {
+                return user.getId();
+            }
+        }
+        return 1L; // Fallback
+    }
+
+    @Override
+    public BatchDicomUploadResponse uploadBatchFiles(List<MultipartFile> files, String username) {
+        if (files == null || files.isEmpty()) {
+            throw new IllegalArgumentException("Uploaded files list is empty");
+        }
+        Long userId = resolveUserId(username);
+        return uploadBatch(files, userId);
+    }
+
+    @Override
+    public BatchDicomUploadResponse uploadZipBatchFile(MultipartFile file, String username) {
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("Uploaded file is empty");
+        }
+        String filename = file.getOriginalFilename();
+        if (filename == null || !filename.toLowerCase().endsWith(".zip")) {
+            throw new IllegalArgumentException("Invalid file format. Only .zip files are allowed for batch upload.");
+        }
+        Long userId = resolveUserId(username);
+        try {
+            Path tempZipFile = Files.createTempFile("main_batch_", ".zip");
+            file.transferTo(tempZipFile.toFile());
+            String uploadSessionId = java.util.UUID.randomUUID().toString();
+            return processZipBatch(tempZipFile, userId, uploadSessionId);
+        } catch (IOException e) {
+            log.error("Failed to save uploaded ZIP file", e);
+            throw new RuntimeException("Failed to save uploaded ZIP file", e);
+        }
+    }
+
+    @Override
+    public org.springframework.core.io.Resource getInstanceImageResource(Long id) {
+        DicomInstance instance = dicomInstanceRepository.findById(id).orElse(null);
+        if (instance != null && instance.getImage() != null && instance.getImage().getFilePath() != null) {
+            String imagePath = instance.getImage().getFilePath();
+            try {
+                String relPath = imagePath.startsWith("/") ? imagePath.substring(1) : imagePath;
+                Path path = Paths.get(storageBaseDir, relPath);
+                org.springframework.core.io.Resource resource = new org.springframework.core.io.UrlResource(path.toUri());
+                if (resource.exists() || resource.isReadable()) {
+                    return resource;
+                }
+            } catch (Exception e) {
+                log.error("Failed to read image", e);
+            }
+        }
+        return null;
+    }
+
+    @Override
+    public org.springframework.core.io.Resource getInstanceRawResource(Long id) {
+        DicomInstance instance = dicomInstanceRepository.findById(id).orElse(null);
+        if (instance != null && instance.getDicomRaw() != null && instance.getDicomRaw().getFilePath() != null) {
+            String rawPath = instance.getDicomRaw().getFilePath();
+            try {
+                String relPath = rawPath.startsWith("/") ? rawPath.substring(1) : rawPath;
+                Path path = Paths.get(storageBaseDir, relPath);
+                org.springframework.core.io.Resource resource = new org.springframework.core.io.UrlResource(path.toUri());
+                if (resource.exists() || resource.isReadable()) {
+                    return resource;
+                }
+            } catch (Exception e) {
+                log.error("Failed to read raw dicom", e);
+            }
+        }
+        return null;
     }
 
     @Override
@@ -296,9 +362,6 @@ public class DicomServiceImpl implements DicomService {
                         referringPhysician = attrs.getString(org.dcm4che3.data.Tag.ReferringPhysicianName, "");
 
                         sopInstanceUid = attrs.getString(org.dcm4che3.data.Tag.SOPInstanceUID, "");
-                        imageLaterality = attrs.getString(org.dcm4che3.data.Tag.ImageLaterality, "");
-                        imageRows = attrs.getInt(org.dcm4che3.data.Tag.Rows, 0);
-                        imageColumns = attrs.getInt(org.dcm4che3.data.Tag.Columns, 0);
                     }
 
                     if (sopInstanceUid == null || sopInstanceUid.isEmpty()) {
@@ -370,7 +433,6 @@ public class DicomServiceImpl implements DicomService {
                                         .storedFilePath(dbPngPath)
                                         .mimeType("image/png")
                                         .build());
-                                hasPng = true;
                             }
                         }
                     } catch (Exception e) {

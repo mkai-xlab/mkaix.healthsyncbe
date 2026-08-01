@@ -10,6 +10,12 @@ import com.g93.be.dto.PendingDicomUploadDTO;
 import com.g93.be.entity.*;
 import com.g93.be.repository.*;
 import com.g93.be.service.DicomVerifyService;
+import com.g93.be.service.AiService;
+import com.g93.be.service.NotificationService;
+import com.g93.be.dto.AiPredictionRequest;
+import com.g93.be.dto.ExaminationDto;
+import com.g93.be.dto.PatientGradeStatsDto;
+import com.g93.be.dto.SendNotificationRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -39,6 +45,9 @@ public class DicomVerifyServiceImpl implements DicomVerifyService {
     private final DoctorRepository doctorRepository;
     private final RoleRepository roleRepository;
     private final DicomRawRepository dicomRawRepository;
+    private final AiService aiService;
+    private final NotificationService notificationService;
+    private final UserRepository userRepository;
     
     private static final ObjectMapper objectMapper = new ObjectMapper()
             .registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule())
@@ -245,6 +254,73 @@ public class DicomVerifyServiceImpl implements DicomVerifyService {
                     log.error("Failed to delete physical file {}", absolutePath, e);
                 }
             }
+        }
+    }
+
+    @Override
+    @org.springframework.scheduling.annotation.Async
+    public void processVerifiedSessionAsync(java.util.List<Long> savedInstanceIds, String username) {
+        if (savedInstanceIds == null || savedInstanceIds.isEmpty()) {
+            return;
+        }
+
+        Long userId = null;
+        if (username != null) {
+            User user = userRepository.findByUsername(username).orElse(null);
+            if (user != null) {
+                userId = user.getId();
+            }
+        }
+        final Long finalUserId = (userId != null) ? userId : 1L;
+
+        try {
+            AiPredictionRequest aiRequest = new AiPredictionRequest(savedInstanceIds);
+            List<ExaminationDto> aiResultsList = aiService.predictBatch(aiRequest);
+            
+            // Calculate patient statistics based on max_predicted_grade for this specific batch
+            java.util.Map<Long, Integer> patientToMaxGrade = new java.util.HashMap<>();
+            for (ExaminationDto exam : aiResultsList) {
+                if (exam.getPatient() != null && exam.getMaxPredictedGrade() != null) {
+                    Long patId = exam.getPatient().getId();
+                    Integer currentMax = patientToMaxGrade.getOrDefault(patId, -1);
+                    if (exam.getMaxPredictedGrade() > currentMax) {
+                        patientToMaxGrade.put(patId, exam.getMaxPredictedGrade());
+                    }
+                }
+            }
+
+            java.util.Map<Integer, Long> gradeCountMap = new java.util.HashMap<>();
+            for (Integer grade : patientToMaxGrade.values()) {
+                gradeCountMap.put(grade, gradeCountMap.getOrDefault(grade, 0L) + 1);
+            }
+
+            List<PatientGradeStatsDto> statsList = gradeCountMap.entrySet().stream()
+                    .map(entry -> new PatientGradeStatsDto(entry.getKey(), entry.getValue()))
+                    .collect(java.util.stream.Collectors.toList());
+            
+            // Send success notification
+            SendNotificationRequest notifReq = new SendNotificationRequest(
+                    finalUserId,
+                    "Phân tích AI hoàn tất",
+                    "Hệ thống đã phân tích thành công hình ảnh X-Quang từ phiên xác nhận.",
+                    "AI_RESULT",
+                    statsList
+            );
+            notificationService.sendNotification(notifReq);
+
+        } catch (Exception e) {
+            log.error("Error during background AI processing", e);
+            // Send error notification
+            try {
+                SendNotificationRequest errReq = new SendNotificationRequest(
+                        finalUserId,
+                        "Lỗi phân tích AI",
+                        "Đã có lỗi xảy ra trong quá trình phân tích AI.",
+                        "ERROR",
+                        null
+                );
+                notificationService.sendNotification(errReq);
+            } catch (Exception ignored) {}
         }
     }
 }

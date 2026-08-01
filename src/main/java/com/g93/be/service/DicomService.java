@@ -28,6 +28,11 @@ public interface DicomService {
      */
     BatchDicomUploadResponse uploadBatch(List<MultipartFile> files, Long userId);
 
+    BatchDicomUploadResponse uploadBatchFiles(List<MultipartFile> files, String username);
+    BatchDicomUploadResponse uploadZipBatchFile(MultipartFile file, String username);
+    org.springframework.core.io.Resource getInstanceImageResource(Long id);
+    org.springframework.core.io.Resource getInstanceRawResource(Long id);
+
     /**
      * Processes a single zip file containing a batch of patient DICOM zip files asynchronously.
      *
