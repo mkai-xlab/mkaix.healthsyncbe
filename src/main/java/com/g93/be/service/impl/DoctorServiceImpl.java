@@ -1,6 +1,5 @@
 package com.g93.be.service.impl;
 
-
 import com.g93.be.entity.Doctor;
 import com.g93.be.entity.UserStatus;
 import com.g93.be.entity.Image;
@@ -9,9 +8,6 @@ import com.g93.be.dto.CreateDoctorRequest;
 import com.g93.be.dto.DoctorResponse;
 import com.g93.be.dto.PageResponse;
 import com.g93.be.aspect.LogAction;
-import com.g93.be.entity.Doctor;
-import com.g93.be.entity.UserStatus;
-import com.g93.be.entity.Image;
 import com.g93.be.repository.DoctorRepository;
 import com.g93.be.repository.UserRepository;
 import com.g93.be.repository.RoleRepository;
@@ -57,10 +53,11 @@ public class DoctorServiceImpl implements DoctorService {
     private String loginUrl;
 
     @Override
-    public PageResponse<DoctorResponse> searchDoctors(String keyword, String specialization, UserStatus status, Pageable pageable) {
+    public PageResponse<DoctorResponse> searchDoctors(String keyword, String specialization, UserStatus status,
+            Pageable pageable) {
         Specification<Doctor> spec = DoctorSpecification.searchAndFilter(keyword, specialization, status);
         Page<Doctor> doctorPage = doctorRepository.findAll(spec, pageable);
-        
+
         Page<DoctorResponse> responsePage = doctorPage.map(doctorMapper::toResponse);
         return PageResponse.of(responsePage);
     }
@@ -231,7 +228,8 @@ public class DoctorServiceImpl implements DoctorService {
         } catch (IllegalArgumentException exception) {
             path = avatarUrl;
         }
-        if (path == null) return null;
+        if (path == null)
+            return null;
         int separatorIndex = Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\'));
         int dotIndex = path.lastIndexOf('.');
         if (dotIndex <= separatorIndex || dotIndex == path.length() - 1) {

@@ -3,11 +3,8 @@ package com.g93.be.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.g93.be.dto.AiPredictionRequest;
 import com.g93.be.dto.ExaminationDto;
-import com.g93.be.entity.AiResult;
-import com.g93.be.entity.Image;
-import com.g93.be.repository.AiResultRepository;
-import com.g93.be.repository.ImageRepository;
 import com.g93.be.service.AiService;
+import com.g93.be.service.ImageService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -19,11 +16,10 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.core.io.Resource;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -40,10 +36,7 @@ class AiControllerTest {
     private AiService aiService;
 
     @Mock
-    private AiResultRepository aiResultRepository;
-
-    @Mock
-    private ImageRepository imageRepository;
+    private ImageService imageService;
 
     @InjectMocks
     private AiController aiController;
@@ -51,17 +44,8 @@ class AiControllerTest {
     private ObjectMapper objectMapper = new ObjectMapper();
 
     @BeforeEach
-    void setUp() throws Exception {
+    void setUp() {
         mockMvc = MockMvcBuilders.standaloneSetup(aiController).build();
-
-        Path tempDir = Files.createTempDirectory("test_storage");
-        ReflectionTestUtils.setField(aiController, "storageBaseDir", tempDir.toString());
-
-        Path dummyHeatmap = tempDir.resolve("dummy_heatmap.jpg");
-        Files.write(dummyHeatmap, "dummy data".getBytes());
-
-        Path dummyImage = tempDir.resolve("dummy_image.jpg");
-        Files.write(dummyImage, "dummy image data".getBytes());
     }
 
     // --- predictBatch Tests ---
@@ -126,9 +110,8 @@ class AiControllerTest {
 
     @Test
     void testGetHeatmapImage_Normal() throws Exception {
-        AiResult result = new AiResult();
-        result.setStorageHeatmapFilePath("dummy_heatmap.jpg");
-        when(aiResultRepository.findById(1L)).thenReturn(Optional.of(result));
+        Resource dummyResource = new ByteArrayResource("dummy data".getBytes());
+        when(aiService.getHeatmapImageResource(1L)).thenReturn(dummyResource);
 
         mockMvc.perform(get("/ai/heatmap/1"))
                 .andExpect(status().isOk())
@@ -138,9 +121,7 @@ class AiControllerTest {
 
     @Test
     void testGetHeatmapImage_Abnormal_FileNotFound() throws Exception {
-        AiResult result = new AiResult();
-        result.setStorageHeatmapFilePath("non_existent_heatmap.jpg");
-        when(aiResultRepository.findById(2L)).thenReturn(Optional.of(result));
+        when(aiService.getHeatmapImageResource(2L)).thenReturn(null);
 
         mockMvc.perform(get("/ai/heatmap/2"))
                 .andExpect(status().isNotFound());
@@ -148,9 +129,7 @@ class AiControllerTest {
 
     @Test
     void testGetHeatmapImage_Abnormal_PathIsNull() throws Exception {
-        AiResult result = new AiResult();
-        result.setStorageHeatmapFilePath(null);
-        when(aiResultRepository.findById(3L)).thenReturn(Optional.of(result));
+        when(aiService.getHeatmapImageResource(3L)).thenReturn(null);
 
         mockMvc.perform(get("/ai/heatmap/3"))
                 .andExpect(status().isNotFound());
@@ -158,7 +137,7 @@ class AiControllerTest {
 
     @Test
     void testGetHeatmapImage_Abnormal_ResultNotFound() throws Exception {
-        when(aiResultRepository.findById(99L)).thenReturn(Optional.empty());
+        when(aiService.getHeatmapImageResource(99L)).thenReturn(null);
 
         mockMvc.perform(get("/ai/heatmap/99"))
                 .andExpect(status().isNotFound());
@@ -174,9 +153,8 @@ class AiControllerTest {
 
     @Test
     void testGetImage_Normal() throws Exception {
-        Image image = new Image();
-        image.setFilePath("dummy_image.jpg");
-        when(imageRepository.findById(1L)).thenReturn(Optional.of(image));
+        Resource dummyResource = new ByteArrayResource("dummy image data".getBytes());
+        when(imageService.getImageResource(1L)).thenReturn(dummyResource);
 
         mockMvc.perform(get("/ai/image/1"))
                 .andExpect(status().isOk())
@@ -186,9 +164,7 @@ class AiControllerTest {
 
     @Test
     void testGetImage_Abnormal_FileNotFound() throws Exception {
-        Image image = new Image();
-        image.setFilePath("non_existent_image.jpg");
-        when(imageRepository.findById(2L)).thenReturn(Optional.of(image));
+        when(imageService.getImageResource(2L)).thenReturn(null);
 
         mockMvc.perform(get("/ai/image/2"))
                 .andExpect(status().isNotFound());
@@ -196,7 +172,7 @@ class AiControllerTest {
 
     @Test
     void testGetImage_Abnormal_ImageNotFound() throws Exception {
-        when(imageRepository.findById(99L)).thenReturn(Optional.empty());
+        when(imageService.getImageResource(99L)).thenReturn(null);
 
         mockMvc.perform(get("/ai/image/99"))
                 .andExpect(status().isNotFound());
