@@ -20,6 +20,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import com.g93.be.entity.ExaminationStatus;
+import com.g93.be.entity.AuditLog;
+import com.g93.be.repository.AuditLogRepository;
 
 @Service
 @RequiredArgsConstructor
@@ -31,6 +33,7 @@ public class PatientServiceImpl implements PatientService {
     private final DicomInstanceRepository dicomInstanceRepository;
     private final UserRepository userRepository;
     private final PatientMapper patientMapper;
+    private final AuditLogRepository auditLogRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -46,6 +49,9 @@ public class PatientServiceImpl implements PatientService {
         String keyword = null;
         if (filter.getKeyword() != null && !filter.getKeyword().isBlank()) {
             keyword = filter.getKeyword().trim();
+            if (keyword.length() < 2) {
+                throw new IllegalArgumentException("Từ khóa tìm kiếm phải từ 2 ký tự trở lên!");
+            }
         }
 
         boolean hasStatuses = filter.getStatuses() != null && !filter.getStatuses().isEmpty();
@@ -148,14 +154,34 @@ public class PatientServiceImpl implements PatientService {
 
     @Override
     @Transactional(readOnly = true)
-    public PatientDetailsResponse getPatientDetailsWithImages(String patientId) {
+    public PatientDetailsResponse getPatientDetailsWithImages(String patientId, String username) {
         Patient patient = patientRepository.findByPatientCode(patientId)
                 .orElseThrow(() -> new IllegalArgumentException("Patient with code " + patientId + " not found"));
+
+        User user = null;
+        if (username != null) {
+            user = userRepository.findByUsername(username).orElse(null);
+        }
+        
+        if (user != null && user.getRole() != null && "DOCTOR".equals(user.getRole().getCode())) {
+            boolean hasAccess = examinationRepository.existsByPatientIdAndDoctorId(patient.getId(), user.getId());
+            if (!hasAccess) {
+                throw new IllegalArgumentException("Bạn không có quyền truy cập hồ sơ thuộc cơ sở này.");
+            }
+        }
+
+        if (user != null) {
+            AuditLog logEntry = new AuditLog();
+            logEntry.setUser(user);
+            logEntry.setTitle("View Patient History");
+            logEntry.setDescription("Viewed patient history for patient UUID: " + patient.getPatientCode());
+            auditLogRepository.save(logEntry);
+        }
 
         PatientDetailsResponse pdr = new PatientDetailsResponse();
         pdr.setPatient(patientMapper.toResponse(patient));
 
-        List<Examination> examinations = examinationRepository.findByPatientId(patient.getId());
+        List<Examination> examinations = examinationRepository.findByPatientIdOrderByCreatedAtDesc(patient.getId());
         List<ExaminationDto> examDtos = new ArrayList<>();
 
         String baseUrl = org.springframework.web.servlet.support.ServletUriComponentsBuilder.fromCurrentContextPath()

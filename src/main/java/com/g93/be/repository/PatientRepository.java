@@ -26,14 +26,14 @@ public interface PatientRepository extends JpaRepository<Patient, Long>, JpaSpec
     @org.springframework.data.jpa.repository.Query(
         value = "SELECT p FROM Patient p " +
                 "LEFT JOIN Examination e1 ON e1.patient = p AND e1.id = (SELECT MAX(e2.id) FROM Examination e2 WHERE e2.patient = p) " +
-                "WHERE (:keyword IS NULL OR LOWER(p.fullName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(p.patientCode) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
+                "WHERE (:keyword IS NULL OR LOWER(p.fullName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(p.patientCode) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(p.phone) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
                 "AND (:hasStatuses = false OR (e1 IS NOT NULL AND e1.status IN :statuses)) " +
                 "AND (:hasSeverities = false OR (e1 IS NOT NULL AND e1.maxPredictedGrade IN :severities)) " +
                 "AND (:doctorId IS NULL OR EXISTS (SELECT 1 FROM Examination e3 WHERE e3.patient = p AND e3.doctor.id = :doctorId)) " +
                 "ORDER BY COALESCE(e1.maxPredictedGrade, -1) DESC, COALESCE(e1.createdAt, p.updatedAt, p.createdAt) DESC",
         countQuery = "SELECT COUNT(p) FROM Patient p " +
                 "LEFT JOIN Examination e1 ON e1.patient = p AND e1.id = (SELECT MAX(e2.id) FROM Examination e2 WHERE e2.patient = p) " +
-                "WHERE (:keyword IS NULL OR LOWER(p.fullName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(p.patientCode) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
+                "WHERE (:keyword IS NULL OR LOWER(p.fullName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(p.patientCode) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(p.phone) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
                 "AND (:hasStatuses = false OR (e1 IS NOT NULL AND e1.status IN :statuses)) " +
                 "AND (:hasSeverities = false OR (e1 IS NOT NULL AND e1.maxPredictedGrade IN :severities)) " +
                 "AND (:doctorId IS NULL OR EXISTS (SELECT 1 FROM Examination e3 WHERE e3.patient = p AND e3.doctor.id = :doctorId))"
