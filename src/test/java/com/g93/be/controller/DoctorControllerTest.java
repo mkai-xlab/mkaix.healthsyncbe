@@ -87,7 +87,7 @@ class DoctorControllerTest {
     void testCreateDoctor_Abnormal_NoBody() throws Exception {
         mockMvc.perform(post("/doctors")
                 .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isInternalServerError());
+                .andExpect(status().isBadRequest());
     }
 
     @Test
@@ -217,7 +217,7 @@ class DoctorControllerTest {
     void testEditDoctor_Abnormal_NoBody() throws Exception {
         mockMvc.perform(put("/doctors/1")
                 .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isInternalServerError());
+                .andExpect(status().isBadRequest());
     }
 
     @Test
