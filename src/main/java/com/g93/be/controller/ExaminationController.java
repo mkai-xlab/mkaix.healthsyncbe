@@ -35,6 +35,7 @@ public class ExaminationController {
      * @return A paginated list of examinations.
      */
     @GetMapping
+    @PreAuthorize("hasAnyRole('DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT')")
     public ResponseEntity<PageResponse<ExaminationDto>> getAllExaminations(
             @PageableDefault(size = 10) Pageable pageable) {
         log.info("Received request to get all examinations");
@@ -42,7 +43,7 @@ public class ExaminationController {
     }
 
     @GetMapping("/sort/study-date")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasAnyRole('DOCTOR', 'DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT')")
     public ResponseEntity<PageResponse<ExaminationDto>> getExaminationsSortedByStudyDate(
             @RequestParam(defaultValue = "desc") String direction,
             java.security.Principal principal,
@@ -52,7 +53,7 @@ public class ExaminationController {
     }
 
     @GetMapping("/sort/upload-date")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasAnyRole('DOCTOR', 'DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT')")
     public ResponseEntity<PageResponse<ExaminationDto>> getExaminationsSortedByUploadDate(
             @RequestParam(defaultValue = "desc") String direction,
             java.security.Principal principal,
@@ -62,7 +63,7 @@ public class ExaminationController {
     }
 
     @GetMapping("/filter/study-date")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasAnyRole('DOCTOR', 'DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT')")
     public ResponseEntity<PageResponse<ExaminationDto>> getExaminationsFilteredByStudyDate(
             @RequestParam @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate date,
             java.security.Principal principal,
@@ -72,7 +73,7 @@ public class ExaminationController {
     }
 
     @GetMapping("/filter/upload-date")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasAnyRole('DOCTOR', 'DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT')")
     public ResponseEntity<PageResponse<ExaminationDto>> getExaminationsFilteredByUploadDate(
             @RequestParam @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate date,
             java.security.Principal principal,
@@ -88,6 +89,7 @@ public class ExaminationController {
      * @return The examination details.
      */
     @GetMapping("/{id}")
+    @PreAuthorize("(hasAnyRole('DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT') or (hasRole('DOCTOR') and hasAuthority('VIEW_PENDING_DIAGNOSIS'))) and @accessControl.canAccessExamination(#p0, authentication)")
     public ResponseEntity<ExaminationDto> getExaminationById(@PathVariable Long id) {
         log.info("Received request to get examination with id: {}", id);
         return ResponseEntity.ok(examinationService.getExaminationById(id));
@@ -101,6 +103,7 @@ public class ExaminationController {
      * @return A paginated list of examinations for the doctor.
      */
     @GetMapping("/doctor/{doctorId}")
+    @PreAuthorize("@accessControl.canAccessDoctor(#p0, authentication)")
     public ResponseEntity<PageResponse<ExaminationDto>> getExaminationsByDoctorId(
             @PathVariable Long doctorId,
             @PageableDefault(size = 10) Pageable pageable) {
@@ -116,6 +119,7 @@ public class ExaminationController {
      * @return A paginated list of examinations for the patient.
      */
     @GetMapping("/patient/{patientId}")
+    @PreAuthorize("hasAnyRole('DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT')")
     public ResponseEntity<PageResponse<ExaminationDto>> getExaminationsByPatientId(
             @PathVariable Long patientId,
             @PageableDefault(size = 10) Pageable pageable) {
@@ -133,7 +137,7 @@ public class ExaminationController {
      * @return A paginated list of examinations for the patient in the given month.
      */
     @GetMapping("/patient/{patientId}/filter/study-month")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasAnyRole('DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT')")
     public ResponseEntity<PageResponse<ExaminationDto>> getExaminationsByPatientIdAndStudyMonth(
             @PathVariable Long patientId,
             @RequestParam int year,
@@ -152,7 +156,7 @@ public class ExaminationController {
      * @return A paginated list of examinations matching the status.
      */
     @GetMapping("/status")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasAnyRole('DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT') or (hasRole('DOCTOR') and hasAuthority('VIEW_PENDING_DIAGNOSIS'))")
     public ResponseEntity<PageResponse<ExaminationDto>> getExaminationsByStatus(
             @RequestParam ExaminationStatus status,
             java.security.Principal principal,
@@ -170,7 +174,7 @@ public class ExaminationController {
      * @return A paginated list of examinations matching the grade.
      */
     @GetMapping("/grade")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasAnyRole('DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT') or (hasRole('DOCTOR') and hasAuthority('VIEW_PENDING_DIAGNOSIS'))")
     public ResponseEntity<PageResponse<ExaminationDto>> getExaminationsByGrade(
             @RequestParam Integer grade,
             java.security.Principal principal,
@@ -186,7 +190,7 @@ public class ExaminationController {
      * @return A list of patient grade statistics.
      */
     @GetMapping("/statistics/patients-by-grade")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasAnyRole('DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT') or (hasRole('DOCTOR') and hasAuthority('VIEW_ANALYTIC_HISTORY'))")
     public ResponseEntity<java.util.List<PatientGradeStatsDto>> getPatientGradeStatistics(
             java.security.Principal principal) {
         log.info("Received request to get patient grade statistics for user: {}", principal.getName());
@@ -200,6 +204,7 @@ public class ExaminationController {
      * @return 200 OK.
      */
     @PutMapping("/{id}/view")
+    @PreAuthorize("@accessControl.canAccessExamination(#p0, authentication)")
     public ResponseEntity<Void> markAsViewed(@PathVariable Long id) {
         log.info("Received request to mark examination {} as viewed", id);
         examinationService.markAsViewed(id);
@@ -213,7 +218,7 @@ public class ExaminationController {
      * @return The total number of examinations.
      */
     @GetMapping("/total")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("@accessControl.canAccessUser(#p0, authentication)")
     public ResponseEntity<Long> getTotalExaminations(@RequestParam Long userId) {
         log.info("Received request to get total examinations for user id: {}", userId);
         return ResponseEntity.ok(examinationService.getTotalExaminations(userId));
@@ -226,7 +231,7 @@ public class ExaminationController {
      * @return The total number of severe examinations.
      */
     @GetMapping("/total-severe")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("@accessControl.canAccessUser(#p0, authentication)")
     public ResponseEntity<Long> getTotalSevereExaminations(@RequestParam Long userId) {
         log.info("Received request to get total severe examinations for user id: {}", userId);
         return ResponseEntity.ok(examinationService.getTotalSevereExaminations(userId));
@@ -239,7 +244,7 @@ public class ExaminationController {
      * @return The total number of verified examinations.
      */
     @GetMapping("/total-verified")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("@accessControl.canAccessUser(#p0, authentication)")
     public ResponseEntity<Long> getTotalVerifiedExaminations(@RequestParam Long userId) {
         log.info("Received request to get total verified examinations for user id: {}", userId);
         return ResponseEntity.ok(examinationService.getTotalVerifiedExaminations(userId));
@@ -252,7 +257,7 @@ public class ExaminationController {
      * @return The total number of unverified examinations.
      */
     @GetMapping("/total-unverified")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("@accessControl.canAccessUser(#p0, authentication)")
     public ResponseEntity<Long> getTotalUnverifiedExaminations(@RequestParam Long userId) {
         log.info("Received request to get total unverified examinations for user id: {}", userId);
         return ResponseEntity.ok(examinationService.getTotalUnverifiedExaminations(userId));
@@ -262,7 +267,7 @@ public class ExaminationController {
      * Retrieves total examinations based on user role (from access token).
      */
     @GetMapping("/my-total")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasAnyRole('DOCTOR', 'DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT')")
     public ResponseEntity<Long> getMyTotalExaminations() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String userEmail = (String) authentication.getPrincipal();
@@ -276,7 +281,7 @@ public class ExaminationController {
      * Retrieves total severe examinations based on user role (from access token).
      */
     @GetMapping("/my-total-severe")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasAnyRole('DOCTOR', 'DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT')")
     public ResponseEntity<Long> getMyTotalSevereExaminations() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String userEmail = (String) authentication.getPrincipal();
@@ -290,7 +295,7 @@ public class ExaminationController {
      * Retrieves total verified examinations based on user role (from access token).
      */
     @GetMapping("/my-total-verified")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasAnyRole('DOCTOR', 'DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT')")
     public ResponseEntity<Long> getMyTotalVerifiedExaminations() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String userEmail = (String) authentication.getPrincipal();
@@ -304,7 +309,7 @@ public class ExaminationController {
      * Retrieves total unverified examinations based on user role (from access token).
      */
     @GetMapping("/my-total-unverified")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasAnyRole('DOCTOR', 'DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT')")
     public ResponseEntity<Long> getMyTotalUnverifiedExaminations() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String userEmail = (String) authentication.getPrincipal();

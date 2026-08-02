@@ -248,11 +248,9 @@ public class SecurityAndRbacIntegrationTest {
 
         @Test
         void testAuthenticatedEndpoints_AccessDeniedWithoutToken() throws Exception {
-                // Accessing notification endpoint without token throws AccessDeniedException,
-                // which is handled by GlobalExceptionHandler and mapped to 403 Forbidden.
+                // Spring Security rejects the request in the filter chain before a controller is invoked.
                 mockMvc.perform(get("/notifications/unread"))
-                                .andExpect(status().isForbidden())
-                                .andExpect(jsonPath("$.message", containsString("Bạn không có quyền truy cập tính năng này")));
+                                .andExpect(status().isForbidden());
         }
 
         @Test

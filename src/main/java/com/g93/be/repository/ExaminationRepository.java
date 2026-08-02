@@ -21,6 +21,9 @@ public interface ExaminationRepository extends JpaRepository<Examination, Long> 
     @Query("select e from Examination e where e.id = :id")
     Optional<Examination> findByIdForUpdate(@Param("id") Long id);
 
+    @Query("select e.doctor.id from Examination e where e.id = :id")
+    Optional<Long> findAssignedDoctorIdById(@Param("id") Long id);
+
     List<Examination> findByPatientId(Long patientId);
     Page<Examination> findByPatientId(Long patientId, Pageable pageable);
     Page<Examination> findByDoctorId(Long doctorId, Pageable pageable);

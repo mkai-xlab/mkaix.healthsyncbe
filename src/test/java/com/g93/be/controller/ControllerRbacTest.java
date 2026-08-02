@@ -1,10 +1,15 @@
 package com.g93.be.controller;
 
 import com.g93.be.dto.CreateFeatureRequest;
+import com.g93.be.dto.CreatePermissionRequest;
 import com.g93.be.dto.DoctorResponse;
 import com.g93.be.dto.FeatureResponse;
 import com.g93.be.dto.PageResponse;
+import com.g93.be.dto.PermissionResponse;
 import com.g93.be.dto.ReportResponse;
+import com.g93.be.dto.UpdateFeatureRequest;
+import com.g93.be.dto.UpdatePermissionRequest;
+import com.g93.be.dto.UpdateRolePermissionsRequest;
 import com.g93.be.service.DoctorService;
 import com.g93.be.service.PdfExportService;
 import com.g93.be.service.PermissionService;
@@ -77,6 +82,26 @@ class ControllerRbacTest {
 
     @Test
     @WithMockUser(roles = "ADMIN")
+    void adminCanUpdateFeature() {
+        UpdateFeatureRequest request = new UpdateFeatureRequest("Clinical reports", "Updated");
+        FeatureResponse response = new FeatureResponse(10L, "Clinical reports", "Updated", List.of());
+        when(permissionService.updateFeature(10L, request)).thenReturn(response);
+
+        assertEquals(response, featureController.updateFeature(10L, request).getBody());
+        verify(permissionService).updateFeature(10L, request);
+    }
+
+    @Test
+    @WithMockUser(roles = "DOCTOR")
+    void doctorCannotUpdateFeature() {
+        UpdateFeatureRequest request = new UpdateFeatureRequest("Clinical reports", "Updated");
+
+        assertThrows(AccessDeniedException.class,
+                () -> featureController.updateFeature(10L, request));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
     void adminCanDeleteFeature() {
         assertEquals(204, featureController.deleteFeature(10L).getStatusCode().value());
         verify(permissionService).deleteFeature(10L);
@@ -103,6 +128,107 @@ class ControllerRbacTest {
 
     @Test
     @WithMockUser(roles = "ADMIN")
+    void adminCanGetPermissionTree() {
+        FeatureResponse feature = new FeatureResponse(10L, "Reports", "Reports", List.of());
+        when(permissionService.getPermissionTree()).thenReturn(List.of(feature));
+
+        assertEquals(List.of(feature), permissionController.getPermissionTree().getBody());
+        verify(permissionService).getPermissionTree();
+    }
+
+    @Test
+    @WithMockUser(roles = "DOCTOR")
+    void doctorCannotGetPermissionTree() {
+        assertThrows(AccessDeniedException.class, permissionController::getPermissionTree);
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void adminCanGetRolePermissions() {
+        when(permissionService.getRolePermissions("DOCTOR")).thenReturn(List.of(20L, 21L));
+
+        assertEquals(List.of(20L, 21L),
+                permissionController.getRolePermissions("DOCTOR").getBody());
+        verify(permissionService).getRolePermissions("DOCTOR");
+    }
+
+    @Test
+    @WithMockUser(roles = "DOCTOR")
+    void doctorCannotGetRolePermissions() {
+        assertThrows(AccessDeniedException.class,
+                () -> permissionController.getRolePermissions("DOCTOR"));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void adminCanUpdateRolePermissions() {
+        UpdateRolePermissionsRequest request = new UpdateRolePermissionsRequest(List.of(20L, 21L));
+
+        assertEquals(200,
+                permissionController.updateRolePermissions("DOCTOR", request).getStatusCode().value());
+        verify(permissionService).updateRolePermissions("DOCTOR", request);
+    }
+
+    @Test
+    @WithMockUser(roles = "DOCTOR")
+    void doctorCannotUpdateRolePermissions() {
+        UpdateRolePermissionsRequest request = new UpdateRolePermissionsRequest(List.of(20L));
+
+        assertThrows(AccessDeniedException.class,
+                () -> permissionController.updateRolePermissions("DOCTOR", request));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void adminCanCreatePermission() {
+        CreatePermissionRequest request = new CreatePermissionRequest(
+                "VIEW_REPORT", "View report", 1, "View", 10L, null);
+        PermissionResponse response = new PermissionResponse(
+                20L, "VIEW_REPORT", "View report", 1, "View", null);
+        when(permissionService.createPermission(request)).thenReturn(response);
+
+        var controllerResponse = permissionController.createPermission(request);
+
+        assertEquals(201, controllerResponse.getStatusCode().value());
+        assertEquals(response, controllerResponse.getBody());
+        verify(permissionService).createPermission(request);
+    }
+
+    @Test
+    @WithMockUser(roles = "DOCTOR")
+    void doctorCannotCreatePermission() {
+        CreatePermissionRequest request = new CreatePermissionRequest(
+                "VIEW_REPORT", "View report", 1, "View", 10L, null);
+
+        assertThrows(AccessDeniedException.class,
+                () -> permissionController.createPermission(request));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void adminCanUpdatePermission() {
+        UpdatePermissionRequest request = new UpdatePermissionRequest(
+                "VIEW_REPORT", "View updated", 2, "View", null);
+        PermissionResponse response = new PermissionResponse(
+                20L, "VIEW_REPORT", "View updated", 2, "View", null);
+        when(permissionService.updatePermission(20L, request)).thenReturn(response);
+
+        assertEquals(response, permissionController.updatePermission(20L, request).getBody());
+        verify(permissionService).updatePermission(20L, request);
+    }
+
+    @Test
+    @WithMockUser(roles = "DOCTOR")
+    void doctorCannotUpdatePermission() {
+        UpdatePermissionRequest request = new UpdatePermissionRequest(
+                "VIEW_REPORT", "View updated", 2, "View", null);
+
+        assertThrows(AccessDeniedException.class,
+                () -> permissionController.updatePermission(20L, request));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
     void adminCanActivateDoctor() {
         assertDoesNotThrow(() -> doctorController.activateDoctor(7L));
         verify(doctorService).activateDoctor(7L);
@@ -125,7 +251,7 @@ class ControllerRbacTest {
     }
 
     @Test
-    @WithMockUser(authorities = "GENERATE_PDF_REPORT")
+    @WithMockUser(authorities = {"ROLE_DOCTOR", "GENERATE_PDF_REPORT"})
     void userWithPdfAuthorityCanGenerateReport() {
         ReportResponse response = new ReportResponse(
                 9L, 42L, "report.pdf", 100L, "application/pdf", LocalDateTime.now(),
@@ -137,14 +263,14 @@ class ControllerRbacTest {
     }
 
     @Test
-    @WithMockUser(roles = "ADMIN")
-    void roleWithoutPdfAuthorityCannotGenerateReport() {
+    @WithMockUser(authorities = {"ROLE_ADMIN", "GENERATE_PDF_REPORT"})
+    void adminCannotGenerateReportEvenWithStaleClinicalPermission() {
         assertThrows(AccessDeniedException.class,
                 () -> reportController.generatePdfReport(42L, () -> "admin"));
     }
 
     @Test
-    @WithMockUser(authorities = "GENERATE_PDF_REPORT")
+    @WithMockUser(authorities = {"ROLE_DOCTOR", "GENERATE_PDF_REPORT"})
     void userWithGenerateAuthorityCanPreviewReport() {
         when(pdfExportService.getReportFileByExaminationId(9L, "doctor")).thenReturn(reportFile());
 
@@ -153,7 +279,7 @@ class ControllerRbacTest {
     }
 
     @Test
-    @WithMockUser(authorities = "EXPORT_DOWNLOAD_PDF")
+    @WithMockUser(authorities = {"ROLE_DOCTOR", "EXPORT_DOWNLOAD_PDF"})
     void userWithDownloadAuthorityCanDownloadReport() {
         when(pdfExportService.getReportFileByExaminationId(9L, "doctor")).thenReturn(reportFile());
 
@@ -162,7 +288,7 @@ class ControllerRbacTest {
     }
 
     @Test
-    @WithMockUser(authorities = "GENERATE_PDF_REPORT")
+    @WithMockUser(authorities = {"ROLE_DOCTOR", "GENERATE_PDF_REPORT"})
     void generateAuthorityAloneCannotDownloadReport() {
         assertThrows(AccessDeniedException.class,
                 () -> reportController.downloadReport(9L, () -> "doctor"));

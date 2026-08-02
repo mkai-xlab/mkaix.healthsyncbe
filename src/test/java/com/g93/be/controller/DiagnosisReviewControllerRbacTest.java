@@ -96,6 +96,13 @@ class DiagnosisReviewControllerRbacTest {
         verify(diagnosisReviewService).confirmAiGrade(19L, "doctor.b");
     }
 
+    @Test
+    @WithMockUser(authorities = {"ROLE_ADMIN", "CONFIRM_CONCLUSION"})
+    void adminCannotConfirmAiGradeEvenWithStaleClinicalPermission() {
+        assertThrows(AccessDeniedException.class,
+                () -> controller.confirmAiGrade(19L, () -> "admin"));
+    }
+
     @Configuration(proxyBeanMethods = false)
     @EnableMethodSecurity
     static class SecurityTestConfig {
