@@ -1,4 +1,4 @@
-﻿package com.g93.be.service.impl;
+package com.g93.be.service.impl;
 
 import com.g93.be.dto.BatchDicomUploadResponse;
 import com.g93.be.dto.FileUploadError;
