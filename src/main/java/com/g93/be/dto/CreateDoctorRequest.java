@@ -23,8 +23,7 @@ public class CreateDoctorRequest {
     private String email;
     
     @NotBlank(message = "Phone number cannot be blank")
-    @jakarta.validation.constraints.Pattern(regexp = "^\\d+$", message = "Phone must contain only numbers")
-    @jakarta.validation.constraints.Size(max = 20, message = "Phone must not exceed 20 characters")
+    @jakarta.validation.constraints.Pattern(regexp = "^\\d{10}$", message = "Phone must be exactly 10 digits")
     private String phone;
     
     private String avatarUrl;
