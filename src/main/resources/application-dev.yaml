@@ -10,6 +10,8 @@ spring:
     properties:
       hibernate:
         show_sql: false
+        default_catalog: ${DB_NAME:capstone}
+        default_schema: ${DB_NAME:capstone}
 
   data:
     redis:
