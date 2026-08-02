@@ -62,16 +62,7 @@ public class DicomServiceImpl implements DicomService {
     @Value("${app.storage.base-dir:D:/Capstone/data}")
     private String storageBaseDir;
 
-    @jakarta.annotation.PostConstruct
-    public void fixDbEnum() {
-        try (java.sql.Connection conn = dataSource.getConnection()) {
-            java.sql.Statement stmt = conn.createStatement();
-            stmt.executeUpdate("ALTER TABLE examinations MODIFY COLUMN status VARCHAR(255) NOT NULL");
-            log.info("Successfully altered examinations.status to VARCHAR(255)");
-        } catch (Exception e) {
-            log.warn("Could not alter examinations table: {}", e.getMessage());
-        }
-    }
+
 
     @Override
     public List<DicomTagResponse> extractMetadata(MultipartFile file) {

@@ -22,6 +22,9 @@ spring:
     open-in-view: false
     properties:
       hibernate:
+        default_catalog: ${DB_NAME:capstone}
+        default_schema: ${DB_NAME:capstone}
+        format_sql: true
 
   data:
     redis:
