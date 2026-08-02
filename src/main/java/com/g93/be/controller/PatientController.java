@@ -98,8 +98,8 @@ public class PatientController {
      */
     @GetMapping("/{patientId}/details")
     @PreAuthorize("hasAuthority('VIEW_PATIENT_DETAIL')")
-    public ResponseEntity<PatientDetailsResponse> getPatientDetailsWithImages(@PathVariable String patientId) {
-        return ResponseEntity.ok(patientService.getPatientDetailsWithImages(patientId));
+    public ResponseEntity<PatientDetailsResponse> getPatientDetailsWithImages(@PathVariable String patientId, java.security.Principal principal) {
+        return ResponseEntity.ok(patientService.getPatientDetailsWithImages(patientId, principal.getName()));
     }
 
     /**

@@ -146,18 +146,18 @@ class PatientControllerTest {
 
     @Test
     void testGetPatientDetailsWithImages_Normal() throws Exception {
-        when(patientService.getPatientDetailsWithImages("PT123")).thenReturn(patientDetailsResponse);
+        when(patientService.getPatientDetailsWithImages(eq("PT123"), any())).thenReturn(patientDetailsResponse);
 
-        mockMvc.perform(get("/patients/PT123/details"))
+        mockMvc.perform(get("/patients/PT123/details").principal(() -> "testuser"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.patient.patientCode").value("PT123"));
     }
 
     @Test
     void testGetPatientDetailsWithImages_Abnormal_PatientNotFound() throws Exception {
-        when(patientService.getPatientDetailsWithImages("PT999")).thenThrow(new IllegalArgumentException("Patient not found"));
+        when(patientService.getPatientDetailsWithImages(eq("PT999"), any())).thenThrow(new IllegalArgumentException("Patient not found"));
 
-        mockMvc.perform(get("/patients/PT999/details"))
+        mockMvc.perform(get("/patients/PT999/details").principal(() -> "testuser"))
                 .andExpect(status().isBadRequest());
     }
 }
