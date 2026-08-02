@@ -68,24 +68,28 @@ class ExaminationControllerTest {
     // ==========================================
 
     @Test
-    @org.springframework.security.test.context.support.WithMockUser(username = "testUser")
     void testGetExaminationById_Normal() throws Exception {
         ExaminationDto mockDto = new ExaminationDto();
         mockDto.setExaminationId(1L);
         Mockito.when(examinationService.getExaminationById(1L, "testUser")).thenReturn(mockDto);
 
-        mockMvc.perform(get("/examinations/1"))
+        java.security.Principal mockPrincipal = Mockito.mock(java.security.Principal.class);
+        Mockito.when(mockPrincipal.getName()).thenReturn("testUser");
+
+        mockMvc.perform(get("/examinations/1").principal(mockPrincipal))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.examinationId").value(1L));
     }
 
     @Test
-    @org.springframework.security.test.context.support.WithMockUser(username = "testUser")
     void testGetExaminationById_Abnormal_NotFound() throws Exception {
         Mockito.when(examinationService.getExaminationById(999L, "testUser"))
                 .thenThrow(new IllegalArgumentException("Examination with id 999 not found"));
 
-        mockMvc.perform(get("/examinations/999"))
+        java.security.Principal mockPrincipal = Mockito.mock(java.security.Principal.class);
+        Mockito.when(mockPrincipal.getName()).thenReturn("testUser");
+
+        mockMvc.perform(get("/examinations/999").principal(mockPrincipal))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("Examination with id 999 not found"));
     }

@@ -45,7 +45,9 @@ class AiControllerTest {
 
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(aiController).build();
+        mockMvc = org.springframework.test.web.servlet.setup.MockMvcBuilders.standaloneSetup(aiController)
+                .setControllerAdvice(new com.g93.be.exception.GlobalExceptionHandler())
+                .build();
     }
 
     // --- predictBatch Tests ---
