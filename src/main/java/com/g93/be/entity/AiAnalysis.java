@@ -31,6 +31,9 @@ public class AiAnalysis {
     @Column(name = "token", length = 255)
     private String token;
 
+    @Column(name = "error_message", length = 500)
+    private String errorMessage;
+
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "dicom_instance_id", nullable = false)
     private DicomInstance dicomInstance;
