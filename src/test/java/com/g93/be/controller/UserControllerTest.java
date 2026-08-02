@@ -72,7 +72,7 @@ class UserControllerTest {
     void testCreateUser_Abnormal_NoBody() throws Exception {
         mockMvc.perform(post("/users")
                 .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isInternalServerError()); // GlobalExceptionHandler maps unhandled HttpMessageNotReadableException to 500
+                .andExpect(status().isBadRequest()); // GlobalExceptionHandler maps unhandled HttpMessageNotReadableException to 400
     }
 
     // --- Validation Tests ---
