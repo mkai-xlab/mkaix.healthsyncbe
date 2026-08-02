@@ -42,6 +42,27 @@ import java.util.List;
 import com.g93.be.dto.SendNotificationRequest;
 import org.springframework.beans.factory.annotation.Value;
 import javax.sql.DataSource;
+import java.util.Map;
+import java.util.LinkedHashMap;
+import java.util.UUID;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.nio.file.Files;
+import java.util.stream.Collectors;
+import java.util.Comparator;
+import java.io.File;
+import java.util.zip.ZipInputStream;
+import java.util.zip.ZipEntry;
+import java.nio.file.StandardCopyOption;
+import java.util.Set;
+import java.util.HashSet;
+import java.util.HashMap;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.Collections;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import org.dcm4che3.data.Tag;
 
 @Service
 @Slf4j
@@ -74,7 +95,7 @@ public class DicomServiceImpl implements DicomService {
     @Override
     @org.springframework.transaction.annotation.Transactional
     public BatchDicomUploadResponse uploadBatch(List<MultipartFile> files, Long userId) {
-        java.util.Map<String, Path> filePaths = new java.util.LinkedHashMap<>();
+        Map<String, Path> filePaths = new LinkedHashMap<>();
         List<Path> tempFilesToClean = new ArrayList<>();
         List<FileUploadError> earlyErrors = new ArrayList<>();
         long totalSize = 0;
@@ -99,7 +120,7 @@ public class DicomServiceImpl implements DicomService {
                 filePaths.put(originalFilename, tempFile);
                 tempFilesToClean.add(tempFile);
             }
-            String uploadSessionId = java.util.UUID.randomUUID().toString();
+            String uploadSessionId = UUID.randomUUID().toString();
             BatchDicomUploadResponse response = processBatchPaths(filePaths, userId, uploadSessionId);
             response.getErrors().addAll(earlyErrors);
             
@@ -132,7 +153,7 @@ public class DicomServiceImpl implements DicomService {
                 log.setUser(user);
                 log.setTitle(title);
                 log.setDescription(description);
-                log.setTimeStamp(java.time.LocalDateTime.now());
+                log.setTimeStamp(LocalDateTime.now());
                 auditLogRepository.save(log);
             } catch (Exception e) {
                 log.error("Failed to save audit log", e);
@@ -150,6 +171,12 @@ public class DicomServiceImpl implements DicomService {
         return 1L; // Fallback
     }
 
+    /**
+     * Xử lý tải lên một mẻ nhiều file DICOM độc lập.
+     * @param files Danh sách các file DICOM được gửi từ client.
+     * @param username Tên đăng nhập của người dùng thực hiện tải lên.
+     * @return BatchDicomUploadResponse chứa thông tin uploadSessionId và kết quả phân tích sơ bộ.
+     */
     @Override
     public BatchDicomUploadResponse uploadBatchFiles(List<MultipartFile> files, String username) {
         if (files == null || files.isEmpty()) {
@@ -159,6 +186,12 @@ public class DicomServiceImpl implements DicomService {
         return uploadBatch(files, userId);
     }
 
+    /**
+     * Xử lý tải lên một file nén (.zip) chứa nhiều file DICOM bên trong.
+     * @param file File nén (.zip) chứa các file DICOM.
+     * @param username Tên đăng nhập của bác sĩ đang thực hiện thao tác.
+     * @return BatchDicomUploadResponse chứa uploadSessionId để frontend có thể theo dõi.
+     */
     @Override
     public BatchDicomUploadResponse uploadZipBatchFile(MultipartFile file, String username) {
         if (file == null || file.isEmpty()) {
@@ -177,13 +210,13 @@ public class DicomServiceImpl implements DicomService {
                 Files.deleteIfExists(tempZipFile);
                 BatchDicomUploadResponse errRes = new BatchDicomUploadResponse();
                 errRes.setMessage("Tải lên thất bại. Toàn bộ tệp tin không đúng định dạng DICOM hoặc bị lỗi cấu trúc.");
-                errRes.setErrors(new ArrayList<>(java.util.List.of(new FileUploadError(filename, "Tệp tin không đúng định dạng ZIP hoặc bị lỗi cấu trúc."))));
+                errRes.setErrors(new ArrayList<>(List.of(new FileUploadError(filename, "Tệp tin không đúng định dạng ZIP hoặc bị lỗi cấu trúc."))));
                 errRes.setSuccessfulPatients(new ArrayList<>());
                 saveAuditLog(userId, "DICOM ZIP Upload Failed", "Uploaded ZIP file is corrupted: " + filename);
                 return errRes;
             }
             
-            String uploadSessionId = java.util.UUID.randomUUID().toString();
+            String uploadSessionId = UUID.randomUUID().toString();
             BatchDicomUploadResponse response = processZipBatch(tempZipFile, userId, uploadSessionId);
             
             if (response.getSuccessfulPatients().isEmpty()) {
@@ -254,9 +287,9 @@ public class DicomServiceImpl implements DicomService {
             workDir = Files.createTempDirectory("zip_batch_work_");
             unzipFile(zipFilePath, workDir);
 
-            List<Path> innerZips = java.nio.file.Files.walk(workDir)
+            List<Path> innerZips = Files.walk(workDir)
                     .filter(p -> p.toString().toLowerCase().endsWith(".zip"))
-                    .collect(java.util.stream.Collectors.toList());
+                    .collect(Collectors.toList());
 
             for (Path innerZip : innerZips) {
                 Path innerExtractDir = Files.createTempDirectory(workDir, "inner_");
@@ -266,8 +299,8 @@ public class DicomServiceImpl implements DicomService {
             List<Path> dcmFiles = new ArrayList<>();
             List<Path> strangeFiles = new ArrayList<>();
 
-            java.nio.file.Files.walk(workDir).forEach(p -> {
-                if (java.nio.file.Files.isRegularFile(p)) {
+            Files.walk(workDir).forEach(p -> {
+                if (Files.isRegularFile(p)) {
                     String name = p.getFileName().toString().toLowerCase();
                     if (name.endsWith(".dcm")) {
                         dcmFiles.add(p);
@@ -280,7 +313,7 @@ public class DicomServiceImpl implements DicomService {
             log.info("Found {} DICOM files and {} strange files in the ZIP batch", dcmFiles.size(),
                     strangeFiles.size());
 
-            java.util.Map<String, Path> filePaths = new java.util.LinkedHashMap<>();
+            Map<String, Path> filePaths = new LinkedHashMap<>();
             for (Path dcmFile : dcmFiles) {
                 filePaths.put(dcmFile.getFileName().toString(), dcmFile);
             }
@@ -306,10 +339,10 @@ public class DicomServiceImpl implements DicomService {
         } finally {
             if (workDir != null) {
                 try {
-                    java.nio.file.Files.walk(workDir)
-                            .sorted(java.util.Comparator.reverseOrder())
+                    Files.walk(workDir)
+                            .sorted(Comparator.reverseOrder())
                             .map(Path::toFile)
-                            .forEach(java.io.File::delete);
+                            .forEach(File::delete);
                 } catch (IOException ignored) {
                 }
             }
@@ -323,8 +356,8 @@ public class DicomServiceImpl implements DicomService {
     }
 
     private void unzipFile(Path zipFilePath, Path destDir) throws IOException {
-        try (java.util.zip.ZipInputStream zis = new java.util.zip.ZipInputStream(Files.newInputStream(zipFilePath))) {
-            java.util.zip.ZipEntry zipEntry = zis.getNextEntry();
+        try (ZipInputStream zis = new ZipInputStream(Files.newInputStream(zipFilePath))) {
+            ZipEntry zipEntry = zis.getNextEntry();
             while (zipEntry != null) {
                 Path newFilePath = destDir.resolve(zipEntry.getName()).normalize();
                 if (!newFilePath.startsWith(destDir.normalize())) {
@@ -336,7 +369,7 @@ public class DicomServiceImpl implements DicomService {
                     if (newFilePath.getParent() != null) {
                         Files.createDirectories(newFilePath.getParent());
                     }
-                    Files.copy(zis, newFilePath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                    Files.copy(zis, newFilePath, StandardCopyOption.REPLACE_EXISTING);
                 }
                 zipEntry = zis.getNextEntry();
             }
@@ -346,13 +379,13 @@ public class DicomServiceImpl implements DicomService {
 
     @Override
     @org.springframework.transaction.annotation.Transactional
-    public BatchDicomUploadResponse processBatchPaths(java.util.Map<String, Path> filePaths, Long userId,
+    public BatchDicomUploadResponse processBatchPaths(Map<String, Path> filePaths, Long userId,
             String uploadSessionId) {
         List<FileUploadError> errors = new ArrayList<>();
         List<PatientDetailsResponse> successfulPatients = new ArrayList<>();
-        java.util.Set<String> processedUids = new java.util.HashSet<>();
+        Set<String> processedUids = new HashSet<>();
 
-        java.util.Map<String, PendingDicomUploadDTO> patientsMap = new java.util.HashMap<>();
+        Map<String, PendingDicomUploadDTO> patientsMap = new HashMap<>();
 
         try {
 
@@ -375,7 +408,7 @@ public class DicomServiceImpl implements DicomService {
                 throw new RuntimeException("Cannot create storage directories");
             }
 
-            for (java.util.Map.Entry<String, Path> entry : filePaths.entrySet()) {
+            for (Map.Entry<String, Path> entry : filePaths.entrySet()) {
                 String originalFilename = entry.getKey();
                 Path tempFile = entry.getValue();
 
@@ -404,19 +437,19 @@ public class DicomServiceImpl implements DicomService {
 
                     try (DicomInputStream dis = new DicomInputStream(tempFile.toFile())) {
                         Attributes attrs = dis.readDataset();
-                        patientId = attrs.getString(org.dcm4che3.data.Tag.PatientID, "");
-                        patientName = attrs.getString(org.dcm4che3.data.Tag.PatientName, "");
-                        patientBirthDate = attrs.getDate(org.dcm4che3.data.Tag.PatientBirthDate);
-                        patientSex = attrs.getString(org.dcm4che3.data.Tag.PatientSex, "");
+                        patientId = attrs.getString(Tag.PatientID, "");
+                        patientName = attrs.getString(Tag.PatientName, "");
+                        patientBirthDate = attrs.getDate(Tag.PatientBirthDate);
+                        patientSex = attrs.getString(Tag.PatientSex, "");
 
-                        studyInstanceUid = attrs.getString(org.dcm4che3.data.Tag.StudyInstanceUID, "");
-                        studyDate = attrs.getDate(org.dcm4che3.data.Tag.StudyDate);
-                        studyTime = attrs.getDate(org.dcm4che3.data.Tag.StudyTime);
-                        description = attrs.getString(org.dcm4che3.data.Tag.StudyDescription, "");
-                        bodyPart = attrs.getString(org.dcm4che3.data.Tag.BodyPartExamined, "");
-                        referringPhysician = attrs.getString(org.dcm4che3.data.Tag.ReferringPhysicianName, "");
+                        studyInstanceUid = attrs.getString(Tag.StudyInstanceUID, "");
+                        studyDate = attrs.getDate(Tag.StudyDate);
+                        studyTime = attrs.getDate(Tag.StudyTime);
+                        description = attrs.getString(Tag.StudyDescription, "");
+                        bodyPart = attrs.getString(Tag.BodyPartExamined, "");
+                        referringPhysician = attrs.getString(Tag.ReferringPhysicianName, "");
 
-                        sopInstanceUid = attrs.getString(org.dcm4che3.data.Tag.SOPInstanceUID, "");
+                        sopInstanceUid = attrs.getString(Tag.SOPInstanceUID, "");
                     }
 
                     if (sopInstanceUid == null || sopInstanceUid.isEmpty()) {
@@ -449,7 +482,7 @@ public class DicomServiceImpl implements DicomService {
                                 .studyTime(studyTime)
                                 .description(description)
                                 .referringPhysician(referringPhysician)
-                                .physicalFilePaths(new java.util.HashMap<>())
+                                .physicalFilePaths(new HashMap<>())
                                 .parsedImages(new ArrayList<>())
                                 .parsedInstances(new ArrayList<>())
                                 .build();
@@ -526,7 +559,7 @@ public class DicomServiceImpl implements DicomService {
 
                 String json = objectMapper.writeValueAsString(sessionDTO);
                 stringRedisTemplate.opsForValue().set("uploadSession:" + uploadSessionId, json,
-                        java.time.Duration.ofMinutes(15));
+                        Duration.ofMinutes(15));
                 stringRedisTemplate.opsForZSet().add("uploadSessionTimeouts", uploadSessionId,
                         System.currentTimeMillis());
                 log.info("Saved upload session {} to Redis", uploadSessionId);
@@ -538,7 +571,7 @@ public class DicomServiceImpl implements DicomService {
                     pr.setFullName(pending.getPatientName() != null ? pending.getPatientName().replace("^", " ").trim()
                             : "Unknown");
                     if (pending.getPatientBirthDate() != null) {
-                        pr.setDateOfBirth(java.time.Instant.ofEpochMilli(pending.getPatientBirthDate().getTime())
+                        pr.setDateOfBirth(Instant.ofEpochMilli(pending.getPatientBirthDate().getTime())
                                 .atZone(ZoneId.systemDefault()).toLocalDate());
                     }
                     if ("F".equalsIgnoreCase(pending.getPatientSex())) {
@@ -555,17 +588,17 @@ public class DicomServiceImpl implements DicomService {
                     examDto.setReferringPhysician(pending.getReferringPhysician());
                     examDto.setStatus(ExaminationStatus.AI_PROCESSING.name());
                     if (pending.getStudyDate() != null) {
-                        examDto.setStudyDate(java.time.Instant.ofEpochMilli(pending.getStudyDate().getTime())
+                        examDto.setStudyDate(Instant.ofEpochMilli(pending.getStudyDate().getTime())
                                 .atZone(ZoneId.systemDefault()).toLocalDate());
                     }
                     if (pending.getStudyTime() != null) {
-                        examDto.setStudyTime(java.time.Instant.ofEpochMilli(pending.getStudyTime().getTime())
+                        examDto.setStudyTime(Instant.ofEpochMilli(pending.getStudyTime().getTime())
                                 .atZone(ZoneId.systemDefault()).toLocalTime());
                     }
 
                     PatientDetailsResponse pdr = new PatientDetailsResponse();
                     pdr.setPatient(pr);
-                    pdr.setRecentExaminations(java.util.Collections.singletonList(examDto));
+                    pdr.setRecentExaminations(Collections.singletonList(examDto));
                     successfulPatients.add(pdr);
                 }
             } catch (Exception e) {
@@ -615,12 +648,12 @@ public class DicomServiceImpl implements DicomService {
     }
 
     private boolean isDicomFile(Path path) {
-        try (java.io.InputStream is = java.nio.file.Files.newInputStream(path)) {
+        try (InputStream is = Files.newInputStream(path)) {
             is.skip(128);
             byte[] b = new byte[4];
             int read = is.read(b);
             if (read == 4) {
-                String magic = new String(b, java.nio.charset.StandardCharsets.US_ASCII);
+                String magic = new String(b, StandardCharsets.US_ASCII);
                 return "DICM".equals(magic);
             }
         } catch (Exception e) {
@@ -630,7 +663,7 @@ public class DicomServiceImpl implements DicomService {
     }
 
     private boolean isZipFile(Path path) {
-        try (java.io.InputStream is = java.nio.file.Files.newInputStream(path)) {
+        try (InputStream is = Files.newInputStream(path)) {
             byte[] b = new byte[4];
             int read = is.read(b);
             if (read >= 2) {
@@ -642,3 +675,5 @@ public class DicomServiceImpl implements DicomService {
         return false;
     }
 }
+
+
