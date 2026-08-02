@@ -93,6 +93,8 @@ public class ExaminationMapper {
                 List<AiPredictionResultDto> aiResList = new ArrayList<>();
                 if (instance.getAiAnalysis() != null) {
                     AiAnalysis analysis = instance.getAiAnalysis();
+                    img.setAiAnalysisStatus(analysis.getStatus());
+                    img.setAiErrorMessage(analysis.getErrorMessage());
                     if (analysis.getAiResults() != null) {
                         for (AiResult aiRes : analysis.getAiResults()) {
                                 DiagnosisReview review = aiRes.getDiagnosisReview();
