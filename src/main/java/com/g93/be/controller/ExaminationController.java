@@ -93,9 +93,10 @@ public class ExaminationController {
      * @return The examination details.
      */
     @GetMapping("/{id}")
-    public ResponseEntity<ExaminationDto> getExaminationById(@PathVariable Long id) {
-        log.info("Received request to get examination with id: {}", id);
-        return ResponseEntity.ok(examinationService.getExaminationById(id));
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ExaminationDto> getExaminationById(@PathVariable Long id, java.security.Principal principal) {
+        log.info("Received request to get examination with id: {} by user: {}", id, principal.getName());
+        return ResponseEntity.ok(examinationService.getExaminationById(id, principal.getName()));
     }
 
     /**

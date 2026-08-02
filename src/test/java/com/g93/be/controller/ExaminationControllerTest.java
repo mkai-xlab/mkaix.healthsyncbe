@@ -68,10 +68,11 @@ class ExaminationControllerTest {
     // ==========================================
 
     @Test
+    @org.springframework.security.test.context.support.WithMockUser(username = "testUser")
     void testGetExaminationById_Normal() throws Exception {
         ExaminationDto mockDto = new ExaminationDto();
         mockDto.setExaminationId(1L);
-        Mockito.when(examinationService.getExaminationById(1L)).thenReturn(mockDto);
+        Mockito.when(examinationService.getExaminationById(1L, "testUser")).thenReturn(mockDto);
 
         mockMvc.perform(get("/examinations/1"))
                 .andExpect(status().isOk())
@@ -79,8 +80,9 @@ class ExaminationControllerTest {
     }
 
     @Test
+    @org.springframework.security.test.context.support.WithMockUser(username = "testUser")
     void testGetExaminationById_Abnormal_NotFound() throws Exception {
-        Mockito.when(examinationService.getExaminationById(999L))
+        Mockito.when(examinationService.getExaminationById(999L, "testUser"))
                 .thenThrow(new IllegalArgumentException("Examination with id 999 not found"));
 
         mockMvc.perform(get("/examinations/999"))

@@ -2,7 +2,9 @@ package com.g93.be.controller;
 
 import com.g93.be.dto.AiPredictionRequest;
 import com.g93.be.dto.ExaminationDto;
+import com.g93.be.exception.ResourceNotFoundException;
 import com.g93.be.service.AiService;
+import com.g93.be.service.ImageService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.Resource;
@@ -19,7 +21,7 @@ import java.util.List;
 public class AiController {
 
     private final AiService aiService;
-    private final com.g93.be.service.ImageService imageService;
+    private final ImageService imageService;
 
     @PostMapping("/predict-batch")
     public ResponseEntity<List<ExaminationDto>> predictBatch(@RequestBody AiPredictionRequest request) {
@@ -36,7 +38,7 @@ public class AiController {
                     .header(HttpHeaders.CONTENT_TYPE, "image/jpeg")
                     .body(resource);
         }
-        return ResponseEntity.notFound().build();
+        throw new ResourceNotFoundException("Không thể tải ảnh nhiệt Grad-CAM của ca khám này. Vui lòng thử lại hoặc liên hệ kỹ thuật.");
     }
 
     @GetMapping("/image/{imageId}")
