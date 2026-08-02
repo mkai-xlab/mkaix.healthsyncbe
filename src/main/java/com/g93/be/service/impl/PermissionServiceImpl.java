@@ -1,6 +1,7 @@
 package com.g93.be.service.impl;
 
 import com.g93.be.aspect.LogAction;
+import com.g93.be.config.PermissionCatalog;
 import com.g93.be.dto.FeatureResponse;
 import com.g93.be.dto.PermissionResponse;
 import com.g93.be.dto.UpdateRolePermissionsRequest;
@@ -71,19 +72,20 @@ public class PermissionServiceImpl implements PermissionService {
         Role role = roleRepository.findByCode(roleCode)
                 .orElseThrow(() -> new IllegalArgumentException("Role not found: " + roleCode));
 
-        // Delete existing permissions
-        rolePermissionRepository.deleteByRoleId(role.getId());
-
-        // Insert new permissions
         List<RolePermission> newPermissions = request.permissionIds().stream().map(permissionId -> {
             Permission permission = permissionRepository.findById(permissionId)
                     .orElseThrow(() -> new IllegalArgumentException("Permission not found with ID: " + permissionId));
+            if ("ADMIN".equalsIgnoreCase(roleCode) && PermissionCatalog.isClinical(permission.getCode())) {
+                throw new IllegalArgumentException(
+                        "Clinical permission cannot be assigned to ADMIN: " + permission.getCode());
+            }
             RolePermission rp = new RolePermission();
             rp.setRole(role);
             rp.setPermission(permission);
             return rp;
         }).collect(Collectors.toList());
 
+        rolePermissionRepository.deleteByRoleId(role.getId());
         rolePermissionRepository.saveAll(newPermissions);
         log.info("Updated permissions for role: {}", roleCode);
     }

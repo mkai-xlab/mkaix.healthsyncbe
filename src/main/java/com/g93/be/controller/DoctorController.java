@@ -71,7 +71,7 @@ public class DoctorController {
      * @return The DoctorResponse.
      */
     @GetMapping("/profile")
-    @PreAuthorize("hasRole('DOCTOR')")
+    @PreAuthorize("hasAnyRole('DOCTOR', 'DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT')")
     public ResponseEntity<DoctorResponse> getProfile(java.security.Principal principal) {
         log.info("Received request to fetch profile for doctor: {}", principal.getName());
         DoctorResponse response = doctorService.getDoctorProfile(principal.getName());
@@ -86,7 +86,7 @@ public class DoctorController {
      * @return The updated DoctorResponse.
      */
     @PutMapping("/profile")
-    @PreAuthorize("hasRole('DOCTOR')")
+    @PreAuthorize("hasAnyRole('DOCTOR', 'DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT')")
     public ResponseEntity<DoctorResponse> editProfile(java.security.Principal principal, @Valid @RequestBody EditDoctorProfileRequest request) {
         log.info("Received request to edit profile for doctor: {}", principal.getName());
         DoctorResponse response = doctorService.editDoctorProfile(principal.getName(), request);
@@ -94,7 +94,7 @@ public class DoctorController {
     }
 
     @PutMapping(value = "/profile/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @PreAuthorize("hasRole('DOCTOR')")
+    @PreAuthorize("hasAnyRole('DOCTOR', 'DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT')")
     public ResponseEntity<DoctorResponse> updateProfileAvatar(
             java.security.Principal principal,
             @RequestParam("file") MultipartFile file) {
@@ -112,7 +112,7 @@ public class DoctorController {
      * @return A paginated list of DoctorResponse.
      */
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'DOCTOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'DOCTOR', 'DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT')")
     public ResponseEntity<PageResponse<DoctorResponse>> getDoctors(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String specialization,
@@ -130,7 +130,7 @@ public class DoctorController {
      * @return A list of DoctorResponse objects for active doctors wrapped in ResponseEntity.
      */
     @GetMapping("/active")
-    @PreAuthorize("hasAnyRole('ADMIN', 'DOCTOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'DOCTOR', 'DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT')")
     public ResponseEntity<List<DoctorResponse>> getActiveDoctors() {
         log.info("Received request to fetch active doctors");
         return ResponseEntity.ok(doctorService.getActiveDoctors());

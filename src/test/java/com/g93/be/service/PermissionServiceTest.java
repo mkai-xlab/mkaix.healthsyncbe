@@ -136,6 +136,43 @@ class PermissionServiceTest {
     }
 
     @Test
+    void updateRolePermissionsRejectsClinicalPermissionForAdmin() {
+        Role adminRole = role(1L, "ADMIN");
+        Permission clinicalPermission = new Permission(
+                30L, "VIEW_AI_RESULT", "Xem kết quả AI", 1, null, feature, null);
+        when(roleRepository.findByCode("ADMIN")).thenReturn(Optional.of(adminRole));
+        when(permissionRepository.findById(30L)).thenReturn(Optional.of(clinicalPermission));
+
+        IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
+                () -> permissionService.updateRolePermissions(
+                        "ADMIN", new UpdateRolePermissionsRequest(List.of(30L))));
+
+        assertEquals("Clinical permission cannot be assigned to ADMIN: VIEW_AI_RESULT", error.getMessage());
+        verify(rolePermissionRepository, never()).deleteByRoleId(any());
+        verify(rolePermissionRepository, never()).saveAll(any());
+    }
+
+    @Test
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    void updateRolePermissionsAllowsAdministrativePermissionForAdmin() {
+        Role adminRole = role(1L, "ADMIN");
+        Permission adminPermission = new Permission(
+                31L, "VIEW_ADMIN_DASHBOARD", "Xem trang tổng quan quản trị", 1, null, feature, null);
+        when(roleRepository.findByCode("ADMIN")).thenReturn(Optional.of(adminRole));
+        when(permissionRepository.findById(31L)).thenReturn(Optional.of(adminPermission));
+
+        permissionService.updateRolePermissions(
+                "ADMIN", new UpdateRolePermissionsRequest(List.of(31L)));
+
+        verify(rolePermissionRepository).deleteByRoleId(1L);
+        ArgumentCaptor<List<RolePermission>> captor = ArgumentCaptor.forClass(List.class);
+        verify(rolePermissionRepository).saveAll(captor.capture());
+        assertEquals(List.of("VIEW_ADMIN_DASHBOARD"), captor.getValue().stream()
+                .map(rolePermission -> rolePermission.getPermission().getCode())
+                .toList());
+    }
+
+    @Test
     void createFeaturePersistsAndReturnsFeature() {
         when(featureRepository.existsByName("Reports")).thenReturn(false);
         when(featureRepository.save(any(Feature.class))).thenAnswer(invocation -> {
