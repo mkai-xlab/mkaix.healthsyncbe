@@ -83,10 +83,13 @@ public class SecurityAndRbacIntegrationTest {
 
                 // Clear repositories to ensure isolation.
                 jdbcTemplate.execute("SET FOREIGN_KEY_CHECKS = 0;");
-                jdbcTemplate.execute("TRUNCATE TABLE audit_logs;");
-                jdbcTemplate.execute("TRUNCATE TABLE dicom_instances;");
-                jdbcTemplate.execute("TRUNCATE TABLE examinations;");
-                jdbcTemplate.execute("TRUNCATE TABLE users;");
+                jdbcTemplate.update("DELETE FROM audit_logs");
+                jdbcTemplate.update("DELETE FROM dicom_instances");
+                jdbcTemplate.update("DELETE FROM examinations");
+                jdbcTemplate.update("DELETE FROM patients");
+                jdbcTemplate.update("DELETE FROM doctors");
+                jdbcTemplate.update("DELETE FROM admins");
+                jdbcTemplate.update("DELETE FROM users");
                 jdbcTemplate.execute("SET FOREIGN_KEY_CHECKS = 1;");
 
                 // 1. Fetch existing Roles from database (populated by DataInitializer)
