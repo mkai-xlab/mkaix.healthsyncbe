@@ -9,7 +9,7 @@ import org.springframework.data.domain.Pageable;
 
 public interface ExaminationService {
     PageResponse<ExaminationDto> getAllExaminations(Pageable pageable);
-    ExaminationDto getExaminationById(Long id);
+    ExaminationDto getExaminationById(Long id, String username);
     PageResponse<ExaminationDto> getExaminationsByDoctorId(Long doctorId, Pageable pageable);
     PageResponse<ExaminationDto> getExaminationsByPatientId(Long patientId, Pageable pageable);
     void markAsViewed(Long id);

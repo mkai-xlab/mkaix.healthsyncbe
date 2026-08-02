@@ -23,6 +23,11 @@ class ExaminationMapperKlReviewTest {
     private final ExaminationMapper mapper = new ExaminationMapper(
             mock(PatientMapper.class), mock(DoctorMapper.class));
 
+    @org.junit.jupiter.api.BeforeEach
+    void setUp() {
+        org.springframework.web.context.request.RequestContextHolder.resetRequestAttributes();
+    }
+
     @Test
     void mapsPredictedConfirmedAndEffectiveKlGrades() {
         Doctor doctor = new Doctor();

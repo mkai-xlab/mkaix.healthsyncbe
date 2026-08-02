@@ -351,11 +351,11 @@ public class DoctorServiceImpl implements DoctorService {
 
     private void sendWelcomeEmail(Doctor doctor, String rawPassword) {
         try {
-            Map<String, Object> variables = Map.of(
-                    "fullName", doctor.getFullName(),
-                    "username", doctor.getUsername(),
-                    "password", rawPassword,
-                    "loginUrl", loginUrl);
+            Map<String, Object> variables = new java.util.HashMap<>();
+            variables.put("fullName", doctor.getFullName() != null ? doctor.getFullName() : "");
+            variables.put("username", doctor.getUsername());
+            variables.put("password", rawPassword);
+            variables.put("loginUrl", loginUrl);
 
             mailUtil.sendTemplateMail(
                     doctor.getEmail(),

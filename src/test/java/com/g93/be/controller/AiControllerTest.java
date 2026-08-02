@@ -5,6 +5,7 @@ import com.g93.be.dto.AiPredictionRequest;
 import com.g93.be.dto.ExaminationDto;
 import com.g93.be.service.AiService;
 import com.g93.be.service.ImageService;
+import com.g93.be.exception.GlobalExceptionHandler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -45,7 +46,9 @@ class AiControllerTest {
 
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(aiController).build();
+        mockMvc = org.springframework.test.web.servlet.setup.MockMvcBuilders.standaloneSetup(aiController)
+                .setControllerAdvice(new GlobalExceptionHandler())
+                .build();
     }
 
     // --- predictBatch Tests ---
