@@ -41,6 +41,7 @@ import java.util.Iterator;
 import java.util.List;
 import com.g93.be.dto.SendNotificationRequest;
 import org.springframework.beans.factory.annotation.Value;
+import javax.sql.DataSource;
 
 @Service
 @Slf4j
@@ -52,6 +53,7 @@ public class DicomServiceImpl implements DicomService {
     private final StringRedisTemplate stringRedisTemplate;
     private final UserRepository userRepository;
     private final AuditLogRepository auditLogRepository;
+    private final DataSource dataSource;
 
     private static final ObjectMapper objectMapper = new ObjectMapper()
             .registerModule(new JavaTimeModule())
@@ -62,9 +64,7 @@ public class DicomServiceImpl implements DicomService {
 
     @jakarta.annotation.PostConstruct
     public void fixDbEnum() {
-        try (java.sql.Connection conn = java.sql.DriverManager.getConnection(
-                "jdbc:mysql://localhost:3306/capstone?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC",
-                "root", "capstone_root_password")) {
+        try (java.sql.Connection conn = dataSource.getConnection()) {
             java.sql.Statement stmt = conn.createStatement();
             stmt.executeUpdate("ALTER TABLE examinations MODIFY COLUMN status VARCHAR(255) NOT NULL");
             log.info("Successfully altered examinations.status to VARCHAR(255)");
