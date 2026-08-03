@@ -29,4 +29,5 @@ public class PatientFilterRequest {
     
     private List<String> statuses;
     private List<Integer> severities;
+    private Boolean isPersonal = false;
 }

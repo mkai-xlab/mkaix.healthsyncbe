@@ -41,8 +41,18 @@ public class PatientServiceImpl implements PatientService {
         Long doctorId = null;
         if (username != null) {
             User user = userRepository.findByUsername(username).orElse(null);
-            if (user != null && user.getRole() != null && "DOCTOR".equals(user.getRole().getCode())) {
-                doctorId = user.getId();
+            if (user != null && user.getRole() != null) {
+                String role = user.getRole().getCode();
+                Boolean isPersonal = filter.getIsPersonal();
+                
+                if ("DOCTOR".equals(role)) {
+                    if (Boolean.FALSE.equals(isPersonal)) {
+                        throw new org.springframework.security.access.AccessDeniedException("Bạn không có quyền xem toàn bộ danh sách bệnh nhân của hệ thống.");
+                    }
+                    doctorId = user.getId();
+                } else if (Boolean.TRUE.equals(isPersonal)) {
+                    doctorId = user.getId();
+                }
             }
         }
 
