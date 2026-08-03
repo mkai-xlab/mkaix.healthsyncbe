@@ -11,10 +11,14 @@ get {
 }
 
 query {
+  isPersonal: true
   page: 0
   size: 10
 }
 
 auth:bearer {
   token: {{accessToken}}
+}
+vars:pre-request {
+  accessToken: ""
 }

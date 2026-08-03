@@ -84,7 +84,7 @@ class ExaminationServiceFilterSortTest {
         when(examinationRepository.findByDoctorId(1L, sortedPageable)).thenReturn(page);
         when(examinationMapper.toDto(any(), any())).thenReturn(new ExaminationDto());
 
-        PageResponse<ExaminationDto> response = examinationService.getExaminationsSortedByStudyDate("desc", "doctor1", pageable);
+        PageResponse<ExaminationDto> response = examinationService.getExaminationsSortedByStudyDate("desc", "doctor1", false, pageable);
 
         assertEquals(1, response.content().size());
         verify(examinationRepository).findByDoctorId(1L, sortedPageable);
@@ -99,7 +99,7 @@ class ExaminationServiceFilterSortTest {
         when(examinationRepository.findAll(sortedPageable)).thenReturn(page);
         when(examinationMapper.toDto(any(), any())).thenReturn(new ExaminationDto());
 
-        PageResponse<ExaminationDto> response = examinationService.getExaminationsSortedByStudyDate("asc", "head_dept", pageable);
+        PageResponse<ExaminationDto> response = examinationService.getExaminationsSortedByStudyDate("asc", "head_dept", false, pageable);
 
         assertEquals(2, response.content().size());
         verify(examinationRepository).findAll(sortedPageable);
@@ -114,7 +114,7 @@ class ExaminationServiceFilterSortTest {
         when(examinationRepository.findByDoctorId(1L, sortedPageable)).thenReturn(page);
         when(examinationMapper.toDto(any(), any())).thenReturn(new ExaminationDto());
 
-        PageResponse<ExaminationDto> response = examinationService.getExaminationsSortedByUploadDate("desc", "doctor1", pageable);
+        PageResponse<ExaminationDto> response = examinationService.getExaminationsSortedByUploadDate("desc", "doctor1", false, pageable);
 
         assertEquals(1, response.content().size());
         verify(examinationRepository).findByDoctorId(1L, sortedPageable);
@@ -128,7 +128,7 @@ class ExaminationServiceFilterSortTest {
         when(examinationRepository.findByDoctorIdAndStudyDate(1L, date, pageable)).thenReturn(page);
         when(examinationMapper.toDto(any(), any())).thenReturn(new ExaminationDto());
 
-        PageResponse<ExaminationDto> response = examinationService.getExaminationsFilteredByStudyDate(date, "doctor1", pageable);
+        PageResponse<ExaminationDto> response = examinationService.getExaminationsFilteredByStudyDate(date, "doctor1", false, pageable);
 
         assertEquals(1, response.content().size());
         verify(examinationRepository).findByDoctorIdAndStudyDate(1L, date, pageable);
@@ -142,7 +142,7 @@ class ExaminationServiceFilterSortTest {
         when(examinationRepository.findByStudyDate(date, pageable)).thenReturn(page);
         when(examinationMapper.toDto(any(), any())).thenReturn(new ExaminationDto());
 
-        PageResponse<ExaminationDto> response = examinationService.getExaminationsFilteredByStudyDate(date, "head_dept", pageable);
+        PageResponse<ExaminationDto> response = examinationService.getExaminationsFilteredByStudyDate(date, "head_dept", false, pageable);
 
         assertEquals(1, response.content().size());
         verify(examinationRepository).findByStudyDate(date, pageable);
@@ -158,7 +158,7 @@ class ExaminationServiceFilterSortTest {
         when(examinationRepository.findByDoctorIdAndCreatedAtBetween(1L, start, end, pageable)).thenReturn(page);
         when(examinationMapper.toDto(any(), any())).thenReturn(new ExaminationDto());
 
-        PageResponse<ExaminationDto> response = examinationService.getExaminationsFilteredByUploadDate(date, "doctor1", pageable);
+        PageResponse<ExaminationDto> response = examinationService.getExaminationsFilteredByUploadDate(date, "doctor1", false, pageable);
 
         assertEquals(1, response.content().size());
         verify(examinationRepository).findByDoctorIdAndCreatedAtBetween(1L, start, end, pageable);
@@ -174,7 +174,7 @@ class ExaminationServiceFilterSortTest {
         when(examinationRepository.findByCreatedAtBetween(start, end, pageable)).thenReturn(page);
         when(examinationMapper.toDto(any(), any())).thenReturn(new ExaminationDto());
 
-        PageResponse<ExaminationDto> response = examinationService.getExaminationsFilteredByUploadDate(date, "head_dept", pageable);
+        PageResponse<ExaminationDto> response = examinationService.getExaminationsFilteredByUploadDate(date, "head_dept", false, pageable);
 
         assertEquals(1, response.content().size());
         verify(examinationRepository).findByCreatedAtBetween(start, end, pageable);

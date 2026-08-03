@@ -1,6 +1,5 @@
 package com.g93.be.controller;
 
-import com.g93.be.dto.PatientGradeStatsDto;
 
 import com.g93.be.dto.ExaminationDto;
 import com.g93.be.dto.PageResponse;
@@ -36,9 +35,11 @@ public class ExaminationController {
     @GetMapping
     @PreAuthorize("hasAnyRole('DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT')")
     public ResponseEntity<PageResponse<ExaminationDto>> getAllExaminations(
+            java.security.Principal principal,
+            @RequestParam(defaultValue = "false", required = false) Boolean isPersonal,
             @PageableDefault(size = 10) Pageable pageable) {
         log.info("Received request to get all examinations");
-        return ResponseEntity.ok(examinationService.getAllExaminations(pageable));
+        return ResponseEntity.ok(examinationService.getAllExaminations(pageable, principal != null ? principal.getName() : null, isPersonal));
     }
 
     @GetMapping("/sort/study-date")
@@ -46,11 +47,12 @@ public class ExaminationController {
     public ResponseEntity<PageResponse<ExaminationDto>> getExaminationsSortedByStudyDate(
             @RequestParam(defaultValue = "desc") String direction,
             java.security.Principal principal,
+            @RequestParam(defaultValue = "false", required = false) Boolean isPersonal,
             @PageableDefault(size = 10) Pageable pageable) {
         log.info("Received request to sort examinations by study date ({}) for user: {}", direction,
                 principal.getName());
         return ResponseEntity
-                .ok(examinationService.getExaminationsSortedByStudyDate(direction, principal.getName(), pageable));
+                .ok(examinationService.getExaminationsSortedByStudyDate(direction, principal.getName(), isPersonal, pageable));
     }
 
     @GetMapping("/sort/upload-date")
@@ -58,11 +60,12 @@ public class ExaminationController {
     public ResponseEntity<PageResponse<ExaminationDto>> getExaminationsSortedByUploadDate(
             @RequestParam(defaultValue = "desc") String direction,
             java.security.Principal principal,
+            @RequestParam(defaultValue = "false", required = false) Boolean isPersonal,
             @PageableDefault(size = 10) Pageable pageable) {
         log.info("Received request to sort examinations by upload date ({}) for user: {}", direction,
                 principal.getName());
         return ResponseEntity
-                .ok(examinationService.getExaminationsSortedByUploadDate(direction, principal.getName(), pageable));
+                .ok(examinationService.getExaminationsSortedByUploadDate(direction, principal.getName(), isPersonal, pageable));
     }
 
     @GetMapping("/filter/study-date")
@@ -70,10 +73,11 @@ public class ExaminationController {
     public ResponseEntity<PageResponse<ExaminationDto>> getExaminationsFilteredByStudyDate(
             @RequestParam @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate date,
             java.security.Principal principal,
+            @RequestParam(defaultValue = "false", required = false) Boolean isPersonal,
             @PageableDefault(size = 10) Pageable pageable) {
         log.info("Received request to filter examinations by study date ({}) for user: {}", date, principal.getName());
         return ResponseEntity
-                .ok(examinationService.getExaminationsFilteredByStudyDate(date, principal.getName(), pageable));
+                .ok(examinationService.getExaminationsFilteredByStudyDate(date, principal.getName(), isPersonal, pageable));
     }
 
     @GetMapping("/filter/upload-date")
@@ -81,10 +85,11 @@ public class ExaminationController {
     public ResponseEntity<PageResponse<ExaminationDto>> getExaminationsFilteredByUploadDate(
             @RequestParam @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate date,
             java.security.Principal principal,
+            @RequestParam(defaultValue = "false", required = false) Boolean isPersonal,
             @PageableDefault(size = 10) Pageable pageable) {
         log.info("Received request to filter examinations by upload date ({}) for user: {}", date, principal.getName());
         return ResponseEntity
-                .ok(examinationService.getExaminationsFilteredByUploadDate(date, principal.getName(), pageable));
+                .ok(examinationService.getExaminationsFilteredByUploadDate(date, principal.getName(), isPersonal, pageable));
     }
 
     /**
@@ -171,9 +176,10 @@ public ResponseEntity<ExaminationDto> getExaminationById(
     public ResponseEntity<PageResponse<ExaminationDto>> getExaminationsByStatus(
             @RequestParam ExaminationStatus status,
             java.security.Principal principal,
+            @RequestParam(defaultValue = "false", required = false) Boolean isPersonal,
             @PageableDefault(size = 10) Pageable pageable) {
         log.info("Received request to get examinations by status: {} for user: {}", status, principal.getName());
-        return ResponseEntity.ok(examinationService.getExaminationsByStatus(status, principal.getName(), pageable));
+        return ResponseEntity.ok(examinationService.getExaminationsByStatus(status, principal.getName(), isPersonal, pageable));
     }
 
     /**
@@ -189,9 +195,10 @@ public ResponseEntity<ExaminationDto> getExaminationById(
     public ResponseEntity<PageResponse<ExaminationDto>> getExaminationsByGrade(
             @RequestParam Integer grade,
             java.security.Principal principal,
+            @RequestParam(defaultValue = "false", required = false) Boolean isPersonal,
             @PageableDefault(size = 10) Pageable pageable) {
         log.info("Received request to get examinations by grade: {} for user: {}", grade, principal.getName());
-        return ResponseEntity.ok(examinationService.getExaminationsByGrade(grade, principal.getName(), pageable));
+        return ResponseEntity.ok(examinationService.getExaminationsByGrade(grade, principal.getName(), isPersonal, pageable));
     }
 
     /**
@@ -201,13 +208,22 @@ public ResponseEntity<ExaminationDto> getExaminationById(
      * @param principal The authenticated user's principal.
      * @return A list of patient grade statistics.
      */
-    @GetMapping("/statistics/patients-by-grade")
-    @PreAuthorize("hasAnyRole('DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT') or (hasRole('DOCTOR') and hasAuthority('VIEW_ANALYTIC_HISTORY'))")
-    public ResponseEntity<java.util.List<PatientGradeStatsDto>> getPatientGradeStatistics(
-            java.security.Principal principal) {
-        log.info("Received request to get patient grade statistics for user: {}", principal.getName());
-        return ResponseEntity.ok(examinationService.getPatientGradeStatistics(principal.getName()));
-    }
+@PreAuthorize(
+        "hasAnyRole('DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT') "
+                + "or (hasRole('DOCTOR') and hasAuthority('VIEW_ANALYTIC_HISTORY'))")
+public ResponseEntity<List<PatientGradeStatsDto>> getPatientGradeStatistics(
+        java.security.Principal principal,
+        @RequestParam(defaultValue = "false", required = false)
+        Boolean isPersonal) {
+
+    log.info("Received request to get patient grade statistics for user: {}",
+            principal.getName());
+
+    return ResponseEntity.ok(
+            examinationService.getPatientGradeStatistics(
+                    principal.getName(),
+                    isPersonal));
+}
 
     /**
      * Marks an examination as viewed.
@@ -231,9 +247,9 @@ public ResponseEntity<ExaminationDto> getExaminationById(
      */
     @GetMapping("/total")
     @PreAuthorize("@accessControl.canAccessUser(#p0, authentication)")
-    public ResponseEntity<Long> getTotalExaminations(@RequestParam Long userId) {
+    public ResponseEntity<Long> getTotalExaminations(@RequestParam Long userId, @RequestParam(defaultValue = "false", required = false) Boolean isPersonal) {
         log.info("Received request to get total examinations for user id: {}", userId);
-        return ResponseEntity.ok(examinationService.getTotalExaminations(userId));
+        return ResponseEntity.ok(examinationService.getTotalExaminations(userId, isPersonal));
     }
 
     /**
@@ -244,9 +260,9 @@ public ResponseEntity<ExaminationDto> getExaminationById(
      */
     @GetMapping("/total-severe")
     @PreAuthorize("@accessControl.canAccessUser(#p0, authentication)")
-    public ResponseEntity<Long> getTotalSevereExaminations(@RequestParam Long userId) {
+    public ResponseEntity<Long> getTotalSevereExaminations(@RequestParam Long userId, @RequestParam(defaultValue = "false", required = false) Boolean isPersonal) {
         log.info("Received request to get total severe examinations for user id: {}", userId);
-        return ResponseEntity.ok(examinationService.getTotalSevereExaminations(userId));
+        return ResponseEntity.ok(examinationService.getTotalSevereExaminations(userId, isPersonal));
     }
 
     /**
@@ -257,9 +273,9 @@ public ResponseEntity<ExaminationDto> getExaminationById(
      */
     @GetMapping("/total-verified")
     @PreAuthorize("@accessControl.canAccessUser(#p0, authentication)")
-    public ResponseEntity<Long> getTotalVerifiedExaminations(@RequestParam Long userId) {
+    public ResponseEntity<Long> getTotalVerifiedExaminations(@RequestParam Long userId, @RequestParam(defaultValue = "false", required = false) Boolean isPersonal) {
         log.info("Received request to get total verified examinations for user id: {}", userId);
-        return ResponseEntity.ok(examinationService.getTotalVerifiedExaminations(userId));
+        return ResponseEntity.ok(examinationService.getTotalVerifiedExaminations(userId, isPersonal));
     }
 
     /**
@@ -270,9 +286,9 @@ public ResponseEntity<ExaminationDto> getExaminationById(
      */
     @GetMapping("/total-unverified")
     @PreAuthorize("@accessControl.canAccessUser(#p0, authentication)")
-    public ResponseEntity<Long> getTotalUnverifiedExaminations(@RequestParam Long userId) {
+    public ResponseEntity<Long> getTotalUnverifiedExaminations(@RequestParam Long userId, @RequestParam(defaultValue = "false", required = false) Boolean isPersonal) {
         log.info("Received request to get total unverified examinations for user id: {}", userId);
-        return ResponseEntity.ok(examinationService.getTotalUnverifiedExaminations(userId));
+        return ResponseEntity.ok(examinationService.getTotalUnverifiedExaminations(userId, isPersonal));
     }
 
     /**
@@ -280,13 +296,13 @@ public ResponseEntity<ExaminationDto> getExaminationById(
      */
     @GetMapping("/my-total")
     @PreAuthorize("hasAnyRole('DOCTOR', 'DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT')")
-    public ResponseEntity<Long> getMyTotalExaminations() {
+    public ResponseEntity<Long> getMyTotalExaminations(@RequestParam(defaultValue = "false", required = false) Boolean isPersonal) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String userEmail = (String) authentication.getPrincipal();
         User user = userRepository.findByUsername(userEmail).orElseThrow(() -> new RuntimeException("User not found"));
         Long userId = user.getId();
         log.info("Received request to get total examinations for my token, user id: {}", userId);
-        return ResponseEntity.ok(examinationService.getTotalExaminations(userId));
+        return ResponseEntity.ok(examinationService.getTotalExaminations(userId, isPersonal));
     }
 
     /**
@@ -294,13 +310,13 @@ public ResponseEntity<ExaminationDto> getExaminationById(
      */
     @GetMapping("/my-total-severe")
     @PreAuthorize("hasAnyRole('DOCTOR', 'DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT')")
-    public ResponseEntity<Long> getMyTotalSevereExaminations() {
+    public ResponseEntity<Long> getMyTotalSevereExaminations(@RequestParam(defaultValue = "false", required = false) Boolean isPersonal) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String userEmail = (String) authentication.getPrincipal();
         User user = userRepository.findByUsername(userEmail).orElseThrow(() -> new RuntimeException("User not found"));
         Long userId = user.getId();
         log.info("Received request to get total severe examinations for my token, user id: {}", userId);
-        return ResponseEntity.ok(examinationService.getTotalSevereExaminations(userId));
+        return ResponseEntity.ok(examinationService.getTotalSevereExaminations(userId, isPersonal));
     }
 
     /**
@@ -308,13 +324,13 @@ public ResponseEntity<ExaminationDto> getExaminationById(
      */
     @GetMapping("/my-total-verified")
     @PreAuthorize("hasAnyRole('DOCTOR', 'DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT')")
-    public ResponseEntity<Long> getMyTotalVerifiedExaminations() {
+    public ResponseEntity<Long> getMyTotalVerifiedExaminations(@RequestParam(defaultValue = "false", required = false) Boolean isPersonal) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String userEmail = (String) authentication.getPrincipal();
         User user = userRepository.findByUsername(userEmail).orElseThrow(() -> new RuntimeException("User not found"));
         Long userId = user.getId();
         log.info("Received request to get total verified examinations for my token, user id: {}", userId);
-        return ResponseEntity.ok(examinationService.getTotalVerifiedExaminations(userId));
+        return ResponseEntity.ok(examinationService.getTotalVerifiedExaminations(userId, isPersonal));
     }
 
     /**
@@ -323,12 +339,12 @@ public ResponseEntity<ExaminationDto> getExaminationById(
      */
     @GetMapping("/my-total-unverified")
     @PreAuthorize("hasAnyRole('DOCTOR', 'DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT')")
-    public ResponseEntity<Long> getMyTotalUnverifiedExaminations() {
+    public ResponseEntity<Long> getMyTotalUnverifiedExaminations(@RequestParam(defaultValue = "false", required = false) Boolean isPersonal) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String userEmail = (String) authentication.getPrincipal();
         User user = userRepository.findByUsername(userEmail).orElseThrow(() -> new RuntimeException("User not found"));
         Long userId = user.getId();
         log.info("Received request to get total unverified examinations for my token, user id: {}", userId);
-        return ResponseEntity.ok(examinationService.getTotalUnverifiedExaminations(userId));
+        return ResponseEntity.ok(examinationService.getTotalUnverifiedExaminations(userId, isPersonal));
     }
 }
