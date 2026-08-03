@@ -43,10 +43,10 @@ class ExaminationAccessControllerTest {
     @WithMockUser(authorities = {"ROLE_DOCTOR", "VIEW_PENDING_DIAGNOSIS"})
     void assignedDoctorCanReadOwnExamination() {
         when(accessControl.canAccessExamination(eq(11L), any(Authentication.class))).thenReturn(true);
-        when(examinationService.getExaminationById(11L)).thenReturn(new ExaminationDto());
+        when(examinationService.getExaminationById(11L, "doctor")).thenReturn(new ExaminationDto());
 
-        assertDoesNotThrow(() -> examinationController.getExaminationById(11L));
-        verify(examinationService).getExaminationById(11L);
+        assertDoesNotThrow(() -> examinationController.getExaminationById(11L, () -> "doctor"));
+        verify(examinationService).getExaminationById(11L, "doctor");
     }
 
     @Test
@@ -54,8 +54,9 @@ class ExaminationAccessControllerTest {
     void doctorCannotReadAnotherDoctorsExamination() {
         when(accessControl.canAccessExamination(eq(12L), any(Authentication.class))).thenReturn(false);
 
-        assertThrows(AccessDeniedException.class, () -> examinationController.getExaminationById(12L));
-        verify(examinationService, never()).getExaminationById(12L);
+        assertThrows(AccessDeniedException.class,
+                () -> examinationController.getExaminationById(12L, () -> "doctor"));
+        verify(examinationService, never()).getExaminationById(eq(12L), any(String.class));
     }
 
     @Test
@@ -63,15 +64,17 @@ class ExaminationAccessControllerTest {
     void doctorCannotReadAnotherUsersDashboardTotal() {
         when(accessControl.canAccessUser(eq(99L), any(Authentication.class))).thenReturn(false);
 
-        assertThrows(AccessDeniedException.class, () -> examinationController.getTotalExaminations(99L));
-        verify(examinationService, never()).getTotalExaminations(99L);
+        assertThrows(AccessDeniedException.class,
+                () -> examinationController.getTotalExaminations(99L, false));
+        verify(examinationService, never()).getTotalExaminations(eq(99L), any(Boolean.class));
     }
 
     @Test
     @WithMockUser(authorities = {"ROLE_ADMIN", "VIEW_PENDING_DIAGNOSIS"})
     void adminCannotReadClinicalExaminationEvenWithStalePermission() {
-        assertThrows(AccessDeniedException.class, () -> examinationController.getExaminationById(11L));
-        verify(examinationService, never()).getExaminationById(11L);
+        assertThrows(AccessDeniedException.class,
+                () -> examinationController.getExaminationById(11L, () -> "admin"));
+        verify(examinationService, never()).getExaminationById(eq(11L), any(String.class));
     }
 
     @Configuration(proxyBeanMethods = false)
