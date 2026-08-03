@@ -15,6 +15,7 @@ public class EditDoctorProfileRequest {
     @Email(message = "Invalid email format")
     private String email;
 
+    @jakarta.validation.constraints.Pattern(regexp = "^\\d{10}$", message = "Phone must be exactly 10 digits")
     private String phone;
     private Integer yearsOfExperience;
 

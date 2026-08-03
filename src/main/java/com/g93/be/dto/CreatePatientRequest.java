@@ -1,7 +1,5 @@
 package com.g93.be.dto;
 
-
-import com.g93.be.entity.Gender;
 import com.g93.be.entity.Gender;
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
@@ -18,11 +16,11 @@ import java.time.LocalDate;
 public class CreatePatientRequest {
     @NotBlank(message = "Patient code cannot be blank")
     private String patientCode;
-    
+
     @NotBlank(message = "Full name cannot be blank")
     @jakarta.validation.constraints.Size(max = 100, message = "Full name must not exceed 100 characters")
     private String fullName;
-    
+
     private LocalDate dateOfBirth;
     private Gender gender;
     @jakarta.validation.constraints.Pattern(regexp = "^\\d+$", message = "Phone must contain only numbers")

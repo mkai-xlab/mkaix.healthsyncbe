@@ -48,7 +48,7 @@ public class PermissionServiceImpl implements PermissionService {
                     .filter(p -> p.getFeature().getId().equals(feature.getId()))
                     .map(p -> new PermissionResponse(p.getId(), p.getCode(), p.getName(), p.getPriority(), p.getPresentation(),
                             p.getRequiresPermission() != null ? p.getRequiresPermission().getId() : null))
-                    .sorted(Comparator.comparing(PermissionResponse::priority, Comparator.nullsLast(Comparator.naturalOrder())))
+                    .sorted(Comparator.comparing(p -> p.priority(), Comparator.nullsLast(Comparator.naturalOrder())))
                     .collect(Collectors.toList());
             
             return new FeatureResponse(feature.getId(), feature.getName(), feature.getDescription(), permissionResponses);
@@ -120,7 +120,7 @@ public class PermissionServiceImpl implements PermissionService {
                 .filter(p -> p.getFeature().getId().equals(savedFeature.getId()))
                 .map(p -> new PermissionResponse(p.getId(), p.getCode(), p.getName(), p.getPriority(), p.getPresentation(),
                         p.getRequiresPermission() != null ? p.getRequiresPermission().getId() : null))
-                .sorted(Comparator.comparing(PermissionResponse::priority, Comparator.nullsLast(Comparator.naturalOrder())))
+                .sorted(Comparator.comparing(p -> p.priority(), Comparator.nullsLast(Comparator.naturalOrder())))
                 .collect(Collectors.toList());
                 
         return new FeatureResponse(savedFeature.getId(), savedFeature.getName(), savedFeature.getDescription(), permissionResponses);

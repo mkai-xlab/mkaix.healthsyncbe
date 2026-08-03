@@ -1,14 +1,12 @@
 package com.g93.be.controller;
+
 import com.g93.be.dto.EditDoctorRequest;
 import com.g93.be.dto.EditDoctorProfileRequest;
-
-
 
 import com.g93.be.entity.UserStatus;
 import com.g93.be.dto.CreateDoctorRequest;
 import com.g93.be.dto.DoctorResponse;
 import com.g93.be.dto.PageResponse;
-import com.g93.be.entity.UserStatus;
 import com.g93.be.service.DoctorService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -52,13 +50,14 @@ public class DoctorController {
     /**
      * Updates an existing doctor.
      *
-     * @param id The ID of the doctor to update.
+     * @param id      The ID of the doctor to update.
      * @param request The update payload.
      * @return The updated DoctorResponse.
      */
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<DoctorResponse> editDoctor(@PathVariable Long id, @Valid @RequestBody EditDoctorRequest request) {
+    public ResponseEntity<DoctorResponse> editDoctor(@PathVariable Long id,
+            @Valid @RequestBody EditDoctorRequest request) {
         log.info("Received request to edit doctor with ID: {}", id);
         DoctorResponse response = doctorService.editDoctor(id, request);
         return ResponseEntity.ok(response);
@@ -82,7 +81,7 @@ public class DoctorController {
      * Updates the profile of the currently authenticated doctor.
      *
      * @param principal The authenticated user's principal.
-     * @param request The update payload.
+     * @param request   The update payload.
      * @return The updated DoctorResponse.
      */
     @PutMapping("/profile")
@@ -105,10 +104,11 @@ public class DoctorController {
     /**
      * Retrieves doctors with pagination, search, sorting, and filtering.
      *
-     * @param keyword Optional search term (code, name, email, phone, specialization).
+     * @param keyword        Optional search term (code, name, email, phone,
+     *                       specialization).
      * @param specialization Optional exact or partial match for specialization.
-     * @param status Optional filter by status.
-     * @param pageable Pagination and sorting properties.
+     * @param status         Optional filter by status.
+     * @param pageable       Pagination and sorting properties.
      * @return A paginated list of DoctorResponse.
      */
     @GetMapping
@@ -118,7 +118,7 @@ public class DoctorController {
             @RequestParam(required = false) String specialization,
             @RequestParam(required = false) UserStatus status,
             @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        
+
         log.info("Fetching doctors with keyword: {}, specialization: {}, status: {}", keyword, specialization, status);
         PageResponse<DoctorResponse> response = doctorService.searchDoctors(keyword, specialization, status, pageable);
         return ResponseEntity.ok(response);
@@ -127,7 +127,8 @@ public class DoctorController {
     /**
      * Retrieves only active doctors.
      *
-     * @return A list of DoctorResponse objects for active doctors wrapped in ResponseEntity.
+     * @return A list of DoctorResponse objects for active doctors wrapped in
+     *         ResponseEntity.
      */
     @GetMapping("/active")
     @PreAuthorize("hasAnyRole('ADMIN', 'DOCTOR', 'DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT')")
@@ -144,10 +145,10 @@ public class DoctorController {
      */
     @PostMapping("/{id}/activate")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Void> activateDoctor(@PathVariable Long id) {
+    public ResponseEntity<String> activateDoctor(@PathVariable Long id) {
         log.info("Received request to activate doctor with ID: {}", id);
         doctorService.activateDoctor(id);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok("Mở khóa bác sĩ thành công.");
     }
 
     /**
@@ -158,10 +159,10 @@ public class DoctorController {
      */
     @PostMapping("/{id}/deactivate")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Void> deactivateDoctorPost(@PathVariable Long id) {
+    public ResponseEntity<String> deactivateDoctorPost(@PathVariable Long id, @RequestBody com.g93.be.dto.DeactivateDoctorRequest request) {
         log.info("Received request to deactivate doctor with ID via POST: {}", id);
-        doctorService.softDeleteDoctor(id);
-        return ResponseEntity.ok().build();
+        doctorService.softDeleteDoctor(id, request.getReason());
+        return ResponseEntity.ok("Vô hiệu hóa bác sĩ thành công.");
     }
 
     /**
@@ -172,10 +173,9 @@ public class DoctorController {
      */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Void> deactivateDoctor(@PathVariable Long id) {
+    public ResponseEntity<String> deactivateDoctor(@PathVariable Long id, @RequestParam(required = false) String reason) {
         log.info("Received request to deactivate doctor with ID via DELETE: {}", id);
-        doctorService.softDeleteDoctor(id);
-        return ResponseEntity.ok().build();
+        doctorService.softDeleteDoctor(id, reason);
+        return ResponseEntity.ok("Vô hiệu hóa bác sĩ thành công.");
     }
 }
-

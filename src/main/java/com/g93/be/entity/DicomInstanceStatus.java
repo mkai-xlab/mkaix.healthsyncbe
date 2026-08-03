@@ -5,5 +5,6 @@ package com.g93.be.entity;
  */
 public enum DicomInstanceStatus {
     AI_SENDING,
+    AI_FAILED,
     GET_RESULTED
 }
