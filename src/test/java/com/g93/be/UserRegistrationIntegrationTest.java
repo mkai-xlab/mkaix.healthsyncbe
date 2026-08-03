@@ -52,10 +52,7 @@ class UserRegistrationIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        auditLogRepository.deleteAll();
-        userRepository.deleteAll();
-        
-        headOfDepartmentRole = roleRepository.findByCode("HEAD_OF_DEPARTMENT")
+headOfDepartmentRole = roleRepository.findByCode("HEAD_OF_DEPARTMENT")
                 .orElseGet(() -> {
                     Role r = new Role();
                     r.setCode("HEAD_OF_DEPARTMENT");

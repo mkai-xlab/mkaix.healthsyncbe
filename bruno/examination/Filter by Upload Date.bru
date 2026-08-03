@@ -11,6 +11,7 @@ get {
 }
 
 query {
+  isPersonal: true
   date: 2026-07-22
   page: 0
   size: 10
@@ -18,4 +19,8 @@ query {
 
 auth:bearer {
   token: {{accessToken}}
+}
+
+vars:pre-request {
+  accessToken: ""
 }

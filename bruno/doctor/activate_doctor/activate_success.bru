@@ -5,7 +5,7 @@ meta {
 }
 
 post {
-  url: {{baseUrl}}/doctors/1/activate
+  url: {{baseUrl}}/doctors/{{doctorId}}/activate
   body: none
   auth: bearer
 }
@@ -13,4 +13,8 @@ post {
 auth:bearer {
   token: {{accessToken}}
 }
-​
+
+vars:pre-request {
+  doctorId: 240
+  accessToken: ""
+}

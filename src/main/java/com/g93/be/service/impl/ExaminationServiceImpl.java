@@ -39,7 +39,7 @@ public class ExaminationServiceImpl implements ExaminationService {
 
     @Override
     @Transactional(readOnly = true)
-    public PageResponse<ExaminationDto> getAllExaminations(Pageable pageable) {
+    public PageResponse<ExaminationDto> getAllExaminations(Pageable pageable, String username, Boolean isPersonal) {
         Page<Examination> examinationPage = examinationRepository.findAll(getCustomSortPageable(pageable));
         List<ExaminationDto> content = examinationPage.getContent().stream()
                 .map(ex -> {
@@ -68,7 +68,7 @@ public class ExaminationServiceImpl implements ExaminationService {
 
         if (user.getRole() != null && "DOCTOR".equalsIgnoreCase(user.getRole().getCode())) {
             if (examination.getDoctor() == null || !examination.getDoctor().getId().equals(user.getId())) {
-                throw new UnauthorizedAccessException("Bạn không có quyền truy cập hồ sơ thuộc cơ sở này.");
+                throw new UnauthorizedAccessException("BÃƒÆ’Ã‚Â¡Ãƒâ€šÃ‚ÂºÃƒâ€šÃ‚Â¡n khÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â´ng cÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³ quyÃƒÆ’Ã‚Â¡Ãƒâ€šÃ‚Â»Ãƒâ€šÃ‚Ân truy cÃƒÆ’Ã‚Â¡Ãƒâ€šÃ‚ÂºÃƒâ€šÃ‚Â­p hÃƒÆ’Ã‚Â¡Ãƒâ€šÃ‚Â»ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ sÃƒÆ’Ã¢â‚¬Â Ãƒâ€šÃ‚Â¡ thuÃƒÆ’Ã‚Â¡Ãƒâ€šÃ‚Â»ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢c cÃƒÆ’Ã¢â‚¬Â Ãƒâ€šÃ‚Â¡ sÃƒÆ’Ã‚Â¡Ãƒâ€šÃ‚Â»Ãƒâ€¦Ã‚Â¸ nÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â y.");
             }
         }
 
@@ -129,7 +129,7 @@ public class ExaminationServiceImpl implements ExaminationService {
 
     @Override
     @Transactional(readOnly = true)
-    public long getTotalExaminations(Long userId) {
+    public long getTotalExaminations(Long userId, Boolean isPersonal) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User with id " + userId + " not found"));
         
@@ -149,7 +149,7 @@ public class ExaminationServiceImpl implements ExaminationService {
 
     @Override
     @Transactional(readOnly = true)
-    public long getTotalSevereExaminations(Long userId) {
+    public long getTotalSevereExaminations(Long userId, Boolean isPersonal) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User with id " + userId + " not found"));
         
@@ -171,7 +171,7 @@ public class ExaminationServiceImpl implements ExaminationService {
 
     @Override
     @Transactional(readOnly = true)
-    public long getTotalVerifiedExaminations(Long userId) {
+    public long getTotalVerifiedExaminations(Long userId, Boolean isPersonal) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User with id " + userId + " not found"));
         
@@ -193,7 +193,7 @@ public class ExaminationServiceImpl implements ExaminationService {
 
     @Override
     @Transactional(readOnly = true)
-    public long getTotalUnverifiedExaminations(Long userId) {
+    public long getTotalUnverifiedExaminations(Long userId, Boolean isPersonal) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User with id " + userId + " not found"));
         
@@ -215,7 +215,7 @@ public class ExaminationServiceImpl implements ExaminationService {
 
     @Override
     @Transactional(readOnly = true)
-    public PageResponse<ExaminationDto> getExaminationsByStatus(ExaminationStatus status, String username, Pageable pageable) {
+    public PageResponse<ExaminationDto> getExaminationsByStatus(ExaminationStatus status, String username, Boolean isPersonal, Pageable pageable) {
         User user = userRepository.findByUsernameOrEmail(username, username)
                 .orElseThrow(() -> new IllegalArgumentException("User with username/email " + username + " not found"));
                 
@@ -253,7 +253,7 @@ public class ExaminationServiceImpl implements ExaminationService {
 
     @Override
     @Transactional(readOnly = true)
-    public PageResponse<ExaminationDto> getExaminationsByGrade(Integer grade, String username, Pageable pageable) {
+    public PageResponse<ExaminationDto> getExaminationsByGrade(Integer grade, String username, Boolean isPersonal, Pageable pageable) {
         User user = userRepository.findByUsernameOrEmail(username, username)
                 .orElseThrow(() -> new IllegalArgumentException("User with username/email " + username + " not found"));
                 
@@ -291,7 +291,7 @@ public class ExaminationServiceImpl implements ExaminationService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<PatientGradeStatsDto> getPatientGradeStatistics(String username) {
+    public List<PatientGradeStatsDto> getPatientGradeStatistics(String username, Boolean isPersonal) {
         User user = userRepository.findByUsernameOrEmail(username, username)
                 .orElseThrow(() -> new IllegalArgumentException("User with username/email " + username + " not found"));
 
@@ -317,7 +317,7 @@ public class ExaminationServiceImpl implements ExaminationService {
 
     @Override
     @Transactional(readOnly = true)
-    public PageResponse<ExaminationDto> getExaminationsSortedByStudyDate(String direction, String username, Pageable pageable) {
+    public PageResponse<ExaminationDto> getExaminationsSortedByStudyDate(String direction, String username, Boolean isPersonal, Pageable pageable) {
         User user = userRepository.findByUsernameOrEmail(username, username)
                 .orElseThrow(() -> new IllegalArgumentException("User with username/email " + username + " not found"));
         if (user.getRole() == null || user.getRole().getCode() == null) {
@@ -344,7 +344,7 @@ public class ExaminationServiceImpl implements ExaminationService {
 
     @Override
     @Transactional(readOnly = true)
-    public PageResponse<ExaminationDto> getExaminationsSortedByUploadDate(String direction, String username, Pageable pageable) {
+    public PageResponse<ExaminationDto> getExaminationsSortedByUploadDate(String direction, String username, Boolean isPersonal, Pageable pageable) {
         User user = userRepository.findByUsernameOrEmail(username, username)
                 .orElseThrow(() -> new IllegalArgumentException("User with username/email " + username + " not found"));
         if (user.getRole() == null || user.getRole().getCode() == null) {
@@ -371,7 +371,7 @@ public class ExaminationServiceImpl implements ExaminationService {
 
     @Override
     @Transactional(readOnly = true)
-    public PageResponse<ExaminationDto> getExaminationsFilteredByStudyDate(java.time.LocalDate date, String username, Pageable pageable) {
+    public PageResponse<ExaminationDto> getExaminationsFilteredByStudyDate(java.time.LocalDate date, String username, Boolean isPersonal, Pageable pageable) {
         User user = userRepository.findByUsernameOrEmail(username, username)
                 .orElseThrow(() -> new IllegalArgumentException("User with username/email " + username + " not found"));
         if (user.getRole() == null || user.getRole().getCode() == null) {
@@ -393,7 +393,7 @@ public class ExaminationServiceImpl implements ExaminationService {
 
     @Override
     @Transactional(readOnly = true)
-    public PageResponse<ExaminationDto> getExaminationsFilteredByUploadDate(java.time.LocalDate date, String username, Pageable pageable) {
+    public PageResponse<ExaminationDto> getExaminationsFilteredByUploadDate(java.time.LocalDate date, String username, Boolean isPersonal, Pageable pageable) {
         User user = userRepository.findByUsernameOrEmail(username, username)
                 .orElseThrow(() -> new IllegalArgumentException("User with username/email " + username + " not found"));
         if (user.getRole() == null || user.getRole().getCode() == null) {
