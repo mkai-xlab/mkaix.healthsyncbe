@@ -348,9 +348,9 @@ class DoctorControllerTest {
 
     @Test
     void testDeactivateDoctorPost_Normal() throws Exception {
-        Mockito.doNothing().when(doctorService).softDeleteDoctor(1L, org.mockito.ArgumentMatchers.any());
+        Mockito.doNothing().when(doctorService).softDeleteDoctor(org.mockito.ArgumentMatchers.eq(1L), org.mockito.ArgumentMatchers.any());
 
-        mockMvc.perform(post("/doctors/1/deactivate"))
+        mockMvc.perform(post("/doctors/1/deactivate").contentType(MediaType.APPLICATION_JSON).content("{\"reason\":\"test\"}"))
                 .andExpect(status().isOk());
     }
 
@@ -360,7 +360,7 @@ class DoctorControllerTest {
 
     @Test
     void testDeactivateDoctor_Normal() throws Exception {
-        Mockito.doNothing().when(doctorService).softDeleteDoctor(1L, org.mockito.ArgumentMatchers.any());
+        Mockito.doNothing().when(doctorService).softDeleteDoctor(org.mockito.ArgumentMatchers.eq(1L), org.mockito.ArgumentMatchers.any());
 
         mockMvc.perform(delete("/doctors/1"))
                 .andExpect(status().isOk());
@@ -488,42 +488,42 @@ class DoctorControllerTest {
 
     @Test
     void testDeactivateDoctorPost_Abnormal_401() throws Exception {
-        Mockito.doThrow(new BadCredentialsException("Unauthorized")).when(doctorService).softDeleteDoctor(1L, org.mockito.ArgumentMatchers.any());
-        mockMvc.perform(post("/doctors/1/deactivate"))
+        Mockito.doThrow(new BadCredentialsException("Unauthorized")).when(doctorService).softDeleteDoctor(org.mockito.ArgumentMatchers.eq(1L), org.mockito.ArgumentMatchers.any());
+        mockMvc.perform(post("/doctors/1/deactivate").contentType(MediaType.APPLICATION_JSON).content("{\"reason\":\"test\"}"))
                 .andExpect(status().isUnauthorized());
     }
 
     @Test
     void testDeactivateDoctorPost_Abnormal_403() throws Exception {
-        Mockito.doThrow(new AccessDeniedException("Forbidden")).when(doctorService).softDeleteDoctor(1L, org.mockito.ArgumentMatchers.any());
-        mockMvc.perform(post("/doctors/1/deactivate"))
+        Mockito.doThrow(new AccessDeniedException("Forbidden")).when(doctorService).softDeleteDoctor(org.mockito.ArgumentMatchers.eq(1L), org.mockito.ArgumentMatchers.any());
+        mockMvc.perform(post("/doctors/1/deactivate").contentType(MediaType.APPLICATION_JSON).content("{\"reason\":\"test\"}"))
                 .andExpect(status().isForbidden());
     }
 
     @Test
     void testDeactivateDoctor_Abnormal_401() throws Exception {
-        Mockito.doThrow(new BadCredentialsException("Unauthorized")).when(doctorService).softDeleteDoctor(1L, org.mockito.ArgumentMatchers.any());
+        Mockito.doThrow(new BadCredentialsException("Unauthorized")).when(doctorService).softDeleteDoctor(org.mockito.ArgumentMatchers.eq(1L), org.mockito.ArgumentMatchers.any());
         mockMvc.perform(delete("/doctors/1"))
                 .andExpect(status().isUnauthorized());
     }
 
     @Test
     void testDeactivateDoctor_Abnormal_403() throws Exception {
-        Mockito.doThrow(new AccessDeniedException("Forbidden")).when(doctorService).softDeleteDoctor(1L, org.mockito.ArgumentMatchers.any());
+        Mockito.doThrow(new AccessDeniedException("Forbidden")).when(doctorService).softDeleteDoctor(org.mockito.ArgumentMatchers.eq(1L), org.mockito.ArgumentMatchers.any());
         mockMvc.perform(delete("/doctors/1"))
                 .andExpect(status().isForbidden());
     }
 
     @Test
     void testDeactivateDoctorPost_Abnormal_NotFound() throws Exception {
-        Mockito.doThrow(new IllegalArgumentException("Doctor not found")).when(doctorService).softDeleteDoctor(999L, org.mockito.ArgumentMatchers.any());
-        mockMvc.perform(post("/doctors/999/deactivate"))
+        Mockito.doThrow(new IllegalArgumentException("Doctor not found")).when(doctorService).softDeleteDoctor(org.mockito.ArgumentMatchers.eq(999L), org.mockito.ArgumentMatchers.any());
+        mockMvc.perform(post("/doctors/999/deactivate").contentType(MediaType.APPLICATION_JSON).content("{\"reason\":\"test\"}"))
                 .andExpect(status().isBadRequest());
     }
 
     @Test
     void testDeactivateDoctor_Abnormal_NotFound() throws Exception {
-        Mockito.doThrow(new IllegalArgumentException("Doctor not found")).when(doctorService).softDeleteDoctor(999L, org.mockito.ArgumentMatchers.any());
+        Mockito.doThrow(new IllegalArgumentException("Doctor not found")).when(doctorService).softDeleteDoctor(org.mockito.ArgumentMatchers.eq(999L), org.mockito.ArgumentMatchers.any());
         mockMvc.perform(delete("/doctors/999"))
                 .andExpect(status().isBadRequest());
     }
