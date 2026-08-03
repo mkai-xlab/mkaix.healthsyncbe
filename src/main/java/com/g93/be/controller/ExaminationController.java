@@ -3,6 +3,7 @@ package com.g93.be.controller;
 
 import com.g93.be.dto.ExaminationDto;
 import com.g93.be.dto.PageResponse;
+import com.g93.be.dto.PatientGradeStatsDto;
 import com.g93.be.service.ExaminationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -16,6 +17,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import com.g93.be.entity.ExaminationStatus;
 import com.g93.be.repository.UserRepository;
 import com.g93.be.entity.User;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/examinations")
@@ -98,17 +101,18 @@ public class ExaminationController {
      * @param id The ID of the examination to retrieve.
      * @return The examination details.
      */
-@PreAuthorize("(hasAnyRole('DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT') "
-        + "or (hasRole('DOCTOR') and hasAuthority('VIEW_PENDING_DIAGNOSIS'))) "
-        + "and @accessControl.canAccessExamination(#p0, authentication)")
-public ResponseEntity<ExaminationDto> getExaminationById(
-        @PathVariable Long id,
-        java.security.Principal principal) {
-    log.info("Received request to get examination with id: {} by user: {}",
-            id, principal.getName());
-    return ResponseEntity.ok(
-            examinationService.getExaminationById(id, principal.getName()));
-}
+    @GetMapping("/{id}")
+    @PreAuthorize("(hasAnyRole('DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT') "
+            + "or (hasRole('DOCTOR') and hasAuthority('VIEW_PENDING_DIAGNOSIS'))) "
+            + "and @accessControl.canAccessExamination(#p0, authentication)")
+    public ResponseEntity<ExaminationDto> getExaminationById(
+            @PathVariable Long id,
+            java.security.Principal principal) {
+        log.info("Received request to get examination with id: {} by user: {}",
+                id, principal.getName());
+        return ResponseEntity.ok(
+                examinationService.getExaminationById(id, principal.getName()));
+    }
 
     /**
      * Retrieves examinations by doctor ID with pagination.
@@ -208,22 +212,18 @@ public ResponseEntity<ExaminationDto> getExaminationById(
      * @param principal The authenticated user's principal.
      * @return A list of patient grade statistics.
      */
-@PreAuthorize(
-        "hasAnyRole('DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT') "
-                + "or (hasRole('DOCTOR') and hasAuthority('VIEW_ANALYTIC_HISTORY'))")
-public ResponseEntity<List<PatientGradeStatsDto>> getPatientGradeStatistics(
-        java.security.Principal principal,
-        @RequestParam(defaultValue = "false", required = false)
-        Boolean isPersonal) {
-
-    log.info("Received request to get patient grade statistics for user: {}",
-            principal.getName());
-
-    return ResponseEntity.ok(
-            examinationService.getPatientGradeStatistics(
-                    principal.getName(),
-                    isPersonal));
-}
+    @GetMapping("/statistics/patients-by-grade")
+    @PreAuthorize(
+            "hasAnyRole('DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT') "
+                    + "or (hasRole('DOCTOR') and hasAuthority('VIEW_ANALYTIC_HISTORY'))")
+    public ResponseEntity<List<PatientGradeStatsDto>> getPatientGradeStatistics(
+            java.security.Principal principal,
+            @RequestParam(defaultValue = "false", required = false) Boolean isPersonal) {
+        log.info("Received request to get patient grade statistics for user: {}",
+                principal.getName());
+        return ResponseEntity.ok(
+                examinationService.getPatientGradeStatistics(principal.getName(), isPersonal));
+    }
 
     /**
      * Marks an examination as viewed.
