@@ -238,7 +238,7 @@ class DoctorServiceTest {
     void deactivateDoctorPersistsInactiveStatus() {
         when(doctorRepository.findById(7L)).thenReturn(Optional.of(doctor));
 
-        doctorService.softDeleteDoctor(7L);
+        doctorService.softDeleteDoctor(7L, org.mockito.ArgumentMatchers.any());
 
         ArgumentCaptor<Doctor> captor = ArgumentCaptor.forClass(Doctor.class);
         verify(doctorRepository).save(captor.capture());
@@ -291,3 +291,4 @@ class DoctorServiceTest {
         }
     }
 }
+

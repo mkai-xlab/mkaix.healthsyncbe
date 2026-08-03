@@ -5,9 +5,15 @@ meta {
 }
 
 delete {
-  url: {{baseUrl}}/doctors/1
+  url: {{baseUrl}}/doctors/{{doctorId}}?reason=Khong hoat dong lau
   body: none
   auth: bearer
+}
+
+
+
+query {
+  reason: Khong hoat dong lau
 }
 
 auth:bearer {

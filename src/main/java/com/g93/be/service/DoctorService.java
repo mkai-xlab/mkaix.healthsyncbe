@@ -19,7 +19,7 @@ public interface DoctorService {
 
     java.util.List<DoctorResponse> getActiveDoctors();
 
-    void softDeleteDoctor(Long id);
+    void softDeleteDoctor(Long id, String reason);
 
     void activateDoctor(Long id);
 

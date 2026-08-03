@@ -34,6 +34,7 @@ public class DoctorMapper {
         response.setYearsOfExperience(doctor.getYearsOfExperience());
         response.setDegree(doctor.getDegree());
         response.setBiography(doctor.getBiography());
+        response.setInactiveReason(doctor.getInactiveReason());
         response.setCreatedAt(doctor.getCreatedAt());
         response.setUpdatedAt(doctor.getUpdatedAt());
         return response;
