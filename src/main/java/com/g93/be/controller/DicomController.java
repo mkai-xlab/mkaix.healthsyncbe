@@ -17,6 +17,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
+import java.security.Principal;
 
 /**
  * Controller for DICOM file operations.
@@ -59,7 +62,7 @@ public class DicomController {
     @PreAuthorize("hasAnyRole('DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT') or (hasRole('DOCTOR') and hasAuthority('UPLOAD_DICOM_IMAGE'))")
     public ResponseEntity<BatchDicomUploadResponse> uploadBatch(
             @RequestParam("files") List<MultipartFile> files,
-            java.security.Principal principal) {
+            Principal principal) {
         log.info("Received request to upload batch of {} DICOM files", files.size());
         if (principal == null || principal.getName() == null) {
             throw new org.springframework.security.access.AccessDeniedException(
@@ -76,7 +79,7 @@ public class DicomController {
     @PreAuthorize("hasAnyRole('DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT') or (hasRole('DOCTOR') and hasAuthority('UPLOAD_DICOM_IMAGE'))")
     public ResponseEntity<?> uploadZipBatch(
             @RequestParam("file") MultipartFile file,
-            java.security.Principal principal) {
+            Principal principal) {
         log.info("Received request to upload ZIP batch DICOM file");
         try {
             if (principal == null || principal.getName() == null) {
@@ -89,7 +92,7 @@ public class DicomController {
             BatchDicomUploadResponse response = dicomService.uploadZipBatchFile(file, user.getUsername());
             return ResponseEntity.ok(response);
         } catch (IllegalArgumentException e) {
-            java.util.Map<String, String> errResponse = new java.util.HashMap<>();
+            Map<String, String> errResponse = new HashMap<>();
             errResponse.put("error", e.getMessage());
             errResponse.put("status", "FAILED");
             return ResponseEntity.badRequest().body(errResponse);

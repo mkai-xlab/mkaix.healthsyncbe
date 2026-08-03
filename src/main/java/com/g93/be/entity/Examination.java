@@ -35,7 +35,7 @@ public class Examination {
     private LocalDateTime visitTime;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false)
+    @Column(name = "status", nullable = false, columnDefinition = "VARCHAR(255)")
     private ExaminationStatus status = ExaminationStatus.AI_PROCESSING;
 
     @Column(name = "chief_complaint", columnDefinition = "TEXT")

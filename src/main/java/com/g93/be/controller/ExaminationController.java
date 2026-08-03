@@ -1,6 +1,6 @@
 package com.g93.be.controller;
-import com.g93.be.dto.PatientGradeStatsDto;
 
+import com.g93.be.dto.PatientGradeStatsDto;
 
 import com.g93.be.dto.ExaminationDto;
 import com.g93.be.dto.PageResponse;
@@ -14,7 +14,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import com.g93.be.security.CustomUserDetails;
 import com.g93.be.entity.ExaminationStatus;
 import com.g93.be.repository.UserRepository;
 import com.g93.be.entity.User;
@@ -48,8 +47,10 @@ public class ExaminationController {
             @RequestParam(defaultValue = "desc") String direction,
             java.security.Principal principal,
             @PageableDefault(size = 10) Pageable pageable) {
-        log.info("Received request to sort examinations by study date ({}) for user: {}", direction, principal.getName());
-        return ResponseEntity.ok(examinationService.getExaminationsSortedByStudyDate(direction, principal.getName(), pageable));
+        log.info("Received request to sort examinations by study date ({}) for user: {}", direction,
+                principal.getName());
+        return ResponseEntity
+                .ok(examinationService.getExaminationsSortedByStudyDate(direction, principal.getName(), pageable));
     }
 
     @GetMapping("/sort/upload-date")
@@ -58,8 +59,10 @@ public class ExaminationController {
             @RequestParam(defaultValue = "desc") String direction,
             java.security.Principal principal,
             @PageableDefault(size = 10) Pageable pageable) {
-        log.info("Received request to sort examinations by upload date ({}) for user: {}", direction, principal.getName());
-        return ResponseEntity.ok(examinationService.getExaminationsSortedByUploadDate(direction, principal.getName(), pageable));
+        log.info("Received request to sort examinations by upload date ({}) for user: {}", direction,
+                principal.getName());
+        return ResponseEntity
+                .ok(examinationService.getExaminationsSortedByUploadDate(direction, principal.getName(), pageable));
     }
 
     @GetMapping("/filter/study-date")
@@ -69,7 +72,8 @@ public class ExaminationController {
             java.security.Principal principal,
             @PageableDefault(size = 10) Pageable pageable) {
         log.info("Received request to filter examinations by study date ({}) for user: {}", date, principal.getName());
-        return ResponseEntity.ok(examinationService.getExaminationsFilteredByStudyDate(date, principal.getName(), pageable));
+        return ResponseEntity
+                .ok(examinationService.getExaminationsFilteredByStudyDate(date, principal.getName(), pageable));
     }
 
     @GetMapping("/filter/upload-date")
@@ -79,7 +83,8 @@ public class ExaminationController {
             java.security.Principal principal,
             @PageableDefault(size = 10) Pageable pageable) {
         log.info("Received request to filter examinations by upload date ({}) for user: {}", date, principal.getName());
-        return ResponseEntity.ok(examinationService.getExaminationsFilteredByUploadDate(date, principal.getName(), pageable));
+        return ResponseEntity
+                .ok(examinationService.getExaminationsFilteredByUploadDate(date, principal.getName(), pageable));
     }
 
     /**
@@ -88,12 +93,17 @@ public class ExaminationController {
      * @param id The ID of the examination to retrieve.
      * @return The examination details.
      */
-    @GetMapping("/{id}")
-    @PreAuthorize("(hasAnyRole('DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT') or (hasRole('DOCTOR') and hasAuthority('VIEW_PENDING_DIAGNOSIS'))) and @accessControl.canAccessExamination(#p0, authentication)")
-    public ResponseEntity<ExaminationDto> getExaminationById(@PathVariable Long id) {
-        log.info("Received request to get examination with id: {}", id);
-        return ResponseEntity.ok(examinationService.getExaminationById(id));
-    }
+@PreAuthorize("(hasAnyRole('DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT') "
+        + "or (hasRole('DOCTOR') and hasAuthority('VIEW_PENDING_DIAGNOSIS'))) "
+        + "and @accessControl.canAccessExamination(#p0, authentication)")
+public ResponseEntity<ExaminationDto> getExaminationById(
+        @PathVariable Long id,
+        java.security.Principal principal) {
+    log.info("Received request to get examination with id: {} by user: {}",
+            id, principal.getName());
+    return ResponseEntity.ok(
+            examinationService.getExaminationById(id, principal.getName()));
+}
 
     /**
      * Retrieves examinations by doctor ID with pagination.
@@ -115,7 +125,7 @@ public class ExaminationController {
      * Retrieves examinations by patient ID with pagination.
      *
      * @param patientId The patient ID.
-     * @param pageable The pagination parameters.
+     * @param pageable  The pagination parameters.
      * @return A paginated list of examinations for the patient.
      */
     @GetMapping("/patient/{patientId}")
@@ -131,9 +141,9 @@ public class ExaminationController {
      * Retrieves examinations by patient ID filtered by study month.
      *
      * @param patientId The patient ID.
-     * @param year The year to filter by.
-     * @param month The month to filter by.
-     * @param pageable The pagination parameters.
+     * @param year      The year to filter by.
+     * @param month     The month to filter by.
+     * @param pageable  The pagination parameters.
      * @return A paginated list of examinations for the patient in the given month.
      */
     @GetMapping("/patient/{patientId}/filter/study-month")
@@ -144,15 +154,16 @@ public class ExaminationController {
             @RequestParam int month,
             @PageableDefault(size = 10) Pageable pageable) {
         log.info("Received request to get examinations for patient id: {} in {}/{}", patientId, month, year);
-        return ResponseEntity.ok(examinationService.getExaminationsByPatientIdAndStudyMonth(patientId, year, month, pageable));
+        return ResponseEntity
+                .ok(examinationService.getExaminationsByPatientIdAndStudyMonth(patientId, year, month, pageable));
     }
 
     /**
      * Retrieves examinations by status based on user role.
      *
-     * @param status The status to filter by.
+     * @param status      The status to filter by.
      * @param userDetails The authenticated user details.
-     * @param pageable The pagination parameters.
+     * @param pageable    The pagination parameters.
      * @return A paginated list of examinations matching the status.
      */
     @GetMapping("/status")
@@ -168,9 +179,9 @@ public class ExaminationController {
     /**
      * Retrieves examinations by max predicted grade based on user role.
      *
-     * @param grade The max predicted grade to filter by.
+     * @param grade     The max predicted grade to filter by.
      * @param principal The authenticated user's principal.
-     * @param pageable The pagination parameters.
+     * @param pageable  The pagination parameters.
      * @return A paginated list of examinations matching the grade.
      */
     @GetMapping("/grade")
@@ -184,7 +195,8 @@ public class ExaminationController {
     }
 
     /**
-     * Retrieves patient statistics grouped by max predicted grade based on user role.
+     * Retrieves patient statistics grouped by max predicted grade based on user
+     * role.
      *
      * @param principal The authenticated user's principal.
      * @return A list of patient grade statistics.
@@ -306,7 +318,8 @@ public class ExaminationController {
     }
 
     /**
-     * Retrieves total unverified examinations based on user role (from access token).
+     * Retrieves total unverified examinations based on user role (from access
+     * token).
      */
     @GetMapping("/my-total-unverified")
     @PreAuthorize("hasAnyRole('DOCTOR', 'DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT')")
@@ -319,4 +332,3 @@ public class ExaminationController {
         return ResponseEntity.ok(examinationService.getTotalUnverifiedExaminations(userId));
     }
 }
-

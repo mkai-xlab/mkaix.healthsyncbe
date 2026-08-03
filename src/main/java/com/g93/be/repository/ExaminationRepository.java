@@ -25,6 +25,8 @@ public interface ExaminationRepository extends JpaRepository<Examination, Long> 
     Optional<Long> findAssignedDoctorIdById(@Param("id") Long id);
 
     List<Examination> findByPatientId(Long patientId);
+    List<Examination> findByPatientIdOrderByCreatedAtDesc(Long patientId);
+    boolean existsByPatientIdAndDoctorId(Long patientId, Long doctorId);
     Page<Examination> findByPatientId(Long patientId, Pageable pageable);
     Page<Examination> findByDoctorId(Long doctorId, Pageable pageable);
     long countByDoctorId(Long doctorId);

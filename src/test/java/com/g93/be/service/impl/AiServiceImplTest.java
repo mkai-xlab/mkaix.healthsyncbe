@@ -238,8 +238,12 @@ class AiServiceImplTest {
                             .thenReturn(new ResponseEntity<>((FastApiPredictionResponse) null, HttpStatus.INTERNAL_SERVER_ERROR));
                 })) {
             
-            RuntimeException exception = assertThrows(RuntimeException.class, () -> aiService.predictBatch(request));
-            assertTrue(exception.getMessage().contains("Không thể kết nối đến Server AI"));
+            // Should not throw exception anymore
+            assertDoesNotThrow(() -> aiService.predictBatch(request));
+            
+            // Verify instance status updated to AI_FAILED
+            assertEquals(DicomInstanceStatus.AI_FAILED, instance.getStatus());
+            verify(dicomInstanceRepository, atLeastOnce()).save(instance);
         }
     }
 }
