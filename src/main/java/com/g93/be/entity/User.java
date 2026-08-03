@@ -61,6 +61,9 @@ public class User {
     @Column(name = "user_type", length = 50)
     private String userType;
 
+    @Column(name = "inactive_reason", columnDefinition = "TEXT")
+    private String inactiveReason;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
