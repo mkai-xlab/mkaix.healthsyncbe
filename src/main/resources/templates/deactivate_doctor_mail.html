@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thông báo vô hiệu hóa tài khoản</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 20px auto;
+            background: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .header {
+            background-color: #e53935;
+            color: #ffffff;
+            padding: 20px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+        .content {
+            padding: 20px 30px;
+            color: #333333;
+            line-height: 1.6;
+        }
+        .content h2 {
+            font-size: 20px;
+            color: #e53935;
+        }
+        .reason-box {
+            background-color: #fce4e4;
+            border-left: 4px solid #e53935;
+            padding: 15px;
+            margin: 20px 0;
+            font-style: italic;
+        }
+        .footer {
+            background-color: #f1f1f1;
+            padding: 15px;
+            text-align: center;
+            font-size: 14px;
+            color: #777777;
+        }
+        .button-wrapper {
+            text-align: center;
+            margin-top: 30px;
+        }
+        .contact-btn {
+            background-color: #1976d2;
+            color: white;
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Thông báo vô hiệu hóa tài khoản</h1>
+        </div>
+        <div class="content">
+            <p>Xin chào Bác sĩ <strong th:text="${doctorName}"></strong>,</p>
+            <p>Chúng tôi rất tiếc phải thông báo rằng tài khoản của bạn trên hệ thống HealthSync đã bị Quản trị viên vô hiệu hóa.</p>
+            
+            <h2>Lý do vô hiệu hóa:</h2>
+            <div class="reason-box">
+                <p th:text="${reason}">[Không có lý do cụ thể được cung cấp]</p>
+            </div>
+            
+            <p>Trong thời gian tài khoản bị vô hiệu hóa, bạn sẽ không thể đăng nhập và sử dụng các tính năng của hệ thống. Nếu bạn tin rằng đây là một sự nhầm lẫn hoặc cần trao đổi thêm, vui lòng liên hệ trực tiếp với bộ phận Quản trị để được hỗ trợ.</p>
+            
+
+        </div>
+        <div class="footer">
+            <p>&copy; 2026 HealthSync System. All rights reserved.</p>
+            <p>Đây là email tự động, vui lòng không trả lời trực tiếp email này.</p>
+        </div>
+    </div>
+</body>
+</html>

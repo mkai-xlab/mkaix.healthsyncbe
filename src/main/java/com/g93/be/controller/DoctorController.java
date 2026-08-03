@@ -146,10 +146,10 @@ public class DoctorController {
      */
     @PostMapping("/{id}/activate")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Void> activateDoctor(@PathVariable Long id) {
+    public ResponseEntity<String> activateDoctor(@PathVariable Long id) {
         log.info("Received request to activate doctor with ID: {}", id);
         doctorService.activateDoctor(id);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok("Mở khóa bác sĩ thành công.");
     }
 
     /**
@@ -160,10 +160,10 @@ public class DoctorController {
      */
     @PostMapping("/{id}/deactivate")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Void> deactivateDoctorPost(@PathVariable Long id) {
+    public ResponseEntity<String> deactivateDoctorPost(@PathVariable Long id, @RequestBody com.g93.be.dto.DeactivateDoctorRequest request) {
         log.info("Received request to deactivate doctor with ID via POST: {}", id);
-        doctorService.softDeleteDoctor(id);
-        return ResponseEntity.ok().build();
+        doctorService.softDeleteDoctor(id, request.getReason());
+        return ResponseEntity.ok("Vô hiệu hóa bác sĩ thành công.");
     }
 
     /**
@@ -174,9 +174,9 @@ public class DoctorController {
      */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Void> deactivateDoctor(@PathVariable Long id) {
+    public ResponseEntity<String> deactivateDoctor(@PathVariable Long id, @RequestParam(required = false) String reason) {
         log.info("Received request to deactivate doctor with ID via DELETE: {}", id);
-        doctorService.softDeleteDoctor(id);
-        return ResponseEntity.ok().build();
+        doctorService.softDeleteDoctor(id, reason);
+        return ResponseEntity.ok("Vô hiệu hóa bác sĩ thành công.");
     }
 }

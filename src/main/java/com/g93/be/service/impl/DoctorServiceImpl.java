@@ -78,19 +78,36 @@ public class DoctorServiceImpl implements DoctorService {
     }
 
     @Override
-    public void softDeleteDoctor(Long id) {
+    @com.g93.be.aspect.LogAction("DEACTIVATE_DOCTOR")
+    public void softDeleteDoctor(Long id, String reason) {
         Doctor doctor = doctorRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Doctor with id " + id + " not found"));
         doctor.setStatus(UserStatus.INACTIVE);
+        doctor.setInactiveReason(reason);
         doctorRepository.save(doctor);
         log.info("Soft-deleted doctor with id {}", id);
+        
+        // Gửi email thông báo
+        if (doctor.getEmail() != null && !doctor.getEmail().isEmpty()) {
+            java.util.Map<String, Object> vars = new java.util.HashMap<>();
+            vars.put("doctorName", doctor.getFullName());
+            vars.put("reason", reason != null && !reason.trim().isEmpty() ? reason : "Không có lý do cụ thể");
+            
+            try {
+                mailUtil.sendTemplateMail(doctor.getEmail(), "Thông báo vô hiệu hóa tài khoản", "deactivate_doctor_mail", vars);
+            } catch (Exception e) {
+                log.error("Failed to send deactivation email to doctor {}", doctor.getEmail(), e);
+            }
+        }
     }
 
     @Override
+    @com.g93.be.aspect.LogAction("ACTIVATE_DOCTOR")
     public void activateDoctor(Long id) {
         Doctor doctor = doctorRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Doctor with id " + id + " not found"));
         doctor.setStatus(UserStatus.ACTIVE);
+        doctor.setInactiveReason(null);
         doctorRepository.save(doctor);
         log.info("Activated doctor with id {}", id);
     }
@@ -368,3 +385,4 @@ public class DoctorServiceImpl implements DoctorService {
         }
     }
 }
+

@@ -24,6 +24,7 @@ public class DoctorResponse {
     private Integer yearsOfExperience;
     private String degree;
     private String biography;
+    private String inactiveReason;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }
