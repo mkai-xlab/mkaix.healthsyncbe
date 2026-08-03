@@ -174,7 +174,7 @@ public class DoctorServiceImplTest {
         doc.setStatus(UserStatus.ACTIVE);
         when(doctorRepository.findById(1L)).thenReturn(Optional.of(doc));
         
-        doctorService.softDeleteDoctor(1L);
+        doctorService.softDeleteDoctor(1L, org.mockito.ArgumentMatchers.any());
         
         assertEquals(UserStatus.INACTIVE, doc.getStatus());
         verify(doctorRepository).save(doc);
@@ -184,7 +184,7 @@ public class DoctorServiceImplTest {
     void testSoftDeleteDoctor_Abnormal_NotFound() {
         when(doctorRepository.findById(1L)).thenReturn(Optional.empty());
         
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> doctorService.softDeleteDoctor(1L));
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> doctorService.softDeleteDoctor(1L, org.mockito.ArgumentMatchers.any()));
         assertEquals("Doctor with id 1 not found", ex.getMessage());
     }
 
@@ -608,3 +608,4 @@ public class DoctorServiceImplTest {
         assertFalse(validator.validate(req).isEmpty());
     }
 }
+
