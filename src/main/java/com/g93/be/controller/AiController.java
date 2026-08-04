@@ -11,6 +11,7 @@ import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 import java.util.List;
 
@@ -24,6 +25,7 @@ public class AiController {
     private final ImageService imageService;
 
     @PostMapping("/predict-batch")
+    @PreAuthorize("hasAnyRole('DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT') or (hasRole('DOCTOR') and hasAuthority('TRIGGER_AI_ANALYSIS'))")
     public ResponseEntity<List<ExaminationDto>> predictBatch(@RequestBody AiPredictionRequest request) {
         log.info("Received request to predict AI for {} instances", request.getDicomInstanceIds().size());
         List<ExaminationDto> results = aiService.predictBatch(request);
@@ -31,6 +33,7 @@ public class AiController {
     }
 
     @GetMapping("/heatmap/{aiResultId}")
+    @PreAuthorize("(hasAnyRole('DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT') or (hasRole('DOCTOR') and hasAuthority('VIEW_AI_RESULT'))) and @accessControl.canAccessAiResult(#p0, authentication)")
     public ResponseEntity<Resource> getHeatmapImage(@PathVariable Long aiResultId) {
         Resource resource = aiService.getHeatmapImageResource(aiResultId);
         if (resource != null) {
@@ -42,6 +45,7 @@ public class AiController {
     }
 
     @GetMapping("/image/{imageId}")
+    @PreAuthorize("(hasAnyRole('DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT') or (hasRole('DOCTOR') and hasAuthority('VIEW_IMAGE_LIST'))) and @accessControl.canAccessClinicalImage(#p0, authentication)")
     public ResponseEntity<Resource> getImage(@PathVariable Long imageId) {
         Resource resource = imageService.getImageResource(imageId);
         if (resource != null) {
