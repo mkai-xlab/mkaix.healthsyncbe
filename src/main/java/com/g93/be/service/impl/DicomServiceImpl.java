@@ -623,12 +623,28 @@ public class DicomServiceImpl implements DicomService {
 
             if (userId != null) {
                 try {
-                    notificationService.sendNotification(new SendNotificationRequest(
-                            userId,
-                            "Tải lên DICOM hoàn tất",
-                            "Quá trình tải lên ảnh DICOM đã hoàn tất.",
-                            "DICOM_BATCH_RESULT",
-                            null));
+                    if (successfulPatients.isEmpty()) {
+                        notificationService.sendNotification(new SendNotificationRequest(
+                                userId,
+                                "Tải lên DICOM thất bại",
+                                "Toàn bộ file tải lên bị lỗi hoặc không chứa file DICOM hợp lệ. Vui lòng thử lại.",
+                                "SYSTEM",
+                                null));
+                    } else if (!errors.isEmpty()) {
+                        notificationService.sendNotification(new SendNotificationRequest(
+                                userId,
+                                "Tải lên DICOM hoàn tất (có lỗi)",
+                                "Đã xử lý xong nhưng có " + errors.size() + " file bị lỗi. Vui lòng xem chi tiết trên giao diện.",
+                                "DICOM_BATCH_RESULT",
+                                null));
+                    } else {
+                        notificationService.sendNotification(new SendNotificationRequest(
+                                userId,
+                                "Tải lên DICOM hoàn tất",
+                                "Quá trình tải lên ảnh DICOM đã hoàn tất trọn vẹn.",
+                                "DICOM_BATCH_RESULT",
+                                null));
+                    }
                 } catch (Exception e) {
                     log.error("Failed to send notification", e);
                 }
