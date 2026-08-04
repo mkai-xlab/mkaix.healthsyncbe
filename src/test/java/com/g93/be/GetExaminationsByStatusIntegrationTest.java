@@ -1,6 +1,7 @@
 package com.g93.be;
 
 import com.g93.be.common.util.MailUtil;
+import com.g93.be.dto.PermissionResponse;
 import com.g93.be.entity.*;
 import com.g93.be.repository.*;
 import com.g93.be.security.CustomUserDetails;
@@ -91,8 +92,10 @@ public class GetExaminationsByStatusIntegrationTest {
         doctor2 = createDoctor("doctor2", doctorRole);
         headOfDepartment = createUser("head_user", headRole);
 
-        doctor1Token = jwtTokenProvider.generateAccessToken(new CustomUserDetails(doctor1, List.of()));
-        doctor2Token = jwtTokenProvider.generateAccessToken(new CustomUserDetails(doctor2, List.of()));
+        List<PermissionResponse> doctorPermissions = List.of(new PermissionResponse(
+                null, "VIEW_PENDING_DIAGNOSIS", "Xem chẩn đoán chờ xác nhận", 11, null, null));
+        doctor1Token = jwtTokenProvider.generateAccessToken(new CustomUserDetails(doctor1, doctorPermissions));
+        doctor2Token = jwtTokenProvider.generateAccessToken(new CustomUserDetails(doctor2, doctorPermissions));
         headOfDepartmentToken = jwtTokenProvider.generateAccessToken(new CustomUserDetails(headOfDepartment, List.of()));
 
         Patient patient = new Patient();

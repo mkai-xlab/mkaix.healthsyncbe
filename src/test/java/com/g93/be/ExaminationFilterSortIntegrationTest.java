@@ -246,7 +246,7 @@ public class ExaminationFilterSortIntegrationTest {
         mockMvc.perform(get("/examinations/patient/" + patient.getId() + "/filter/study-month")
                         .param("year", String.valueOf(year))
                         .param("month", String.valueOf(month))
-                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + doctor1Token)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + headOfDepartmentToken)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andDo(org.springframework.test.web.servlet.result.MockMvcResultHandlers.print())
                 .andExpect(status().isOk())

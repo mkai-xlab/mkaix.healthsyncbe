@@ -7,6 +7,13 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 
 /**
  * Khởi tạo dữ liệu mẫu cho hệ thống.
@@ -25,6 +32,7 @@ public class DataInitializer implements CommandLineRunner {
     private final JdbcTemplate jdbcTemplate;
 
     @Override
+    @Transactional
     public void run(String... args) throws Exception {
         System.out.println("Migrating old NEED_REVERIFY statuses to NEED_VERIFY...");
         jdbcTemplate.update("UPDATE examinations SET status = 'NEED_VERIFY' WHERE status = 'NEED_REVERIFY'");
@@ -49,27 +57,27 @@ public class DataInitializer implements CommandLineRunner {
             featureRepository.saveAll(java.util.List.of(fUser, fPatient, fDicom, fAi, fHist, fRev, fRep, fDashDoc, fDashAdm));
 
             // Create Base Permissions (No Dependencies)
-            Permission pAuth01 = new Permission(null, "READ_OWN_PROFILE", "Read own profile", 7, null, fUser, null);
-            Permission pAuth02 = new Permission(null, "REQUEST_PASSWORD_RESET", "Request password reset", 5, null, fUser, null);
-            Permission pAuth03 = new Permission(null, "VIEW_USER_LIST", "View user list", 3, "user_list_page", fUser, null);
+            Permission pAuth01 = new Permission(null, "READ_OWN_PROFILE", permissionName("READ_OWN_PROFILE"), 7, null, fUser, null);
+            Permission pAuth02 = new Permission(null, "REQUEST_PASSWORD_RESET", permissionName("REQUEST_PASSWORD_RESET"), 5, null, fUser, null);
+            Permission pAuth03 = new Permission(null, "VIEW_USER_LIST", permissionName("VIEW_USER_LIST"), 3, "user_list_page", fUser, null);
             
-            Permission pPat01 = new Permission(null, "READ_PATIENT_LIST", "Danh sách bệnh nhân", 2, "patient_list_page", fPatient, null);
-            Permission pPat03 = new Permission(null, "CREATE_PATIENT_EXAM", "Danh sách ca khám", 3, "examination_list_page", fPatient, null);
+            Permission pPat01 = new Permission(null, "READ_PATIENT_LIST", permissionName("READ_PATIENT_LIST"), 2, "patient_list_page", fPatient, null);
+            Permission pPat03 = new Permission(null, "CREATE_PATIENT_EXAM", permissionName("CREATE_PATIENT_EXAM"), 3, "examination_list_page", fPatient, null);
             
-            Permission pImg01 = new Permission(null, "VIEW_IMAGE_LIST", "View image list", 3, null, fDicom, null);
-            Permission pImg02 = new Permission(null, "UPLOAD_DICOM_IMAGE", "Tải lên DICOM file", 2, "file_upload_page", fDicom, null);
+            Permission pImg01 = new Permission(null, "VIEW_IMAGE_LIST", permissionName("VIEW_IMAGE_LIST"), 3, null, fDicom, null);
+            Permission pImg02 = new Permission(null, "UPLOAD_DICOM_IMAGE", permissionName("UPLOAD_DICOM_IMAGE"), 2, "file_upload_page", fDicom, null);
             
-            Permission pAi01 = new Permission(null, "TRIGGER_AI_ANALYSIS", "Trigger AI analysis", 8, null, fAi, null);
-            Permission pAi02 = new Permission(null, "VIEW_AI_RESULT", "View AI result", 9, null, fAi, null);
+            Permission pAi01 = new Permission(null, "TRIGGER_AI_ANALYSIS", permissionName("TRIGGER_AI_ANALYSIS"), 8, null, fAi, null);
+            Permission pAi02 = new Permission(null, "VIEW_AI_RESULT", permissionName("VIEW_AI_RESULT"), 9, null, fAi, null);
             
-            Permission pHist01 = new Permission(null, "VIEW_ANALYTIC_HISTORY", "View analytic history", 10, null, fHist, null);
+            Permission pHist01 = new Permission(null, "VIEW_ANALYTIC_HISTORY", permissionName("VIEW_ANALYTIC_HISTORY"), 10, null, fHist, null);
             
-            Permission pRev01 = new Permission(null, "VIEW_PENDING_DIAGNOSIS", "View pending diagnosis", 11, null, fRev, null);
+            Permission pRev01 = new Permission(null, "VIEW_PENDING_DIAGNOSIS", permissionName("VIEW_PENDING_DIAGNOSIS"), 11, null, fRev, null);
             
-            Permission pRep01 = new Permission(null, "GENERATE_PDF_REPORT", "Generate PDF report", 12, null, fRep, null);
+            Permission pRep01 = new Permission(null, "GENERATE_PDF_REPORT", permissionName("GENERATE_PDF_REPORT"), 12, null, fRep, null);
             
-            Permission pDash01 = new Permission(null, "VIEW_DOCTOR_DASHBOARD", "Trang chủ", 1, "doctor_dashboard_page", fDashDoc, null);
-            Permission pAdm01 = new Permission(null, "VIEW_ADMIN_DASHBOARD", "View admin dashboard", 14, null, fDashAdm, null);
+            Permission pDash01 = new Permission(null, "VIEW_DOCTOR_DASHBOARD", permissionName("VIEW_DOCTOR_DASHBOARD"), 1, "doctor_dashboard_page", fDashDoc, null);
+            Permission pAdm01 = new Permission(null, "VIEW_ADMIN_DASHBOARD", permissionName("VIEW_ADMIN_DASHBOARD"), 14, null, fDashAdm, null);
 
             permissionRepository.saveAll(java.util.List.of(
                     pAuth01, pAuth02, pAuth03, pPat01, pPat03, pImg01, pImg02,
@@ -77,14 +85,14 @@ public class DataInitializer implements CommandLineRunner {
             ));
 
             // Create Dependent Permissions
-            Permission pAuth04 = new Permission(null, "MANAGE_USER_ROLE", "Manage user role", 15, null, fUser, pAuth03);
-            Permission pPat02 = new Permission(null, "VIEW_PATIENT_DETAIL", "Xem chi tiết bệnh nhân", 2, "patient_detail_page", fPatient, pPat01);
-            Permission pAi03 = new Permission(null, "COMPARE_XAI_SIDE_BY_SIDE", "Compare XAI side by side", 17, null, fAi, pAi02);
-            Permission pRev02 = new Permission(null, "ADD_CLINICAL_COMMENT", "Add clinical comment", 18, null, fRev, pRev01);
-            Permission pRev03 = new Permission(null, "OVERRIDE_AI_GRADE", "Override AI grade", 19, null, fRev, pRev01);
-            Permission pRev04 = new Permission(null, "CONFIRM_CONCLUSION", "Confirm conclusion", 20, null, fRev, pRev01);
-            Permission pRep02 = new Permission(null, "EXPORT_DOWNLOAD_PDF", "Export download PDF", 21, null, fRep, pRep01);
-            Permission pAdm02 = new Permission(null, "GENERATE_OPERATIONAL_REP", "Generate operational report", 22, null, fDashAdm, pAdm01);
+            Permission pAuth04 = new Permission(null, "MANAGE_USER_ROLE", permissionName("MANAGE_USER_ROLE"), 15, null, fUser, pAuth03);
+            Permission pPat02 = new Permission(null, "VIEW_PATIENT_DETAIL", permissionName("VIEW_PATIENT_DETAIL"), 2, "patient_detail_page", fPatient, pPat01);
+            Permission pAi03 = new Permission(null, "COMPARE_XAI_SIDE_BY_SIDE", permissionName("COMPARE_XAI_SIDE_BY_SIDE"), 17, null, fAi, pAi02);
+            Permission pRev02 = new Permission(null, "ADD_CLINICAL_COMMENT", permissionName("ADD_CLINICAL_COMMENT"), 18, null, fRev, pRev01);
+            Permission pRev03 = new Permission(null, "OVERRIDE_AI_GRADE", permissionName("OVERRIDE_AI_GRADE"), 19, null, fRev, pRev01);
+            Permission pRev04 = new Permission(null, "CONFIRM_CONCLUSION", permissionName("CONFIRM_CONCLUSION"), 20, null, fRev, pRev01);
+            Permission pRep02 = new Permission(null, "EXPORT_DOWNLOAD_PDF", permissionName("EXPORT_DOWNLOAD_PDF"), 21, null, fRep, pRep01);
+            Permission pAdm02 = new Permission(null, "GENERATE_OPERATIONAL_REP", permissionName("GENERATE_OPERATIONAL_REP"), 22, null, fDashAdm, pAdm01);
 
             permissionRepository.saveAll(java.util.List.of(
                     pAuth04, pPat02, pAi03, pRev02, pRev03, pRev04, pRep02, pAdm02
@@ -96,9 +104,11 @@ public class DataInitializer implements CommandLineRunner {
 
             // Bind to Roles
             java.util.List<RolePermission> rps = new java.util.ArrayList<>();
-            // Admin gets all
-            for (Permission p : permissionRepository.findAll()) {
-                rps.add(new RolePermission(null, adminRole, p));
+            // Admin only receives account and system-administration permissions.
+            for (Permission permission : permissionRepository.findAll()) {
+                if (PermissionCatalog.ADMIN_DEFAULT_PERMISSION_CODES.contains(permission.getCode())) {
+                    rps.add(new RolePermission(null, adminRole, permission));
+                }
             }
             // Doctor gets specific ones
             rps.add(new RolePermission(null, doctorRole, pAuth01));
@@ -124,6 +134,9 @@ public class DataInitializer implements CommandLineRunner {
 
             System.out.println(">>> Đã khởi tạo Dynamic Roles và Permissions mặc định");
         }
+
+        synchronizePermissionNames();
+        synchronizeAdminPermissions();
 
         // 2. Kiểm tra nếu tài khoản admin chưa tồn tại thì khởi tạo
         if (userRepository.findByUsername("admin").isEmpty()) {
@@ -154,5 +167,53 @@ public class DataInitializer implements CommandLineRunner {
                     r.setName(name);
                     return roleRepository.save(r);
                 });
+    }
+
+    private String permissionName(String code) {
+        return PermissionCatalog.VIETNAMESE_NAMES.get(code);
+    }
+
+    private void synchronizePermissionNames() {
+        List<Permission> changedPermissions = new ArrayList<>();
+        for (Permission permission : permissionRepository.findAll()) {
+            String vietnameseName = PermissionCatalog.VIETNAMESE_NAMES.get(permission.getCode());
+            if (vietnameseName != null && !Objects.equals(vietnameseName, permission.getName())) {
+                permission.setName(vietnameseName);
+                changedPermissions.add(permission);
+            }
+        }
+        if (!changedPermissions.isEmpty()) {
+            permissionRepository.saveAll(changedPermissions);
+        }
+    }
+
+    private void synchronizeAdminPermissions() {
+        Role adminRole = roleRepository.findByCode("ADMIN").orElse(null);
+        if (adminRole == null) {
+            return;
+        }
+
+        List<RolePermission> currentAssignments = rolePermissionRepository.findByRoleId(adminRole.getId());
+        List<RolePermission> clinicalAssignments = currentAssignments.stream()
+                .filter(rolePermission -> PermissionCatalog.isClinical(rolePermission.getPermission().getCode()))
+                .toList();
+        if (!clinicalAssignments.isEmpty()) {
+            rolePermissionRepository.deleteAll(clinicalAssignments);
+        }
+
+        Set<String> retainedCodes = new HashSet<>();
+        currentAssignments.stream()
+                .filter(rolePermission -> !clinicalAssignments.contains(rolePermission))
+                .map(rolePermission -> rolePermission.getPermission().getCode())
+                .forEach(retainedCodes::add);
+
+        List<RolePermission> missingDefaults = permissionRepository.findAll().stream()
+                .filter(permission -> PermissionCatalog.ADMIN_DEFAULT_PERMISSION_CODES.contains(permission.getCode()))
+                .filter(permission -> !retainedCodes.contains(permission.getCode()))
+                .map(permission -> new RolePermission(null, adminRole, permission))
+                .toList();
+        if (!missingDefaults.isEmpty()) {
+            rolePermissionRepository.saveAll(missingDefaults);
+        }
     }
 }

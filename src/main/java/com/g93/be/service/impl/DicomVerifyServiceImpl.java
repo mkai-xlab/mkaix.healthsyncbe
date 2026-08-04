@@ -58,7 +58,10 @@ public class DicomVerifyServiceImpl implements DicomVerifyService {
 
     @Override
     @Transactional
-    public List<Long> verifySession(DicomVerifyRequest request) {
+    public java.util.List<Long> verifySession(
+            DicomVerifyRequest request,
+            Long requestingUserId,
+            boolean privilegedUser) {
         String sessionId = request.getUploadSessionId();
         String redisKey = "uploadSession:" + sessionId;
 
@@ -73,6 +76,11 @@ public class DicomVerifyServiceImpl implements DicomVerifyService {
         } catch (Exception e) {
             log.error("Failed to parse session data", e);
             throw new RuntimeException("Failed to parse session data", e);
+        }
+
+        if (!privilegedUser && !java.util.Objects.equals(sessionDTO.getUploaderUserId(), requestingUserId)) {
+            throw new org.springframework.security.access.AccessDeniedException(
+                    "You are not allowed to verify this upload session");
         }
 
         List<String> acceptedCodes = request.getAcceptedPatientCodes() != null ? request.getAcceptedPatientCodes() : List.of();
