@@ -470,7 +470,15 @@ public class DicomServiceImpl implements DicomService {
 
                     final String finalPatientId = (patientId != null && !patientId.isEmpty()) ? patientId : "UNKNOWN";
 
-                    PendingDicomUploadDTO pendingUpload = patientsMap.get(finalPatientId);
+                    String dateStr = "nodate";
+                    if (studyDate != null) {
+                        dateStr = new java.text.SimpleDateFormat("yyyyMMdd").format(studyDate);
+                    } else {
+                        dateStr = new java.text.SimpleDateFormat("yyyyMMdd").format(new java.util.Date());
+                    }
+                    String groupKey = finalPatientId + "_" + dateStr;
+
+                    PendingDicomUploadDTO pendingUpload = patientsMap.get(groupKey);
                     if (pendingUpload == null) {
                         pendingUpload = PendingDicomUploadDTO.builder()
                                 .patientCode(finalPatientId)
@@ -486,7 +494,7 @@ public class DicomServiceImpl implements DicomService {
                                 .parsedImages(new ArrayList<>())
                                 .parsedInstances(new ArrayList<>())
                                 .build();
-                        patientsMap.put(finalPatientId, pendingUpload);
+                        patientsMap.put(groupKey, pendingUpload);
                     }
 
                     // Move file and extract image
