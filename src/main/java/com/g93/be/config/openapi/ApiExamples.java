@@ -167,6 +167,9 @@ final class ApiExamples {
             Map.entry("NOTIFICATION_LIST", json("""
                     [{"id":31,"title":"Kết quả AI đã sẵn sàng","message":"Ca khám ENC-2026-0042 cần được xác nhận","type":"AI_RESULT","isRead":false,"createdAt":"2026-08-02T10:00:00","data":{"examinationId":42}}]
                     """)),
+            Map.entry("MARK_ALL_NOTIFICATIONS_READ", json("""
+                    {"updatedCount":3}
+                    """)),
             Map.entry("SEND_NOTIFICATION_REQUEST", json("""
                     {"userId":7,"title":"Kiểm thử thông báo","message":"Thông báo WebSocket hoạt động bình thường","type":"SYSTEM","data":{"source":"swagger"}}
                     """)),

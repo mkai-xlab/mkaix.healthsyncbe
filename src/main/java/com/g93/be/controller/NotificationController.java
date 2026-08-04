@@ -1,6 +1,7 @@
 package com.g93.be.controller;
 
 import com.g93.be.dto.NotificationDto;
+import com.g93.be.dto.MarkAllNotificationsReadResponse;
 import com.g93.be.dto.SendNotificationRequest;
 import com.g93.be.service.NotificationService;
 import jakarta.validation.Valid;
@@ -49,6 +50,16 @@ public class NotificationController {
         String username = authentication.getName();
         notificationService.markAsRead(id, username);
         return ResponseEntity.ok("Notification marked as read");
+    }
+
+    /**
+     * Marks all unread notifications owned by the currently authenticated user as read.
+     */
+    @PutMapping("/read-all")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<MarkAllNotificationsReadResponse> markAllAsRead(Authentication authentication) {
+        int updatedCount = notificationService.markAllAsRead(authentication.getName());
+        return ResponseEntity.ok(new MarkAllNotificationsReadResponse(updatedCount));
     }
 
     /**
