@@ -260,14 +260,17 @@ public class DicomVerifyServiceImpl implements DicomVerifyService {
             return;
         }
 
-        Long userId = null;
+        Long notificationUserId = null;
         if (username != null) {
             User user = userRepository.findByUsername(username).orElse(null);
             if (user != null) {
-                userId = user.getId();
+                notificationUserId = user.getId();
             }
         }
-        final Long finalUserId = (userId != null) ? userId : 1L;
+        if (notificationUserId == null) {
+            log.warn("Skipping requester notification because no user could be resolved for username: {}", username);
+        }
+        final Long finalNotificationUserId = notificationUserId;
 
         try {
             AiPredictionRequest aiRequest = new AiPredictionRequest(savedInstanceIds);
@@ -295,27 +298,31 @@ public class DicomVerifyServiceImpl implements DicomVerifyService {
                     .collect(Collectors.toList());
             
             // Send success notification
-            SendNotificationRequest notifReq = new SendNotificationRequest(
-                    finalUserId,
-                    "Phân tích AI hoàn tất (Chờ xác nhận)",
-                    "Hệ thống đã phân tích thành công hình ảnh X-Quang từ phiên xác nhận. Vui lòng kiểm tra và chốt kết quả chẩn đoán.",
-                    "AI_RESULT",
-                    statsList
-            );
-            notificationService.sendNotification(notifReq);
+            if (finalNotificationUserId != null) {
+                SendNotificationRequest notifReq = new SendNotificationRequest(
+                        finalNotificationUserId,
+                        "Phân tích AI hoàn tất (Chờ xác nhận)",
+                        "Hệ thống đã phân tích thành công hình ảnh X-Quang từ phiên xác nhận. Vui lòng kiểm tra và chốt kết quả chẩn đoán.",
+                        "AI_RESULT",
+                        statsList
+                );
+                notificationService.sendNotification(notifReq);
+            }
 
         } catch (Exception e) {
             log.error("Error during background AI processing", e);
             // Send error notification
             try {
-                SendNotificationRequest errReq = new SendNotificationRequest(
-                        finalUserId,
-                        "Lỗi phân tích AI",
-                        "Đã có lỗi xảy ra trong quá trình phân tích AI.",
-                        "ERROR",
-                        null
-                );
-                notificationService.sendNotification(errReq);
+                if (finalNotificationUserId != null) {
+                    SendNotificationRequest errReq = new SendNotificationRequest(
+                            finalNotificationUserId,
+                            "Lỗi phân tích AI",
+                            "Đã có lỗi xảy ra trong quá trình phân tích AI.",
+                            "ERROR",
+                            null
+                    );
+                    notificationService.sendNotification(errReq);
+                }
             } catch (Exception ignored) {}
         }
     }
