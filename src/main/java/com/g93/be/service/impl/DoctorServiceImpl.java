@@ -133,7 +133,7 @@ public class DoctorServiceImpl implements DoctorService {
         Doctor doctor = doctorRepository.findProfileByUsername(username)
                 .orElseThrow(() -> new IllegalArgumentException("Doctor not found for username: " + username));
         if (request.getFullName() != null)
-            doctor.setFullName(request.getFullName());
+            doctor.setFullName(request.getFullName().replaceAll("\\s+", " ").trim());
         if (request.getEmail() != null)
             doctor.setEmail(request.getEmail());
         if (request.getPhone() != null)
@@ -204,7 +204,7 @@ public class DoctorServiceImpl implements DoctorService {
     private DoctorResponse updateDoctorFields(Doctor doctor, EditDoctorRequest request) {
         // Update mutable fields
         if (request.getFullName() != null)
-            doctor.setFullName(request.getFullName());
+            doctor.setFullName(request.getFullName().replaceAll("\\s+", " ").trim());
         if (request.getEmail() != null)
             doctor.setEmail(request.getEmail());
         if (request.getPhone() != null)
@@ -290,7 +290,7 @@ public class DoctorServiceImpl implements DoctorService {
         // Base user fields
         doctor.setUsername(tempUsername);
         doctor.setPassword(passwordEncoder.encode(tempPassword));
-        doctor.setFullName(request.getFullName());
+        doctor.setFullName(request.getFullName().replaceAll("\\s+", " ").trim());
         doctor.setEmail(request.getEmail());
         doctor.setPhone(request.getPhone());
         if (request.getAvatarUrl() != null) {

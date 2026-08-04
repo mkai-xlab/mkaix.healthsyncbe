@@ -297,8 +297,8 @@ public class DicomVerifyServiceImpl implements DicomVerifyService {
             // Send success notification
             SendNotificationRequest notifReq = new SendNotificationRequest(
                     finalUserId,
-                    "Phân tích AI hoàn tất",
-                    "Hệ thống đã phân tích thành công hình ảnh X-Quang từ phiên xác nhận.",
+                    "Phân tích AI hoàn tất (Chờ xác nhận)",
+                    "Hệ thống đã phân tích thành công hình ảnh X-Quang từ phiên xác nhận. Vui lòng kiểm tra và chốt kết quả chẩn đoán.",
                     "AI_RESULT",
                     statsList
             );
