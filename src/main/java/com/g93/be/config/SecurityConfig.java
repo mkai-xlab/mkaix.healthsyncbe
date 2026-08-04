@@ -53,6 +53,7 @@ public class SecurityConfig {
                         "/auth/forgot-password",
                         "/auth/reset-password",
                         "/ws",
+                        "/test-stomp.html",
                         "/swagger-ui/**",
                         "/v3/api-docs/**",
                         "/error")
