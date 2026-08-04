@@ -125,7 +125,7 @@ public class DicomServiceImpl implements DicomService {
             response.getErrors().addAll(earlyErrors);
             
             if (response.getSuccessfulPatients().isEmpty()) {
-                response.setMessage("Tải lên thất bại. Toàn bộ tệp tin không đúng định dạng DICOM hoặc bị lỗi cấu trúc.");
+                response.setMessage("Tải lên thất bại hoặc không có file nào được thêm mới. Vui lòng xem chi tiết lỗi bên dưới.");
             }
             
             saveAuditLog(userId, "DICOM Batch Upload", "Uploaded " + files.size() + " files (" + totalSize + " bytes). Success: " + response.getSuccessfulPatients().size() + ", Errors: " + response.getErrors().size());
@@ -220,7 +220,7 @@ public class DicomServiceImpl implements DicomService {
             BatchDicomUploadResponse response = processZipBatch(tempZipFile, userId, uploadSessionId);
             
             if (response.getSuccessfulPatients().isEmpty()) {
-                response.setMessage("Tải lên thất bại. Toàn bộ tệp tin không đúng định dạng DICOM hoặc bị lỗi cấu trúc.");
+                response.setMessage("Tải lên thất bại hoặc không có file nào được thêm mới. Vui lòng xem chi tiết lỗi bên dưới.");
             }
             
             saveAuditLog(userId, "DICOM ZIP Upload", "Uploaded ZIP file: " + filename + " (" + file.getSize() + " bytes). Success: " + response.getSuccessfulPatients().size() + ", Errors: " + response.getErrors().size());
@@ -617,8 +617,8 @@ public class DicomServiceImpl implements DicomService {
                 try {
                     notificationService.sendNotification(new SendNotificationRequest(
                             userId,
-                            "DICOM Upload Complete (Pending Verify)",
-                            "DICOM Upload Complete",
+                            "Tải lên DICOM hoàn tất",
+                            "Quá trình tải lên ảnh DICOM đã hoàn tất.",
                             "DICOM_BATCH_RESULT",
                             null));
                 } catch (Exception e) {
