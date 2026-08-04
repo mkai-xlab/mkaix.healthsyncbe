@@ -1,0 +1,23 @@
+meta {
+  name: Mark All Notifications as Read
+  type: http
+  seq: 5
+}
+
+put {
+  url: {{baseUrl}}/notifications/read-all
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+tests {
+  test("marks only the current user's notifications as read", function() {
+    expect(res.status).to.equal(200);
+    expect(res.body).to.have.property("updatedCount");
+    expect(res.body.updatedCount).to.be.a("number");
+  });
+}

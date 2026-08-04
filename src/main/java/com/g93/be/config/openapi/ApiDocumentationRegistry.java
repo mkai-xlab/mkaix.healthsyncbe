@@ -236,6 +236,8 @@ final class ApiDocumentationRegistry {
                 "Chỉ trả các thông báo chưa đọc của tài khoản hiện tại.", "200", "Danh sách thông báo chưa đọc", "NOTIFICATION_LIST", null, ResponseKind.JSON);
         add("NotificationController", "markAsRead", "Thông báo", "Đánh dấu thông báo đã đọc",
                 "Đánh dấu một thông báo thuộc tài khoản hiện tại là đã đọc.", "200", "Xác nhận đã đọc", "STRING_SUCCESS", null, ResponseKind.TEXT);
+        add("NotificationController", "markAllAsRead", "Thông báo", "Đánh dấu tất cả thông báo đã đọc",
+                "Đánh dấu toàn bộ thông báo chưa đọc thuộc tài khoản hiện tại là đã đọc và trả số bản ghi được cập nhật.", "200", "Số thông báo đã được cập nhật", "MARK_ALL_NOTIFICATIONS_READ", null, ResponseKind.JSON);
         add("NotificationController", "sendTestNotification", "Thông báo", "Gửi thông báo kiểm thử",
                 "Admin lưu và phát một thông báo WebSocket đến đúng người dùng đích.", "200", "Xác nhận gửi thông báo", "STRING_SUCCESS", "SEND_NOTIFICATION_REQUEST", ResponseKind.TEXT);
     }
