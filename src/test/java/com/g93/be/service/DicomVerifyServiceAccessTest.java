@@ -3,6 +3,9 @@ package com.g93.be.service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.g93.be.dto.DicomUploadSessionDTO;
 import com.g93.be.dto.DicomVerifyRequest;
+import com.g93.be.dto.AiPredictionRequest;
+import com.g93.be.dto.SendNotificationRequest;
+import com.g93.be.entity.User;
 import com.g93.be.repository.DicomInstanceRepository;
 import com.g93.be.repository.DicomRawRepository;
 import com.g93.be.repository.DoctorRepository;
@@ -10,6 +13,7 @@ import com.g93.be.repository.ExaminationRepository;
 import com.g93.be.repository.ImageRepository;
 import com.g93.be.repository.PatientRepository;
 import com.g93.be.repository.RoleRepository;
+import com.g93.be.repository.UserRepository;
 import com.g93.be.service.impl.DicomVerifyServiceImpl;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -23,9 +27,12 @@ import org.springframework.security.access.AccessDeniedException;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -48,6 +55,12 @@ class DicomVerifyServiceAccessTest {
     private RoleRepository roleRepository;
     @Mock
     private DicomRawRepository dicomRawRepository;
+    @Mock
+    private AiService aiService;
+    @Mock
+    private NotificationService notificationService;
+    @Mock
+    private UserRepository userRepository;
     @Mock
     private ValueOperations<String, String> valueOperations;
     @Mock
@@ -95,6 +108,16 @@ class DicomVerifyServiceAccessTest {
         List<Long> instanceIds = dicomVerifyService.verifySession(request, 1L, true);
 
         assertEquals(List.of(), instanceIds);
+    }
+
+    @Test
+    void unresolvedRequesterNeverFallsBackToAnotherNotificationRecipient() {
+        when(userRepository.findByUsername("missing-doctor")).thenReturn(Optional.empty());
+        when(aiService.predictBatch(any(AiPredictionRequest.class))).thenReturn(List.of());
+
+        dicomVerifyService.processVerifiedSessionAsync(List.of(101L), "missing-doctor");
+
+        verify(notificationService, never()).sendNotification(any(SendNotificationRequest.class));
     }
 
     private DicomVerifyRequest request(String sessionId) {
