@@ -1,6 +1,6 @@
 package com.g93.be.mapper;
-import com.g93.be.dto.AiPredictionResultDto;
 
+import com.g93.be.dto.AiPredictionResultDto;
 
 import com.g93.be.dto.ExaminationDto;
 import com.g93.be.dto.ExaminationImageDto;
@@ -18,7 +18,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Mapper component for mapping Examination entities to their corresponding DTOs.
+ * Mapper component for mapping Examination entities to their corresponding
+ * DTOs.
  */
 @Component
 @RequiredArgsConstructor
@@ -26,13 +27,13 @@ import java.util.List;
 public class ExaminationMapper {
 
     private final PatientMapper patientMapper;
-    private final DoctorMapper doctorMapper;
+    // private final DoctorMapper doctorMapper;
 
     /**
      * Maps an Examination entity to an ExaminationDto.
      * Includes patient mapping and image mapping if dicom instances are provided.
      *
-     * @param ex The Examination entity to map.
+     * @param ex        The Examination entity to map.
      * @param instances The list of associated DicomInstance entities.
      * @return The mapped ExaminationDto.
      */
@@ -97,28 +98,36 @@ public class ExaminationMapper {
                     img.setAiErrorMessage(analysis.getErrorMessage());
                     if (analysis.getAiResults() != null) {
                         for (AiResult aiRes : analysis.getAiResults()) {
-                                DiagnosisReview review = aiRes.getDiagnosisReview();
-                                java.util.Map<String, Double> details = new java.util.HashMap<>();
-                                if (aiRes.getConfidenceScore() != null) {
-                                    details.put("0Normal", aiRes.getConfidenceScore().getC0Confidence());
-                                    details.put("1Doubtful", aiRes.getConfidenceScore().getC1Confidence());
-                                    details.put("2Mild", aiRes.getConfidenceScore().getC2Confidence());
-                                    details.put("3Moderate", aiRes.getConfidenceScore().getC3Confidence());
-                                    details.put("4Severe", aiRes.getConfidenceScore().getC4Confidence());
-                                }
-                                
-                                String gradcamUrl = aiRes.getGradcamImage() != null ? baseUrl + "/ai/image/" + aiRes.getGradcamImage().getId() : 
-                                        (aiRes.getStorageHeatmapFilePath() != null ? baseUrl + "/ai/heatmap/" + aiRes.getId() : null);
-                                String roiUrl = aiRes.getRoiImage() != null ? baseUrl + "/ai/image/" + aiRes.getRoiImage().getId() : null;
-                                String annotatedUrl = instance.getAnnotatedImage() != null ? baseUrl + "/ai/image/" + instance.getAnnotatedImage().getId() : null;
+                            DiagnosisReview review = aiRes.getDiagnosisReview();
+                            java.util.Map<String, Double> details = new java.util.HashMap<>();
+                            if (aiRes.getConfidenceScore() != null) {
+                                details.put("0Normal", aiRes.getConfidenceScore().getC0Confidence());
+                                details.put("1Doubtful", aiRes.getConfidenceScore().getC1Confidence());
+                                details.put("2Mild", aiRes.getConfidenceScore().getC2Confidence());
+                                details.put("3Moderate", aiRes.getConfidenceScore().getC3Confidence());
+                                details.put("4Severe", aiRes.getConfidenceScore().getC4Confidence());
+                            }
 
-                                AiPredictionResultDto dto = AiPredictionResultDto.builder()
+                            String gradcamUrl = aiRes.getGradcamImage() != null
+                                    ? baseUrl + "/ai/image/" + aiRes.getGradcamImage().getId()
+                                    : (aiRes.getStorageHeatmapFilePath() != null
+                                            ? baseUrl + "/ai/heatmap/" + aiRes.getId()
+                                            : null);
+                            String roiUrl = aiRes.getRoiImage() != null
+                                    ? baseUrl + "/ai/image/" + aiRes.getRoiImage().getId()
+                                    : null;
+                            String annotatedUrl = instance.getAnnotatedImage() != null
+                                    ? baseUrl + "/ai/image/" + instance.getAnnotatedImage().getId()
+                                    : null;
+
+                            AiPredictionResultDto dto = AiPredictionResultDto.builder()
                                     .dicomInstanceId(instance.getId())
                                     .aiAnalysisId(analysis.getId())
                                     .aiResultId(aiRes.getId())
                                     .predictedGrade(aiRes.getPredictedGrade())
                                     .confirmedGrade(review != null ? review.getConfirmedKlGrade() : null)
-                                    .effectiveGrade(review != null ? review.getConfirmedKlGrade() : aiRes.getPredictedGrade())
+                                    .effectiveGrade(
+                                            review != null ? review.getConfirmedKlGrade() : aiRes.getPredictedGrade())
                                     .reviewDecision(review != null ? review.getDecision().name() : null)
                                     .confidence(aiRes.getConfidence())
                                     .description(aiRes.getDescription())
@@ -131,9 +140,9 @@ public class ExaminationMapper {
                                     .reviewedByDoctorId(review != null ? review.getDoctor().getId() : null)
                                     .reviewedAt(review != null ? review.getReviewedAt() : null)
                                     .build();
-                                aiResList.add(dto);
-                            }
+                            aiResList.add(dto);
                         }
+                    }
                 }
                 if (!aiResList.isEmpty()) {
                     img.setAiResults(aiResList);
@@ -147,4 +156,3 @@ public class ExaminationMapper {
         return ed;
     }
 }
-
