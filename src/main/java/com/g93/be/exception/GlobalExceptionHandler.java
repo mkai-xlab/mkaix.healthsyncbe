@@ -122,6 +122,17 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
     }
 
+    @ExceptionHandler(LoginLockedException.class)
+    public ResponseEntity<ErrorResponse> handleLoginLockedException(LoginLockedException ex) {
+        ErrorResponse error = new ErrorResponse(
+                HttpStatus.LOCKED.value(),
+                "LOGIN_TEMPORARILY_LOCKED",
+                ex.getMessage(),
+                LocalDateTime.now()
+        );
+        return ResponseEntity.status(HttpStatus.LOCKED).body(error);
+    }
+
     @ExceptionHandler(org.springframework.web.multipart.MaxUploadSizeExceededException.class)
     public ResponseEntity<ErrorResponse> handleMaxUploadSizeExceededException(org.springframework.web.multipart.MaxUploadSizeExceededException ex) {
         ErrorResponse error = new ErrorResponse(

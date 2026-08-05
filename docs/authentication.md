@@ -45,8 +45,9 @@ sequenceDiagram
 
 ### Change Password Phase
 1. If the user receives a `FIRST_TIME_LOGIN_REQUIRED` or wants to change their password, the client sends a request to `POST /auth/change-password` with `username`, `oldPassword`, and `newPassword`.
-2. The Spring app verifies the `oldPassword` and updates the password using BCrypt. It also sets `isFirstActivated` to `false`.
-3. The client can now proceed to the Login Phase.
+2. The new password must contain 8-32 characters, at least one uppercase letter, one number, and one special character.
+3. The Spring app verifies the `oldPassword` and updates the password using BCrypt. It also sets `isFirstActivated` to `false` and clears any temporary login lock.
+4. The client can now proceed to the Login Phase.
 
 ### Forgot Password Phase
 1. If the user forgets their password, the client sends a `POST /auth/forgot-password` request with their `email`.
@@ -54,6 +55,12 @@ sequenceDiagram
 3. The user retrieves the OTP from their email and submits it via `POST /auth/reset-password` along with their `email` and `newPassword`.
 4. The Spring app verifies the OTP and expiry. If valid, the password is reset using BCrypt, and `isFirstActivated` is set to `false`.
 5. The client can now proceed to the Login Phase.
+
+### Failed Login Lockout
+1. Failed credentials are counted per account in the `users` table.
+2. The fifth consecutive failed login locks the account for 15 minutes and returns HTTP `423 Locked`.
+3. Attempts during the lock period remain blocked and do not extend the lock.
+4. An expired lock is cleared automatically. A successful login, password change, or password reset also clears the counter and lock.
 
 ### Access Phase
 4. The client includes the access token in the `Authorization: Bearer <token>` header of subsequent API requests.
