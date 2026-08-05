@@ -61,6 +61,12 @@ public class User {
     @Column(name = "user_type", length = 50)
     private String userType;
 
+    @Column(name = "failed_login_attempts", nullable = false)
+    private Integer failedLoginAttempts = 0;
+
+    @Column(name = "login_locked_until")
+    private LocalDateTime loginLockedUntil;
+
     @Column(name = "inactive_reason", columnDefinition = "TEXT")
     private String inactiveReason;
 
@@ -75,6 +81,9 @@ public class User {
         createdAt = LocalDateTime.now();
         if (status == null) {
             status = UserStatus.ACTIVE;
+        }
+        if (failedLoginAttempts == null) {
+            failedLoginAttempts = 0;
         }
     }
 
