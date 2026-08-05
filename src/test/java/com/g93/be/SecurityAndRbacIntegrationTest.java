@@ -211,7 +211,7 @@ public class SecurityAndRbacIntegrationTest {
                 ChangePasswordRequest changeRequest = new ChangePasswordRequest(
                                 "test_first_time",
                                 "temp_password",
-                                "new_secure_password");
+                                "NewSecure@123");
 
                 // When - Perform change password
                 mockMvc.perform(post("/auth/change-password")
@@ -228,7 +228,7 @@ public class SecurityAndRbacIntegrationTest {
                                 .andExpect(status().isUnauthorized());
 
                 // Then - New password should work
-                LoginRequest loginNew = new LoginRequest("test_first_time", "new_secure_password");
+                LoginRequest loginNew = new LoginRequest("test_first_time", "NewSecure@123");
                 mockMvc.perform(post("/auth/login")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(loginNew)))
