@@ -306,6 +306,20 @@ public class ExaminationController {
     }
 
     /**
+     * Retrieves total examinations in the last 7 days based on user role (from access token).
+     */
+    @GetMapping("/my-total-last-7-days")
+    @PreAuthorize("hasAnyRole('DOCTOR', 'DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT')")
+    public ResponseEntity<Long> getMyTotalLast7Days(@RequestParam(defaultValue = "false", required = false) Boolean isPersonal) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String userEmail = (String) authentication.getPrincipal();
+        User user = userRepository.findByUsername(userEmail).orElseThrow(() -> new RuntimeException("User not found"));
+        Long userId = user.getId();
+        log.info("Received request to get total examinations in the last 7 days for my token, user id: {}", userId);
+        return ResponseEntity.ok(examinationService.getTotalExaminationsInLast7Days(userId, isPersonal));
+    }
+
+    /**
      * Retrieves total severe examinations based on user role (from access token).
      */
     @GetMapping("/my-total-severe")
