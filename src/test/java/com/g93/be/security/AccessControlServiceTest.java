@@ -66,7 +66,6 @@ class AccessControlServiceTest {
         when(aiResultRepository.findAssignedDoctorIdById(44L)).thenReturn(Optional.of(7L));
 
         assertFalse(accessControl.canAccessAiResult(44L, authentication));
-        assertFalse(accessControl.canAccessUser(7L, authentication));
     }
 
     @Test

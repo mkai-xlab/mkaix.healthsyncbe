@@ -19,7 +19,7 @@ public class AccessControlService {
     private final AiResultRepository aiResultRepository;
 
     public boolean canAccessExamination(Long examinationId, Authentication authentication) {
-        return canAccessAssignedDoctor(
+        return isAdmin(currentUser(authentication)) || canAccessAssignedDoctor(
                 examinationRepository.findAssignedDoctorIdById(examinationId).orElse(null), authentication);
     }
 
@@ -42,14 +42,14 @@ public class AccessControlService {
 
     public boolean canAccessDoctor(Long doctorId, Authentication authentication) {
         User user = currentUser(authentication);
-        return user != null && isClinicalUser(user)
-                && (isClinicalSupervisor(user) || user.getId().equals(doctorId));
+        return user != null && (isAdmin(user) || (isClinicalUser(user)
+                && (isClinicalSupervisor(user) || user.getId().equals(doctorId))));
     }
 
     public boolean canAccessUser(Long userId, Authentication authentication) {
         User user = currentUser(authentication);
-        return user != null && isClinicalUser(user)
-                && (isClinicalSupervisor(user) || user.getId().equals(userId));
+        return user != null && (isAdmin(user) || (isClinicalUser(user)
+                && (isClinicalSupervisor(user) || user.getId().equals(userId))));
     }
 
     private boolean canAccessAssignedDoctor(Long assignedDoctorId, Authentication authentication) {
@@ -81,5 +81,9 @@ public class AccessControlService {
         }
         String role = user.getRole().getCode();
         return "DOCTOR".equalsIgnoreCase(role) || isClinicalSupervisor(user);
+    }
+
+    private boolean isAdmin(User user) {
+        return user != null && user.getRole() != null && "ADMIN".equalsIgnoreCase(user.getRole().getCode());
     }
 }

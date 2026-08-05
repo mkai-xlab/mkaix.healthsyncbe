@@ -36,7 +36,7 @@ public class ExaminationController {
      * @return A paginated list of examinations.
      */
     @GetMapping
-    @PreAuthorize("hasAnyRole('DOCTOR', 'DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'DOCTOR', 'DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT')")
     public ResponseEntity<PageResponse<ExaminationDto>> getAllExaminations(
             java.security.Principal principal,
             @RequestParam(defaultValue = "false", required = false) Boolean isPersonal,
@@ -46,7 +46,7 @@ public class ExaminationController {
     }
 
     @GetMapping("/sort/study-date")
-    @PreAuthorize("hasAnyRole('DOCTOR', 'DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'DOCTOR', 'DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT')")
     public ResponseEntity<PageResponse<ExaminationDto>> getExaminationsSortedByStudyDate(
             @RequestParam(defaultValue = "desc") String direction,
             java.security.Principal principal,
@@ -59,7 +59,7 @@ public class ExaminationController {
     }
 
     @GetMapping("/sort/upload-date")
-    @PreAuthorize("hasAnyRole('DOCTOR', 'DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'DOCTOR', 'DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT')")
     public ResponseEntity<PageResponse<ExaminationDto>> getExaminationsSortedByUploadDate(
             @RequestParam(defaultValue = "desc") String direction,
             java.security.Principal principal,
@@ -72,7 +72,7 @@ public class ExaminationController {
     }
 
     @GetMapping("/filter/study-date")
-    @PreAuthorize("hasAnyRole('DOCTOR', 'DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'DOCTOR', 'DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT')")
     public ResponseEntity<PageResponse<ExaminationDto>> getExaminationsFilteredByStudyDate(
             @RequestParam @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate date,
             java.security.Principal principal,
@@ -84,7 +84,7 @@ public class ExaminationController {
     }
 
     @GetMapping("/filter/upload-date")
-    @PreAuthorize("hasAnyRole('DOCTOR', 'DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'DOCTOR', 'DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT')")
     public ResponseEntity<PageResponse<ExaminationDto>> getExaminationsFilteredByUploadDate(
             @RequestParam @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate date,
             java.security.Principal principal,
@@ -102,7 +102,7 @@ public class ExaminationController {
      * @return The examination details.
      */
     @GetMapping("/{id}")
-    @PreAuthorize("(hasAnyRole('DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT') "
+    @PreAuthorize("(hasAnyRole('ADMIN', 'DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT') "
             + "or (hasRole('DOCTOR') and hasAuthority('VIEW_PENDING_DIAGNOSIS'))) "
             + "and @accessControl.canAccessExamination(#p0, authentication)")
     public ResponseEntity<ExaminationDto> getExaminationById(
@@ -138,7 +138,7 @@ public class ExaminationController {
      * @return A paginated list of examinations for the patient.
      */
     @GetMapping("/patient/{patientId}")
-    @PreAuthorize("hasAnyRole('DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT')")
     public ResponseEntity<PageResponse<ExaminationDto>> getExaminationsByPatientId(
             @PathVariable Long patientId,
             @PageableDefault(size = 10) Pageable pageable) {
@@ -156,7 +156,7 @@ public class ExaminationController {
      * @return A paginated list of examinations for the patient in the given month.
      */
     @GetMapping("/patient/{patientId}/filter/study-month")
-    @PreAuthorize("hasAnyRole('DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT')")
     public ResponseEntity<PageResponse<ExaminationDto>> getExaminationsByPatientIdAndStudyMonth(
             @PathVariable Long patientId,
             @RequestParam int year,
@@ -176,7 +176,7 @@ public class ExaminationController {
      * @return A paginated list of examinations matching the status.
      */
     @GetMapping("/status")
-    @PreAuthorize("hasAnyRole('DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT') or (hasRole('DOCTOR') and hasAuthority('VIEW_PENDING_DIAGNOSIS'))")
+    @PreAuthorize("hasAnyRole('ADMIN', 'DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT') or (hasRole('DOCTOR') and hasAuthority('VIEW_PENDING_DIAGNOSIS'))")
     public ResponseEntity<PageResponse<ExaminationDto>> getExaminationsByStatus(
             @RequestParam ExaminationStatus status,
             java.security.Principal principal,
@@ -195,7 +195,7 @@ public class ExaminationController {
      * @return A paginated list of examinations matching the grade.
      */
     @GetMapping("/grade")
-    @PreAuthorize("hasAnyRole('DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT') or (hasRole('DOCTOR') and hasAuthority('VIEW_PENDING_DIAGNOSIS'))")
+    @PreAuthorize("hasAnyRole('ADMIN', 'DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT') or (hasRole('DOCTOR') and hasAuthority('VIEW_PENDING_DIAGNOSIS'))")
     public ResponseEntity<PageResponse<ExaminationDto>> getExaminationsByGrade(
             @RequestParam Integer grade,
             java.security.Principal principal,
@@ -214,7 +214,7 @@ public class ExaminationController {
      */
     @GetMapping("/statistics/patients-by-grade")
     @PreAuthorize(
-            "hasAnyRole('DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT') "
+            "hasAnyRole('ADMIN', 'DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT') "
                     + "or (hasRole('DOCTOR') and hasAuthority('VIEW_ANALYTIC_HISTORY'))")
     public ResponseEntity<List<PatientGradeStatsDto>> getPatientGradeStatistics(
             java.security.Principal principal,
@@ -295,7 +295,7 @@ public class ExaminationController {
      * Retrieves total examinations based on user role (from access token).
      */
     @GetMapping("/my-total")
-    @PreAuthorize("hasAnyRole('DOCTOR', 'DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'DOCTOR', 'DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT')")
     public ResponseEntity<Long> getMyTotalExaminations(@RequestParam(defaultValue = "false", required = false) Boolean isPersonal) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String userEmail = (String) authentication.getPrincipal();
@@ -309,7 +309,7 @@ public class ExaminationController {
      * Retrieves total examinations in the last 7 days based on user role (from access token).
      */
     @GetMapping("/my-total-last-7-days")
-    @PreAuthorize("hasAnyRole('DOCTOR', 'DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'DOCTOR', 'DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT')")
     public ResponseEntity<Long> getMyTotalLast7Days(@RequestParam(defaultValue = "false", required = false) Boolean isPersonal) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String userEmail = (String) authentication.getPrincipal();
@@ -323,7 +323,7 @@ public class ExaminationController {
      * Retrieves total severe examinations based on user role (from access token).
      */
     @GetMapping("/my-total-severe")
-    @PreAuthorize("hasAnyRole('DOCTOR', 'DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'DOCTOR', 'DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT')")
     public ResponseEntity<Long> getMyTotalSevereExaminations(@RequestParam(defaultValue = "false", required = false) Boolean isPersonal) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String userEmail = (String) authentication.getPrincipal();
@@ -337,7 +337,7 @@ public class ExaminationController {
      * Retrieves total verified examinations based on user role (from access token).
      */
     @GetMapping("/my-total-verified")
-    @PreAuthorize("hasAnyRole('DOCTOR', 'DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'DOCTOR', 'DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT')")
     public ResponseEntity<Long> getMyTotalVerifiedExaminations(@RequestParam(defaultValue = "false", required = false) Boolean isPersonal) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String userEmail = (String) authentication.getPrincipal();
@@ -352,7 +352,7 @@ public class ExaminationController {
      * token).
      */
     @GetMapping("/my-total-unverified")
-    @PreAuthorize("hasAnyRole('DOCTOR', 'DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'DOCTOR', 'DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT')")
     public ResponseEntity<Long> getMyTotalUnverifiedExaminations(@RequestParam(defaultValue = "false", required = false) Boolean isPersonal) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String userEmail = (String) authentication.getPrincipal();
