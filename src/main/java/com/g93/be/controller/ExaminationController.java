@@ -36,7 +36,7 @@ public class ExaminationController {
      * @return A paginated list of examinations.
      */
     @GetMapping
-    @PreAuthorize("hasAnyRole('DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT')")
+    @PreAuthorize("hasAnyRole('DOCTOR', 'DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT')")
     public ResponseEntity<PageResponse<ExaminationDto>> getAllExaminations(
             java.security.Principal principal,
             @RequestParam(defaultValue = "false", required = false) Boolean isPersonal,
@@ -303,6 +303,20 @@ public class ExaminationController {
         Long userId = user.getId();
         log.info("Received request to get total examinations for my token, user id: {}", userId);
         return ResponseEntity.ok(examinationService.getTotalExaminations(userId, isPersonal));
+    }
+
+    /**
+     * Retrieves total examinations in the last 7 days based on user role (from access token).
+     */
+    @GetMapping("/my-total-last-7-days")
+    @PreAuthorize("hasAnyRole('DOCTOR', 'DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT')")
+    public ResponseEntity<Long> getMyTotalLast7Days(@RequestParam(defaultValue = "false", required = false) Boolean isPersonal) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String userEmail = (String) authentication.getPrincipal();
+        User user = userRepository.findByUsername(userEmail).orElseThrow(() -> new RuntimeException("User not found"));
+        Long userId = user.getId();
+        log.info("Received request to get total examinations in the last 7 days for my token, user id: {}", userId);
+        return ResponseEntity.ok(examinationService.getTotalExaminationsInLast7Days(userId, isPersonal));
     }
 
     /**

@@ -40,7 +40,27 @@ public class ExaminationServiceImpl implements ExaminationService {
     @Override
     @Transactional(readOnly = true)
     public PageResponse<ExaminationDto> getAllExaminations(Pageable pageable, String username, Boolean isPersonal) {
-        Page<Examination> examinationPage = examinationRepository.findAll(getCustomSortPageable(pageable));
+        User user = userRepository.findByUsernameOrEmail(username, username)
+                .orElseThrow(() -> new IllegalArgumentException("User with username/email " + username + " not found"));
+        
+        if (user.getRole() == null || user.getRole().getCode() == null) {
+            return new PageResponse<>(List.of(), 0, pageable.getPageSize(), 0, 0, true);
+        }
+
+        String roleCode = user.getRole().getCode();
+        Page<Examination> examinationPage;
+
+        if ("DOCTOR".equalsIgnoreCase(roleCode)) {
+            examinationPage = examinationRepository.findByDoctorId(user.getId(), getCustomSortPageable(pageable));
+        } else if ("DEPARTMENT_HEAD".equalsIgnoreCase(roleCode) || "HEAD_OF_DEPARTMENT".equalsIgnoreCase(roleCode)) {
+            if (Boolean.TRUE.equals(isPersonal)) {
+                examinationPage = examinationRepository.findByDoctorId(user.getId(), getCustomSortPageable(pageable));
+            } else {
+                examinationPage = examinationRepository.findAll(getCustomSortPageable(pageable));
+            }
+        } else {
+            return new PageResponse<>(List.of(), 0, pageable.getPageSize(), 0, 0, true);
+        }
         List<ExaminationDto> content = examinationPage.getContent().stream()
                 .map(ex -> {
                     List<DicomInstance> instances = dicomInstanceRepository.findByExaminationId(ex.getId());
@@ -139,9 +159,37 @@ public class ExaminationServiceImpl implements ExaminationService {
 
         String roleCode = user.getRole().getCode();
         if ("DEPARTMENT_HEAD".equalsIgnoreCase(roleCode) || "HEAD_OF_DEPARTMENT".equalsIgnoreCase(roleCode)) {
+            if (Boolean.TRUE.equals(isPersonal)) {
+                return examinationRepository.countByDoctorId(userId);
+            }
             return examinationRepository.count();
         } else if ("DOCTOR".equalsIgnoreCase(roleCode)) {
             return examinationRepository.countByDoctorId(userId);
+        }
+        
+        return 0L;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public long getTotalExaminationsInLast7Days(Long userId, Boolean isPersonal) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User with id " + userId + " not found"));
+        
+        if (user.getRole() == null || user.getRole().getCode() == null) {
+            return 0L;
+        }
+
+        java.time.LocalDateTime sevenDaysAgo = java.time.LocalDateTime.now().minusDays(7);
+        String roleCode = user.getRole().getCode();
+        
+        if ("DEPARTMENT_HEAD".equalsIgnoreCase(roleCode) || "HEAD_OF_DEPARTMENT".equalsIgnoreCase(roleCode)) {
+            if (Boolean.TRUE.equals(isPersonal)) {
+                return examinationRepository.countByDoctorIdAndCreatedAtAfter(userId, sevenDaysAgo);
+            }
+            return examinationRepository.countByCreatedAtAfter(sevenDaysAgo);
+        } else if ("DOCTOR".equalsIgnoreCase(roleCode)) {
+            return examinationRepository.countByDoctorIdAndCreatedAtAfter(userId, sevenDaysAgo);
         }
         
         return 0L;
@@ -161,6 +209,9 @@ public class ExaminationServiceImpl implements ExaminationService {
         String roleCode = user.getRole().getCode();
         
         if ("DEPARTMENT_HEAD".equalsIgnoreCase(roleCode) || "HEAD_OF_DEPARTMENT".equalsIgnoreCase(roleCode)) {
+            if (Boolean.TRUE.equals(isPersonal)) {
+                return examinationRepository.countByDoctorIdAndMaxPredictedGradeIn(userId, severeGrades);
+            }
             return examinationRepository.countByMaxPredictedGradeIn(severeGrades);
         } else if ("DOCTOR".equalsIgnoreCase(roleCode)) {
             return examinationRepository.countByDoctorIdAndMaxPredictedGradeIn(userId, severeGrades);
@@ -183,6 +234,9 @@ public class ExaminationServiceImpl implements ExaminationService {
         ExaminationStatus verifiedStatus = ExaminationStatus.VERIFIED;
         
         if ("DEPARTMENT_HEAD".equalsIgnoreCase(roleCode) || "HEAD_OF_DEPARTMENT".equalsIgnoreCase(roleCode)) {
+            if (Boolean.TRUE.equals(isPersonal)) {
+                return examinationRepository.countByDoctorIdAndStatus(userId, verifiedStatus);
+            }
             return examinationRepository.countByStatus(verifiedStatus);
         } else if ("DOCTOR".equalsIgnoreCase(roleCode)) {
             return examinationRepository.countByDoctorIdAndStatus(userId, verifiedStatus);
@@ -205,6 +259,9 @@ public class ExaminationServiceImpl implements ExaminationService {
         ExaminationStatus verifiedStatus = ExaminationStatus.VERIFIED;
         
         if ("DEPARTMENT_HEAD".equalsIgnoreCase(roleCode) || "HEAD_OF_DEPARTMENT".equalsIgnoreCase(roleCode)) {
+            if (Boolean.TRUE.equals(isPersonal)) {
+                return examinationRepository.countByDoctorIdAndStatusNot(userId, verifiedStatus);
+            }
             return examinationRepository.countByStatusNot(verifiedStatus);
         } else if ("DOCTOR".equalsIgnoreCase(roleCode)) {
             return examinationRepository.countByDoctorIdAndStatusNot(userId, verifiedStatus);
@@ -229,7 +286,11 @@ public class ExaminationServiceImpl implements ExaminationService {
         if ("DOCTOR".equalsIgnoreCase(roleCode)) {
             examinationPage = examinationRepository.findByDoctorIdAndStatus(user.getId(), status, pageable);
         } else if ("DEPARTMENT_HEAD".equalsIgnoreCase(roleCode) || "HEAD_OF_DEPARTMENT".equalsIgnoreCase(roleCode)) {
-            examinationPage = examinationRepository.findByStatus(status, pageable);
+            if (Boolean.TRUE.equals(isPersonal)) {
+                examinationPage = examinationRepository.findByDoctorIdAndStatus(user.getId(), status, pageable);
+            } else {
+                examinationPage = examinationRepository.findByStatus(status, pageable);
+            }
         } else {
             return new PageResponse<>(List.of(), 0, pageable.getPageSize(), 0, 0, true);
         }
@@ -267,7 +328,11 @@ public class ExaminationServiceImpl implements ExaminationService {
         if ("DOCTOR".equalsIgnoreCase(roleCode)) {
             examinationPage = examinationRepository.findByDoctorIdAndMaxPredictedGrade(user.getId(), grade, pageable);
         } else if ("DEPARTMENT_HEAD".equalsIgnoreCase(roleCode) || "HEAD_OF_DEPARTMENT".equalsIgnoreCase(roleCode)) {
-            examinationPage = examinationRepository.findByMaxPredictedGrade(grade, pageable);
+            if (Boolean.TRUE.equals(isPersonal)) {
+                examinationPage = examinationRepository.findByDoctorIdAndMaxPredictedGrade(user.getId(), grade, pageable);
+            } else {
+                examinationPage = examinationRepository.findByMaxPredictedGrade(grade, pageable);
+            }
         } else {
             return new PageResponse<>(List.of(), 0, pageable.getPageSize(), 0, 0, true);
         }

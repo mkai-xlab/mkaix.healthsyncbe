@@ -1,0 +1,15 @@
+meta {
+  name: Count Heads
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/users/count/heads
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
