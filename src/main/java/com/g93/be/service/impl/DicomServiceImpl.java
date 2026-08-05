@@ -193,43 +193,57 @@ public class DicomServiceImpl implements DicomService {
      * @return BatchDicomUploadResponse chứa uploadSessionId để frontend có thể theo dõi.
      */
     @Override
-    public BatchDicomUploadResponse uploadZipBatchFile(MultipartFile file, String username) {
-        if (file == null || file.isEmpty()) {
-            throw new IllegalArgumentException("Uploaded file is empty");
-        }
-        String filename = file.getOriginalFilename();
-        if (filename == null || !filename.toLowerCase().endsWith(".zip")) {
-            throw new IllegalArgumentException("Invalid file format. Only .zip files are allowed for batch upload.");
+    public BatchDicomUploadResponse uploadZipBatchFiles(java.util.List<MultipartFile> files, String username) {
+        if (files == null || files.isEmpty()) {
+            throw new IllegalArgumentException("Uploaded files are empty");
         }
         Long userId = resolveUserId(username);
+        long totalSize = 0;
+        int errorCount = 0;
         try {
-            Path tempZipFile = Files.createTempFile("main_batch_", ".zip");
-            file.transferTo(tempZipFile.toFile());
+            List<Path> tempZipFiles = new ArrayList<>();
+            List<FileUploadError> earlyErrors = new ArrayList<>();
+            for (MultipartFile file : files) {
+                totalSize += file.getSize();
+                String filename = file.getOriginalFilename();
+                if (filename == null || !filename.toLowerCase().endsWith(".zip")) {
+                    earlyErrors.add(new FileUploadError(filename, "Invalid file format. Only .zip files are allowed for batch upload."));
+                    continue;
+                }
+                Path tempZipFile = Files.createTempFile("main_batch_", ".zip");
+                file.transferTo(tempZipFile.toFile());
+                if (!isZipFile(tempZipFile)) {
+                    Files.deleteIfExists(tempZipFile);
+                    earlyErrors.add(new FileUploadError(filename, "Tệp tin không đúng định dạng ZIP hoặc bị lỗi cấu trúc."));
+                    continue;
+                }
+                tempZipFiles.add(tempZipFile);
+            }
             
-            if (!isZipFile(tempZipFile)) {
-                Files.deleteIfExists(tempZipFile);
+            if (tempZipFiles.isEmpty() && !earlyErrors.isEmpty()) {
                 BatchDicomUploadResponse errRes = new BatchDicomUploadResponse();
                 errRes.setMessage("Tải lên thất bại. Toàn bộ tệp tin không đúng định dạng DICOM hoặc bị lỗi cấu trúc.");
-                errRes.setErrors(new ArrayList<>(List.of(new FileUploadError(filename, "Tệp tin không đúng định dạng ZIP hoặc bị lỗi cấu trúc."))));
+                errRes.setErrors(earlyErrors);
                 errRes.setSuccessfulPatients(new ArrayList<>());
-                saveAuditLog(userId, "DICOM ZIP Upload Failed", "Uploaded ZIP file is corrupted: " + filename);
+                saveAuditLog(userId, "DICOM ZIP Upload Failed", "All uploaded files are invalid/corrupted.");
                 return errRes;
             }
             
             String uploadSessionId = UUID.randomUUID().toString();
-            BatchDicomUploadResponse response = processZipBatch(tempZipFile, userId, uploadSessionId);
+            BatchDicomUploadResponse response = processMultipleZipBatches(tempZipFiles, userId, uploadSessionId);
+            response.getErrors().addAll(earlyErrors);
             
             if (response.getSuccessfulPatients().isEmpty()) {
                 response.setMessage("Tải lên thất bại hoặc không có file nào được thêm mới. Vui lòng xem chi tiết lỗi bên dưới.");
             }
             
-            saveAuditLog(userId, "DICOM ZIP Upload", "Uploaded ZIP file: " + filename + " (" + file.getSize() + " bytes). Success: " + response.getSuccessfulPatients().size() + ", Errors: " + response.getErrors().size());
+            saveAuditLog(userId, "DICOM ZIP Upload", "Uploaded " + files.size() + " ZIP files (" + totalSize + " bytes). Success: " + response.getSuccessfulPatients().size() + ", Errors: " + response.getErrors().size());
             
             return response;
         } catch (Exception e) {
-            saveAuditLog(userId, "DICOM ZIP Upload Failed", "Error saving uploaded ZIP file: " + e.getMessage());
-            log.error("Failed to save uploaded ZIP file", e);
-            throw new RuntimeException("Failed to save uploaded ZIP file", e);
+            saveAuditLog(userId, "DICOM ZIP Upload Failed", "Error saving uploaded ZIP files: " + e.getMessage());
+            log.error("Failed to save uploaded ZIP files", e);
+            throw new RuntimeException("Failed to save uploaded ZIP files", e);
         }
     }
 
@@ -272,20 +286,23 @@ public class DicomServiceImpl implements DicomService {
     }
 
     @Override
-    public BatchDicomUploadResponse processZipBatch(Path zipFilePath, Long userId, String uploadSessionId) {
-        log.info("Starting background processing of ZIP batch at: {}", zipFilePath);
+    public BatchDicomUploadResponse processMultipleZipBatches(List<Path> zipFilePaths, Long userId, String uploadSessionId) {
+        log.info("Starting background processing of {} ZIP batches", zipFilePaths.size());
         if (userId != null) {
             notificationService.sendNotification(new SendNotificationRequest(
                     userId,
                     "Tiếp nhận File ZIP",
-                    "Hệ thống đang tiến hành giải nén và kiểm tra file ZIP...",
+                    "Hệ thống đang tiến hành giải nén và kiểm tra " + zipFilePaths.size() + " file ZIP...",
                     "SYSTEM",
                     null));
         }
         Path workDir = null;
         try {
             workDir = Files.createTempDirectory("zip_batch_work_");
-            unzipFile(zipFilePath, workDir);
+            
+            for (Path zipFilePath : zipFilePaths) {
+                unzipFile(zipFilePath, workDir);
+            }
 
             List<Path> innerZips = Files.walk(workDir)
                     .filter(p -> p.toString().toLowerCase().endsWith(".zip"))
@@ -310,7 +327,7 @@ public class DicomServiceImpl implements DicomService {
                 }
             });
 
-            log.info("Found {} DICOM files and {} strange files in the ZIP batch", dcmFiles.size(),
+            log.info("Found {} DICOM files and {} strange files in the ZIP batches", dcmFiles.size(),
                     strangeFiles.size());
 
             Map<String, Path> filePaths = new LinkedHashMap<>();
@@ -321,21 +338,21 @@ public class DicomServiceImpl implements DicomService {
             BatchDicomUploadResponse response = processBatchPaths(filePaths, userId, uploadSessionId);
 
             if (dcmFiles.isEmpty()) {
-                response.getErrors().add(new FileUploadError(zipFilePath.getFileName().toString(),
-                        "No DICOM files found in the ZIP batch."));
+                response.getErrors().add(new FileUploadError("multiple_zips",
+                        "No DICOM files found in the ZIP batches."));
             }
             for (Path strange : strangeFiles) {
                 response.getErrors().add(new FileUploadError(strange.getFileName().toString(),
                         "Strange file detected (not .dcm or .zip). Ignored."));
             }
 
-            log.info("Finished background processing of ZIP batch. Success: {}, Errors: {}",
+            log.info("Finished background processing of ZIP batches. Success: {}, Errors: {}",
                     response.getSuccessfulPatients().size(), response.getErrors().size());
             return response;
 
         } catch (Exception e) {
-            log.error("Error processing background ZIP batch", e);
-            throw new RuntimeException("Error processing background ZIP batch", e);
+            log.error("Error processing background ZIP batches", e);
+            throw new RuntimeException("Error processing background ZIP batches", e);
         } finally {
             if (workDir != null) {
                 try {
@@ -346,10 +363,12 @@ public class DicomServiceImpl implements DicomService {
                 } catch (IOException ignored) {
                 }
             }
-            if (zipFilePath != null) {
-                try {
-                    Files.deleteIfExists(zipFilePath);
-                } catch (IOException ignored) {
+            if (zipFilePaths != null) {
+                for (Path zipFilePath : zipFilePaths) {
+                    try {
+                        Files.deleteIfExists(zipFilePath);
+                    } catch (IOException ignored) {
+                    }
                 }
             }
         }
