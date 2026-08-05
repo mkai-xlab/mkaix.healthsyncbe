@@ -51,9 +51,6 @@ public class ExaminationServiceImpl implements ExaminationService {
         Page<Examination> examinationPage;
 
         if ("DOCTOR".equalsIgnoreCase(roleCode)) {
-            if (Boolean.FALSE.equals(isPersonal)) {
-                throw new org.springframework.security.access.AccessDeniedException("Bạn không có quyền xem dữ liệu toàn khoa");
-            }
             examinationPage = examinationRepository.findByDoctorId(user.getId(), getCustomSortPageable(pageable));
         } else if ("DEPARTMENT_HEAD".equalsIgnoreCase(roleCode) || "HEAD_OF_DEPARTMENT".equalsIgnoreCase(roleCode)) {
             if (Boolean.TRUE.equals(isPersonal)) {
@@ -167,9 +164,6 @@ public class ExaminationServiceImpl implements ExaminationService {
             }
             return examinationRepository.count();
         } else if ("DOCTOR".equalsIgnoreCase(roleCode)) {
-            if (Boolean.FALSE.equals(isPersonal)) {
-                throw new org.springframework.security.access.AccessDeniedException("Bạn không có quyền xem thống kê toàn khoa");
-            }
             return examinationRepository.countByDoctorId(userId);
         }
         
@@ -195,9 +189,6 @@ public class ExaminationServiceImpl implements ExaminationService {
             }
             return examinationRepository.countByCreatedAtAfter(sevenDaysAgo);
         } else if ("DOCTOR".equalsIgnoreCase(roleCode)) {
-            if (Boolean.FALSE.equals(isPersonal)) {
-                throw new org.springframework.security.access.AccessDeniedException("Bạn không có quyền xem thống kê toàn khoa");
-            }
             return examinationRepository.countByDoctorIdAndCreatedAtAfter(userId, sevenDaysAgo);
         }
         
@@ -223,9 +214,6 @@ public class ExaminationServiceImpl implements ExaminationService {
             }
             return examinationRepository.countByMaxPredictedGradeIn(severeGrades);
         } else if ("DOCTOR".equalsIgnoreCase(roleCode)) {
-            if (Boolean.FALSE.equals(isPersonal)) {
-                throw new org.springframework.security.access.AccessDeniedException("Bạn không có quyền xem thống kê toàn khoa");
-            }
             return examinationRepository.countByDoctorIdAndMaxPredictedGradeIn(userId, severeGrades);
         }
         
@@ -251,9 +239,6 @@ public class ExaminationServiceImpl implements ExaminationService {
             }
             return examinationRepository.countByStatus(verifiedStatus);
         } else if ("DOCTOR".equalsIgnoreCase(roleCode)) {
-            if (Boolean.FALSE.equals(isPersonal)) {
-                throw new org.springframework.security.access.AccessDeniedException("Bạn không có quyền xem thống kê toàn khoa");
-            }
             return examinationRepository.countByDoctorIdAndStatus(userId, verifiedStatus);
         }
         
@@ -279,9 +264,6 @@ public class ExaminationServiceImpl implements ExaminationService {
             }
             return examinationRepository.countByStatusNot(verifiedStatus);
         } else if ("DOCTOR".equalsIgnoreCase(roleCode)) {
-            if (Boolean.FALSE.equals(isPersonal)) {
-                throw new org.springframework.security.access.AccessDeniedException("Bạn không có quyền xem thống kê toàn khoa");
-            }
             return examinationRepository.countByDoctorIdAndStatusNot(userId, verifiedStatus);
         }
         
@@ -302,9 +284,6 @@ public class ExaminationServiceImpl implements ExaminationService {
         Page<Examination> examinationPage;
 
         if ("DOCTOR".equalsIgnoreCase(roleCode)) {
-            if (Boolean.FALSE.equals(isPersonal)) {
-                throw new org.springframework.security.access.AccessDeniedException("Bạn không có quyền xem dữ liệu toàn khoa");
-            }
             examinationPage = examinationRepository.findByDoctorIdAndStatus(user.getId(), status, pageable);
         } else if ("DEPARTMENT_HEAD".equalsIgnoreCase(roleCode) || "HEAD_OF_DEPARTMENT".equalsIgnoreCase(roleCode)) {
             if (Boolean.TRUE.equals(isPersonal)) {
@@ -347,9 +326,6 @@ public class ExaminationServiceImpl implements ExaminationService {
         Page<Examination> examinationPage;
 
         if ("DOCTOR".equalsIgnoreCase(roleCode)) {
-            if (Boolean.FALSE.equals(isPersonal)) {
-                throw new org.springframework.security.access.AccessDeniedException("Bạn không có quyền xem dữ liệu toàn khoa");
-            }
             examinationPage = examinationRepository.findByDoctorIdAndMaxPredictedGrade(user.getId(), grade, pageable);
         } else if ("DEPARTMENT_HEAD".equalsIgnoreCase(roleCode) || "HEAD_OF_DEPARTMENT".equalsIgnoreCase(roleCode)) {
             if (Boolean.TRUE.equals(isPersonal)) {
