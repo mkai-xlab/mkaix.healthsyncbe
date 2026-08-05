@@ -78,7 +78,7 @@ public class DicomController {
     @PostMapping(value = "/upload/zip-batch", consumes = "multipart/form-data")
     @PreAuthorize("hasAnyRole('DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT') or (hasRole('DOCTOR') and hasAuthority('UPLOAD_DICOM_IMAGE'))")
     public ResponseEntity<?> uploadZipBatch(
-            @RequestParam("file") MultipartFile file,
+            @RequestParam("file") java.util.List<MultipartFile> files,
             Principal principal) {
         log.info("Received request to upload ZIP batch DICOM file");
         try {
@@ -89,7 +89,7 @@ public class DicomController {
             User user = userRepository.findByUsername(principal.getName())
                     .orElseThrow(() -> new org.springframework.security.access.AccessDeniedException(
                             "Authenticated user was not found"));
-            BatchDicomUploadResponse response = dicomService.uploadZipBatchFile(file, user.getUsername());
+            BatchDicomUploadResponse response = dicomService.uploadZipBatchFiles(files, user.getUsername());
             return ResponseEntity.ok(response);
         } catch (IllegalArgumentException e) {
             Map<String, String> errResponse = new HashMap<>();
