@@ -31,7 +31,7 @@ public interface DicomService {
 
     BatchDicomUploadResponse uploadBatchFiles(List<MultipartFile> files, String username);
 
-    BatchDicomUploadResponse uploadZipBatchFile(MultipartFile file, String username);
+    BatchDicomUploadResponse uploadZipBatchFiles(java.util.List<MultipartFile> files, String username);
 
     org.springframework.core.io.Resource getInstanceImageResource(Long id);
 
@@ -44,7 +44,7 @@ public interface DicomService {
      * @param zipFilePath Path to the uploaded zip file.
      * @param userId      The ID of the uploading user for notifications.
      */
-    BatchDicomUploadResponse processZipBatch(java.nio.file.Path zipFilePath, Long userId, String uploadSessionId);
+    BatchDicomUploadResponse processMultipleZipBatches(java.util.List<java.nio.file.Path> zipFilePaths, Long userId, String uploadSessionId);
 
     /**
      * Processes a batch of DICOM files mapped by their original filenames to their
