@@ -138,7 +138,7 @@ public class ExaminationController {
      * @return A paginated list of examinations for the patient.
      */
     @GetMapping("/patient/{patientId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT') or (hasRole('DOCTOR') and hasAuthority('VIEW_PATIENT_DETAIL'))")
     public ResponseEntity<PageResponse<ExaminationDto>> getExaminationsByPatientId(
             @PathVariable Long patientId,
             @PageableDefault(size = 10) Pageable pageable) {
@@ -156,7 +156,7 @@ public class ExaminationController {
      * @return A paginated list of examinations for the patient in the given month.
      */
     @GetMapping("/patient/{patientId}/filter/study-month")
-    @PreAuthorize("hasAnyRole('ADMIN', 'DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT') or (hasRole('DOCTOR') and hasAuthority('VIEW_PATIENT_DETAIL'))")
     public ResponseEntity<PageResponse<ExaminationDto>> getExaminationsByPatientIdAndStudyMonth(
             @PathVariable Long patientId,
             @RequestParam int year,
