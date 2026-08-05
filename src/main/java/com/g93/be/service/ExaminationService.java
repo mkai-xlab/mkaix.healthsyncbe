@@ -17,6 +17,7 @@ public interface ExaminationService {
     long getTotalSevereExaminations(Long userId, Boolean isPersonal);
     long getTotalVerifiedExaminations(Long userId, Boolean isPersonal);
     long getTotalUnverifiedExaminations(Long userId, Boolean isPersonal);
+    long getTotalExaminationsInLast7Days(Long userId, Boolean isPersonal);
     PageResponse<ExaminationDto> getExaminationsByStatus(ExaminationStatus status, String username, Boolean isPersonal, Pageable pageable);
     PageResponse<ExaminationDto> getExaminationsByGrade(Integer grade, String username, Boolean isPersonal, Pageable pageable);
     java.util.List<PatientGradeStatsDto> getPatientGradeStatistics(String username, Boolean isPersonal);
