@@ -120,6 +120,12 @@ final class ApiDocumentationRegistry {
         add("UserController", "getStaffList", "Người dùng", "Lấy danh sách nhân sự y tế",
                 "Trả bác sĩ và trưởng khoa phục vụ phân công ca khám.",
                 "200", "Danh sách nhân sự y tế", "USER_LIST", null, ResponseKind.JSON);
+        add("UserController", "countDoctors", "Người dùng", "Đếm số lượng bác sĩ",
+                "Trả về tổng số tài khoản bác sĩ trên hệ thống. Chỉ Trưởng khoa hoặc Admin mới có quyền truy cập.",
+                "200", "Tổng số bác sĩ", "LONG", null, ResponseKind.JSON);
+        add("UserController", "countHeads", "Người dùng", "Đếm số lượng trưởng khoa",
+                "Trả về tổng số tài khoản trưởng khoa (và phó khoa) trên hệ thống. Chỉ Admin mới có quyền truy cập.",
+                "200", "Tổng số trưởng khoa", "LONG", null, ResponseKind.JSON);
     }
 
     private void registerPatients() {
@@ -180,6 +186,8 @@ final class ApiDocumentationRegistry {
                 "Đếm ca chưa ở trạng thái VERIFIED theo userId.", "200", "Số ca chưa xác nhận", "LONG", null, ResponseKind.JSON);
         add("ExaminationController", "getMyTotalExaminations", "Ca khám", "Đếm tổng ca của tôi",
                 "Đếm toàn bộ ca khám của người dùng đang đăng nhập.", "200", "Tổng ca khám của tôi", "LONG", null, ResponseKind.JSON);
+        add("ExaminationController", "getMyTotalLast7Days", "Ca khám", "Đếm tổng ca 7 ngày của tôi",
+                "Đếm ca khám trong 7 ngày gần nhất của người dùng đang đăng nhập.", "200", "Tổng ca khám 7 ngày của tôi", "LONG", null, ResponseKind.JSON);
         add("ExaminationController", "getMyTotalSevereExaminations", "Ca khám", "Đếm ca nặng của tôi",
                 "Đếm ca KL 3-4 của người dùng đang đăng nhập.", "200", "Số ca nặng của tôi", "LONG", null, ResponseKind.JSON);
         add("ExaminationController", "getMyTotalVerifiedExaminations", "Ca khám", "Đếm ca đã xác nhận của tôi",
