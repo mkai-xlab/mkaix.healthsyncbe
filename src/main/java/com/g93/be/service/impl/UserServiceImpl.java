@@ -91,6 +91,31 @@ public class UserServiceImpl implements UserService {
         return staffUsers.stream().map(this::mapToResponse).collect(java.util.stream.Collectors.toList());
     }
 
+    @Override
+    public long countDoctors(String username) {
+        User currentUser = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        String currentRole = currentUser.getRole().getCode();
+
+        if (!currentRole.equals("ADMIN") && !currentRole.equals("HEAD_OF_DEPARTMENT") && !currentRole.equals("DEPARTMENT_HEAD")) {
+            throw new org.springframework.security.access.AccessDeniedException("Only Admin or Head of Department can view the total number of doctors.");
+        }
+
+        return userRepository.countByRoleCode("DOCTOR");
+    }
+
+    @Override
+    public long countHeads(String username) {
+        User currentUser = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (!currentUser.getRole().getCode().equals("ADMIN")) {
+            throw new org.springframework.security.access.AccessDeniedException("Only Admin can view the total number of heads of department.");
+        }
+
+        return userRepository.countByRoleCode("HEAD_OF_DEPARTMENT") + userRepository.countByRoleCode("DEPARTMENT_HEAD");
+    }
+
     private String generateUniqueUsername(String email) {
         String base = email.split("@")[0].replaceAll("[^a-zA-Z0-9._]", "").toLowerCase();
         if (base.isBlank()) {
