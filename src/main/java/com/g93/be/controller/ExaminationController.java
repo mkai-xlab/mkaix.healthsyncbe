@@ -36,7 +36,7 @@ public class ExaminationController {
      * @return A paginated list of examinations.
      */
     @GetMapping
-    @PreAuthorize("hasAnyRole('DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT')")
+    @PreAuthorize("hasAnyRole('DOCTOR', 'DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT')")
     public ResponseEntity<PageResponse<ExaminationDto>> getAllExaminations(
             java.security.Principal principal,
             @RequestParam(defaultValue = "false", required = false) Boolean isPersonal,
