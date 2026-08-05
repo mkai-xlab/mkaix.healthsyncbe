@@ -102,7 +102,7 @@ public class DicomController {
 
 
     @GetMapping("/total-studies")
-    @PreAuthorize("hasAnyRole('DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT') or (hasRole('DOCTOR') and hasAuthority('VIEW_ANALYTIC_HISTORY'))")
+    @PreAuthorize("hasAnyRole('ADMIN', 'DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT') or (hasRole('DOCTOR') and hasAuthority('VIEW_ANALYTIC_HISTORY'))")
     public ResponseEntity<Long> getTotalStudies() {
         log.info("Received request to get total unique DICOM studies");
         return ResponseEntity.ok(dicomInstanceRepository.countUniqueStudies());

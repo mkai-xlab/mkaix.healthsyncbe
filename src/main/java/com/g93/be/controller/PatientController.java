@@ -56,7 +56,7 @@ public class PatientController {
      * @return A paginated list of patients.
      */
     @GetMapping
-    @PreAuthorize("hasAnyRole('DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT') or (hasRole('DOCTOR') and hasAuthority('READ_PATIENT_LIST'))")
+    @PreAuthorize("hasAnyRole('ADMIN', 'DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT') or (hasRole('DOCTOR') and hasAuthority('READ_PATIENT_LIST'))")
     public ResponseEntity<PageResponse<PatientResponse>> getAllPatients(
             @Valid @ModelAttribute PatientFilterRequest filter,
             @PageableDefault(size = 10) Pageable pageable) {
@@ -97,7 +97,7 @@ public class PatientController {
      * @return Patient details and image URLs.
      */
     @GetMapping("/{patientId}/details")
-    @PreAuthorize("hasAnyRole('DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT') or (hasRole('DOCTOR') and hasAuthority('VIEW_PATIENT_DETAIL'))")
+    @PreAuthorize("hasAnyRole('ADMIN', 'DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT') or (hasRole('DOCTOR') and hasAuthority('VIEW_PATIENT_DETAIL'))")
     public ResponseEntity<PatientDetailsResponse> getPatientDetailsWithImages(@PathVariable String patientId, java.security.Principal principal) {
         return ResponseEntity.ok(patientService.getPatientDetailsWithImages(patientId, principal.getName()));
     }
@@ -110,7 +110,7 @@ public class PatientController {
      * @return A paginated list of patients.
      */
     @GetMapping("/filter/upload-date")
-    @PreAuthorize("hasAnyRole('DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT') or (hasRole('DOCTOR') and hasAuthority('READ_PATIENT_LIST'))")
+    @PreAuthorize("hasAnyRole('ADMIN', 'DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT') or (hasRole('DOCTOR') and hasAuthority('READ_PATIENT_LIST'))")
     public ResponseEntity<PageResponse<PatientResponse>> getPatientsByUploadDate(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
             @PageableDefault(size = 10) Pageable pageable) {
