@@ -135,6 +135,7 @@ public class DataInitializer implements CommandLineRunner {
             System.out.println(">>> Đã khởi tạo Dynamic Roles và Permissions mặc định");
         }
 
+        synchronizeChatPermissions();
         synchronizePermissionNames();
         synchronizeAdminPermissions();
 
@@ -185,6 +186,50 @@ public class DataInitializer implements CommandLineRunner {
         if (!changedPermissions.isEmpty()) {
             permissionRepository.saveAll(changedPermissions);
         }
+    }
+
+    private void synchronizeChatPermissions() {
+        Feature feature = nullable(featureRepository.findByName("AI Chatbox & Medical Knowledge"))
+                .orElseGet(() -> saveFeature(new Feature(
+                        null, "AI Chatbox & Medical Knowledge", "Tro ly AI va kho tri thuc y khoa")));
+        Permission useChat = nullable(permissionRepository.findByCode("USE_AI_CHAT"))
+                .orElseGet(() -> savePermission(new Permission(
+                        null, "USE_AI_CHAT", permissionName("USE_AI_CHAT"), 23, null, feature, null)));
+        Permission manageKnowledge = nullable(permissionRepository.findByCode("MANAGE_MEDICAL_KNOWLEDGE"))
+                .orElseGet(() -> savePermission(new Permission(
+                        null, "MANAGE_MEDICAL_KNOWLEDGE", permissionName("MANAGE_MEDICAL_KNOWLEDGE"),
+                        24, null, feature, useChat)));
+
+        for (String roleCode : List.of("ADMIN", "DOCTOR", "HEAD_OF_DEPARTMENT", "DEPARTMENT_HEAD")) {
+            Role role = roleRepository.findByCode(roleCode).orElse(null);
+            if (role == null) {
+                continue;
+            }
+            List<RolePermission> assignments = rolePermissionRepository.findByRoleId(role.getId());
+            Set<String> assignedCodes = assignments.stream()
+                    .map(rolePermission -> rolePermission.getPermission().getCode())
+                    .collect(java.util.stream.Collectors.toSet());
+            if (!assignedCodes.contains(useChat.getCode())) {
+                rolePermissionRepository.save(new RolePermission(null, role, useChat));
+            }
+            if (!assignedCodes.contains(manageKnowledge.getCode())) {
+                rolePermissionRepository.save(new RolePermission(null, role, manageKnowledge));
+            }
+        }
+    }
+
+    private <T> java.util.Optional<T> nullable(java.util.Optional<T> value) {
+        return value == null ? java.util.Optional.empty() : value;
+    }
+
+    private Feature saveFeature(Feature feature) {
+        Feature saved = featureRepository.save(feature);
+        return saved == null ? feature : saved;
+    }
+
+    private Permission savePermission(Permission permission) {
+        Permission saved = permissionRepository.save(permission);
+        return saved == null ? permission : saved;
     }
 
     private void synchronizeAdminPermissions() {

@@ -3084,3 +3084,7 @@ Returns a paginated list of `ExaminationDto`.
 - 400 Bad Request: Missing or invalid date format
 - 401 Unauthorized: User is not authenticated
 
+## AI Chatbox and Medical Knowledge
+
+See [RAG Chatbox](rag-chatbox.md) for request/response examples, RBAC rules,
+knowledge ingestion states, report synchronization, and local configuration.

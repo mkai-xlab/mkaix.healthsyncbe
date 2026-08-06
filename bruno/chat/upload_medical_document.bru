@@ -1,0 +1,28 @@
+meta {
+  name: Upload Medical Document
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/knowledge-documents/upload
+  body: multipartForm
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:multipart-form {
+  file: @file(medical-guideline.pdf)
+  title: Knee osteoarthritis guideline
+  accessScope: ALL
+}
+
+tests {
+  test("accepts document for asynchronous indexing", function() {
+    expect(res.status).to.equal(202);
+    expect(res.body.status).to.equal("PENDING");
+  });
+}

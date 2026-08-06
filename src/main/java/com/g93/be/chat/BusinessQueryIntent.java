@@ -1,0 +1,11 @@
+package com.g93.be.chat;
+
+public enum BusinessQueryIntent {
+    TODAY_EXAMINATION_COUNT,
+    EXAMINATION_COUNT,
+    REPORT_COUNT,
+    EXAMINATION_FINAL_RESULT,
+    REPORT_SUMMARY,
+    GRADE_DISTRIBUTION,
+    UNKNOWN
+}
