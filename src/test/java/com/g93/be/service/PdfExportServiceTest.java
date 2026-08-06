@@ -130,8 +130,8 @@ class PdfExportServiceTest {
         assertEquals(31L, response.reportId());
         assertTrue(response.fileName().startsWith("report_ENC-123_"));
         assertTrue(response.fileName().endsWith(".pdf"));
-        assertEquals("/api/v1/reports/31/preview", response.previewUrl());
-        assertEquals("/api/v1/reports/31/download", response.downloadUrl());
+        assertEquals("/api/v1/reports/1/preview", response.previewUrl());
+        assertEquals("/api/v1/reports/1/download", response.downloadUrl());
 
         File createdFile = tempDirectory.resolve(response.fileName()).toFile();
         assertTrue(createdFile.exists());
@@ -187,6 +187,7 @@ class PdfExportServiceTest {
         assertEquals("2", data.getAiResults().getFirst().getKlGrade());
         assertEquals("2", data.getAiResults().getFirst().getAiPredictedGrade());
         assertEquals("AI_CONFIRMED", data.getAiResults().getFirst().getDecision());
+        assertEquals("", data.getProcessingTime());
     }
 
     @Test
@@ -211,6 +212,7 @@ class PdfExportServiceTest {
         aiResult.setKneeSide("RIGHT");
         DicomInstance dicom = instance(aiResult);
         dicom.setId(44L);
+        dicom.setSopInstanceUid("1.2.840.113619.44");
         dicom.setModality("CR");
         dicom.getAiAnalysis().setDuration(12L);
         when(examinationRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(mockExamination));
@@ -222,15 +224,45 @@ class PdfExportServiceTest {
 
         PdfReportDataDto data = capturedReportData();
         PdfReportDataDto.AiResultExportDto result = data.getAiResults().getFirst();
-        assertEquals("44", result.getDicomInstanceId());
+        assertEquals("1.2.840.113619.44", result.getDicomInstanceId());
         assertEquals("RIGHT", result.getKneeSide());
         assertEquals("CR", result.getModality());
         assertEquals("DICOM", result.getImageFormat());
         assertEquals("0.01", result.getInferenceTime());
         assertEquals("3", result.getConsensusKlGrade());
         assertEquals("AI_LOWER", result.getComparisonResult());
+        assertEquals("3", data.getRightKlGrade());
+        assertEquals("", data.getLeftKlGrade());
+        assertEquals("0.01", data.getProcessingTime());
         assertEquals("", result.getReaderOneKlGrade());
         assertEquals("", result.getManufacturer());
+    }
+
+    @Test
+    void generateAndSavePdfReportMapsFinalConfirmedGradesForBothKnees() {
+        AiResult right = aiResult(2, DiagnosisReviewDecision.AI_CONFIRMED, 2);
+        right.setKneeSide("R");
+        AiResult left = aiResult(1, DiagnosisReviewDecision.DOCTOR_ADJUSTED, 4);
+        left.setKneeSide("Gối trái");
+
+        AiAnalysis analysis = analysis(17L, LocalDateTime.now(), right);
+        analysis.setAiResults(List.of(right, left));
+        analysis.setDuration(2_500L);
+        DicomInstance dicom = new DicomInstance();
+        dicom.setId(44L);
+        dicom.setAiAnalysis(analysis);
+
+        when(examinationRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(mockExamination));
+        when(dicomInstanceRepository.findByExaminationId(1L)).thenReturn(List.of(dicom));
+        when(templateEngine.process(eq("pdf/report-template"), any(IContext.class)))
+                .thenReturn("<html><body>Report</body></html>");
+
+        pdfExportService.generateAndSavePdfReport(1L, "doctor");
+
+        PdfReportDataDto data = capturedReportData();
+        assertEquals("2", data.getRightKlGrade());
+        assertEquals("4", data.getLeftKlGrade());
+        assertEquals("2.50", data.getProcessingTime());
     }
 
     @Test
@@ -266,38 +298,54 @@ class PdfExportServiceTest {
     }
 
     @Test
-    void getReportFile_RejectsUnassignedDoctor() {
+    void getReportFileByExaminationId_RejectsUnassignedDoctor() {
         Doctor otherDoctor = new Doctor();
         otherDoctor.setId(8L);
         otherDoctor.setUsername("other");
         when(userRepository.findByUsername("other")).thenReturn(Optional.of(otherDoctor));
-        when(reportRepository.findById(31L)).thenReturn(Optional.of(report("existing.pdf")));
+        when(reportRepository.findFirstByExaminationIdOrderByCreatedAtDesc(1L))
+                .thenReturn(Optional.of(report("existing.pdf")));
 
         assertThrows(AccessDeniedException.class,
-                () -> pdfExportService.getReportFile(31L, "other"));
+                () -> pdfExportService.getReportFileByExaminationId(1L, "other"));
     }
 
     @Test
-    void getReportFile_RejectsPathOutsideReportDirectory() {
+    void getReportFileByExaminationId_RejectsPathOutsideReportDirectory() {
         Report report = report("existing.pdf");
         report.setFilePath("../secret.pdf");
-        when(reportRepository.findById(31L)).thenReturn(Optional.of(report));
+        when(reportRepository.findFirstByExaminationIdOrderByCreatedAtDesc(1L))
+                .thenReturn(Optional.of(report));
 
         assertThrows(AccessDeniedException.class,
-                () -> pdfExportService.getReportFile(31L, "doctor"));
+                () -> pdfExportService.getReportFileByExaminationId(1L, "doctor"));
     }
 
     @Test
-    void getReportFile_ReturnsStoredPdfForAssignedDoctor() throws Exception {
+    void getReportFileByExaminationId_ReturnsLatestStoredPdfForAssignedDoctor() throws Exception {
         Files.write(tempDirectory.resolve("existing.pdf"), new byte[]{1, 2, 3});
-        when(reportRepository.findById(31L)).thenReturn(Optional.of(report("existing.pdf")));
+        when(reportRepository.findFirstByExaminationIdOrderByCreatedAtDesc(1L))
+                .thenReturn(Optional.of(report("existing.pdf")));
 
-        PdfExportService.ReportFile reportFile = pdfExportService.getReportFile(31L, "doctor");
+        PdfExportService.ReportFile reportFile = pdfExportService
+                .getReportFileByExaminationId(1L, "doctor");
 
         assertEquals("existing.pdf", reportFile.fileName());
         assertEquals("application/pdf", reportFile.contentType());
         assertEquals(3L, reportFile.fileSize());
         assertTrue(reportFile.resource().exists());
+    }
+
+    @Test
+    void getReportFileByExaminationId_RejectsExaminationWithoutReport() {
+        when(reportRepository.findFirstByExaminationIdOrderByCreatedAtDesc(1L))
+                .thenReturn(Optional.empty());
+
+        IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
+                () -> pdfExportService.getReportFileByExaminationId(1L, "doctor"));
+
+        assertEquals("Report not found for examination with id: 1", error.getMessage());
+        verify(userRepository, never()).findByUsername(anyString());
     }
 
     @Test
@@ -320,7 +368,7 @@ class PdfExportServiceTest {
     }
 
     @Test
-    void getReportFile_AllowsDepartmentHeadForUnassignedExamination() throws Exception {
+    void getReportFileByExaminationId_AllowsDepartmentHeadForUnassignedExamination() throws Exception {
         Doctor departmentHead = new Doctor();
         departmentHead.setId(99L);
         departmentHead.setUsername("head");
@@ -329,9 +377,11 @@ class PdfExportServiceTest {
         departmentHead.setRole(role);
         Files.write(tempDirectory.resolve("existing.pdf"), new byte[]{1, 2, 3});
         when(userRepository.findByUsername("head")).thenReturn(Optional.of(departmentHead));
-        when(reportRepository.findById(31L)).thenReturn(Optional.of(report("existing.pdf")));
+        when(reportRepository.findFirstByExaminationIdOrderByCreatedAtDesc(1L))
+                .thenReturn(Optional.of(report("existing.pdf")));
 
-        PdfExportService.ReportFile reportFile = pdfExportService.getReportFile(31L, "head");
+        PdfExportService.ReportFile reportFile = pdfExportService
+                .getReportFileByExaminationId(1L, "head");
 
         assertEquals("existing.pdf", reportFile.fileName());
     }

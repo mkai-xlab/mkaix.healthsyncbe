@@ -21,7 +21,12 @@ public interface ExaminationRepository extends JpaRepository<Examination, Long> 
     @Query("select e from Examination e where e.id = :id")
     Optional<Examination> findByIdForUpdate(@Param("id") Long id);
 
+    @Query("select e.doctor.id from Examination e where e.id = :id")
+    Optional<Long> findAssignedDoctorIdById(@Param("id") Long id);
+
     List<Examination> findByPatientId(Long patientId);
+    List<Examination> findByPatientIdOrderByCreatedAtDesc(Long patientId);
+    boolean existsByPatientIdAndDoctorId(Long patientId, Long doctorId);
     Page<Examination> findByPatientId(Long patientId, Pageable pageable);
     Page<Examination> findByDoctorId(Long doctorId, Pageable pageable);
     long countByDoctorId(Long doctorId);
@@ -76,4 +81,7 @@ public interface ExaminationRepository extends JpaRepository<Examination, Long> 
     Page<Examination> findByDoctorIdAndCreatedAtBetween(Long doctorId, java.time.LocalDateTime start, java.time.LocalDateTime end, Pageable pageable);
     
     Page<Examination> findByPatientIdAndStudyDateBetween(Long patientId, java.time.LocalDate startDate, java.time.LocalDate endDate, Pageable pageable);
+    
+    long countByCreatedAtAfter(java.time.LocalDateTime date);
+    long countByDoctorIdAndCreatedAtAfter(Long doctorId, java.time.LocalDateTime date);
 }

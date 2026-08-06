@@ -37,4 +37,12 @@ public interface NotificationService {
      * @param username The username of the user (to verify ownership).
      */
     void markAsRead(Long notificationId, String username);
+
+    /**
+     * Marks every unread notification owned by a specific user as read.
+     *
+     * @param username The username of the notification owner.
+     * @return Number of notifications updated.
+     */
+    int markAllAsRead(String username);
 }

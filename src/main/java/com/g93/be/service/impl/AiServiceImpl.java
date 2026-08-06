@@ -162,10 +162,21 @@ public class AiServiceImpl implements AiService {
                                 }
                             }
 
-                            // Save AiResult
                             AiResult aiResult = new AiResult();
                             aiResult.setAiAnalysis(analysis);
-                            aiResult.setPredictedGrade(p.getPredictedClass());
+                            
+                            Integer pGrade = p.getPredictedClass();
+                            if (pGrade == null && p.getPredictedGrade() != null) {
+                                try {
+                                    String gradeStr = p.getPredictedGrade().replaceAll("[^0-9]", "");
+                                    if (!gradeStr.isEmpty()) {
+                                        pGrade = Integer.parseInt(gradeStr.substring(0, 1));
+                                    }
+                                } catch (Exception ignored) {}
+                            }
+                            if (pGrade == null) pGrade = 0; // ultimate fallback
+                            
+                            aiResult.setPredictedGrade(pGrade);
                             aiResult.setConfidence(p.getConfidence());
                             aiResult.setDescription(p.getDescription());
                             aiResult.setKneeSide(p.getKneeSide());
@@ -217,10 +228,6 @@ public class AiServiceImpl implements AiService {
                     dicomInstanceRepository.save(instance);
 
                     Examination exam = instance.getExamination();
-                    if (exam != null) {
-                        exam.setStatus(ExaminationStatus.NEED_VERIFY);
-                        examinationRepository.save(exam);
-                    }
 
                     if (exam != null) {
                         uniqueExams.putIfAbsent(exam.getId(), exam);
@@ -231,15 +238,86 @@ public class AiServiceImpl implements AiService {
                     throw new RuntimeException("AI API call failed with status: " + response.getStatusCode());
                 }
 
+            } catch (org.springframework.web.client.HttpStatusCodeException e) {
+                log.error("HTTP error during AI prediction for instance {}", instanceId, e);
+                String errorMessage = e.getResponseBodyAsString();
+                try {
+                    com.fasterxml.jackson.databind.JsonNode rootNode = new com.fasterxml.jackson.databind.ObjectMapper().readTree(errorMessage);
+                    if (rootNode.has("detail")) {
+                        errorMessage = rootNode.get("detail").asText();
+                    }
+                } catch (Exception parseEx) {
+                    // Ignore parse error, keep the original string
+                }
+                
+                AiAnalysis analysis = instance.getAiAnalysis();
+                if (analysis == null) {
+                    analysis = new AiAnalysis();
+                    analysis.setDicomInstance(instance);
+                }
+                analysis.setStartTime(LocalDateTime.now());
+                analysis.setStatus("FAILED");
+                if (errorMessage != null && errorMessage.length() > 500) {
+                    errorMessage = errorMessage.substring(0, 497) + "...";
+                }
+                analysis.setErrorMessage(errorMessage);
+                aiAnalysisRepository.save(analysis);
+
+                instance.setStatus(DicomInstanceStatus.AI_FAILED);
+                dicomInstanceRepository.save(instance);
+
+                Examination exam = instance.getExamination();
+                if (exam != null) {
+                    uniqueExams.putIfAbsent(exam.getId(), exam);
+                    instancesByExam.computeIfAbsent(exam.getId(), k -> new ArrayList<>()).add(instance);
+                }
             } catch (Exception e) {
                 log.error("Error during AI prediction for instance {}", instanceId, e);
-                throw new RuntimeException("Không thể kết nối đến Server AI: " + e.getMessage(), e);
+                
+                AiAnalysis analysis = instance.getAiAnalysis();
+                if (analysis == null) {
+                    analysis = new AiAnalysis();
+                    analysis.setDicomInstance(instance);
+                }
+                analysis.setStartTime(LocalDateTime.now());
+                analysis.setStatus("FAILED");
+                String errorMsg = e.getMessage();
+                if (errorMsg != null && errorMsg.length() > 500) {
+                    errorMsg = errorMsg.substring(0, 497) + "...";
+                }
+                analysis.setErrorMessage(errorMsg);
+                aiAnalysisRepository.save(analysis);
+                
+                instance.setStatus(DicomInstanceStatus.AI_FAILED);
+                dicomInstanceRepository.save(instance);
+                
+                Examination exam = instance.getExamination();
+                if (exam != null) {
+                    uniqueExams.putIfAbsent(exam.getId(), exam);
+                    instancesByExam.computeIfAbsent(exam.getId(), k -> new ArrayList<>()).add(instance);
+                }
             }
         }
 
         List<ExaminationDto> finalResults = new ArrayList<>();
         for (Examination exam : uniqueExams.values()) {
             List<DicomInstance> examInstances = instancesByExam.getOrDefault(exam.getId(), new ArrayList<>());
+            
+            boolean allFailed = true;
+            for (DicomInstance inst : examInstances) {
+                if (inst.getStatus() == DicomInstanceStatus.GET_RESULTED) {
+                    allFailed = false;
+                    break;
+                }
+            }
+            
+            if (allFailed && !examInstances.isEmpty()) {
+                exam.setStatus(ExaminationStatus.AI_FAILED);
+            } else {
+                exam.setStatus(ExaminationStatus.NEED_VERIFY);
+            }
+            examinationRepository.save(exam);
+            
             ExaminationDto examDto = examinationMapper.toDto(exam, examInstances);
             int maxGrade = -1;
 
@@ -270,13 +348,24 @@ public class AiServiceImpl implements AiService {
         for (Examination exam : uniqueExams.values()) {
             if (exam.getDoctor() == null || exam.getPatient() == null)
                 continue;
-            Long doctorId = exam.getDoctor().getId();
-            Long patientId = exam.getPatient().getId();
-            int currentMax = exam.getMaxPredictedGrade() != null ? exam.getMaxPredictedGrade() : -1;
-
-            maxGradeByPatientByDoctor
-                    .computeIfAbsent(doctorId, k -> new HashMap<>())
-                    .merge(patientId, currentMax, (a, b) -> Math.max(a, b));
+                
+            if (exam.getStatus() == ExaminationStatus.AI_FAILED) {
+                SendNotificationRequest req = new SendNotificationRequest(
+                        exam.getDoctor().getId(),
+                        "Lỗi phân tích AI",
+                        "Ca khám " + exam.getPatient().getPatientCode() + " có lỗi khi phân tích AI. Vui lòng kiểm tra lại ảnh chụp.",
+                        "ERROR",
+                        null);
+                notificationService.sendNotification(req);
+            } else {
+                Long doctorId = exam.getDoctor().getId();
+                Long patientId = exam.getPatient().getId();
+                int currentMax = exam.getMaxPredictedGrade() != null ? exam.getMaxPredictedGrade() : -1;
+    
+                maxGradeByPatientByDoctor
+                        .computeIfAbsent(doctorId, k -> new HashMap<>())
+                        .merge(patientId, currentMax, (a, b) -> Math.max(a, b));
+            }
         }
 
         for (Map.Entry<Long, Map<Long, Integer>> entry : maxGradeByPatientByDoctor.entrySet()) {
@@ -334,6 +423,25 @@ public class AiServiceImpl implements AiService {
             log.error("Failed to decode and save base64 image", e);
             return null;
         }
+    }
+
+    @Override
+    public org.springframework.core.io.Resource getHeatmapImageResource(Long aiResultId) {
+        AiResult result = aiResultRepository.findById(aiResultId).orElse(null);
+        if (result != null && result.getStorageHeatmapFilePath() != null) {
+            String imagePath = result.getStorageHeatmapFilePath();
+            try {
+                String relPath = imagePath.startsWith("/") ? imagePath.substring(1) : imagePath;
+                Path path = Paths.get(storageBaseDir, relPath);
+                org.springframework.core.io.Resource resource = new org.springframework.core.io.UrlResource(path.toUri());
+                if (resource.exists() || resource.isReadable()) {
+                    return resource;
+                }
+            } catch (Exception e) {
+                log.error("Failed to read heatmap image for result id: {}", aiResultId, e);
+            }
+        }
+        return null;
     }
 }
 

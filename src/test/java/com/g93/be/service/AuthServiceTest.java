@@ -10,6 +10,7 @@ import com.g93.be.entity.PasswordResetToken;
 import com.g93.be.entity.Role;
 import com.g93.be.entity.User;
 import com.g93.be.exception.FirstTimeLoginException;
+import com.g93.be.exception.LoginLockedException;
 import com.g93.be.repository.PasswordResetTokenRepository;
 import com.g93.be.repository.UserRepository;
 import com.g93.be.security.CustomUserDetails;
@@ -22,6 +23,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -60,6 +62,9 @@ class AuthServiceTest {
 
     @Mock
     private TokenBlacklistService tokenBlacklistService;
+
+    @Mock
+    private LoginAttemptService loginAttemptService;
 
     @InjectMocks
     private AuthServiceImpl authService;
@@ -110,6 +115,42 @@ class AuthServiceTest {
         assertEquals("test_user", response.username());
         assertEquals("Test Doctor", response.fullName());
         assertEquals("DOCTOR", response.role());
+        verify(loginAttemptService).resetFailedAttempts("test_user");
+    }
+
+    @Test
+    void login_WrongPassword_RecordsFailedAttempt() {
+        LoginRequest request = new LoginRequest("test_user", "wrong_password");
+        BadCredentialsException failure = new BadCredentialsException("Bad credentials");
+        when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
+                .thenThrow(failure);
+        when(loginAttemptService.recordFailedAttempt("test_user")).thenReturn(Optional.empty());
+
+        BadCredentialsException thrown = assertThrows(
+                BadCredentialsException.class,
+                () -> authService.login(request));
+
+        assertSame(failure, thrown);
+        verify(loginAttemptService).ensureLoginAllowed("test_user");
+        verify(loginAttemptService).recordFailedAttempt("test_user");
+        verify(loginAttemptService, never()).resetFailedAttempts(anyString());
+    }
+
+    @Test
+    void login_FifthWrongPassword_ThrowsLoginLockedException() {
+        LoginRequest request = new LoginRequest("test_user", "wrong_password");
+        LocalDateTime lockedUntil = LocalDateTime.now().plusMinutes(15);
+        when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
+                .thenThrow(new BadCredentialsException("Bad credentials"));
+        when(loginAttemptService.recordFailedAttempt("test_user"))
+                .thenReturn(Optional.of(lockedUntil));
+
+        LoginLockedException exception = assertThrows(
+                LoginLockedException.class,
+                () -> authService.login(request));
+
+        assertEquals(lockedUntil, exception.getLockedUntil());
+        verify(loginAttemptService, never()).resetFailedAttempts(anyString());
     }
 
     @Test
@@ -162,15 +203,17 @@ class AuthServiceTest {
 
     @Test
     void changePassword_Success() {
-        ChangePasswordRequest request = new ChangePasswordRequest("test_user", "old_password", "new_password");
+        ChangePasswordRequest request = new ChangePasswordRequest("test_user", "old_password", "NewPassword@123");
         when(userRepository.findByUsername("test_user")).thenReturn(Optional.of(mockUser));
         when(passwordEncoder.matches("old_password", "encoded_password")).thenReturn(true);
-        when(passwordEncoder.encode("new_password")).thenReturn("new_encoded_password");
+        when(passwordEncoder.encode("NewPassword@123")).thenReturn("new_encoded_password");
 
         authService.changePassword(request);
 
         assertEquals("new_encoded_password", mockUser.getPassword());
         assertFalse(mockUser.getIsFirstActivated());
+        assertEquals(0, mockUser.getFailedLoginAttempts());
+        assertNull(mockUser.getLoginLockedUntil());
         verify(userRepository).save(mockUser);
     }
 
@@ -178,10 +221,10 @@ class AuthServiceTest {
     void changePassword_FirstTimeLogin_ActivatesAccount() {
         mockUser.setIsFirstActivated(true);
         ChangePasswordRequest request = new ChangePasswordRequest(
-                "test_user", "temporary_password", "new_password");
+                "test_user", "temporary_password", "NewPassword@123");
         when(userRepository.findByUsername("test_user")).thenReturn(Optional.of(mockUser));
         when(passwordEncoder.matches("temporary_password", "encoded_password")).thenReturn(true);
-        when(passwordEncoder.encode("new_password")).thenReturn("new_encoded_password");
+        when(passwordEncoder.encode("NewPassword@123")).thenReturn("new_encoded_password");
 
         authService.changePassword(request);
 
@@ -192,7 +235,7 @@ class AuthServiceTest {
 
     @Test
     void changePassword_WrongOldPassword_ThrowsException() {
-        ChangePasswordRequest request = new ChangePasswordRequest("test_user", "wrong_old_password", "new_password");
+        ChangePasswordRequest request = new ChangePasswordRequest("test_user", "wrong_old_password", "NewPassword@123");
         when(userRepository.findByUsername("test_user")).thenReturn(Optional.of(mockUser));
         when(passwordEncoder.matches("wrong_old_password", "encoded_password")).thenReturn(false);
 
@@ -206,7 +249,7 @@ class AuthServiceTest {
 
     @Test
     void changePassword_UserNotFound_ThrowsException() {
-        ChangePasswordRequest request = new ChangePasswordRequest("unknown_user", "old_password", "new_password");
+        ChangePasswordRequest request = new ChangePasswordRequest("unknown_user", "old_password", "NewPassword@123");
         when(userRepository.findByUsername("unknown_user")).thenReturn(Optional.empty());
 
         assertThrows(IllegalArgumentException.class, () -> authService.changePassword(request));
@@ -241,10 +284,10 @@ class AuthServiceTest {
 
     @Test
     void resetPassword_Success() {
-        ResetPasswordRequest request = new ResetPasswordRequest("test@hospital.com", "123456", "new_password");
+        ResetPasswordRequest request = new ResetPasswordRequest("test@hospital.com", "123456", "NewPassword@123");
         when(userRepository.findByEmail("test@hospital.com")).thenReturn(Optional.of(mockUser));
         when(passwordResetTokenRepository.findByUser(mockUser)).thenReturn(Optional.of(mockToken));
-        when(passwordEncoder.encode("new_password")).thenReturn("new_encoded_password");
+        when(passwordEncoder.encode("NewPassword@123")).thenReturn("new_encoded_password");
 
         authService.resetPassword(request);
 
@@ -256,7 +299,7 @@ class AuthServiceTest {
 
     @Test
     void resetPassword_UserNotFound_ThrowsException() {
-        ResetPasswordRequest request = new ResetPasswordRequest("unknown@hospital.com", "123456", "new_pwd");
+        ResetPasswordRequest request = new ResetPasswordRequest("unknown@hospital.com", "123456", "NewPassword@123");
         when(userRepository.findByEmail(anyString())).thenReturn(Optional.empty());
 
         assertThrows(IllegalArgumentException.class, () -> authService.resetPassword(request));
@@ -264,7 +307,7 @@ class AuthServiceTest {
 
     @Test
     void resetPassword_TokenNotFound_ThrowsException() {
-        ResetPasswordRequest request = new ResetPasswordRequest("test@hospital.com", "123456", "new_pwd");
+        ResetPasswordRequest request = new ResetPasswordRequest("test@hospital.com", "123456", "NewPassword@123");
         when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(mockUser));
         when(passwordResetTokenRepository.findByUser(mockUser)).thenReturn(Optional.empty());
 
@@ -273,7 +316,7 @@ class AuthServiceTest {
 
     @Test
     void resetPassword_TokenMismatch_ThrowsException() {
-        ResetPasswordRequest request = new ResetPasswordRequest("test@hospital.com", "wrong_token", "new_pwd");
+        ResetPasswordRequest request = new ResetPasswordRequest("test@hospital.com", "wrong_token", "NewPassword@123");
         when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(mockUser));
         when(passwordResetTokenRepository.findByUser(mockUser)).thenReturn(Optional.of(mockToken));
 
@@ -282,7 +325,7 @@ class AuthServiceTest {
 
     @Test
     void resetPassword_TokenExpired_ThrowsException() {
-        ResetPasswordRequest request = new ResetPasswordRequest("test@hospital.com", "123456", "new_pwd");
+        ResetPasswordRequest request = new ResetPasswordRequest("test@hospital.com", "123456", "NewPassword@123");
         mockToken.setExpiryDate(LocalDateTime.now().minusMinutes(5)); // Expired
         
         when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(mockUser));

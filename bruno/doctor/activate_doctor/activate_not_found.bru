@@ -5,11 +5,16 @@ meta {
 }
 
 post {
-  url: {{baseUrl}}/doctors/99999/activate
+  url: {{baseUrl}}/doctors/{{doctorId}}/activate
   body: none
   auth: bearer
 }
 
 auth:bearer {
   token: {{accessToken}}
+}
+
+vars:pre-request {
+  doctorId: 99999
+  accessToken: ""
 }

@@ -76,13 +76,15 @@ Generates and stores the finalized PDF for a `VERIFIED` examination. The respons
 }
 ```
 
-#### `GET /reports/{reportId}/preview`
+The numeric segment in both URLs is the `examinationId`, not the `reportId`.
 
-Returns PDF bytes with `Content-Type: application/pdf` and `Content-Disposition: inline`. The frontend must fetch this URL with the Bearer token and display the resulting Blob URL.
+#### `GET /reports/{examinationId}/preview`
 
-#### `GET /reports/{reportId}/download`
+Returns the latest PDF generated for the examination with `Content-Type: application/pdf` and `Content-Disposition: inline`. The frontend must fetch this URL with the Bearer token and display the resulting Blob URL.
 
-Returns the same PDF bytes with `Content-Disposition: attachment`. The frontend must fetch with the Bearer token, create a Blob URL, and trigger an anchor download. The operation is recorded in the audit log.
+#### `GET /reports/{examinationId}/download`
+
+Returns the latest PDF generated for the examination with `Content-Disposition: attachment`. The frontend must fetch with the Bearer token, create a Blob URL, and trigger an anchor download. The operation is recorded in the audit log.
 
 Do not navigate directly to either URL because normal browser navigation does not attach the Bearer token. See [Frontend Examination Report Integration](frontend-examination-report.md) for the full state flow, JavaScript examples, authorization matrix, and error handling.
 

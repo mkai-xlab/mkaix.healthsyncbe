@@ -9,13 +9,16 @@ import com.g93.be.dto.ResetPasswordRequest;
 import com.g93.be.entity.PasswordResetToken;
 import com.g93.be.entity.User;
 import com.g93.be.exception.FirstTimeLoginException;
+import com.g93.be.exception.LoginLockedException;
 import com.g93.be.repository.PasswordResetTokenRepository;
 import com.g93.be.repository.UserRepository;
 import com.g93.be.security.CustomUserDetails;
 import com.g93.be.security.JwtTokenProvider;
 import com.g93.be.service.AuthService;
+import com.g93.be.service.LoginAttemptService;
 import com.g93.be.service.TokenBlacklistService;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -39,6 +42,7 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final MailUtil mailUtil;
     private final TokenBlacklistService tokenBlacklistService;
+    private final LoginAttemptService loginAttemptService;
 
     public AuthServiceImpl(
             AuthenticationManager authenticationManager,
@@ -47,7 +51,8 @@ public class AuthServiceImpl implements AuthService {
             PasswordEncoder passwordEncoder,
             PasswordResetTokenRepository passwordResetTokenRepository,
             MailUtil mailUtil,
-            TokenBlacklistService tokenBlacklistService) {
+            TokenBlacklistService tokenBlacklistService,
+            LoginAttemptService loginAttemptService) {
         this.authenticationManager = authenticationManager;
         this.jwtTokenProvider = jwtTokenProvider;
         this.userRepository = userRepository;
@@ -55,6 +60,7 @@ public class AuthServiceImpl implements AuthService {
         this.passwordResetTokenRepository = passwordResetTokenRepository;
         this.mailUtil = mailUtil;
         this.tokenBlacklistService = tokenBlacklistService;
+        this.loginAttemptService = loginAttemptService;
     }
 
     /**
@@ -66,13 +72,25 @@ public class AuthServiceImpl implements AuthService {
      */
     @Override
     public LoginResponse login(LoginRequest request) {
-        // 1. Authenticate user credentials via AuthenticationManager
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        request.username(),
-                        request.password()
-                )
-        );
+        loginAttemptService.ensureLoginAllowed(request.username());
+
+        Authentication authentication;
+        try {
+            authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(
+                            request.username(),
+                            request.password()
+                    )
+            );
+        } catch (BadCredentialsException exception) {
+            loginAttemptService.recordFailedAttempt(request.username())
+                    .ifPresent(lockedUntil -> {
+                        throw new LoginLockedException(lockedUntil);
+                    });
+            throw exception;
+        }
+
+        loginAttemptService.resetFailedAttempts(request.username());
 
         // 2. Get user details upon successful authentication
         CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
@@ -136,6 +154,7 @@ public class AuthServiceImpl implements AuthService {
 
         // 3. Update password
         user.setPassword(passwordEncoder.encode(request.newPassword()));
+        resetLoginLock(user);
         
         // 4. If first time login, activate account
         if (Boolean.TRUE.equals(user.getIsFirstActivated())) {
@@ -203,6 +222,7 @@ public class AuthServiceImpl implements AuthService {
 
         // Token valid, update password
         user.setPassword(passwordEncoder.encode(request.newPassword()));
+        resetLoginLock(user);
         
         // If first time login, activate account
         if (Boolean.TRUE.equals(user.getIsFirstActivated())) {
@@ -212,5 +232,10 @@ public class AuthServiceImpl implements AuthService {
 
         // Delete token after successful use
         passwordResetTokenRepository.deleteByUser(user);
+    }
+
+    private void resetLoginLock(User user) {
+        user.setFailedLoginAttempts(0);
+        user.setLoginLockedUntil(null);
     }
 }

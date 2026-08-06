@@ -1,8 +1,6 @@
 package com.g93.be.service.impl;
 
 
-import com.g93.be.entity.UserStatus;
-import com.g93.be.entity.Role;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.g93.be.dto.DicomUploadSessionDTO;
 import com.g93.be.dto.DicomVerifyRequest;
@@ -10,21 +8,33 @@ import com.g93.be.dto.PendingDicomUploadDTO;
 import com.g93.be.entity.*;
 import com.g93.be.repository.*;
 import com.g93.be.service.DicomVerifyService;
+import com.g93.be.service.AiService;
+import com.g93.be.service.NotificationService;
+import com.g93.be.dto.AiPredictionRequest;
+import com.g93.be.dto.ExaminationDto;
+import com.g93.be.dto.PatientGradeStatsDto;
+import com.g93.be.dto.SendNotificationRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.security.access.AccessDeniedException;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.ArrayList;
+import java.util.Map;
+import java.util.HashMap;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -37,8 +47,10 @@ public class DicomVerifyServiceImpl implements DicomVerifyService {
     private final DicomInstanceRepository dicomInstanceRepository;
     private final ImageRepository imageRepository;
     private final DoctorRepository doctorRepository;
-    private final RoleRepository roleRepository;
     private final DicomRawRepository dicomRawRepository;
+    private final AiService aiService;
+    private final NotificationService notificationService;
+    private final UserRepository userRepository;
     
     private static final ObjectMapper objectMapper = new ObjectMapper()
             .registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule())
@@ -46,7 +58,10 @@ public class DicomVerifyServiceImpl implements DicomVerifyService {
 
     @Override
     @Transactional
-    public java.util.List<Long> verifySession(DicomVerifyRequest request) {
+    public java.util.List<Long> verifySession(
+            DicomVerifyRequest request,
+            Long requestingUserId,
+            boolean privilegedUser) {
         String sessionId = request.getUploadSessionId();
         String redisKey = "uploadSession:" + sessionId;
 
@@ -63,8 +78,13 @@ public class DicomVerifyServiceImpl implements DicomVerifyService {
             throw new RuntimeException("Failed to parse session data", e);
         }
 
+        if (!privilegedUser && !java.util.Objects.equals(sessionDTO.getUploaderUserId(), requestingUserId)) {
+            throw new org.springframework.security.access.AccessDeniedException(
+                    "You are not allowed to verify this upload session");
+        }
+
         List<String> acceptedCodes = request.getAcceptedPatientCodes() != null ? request.getAcceptedPatientCodes() : List.of();
-        java.util.List<Long> savedInstanceIds = new java.util.ArrayList<>();
+        List<Long> savedInstanceIds = new ArrayList<>();
 
         for (PendingDicomUploadDTO pending : sessionDTO.getPatients().values()) {
             if (acceptedCodes.contains(pending.getPatientCode())) {
@@ -82,15 +102,15 @@ public class DicomVerifyServiceImpl implements DicomVerifyService {
         return savedInstanceIds;
     }
 
-    private java.util.List<Long> savePatientData(PendingDicomUploadDTO pending, Long uploaderUserId) {
-        java.util.List<Long> instanceIds = new java.util.ArrayList<>();
+    private List<Long> savePatientData(PendingDicomUploadDTO pending, Long uploaderUserId) {
+        List<Long> instanceIds = new ArrayList<>();
         final String finalStudyUid = (pending.getStudyInstanceUid() != null && !pending.getStudyInstanceUid().isEmpty())
                 ? pending.getStudyInstanceUid()
                 : "UNKNOWN_STUDY_" + System.currentTimeMillis();
 
-        java.time.LocalDate studyDateForGrouping = (pending.getStudyDate() != null)
+        LocalDate studyDateForGrouping = (pending.getStudyDate() != null)
                 ? pending.getStudyDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDate()
-                : java.time.LocalDate.now();
+                : LocalDate.now();
 
         Optional<Examination> existingExamOpt = examinationRepository.findFirstByPatientPatientCodeAndStudyDateOrderByCreatedAtDesc(pending.getPatientCode(), studyDateForGrouping);
         Examination examination;
@@ -151,23 +171,7 @@ public class DicomVerifyServiceImpl implements DicomVerifyService {
                 doctor = doctorRepository.findById(uploaderUserId).orElse(null);
             }
             if (doctor == null) {
-                doctor = doctorRepository.findAll().stream().findFirst().orElseGet(() -> {
-                    Doctor d = new Doctor();
-                    d.setUsername("dummy_doc_" + UUID.randomUUID().toString().substring(0, 8));
-                    d.setPassword("temp");
-                    d.setEmail("dummy_doc_" + UUID.randomUUID().toString().substring(0, 8) + "@temp.com");
-                    d.setFullName("System Doctor");
-                    d.setStatus(UserStatus.ACTIVE);
-                    Role doctorRole = roleRepository.findByCode("DOCTOR").orElseGet(() -> {
-                        Role r = new Role();
-                        r.setCode("DOCTOR");
-                        r.setName("Doctor Role");
-                        return roleRepository.save(r);
-                    });
-                    d.setRole(doctorRole);
-                    d.setYearsOfExperience(0);
-                    return doctorRepository.save(d);
-                });
+                throw new AccessDeniedException("Bạn không có quyền truy cập hoặc hệ thống không tìm thấy thông tin Bác sĩ (Missing/Invalid Doctor ID).");
             }
             examination.setDoctor(doctor);
 
@@ -185,8 +189,8 @@ public class DicomVerifyServiceImpl implements DicomVerifyService {
 
         // Images and Instances
         String firstPngPath = null;
-        java.util.Map<String, Image> pngMap = new java.util.HashMap<>();
-        java.util.Map<String, DicomRaw> rawMap = new java.util.HashMap<>();
+        Map<String, Image> pngMap = new HashMap<>();
+        Map<String, DicomRaw> rawMap = new HashMap<>();
 
         for (PendingDicomUploadDTO.ImageCacheDTO imageCache : pending.getParsedImages()) {
             if ("image/png".equals(imageCache.getMimeType())) {
@@ -214,6 +218,7 @@ public class DicomVerifyServiceImpl implements DicomVerifyService {
             instance.setStudyInstanceUid(finalStudyUid);
             instance.setBodyPart(instCache.getBodyPart());
             instance.setCreatedAt(LocalDateTime.now());
+            instance.setStatus(DicomInstanceStatus.AI_SENDING);
             
             Image matchedImage = pngMap.get(instCache.getSopInstanceUid());
             if (matchedImage == null && !pngMap.isEmpty()) {
@@ -245,6 +250,80 @@ public class DicomVerifyServiceImpl implements DicomVerifyService {
                     log.error("Failed to delete physical file {}", absolutePath, e);
                 }
             }
+        }
+    }
+
+    @Override
+    @org.springframework.scheduling.annotation.Async
+    public void processVerifiedSessionAsync(List<Long> savedInstanceIds, String username) {
+        if (savedInstanceIds == null || savedInstanceIds.isEmpty()) {
+            return;
+        }
+
+        Long notificationUserId = null;
+        if (username != null) {
+            User user = userRepository.findByUsername(username).orElse(null);
+            if (user != null) {
+                notificationUserId = user.getId();
+            }
+        }
+        if (notificationUserId == null) {
+            log.warn("Skipping requester notification because no user could be resolved for username: {}", username);
+        }
+        final Long finalNotificationUserId = notificationUserId;
+
+        try {
+            AiPredictionRequest aiRequest = new AiPredictionRequest(savedInstanceIds);
+            List<ExaminationDto> aiResultsList = aiService.predictBatch(aiRequest);
+            
+            // Calculate patient statistics based on max_predicted_grade for this specific batch
+            Map<Long, Integer> patientToMaxGrade = new HashMap<>();
+            for (ExaminationDto exam : aiResultsList) {
+                if (exam.getPatient() != null && exam.getMaxPredictedGrade() != null) {
+                    Long patId = exam.getPatient().getId();
+                    Integer currentMax = patientToMaxGrade.getOrDefault(patId, -1);
+                    if (exam.getMaxPredictedGrade() > currentMax) {
+                        patientToMaxGrade.put(patId, exam.getMaxPredictedGrade());
+                    }
+                }
+            }
+
+            Map<Integer, Long> gradeCountMap = new HashMap<>();
+            for (Integer grade : patientToMaxGrade.values()) {
+                gradeCountMap.put(grade, gradeCountMap.getOrDefault(grade, 0L) + 1);
+            }
+
+            List<PatientGradeStatsDto> statsList = gradeCountMap.entrySet().stream()
+                    .map(entry -> new PatientGradeStatsDto(entry.getKey(), entry.getValue()))
+                    .collect(Collectors.toList());
+            
+            // Send success notification
+            if (finalNotificationUserId != null) {
+                SendNotificationRequest notifReq = new SendNotificationRequest(
+                        finalNotificationUserId,
+                        "Phân tích AI hoàn tất (Chờ xác nhận)",
+                        "Hệ thống đã phân tích thành công hình ảnh X-Quang từ phiên xác nhận. Vui lòng kiểm tra và chốt kết quả chẩn đoán.",
+                        "AI_RESULT",
+                        statsList
+                );
+                notificationService.sendNotification(notifReq);
+            }
+
+        } catch (Exception e) {
+            log.error("Error during background AI processing", e);
+            // Send error notification
+            try {
+                if (finalNotificationUserId != null) {
+                    SendNotificationRequest errReq = new SendNotificationRequest(
+                            finalNotificationUserId,
+                            "Lỗi phân tích AI",
+                            "Đã có lỗi xảy ra trong quá trình phân tích AI.",
+                            "ERROR",
+                            null
+                    );
+                    notificationService.sendNotification(errReq);
+                }
+            } catch (Exception ignored) {}
         }
     }
 }

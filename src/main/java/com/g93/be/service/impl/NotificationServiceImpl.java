@@ -72,7 +72,7 @@ public class NotificationServiceImpl implements NotificationService {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
                 
-        return notificationRepository.findByUserIdAndIsReadFalse(user.getId())
+        return notificationRepository.findByUserIdAndIsReadFalseOrderByCreatedAtDesc(user.getId())
                 .stream()
                 .map(notificationMapper::toDto)
                 .collect(Collectors.toList());
@@ -104,5 +104,17 @@ public class NotificationServiceImpl implements NotificationService {
         notification.setReadAt(LocalDateTime.now());
         notificationRepository.save(notification);
         log.info("Notification {} marked as read by user {}", notificationId, username);
+    }
+
+    @Override
+    @Transactional
+    public int markAllAsRead(String username) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        int updatedCount = notificationRepository.markAllAsReadByUserId(
+                user.getId(), LocalDateTime.now());
+        log.info("Marked {} notifications as read for user {}", updatedCount, username);
+        return updatedCount;
     }
 }

@@ -1,6 +1,5 @@
 package com.g93.be.service.impl;
 
-
 import com.g93.be.entity.Doctor;
 import com.g93.be.entity.UserStatus;
 import com.g93.be.entity.Image;
@@ -9,9 +8,6 @@ import com.g93.be.dto.CreateDoctorRequest;
 import com.g93.be.dto.DoctorResponse;
 import com.g93.be.dto.PageResponse;
 import com.g93.be.aspect.LogAction;
-import com.g93.be.entity.Doctor;
-import com.g93.be.entity.UserStatus;
-import com.g93.be.entity.Image;
 import com.g93.be.repository.DoctorRepository;
 import com.g93.be.repository.UserRepository;
 import com.g93.be.repository.RoleRepository;
@@ -57,10 +53,11 @@ public class DoctorServiceImpl implements DoctorService {
     private String loginUrl;
 
     @Override
-    public PageResponse<DoctorResponse> searchDoctors(String keyword, String specialization, UserStatus status, Pageable pageable) {
+    public PageResponse<DoctorResponse> searchDoctors(String keyword, String specialization, UserStatus status,
+            Pageable pageable) {
         Specification<Doctor> spec = DoctorSpecification.searchAndFilter(keyword, specialization, status);
         Page<Doctor> doctorPage = doctorRepository.findAll(spec, pageable);
-        
+
         Page<DoctorResponse> responsePage = doctorPage.map(doctorMapper::toResponse);
         return PageResponse.of(responsePage);
     }
@@ -81,19 +78,36 @@ public class DoctorServiceImpl implements DoctorService {
     }
 
     @Override
-    public void softDeleteDoctor(Long id) {
+    @com.g93.be.aspect.LogAction("DEACTIVATE_DOCTOR")
+    public void softDeleteDoctor(Long id, String reason) {
         Doctor doctor = doctorRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Doctor with id " + id + " not found"));
         doctor.setStatus(UserStatus.INACTIVE);
+        doctor.setInactiveReason(reason);
         doctorRepository.save(doctor);
         log.info("Soft-deleted doctor with id {}", id);
+        
+        // Gửi email thông báo
+        if (doctor.getEmail() != null && !doctor.getEmail().isEmpty()) {
+            java.util.Map<String, Object> vars = new java.util.HashMap<>();
+            vars.put("doctorName", doctor.getFullName());
+            vars.put("reason", reason != null && !reason.trim().isEmpty() ? reason : "Không có lý do cụ thể");
+            
+            try {
+                mailUtil.sendTemplateMail(doctor.getEmail(), "Thông báo vô hiệu hóa tài khoản", "deactivate_doctor_mail", vars);
+            } catch (Exception e) {
+                log.error("Failed to send deactivation email to doctor {}", doctor.getEmail(), e);
+            }
+        }
     }
 
     @Override
+    @com.g93.be.aspect.LogAction("ACTIVATE_DOCTOR")
     public void activateDoctor(Long id) {
         Doctor doctor = doctorRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Doctor with id " + id + " not found"));
         doctor.setStatus(UserStatus.ACTIVE);
+        doctor.setInactiveReason(null);
         doctorRepository.save(doctor);
         log.info("Activated doctor with id {}", id);
     }
@@ -119,7 +133,7 @@ public class DoctorServiceImpl implements DoctorService {
         Doctor doctor = doctorRepository.findProfileByUsername(username)
                 .orElseThrow(() -> new IllegalArgumentException("Doctor not found for username: " + username));
         if (request.getFullName() != null)
-            doctor.setFullName(request.getFullName());
+            doctor.setFullName(request.getFullName().replaceAll("\\s+", " ").trim());
         if (request.getEmail() != null)
             doctor.setEmail(request.getEmail());
         if (request.getPhone() != null)
@@ -190,7 +204,7 @@ public class DoctorServiceImpl implements DoctorService {
     private DoctorResponse updateDoctorFields(Doctor doctor, EditDoctorRequest request) {
         // Update mutable fields
         if (request.getFullName() != null)
-            doctor.setFullName(request.getFullName());
+            doctor.setFullName(request.getFullName().replaceAll("\\s+", " ").trim());
         if (request.getEmail() != null)
             doctor.setEmail(request.getEmail());
         if (request.getPhone() != null)
@@ -231,7 +245,8 @@ public class DoctorServiceImpl implements DoctorService {
         } catch (IllegalArgumentException exception) {
             path = avatarUrl;
         }
-        if (path == null) return null;
+        if (path == null)
+            return null;
         int separatorIndex = Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\'));
         int dotIndex = path.lastIndexOf('.');
         if (dotIndex <= separatorIndex || dotIndex == path.length() - 1) {
@@ -275,7 +290,7 @@ public class DoctorServiceImpl implements DoctorService {
         // Base user fields
         doctor.setUsername(tempUsername);
         doctor.setPassword(passwordEncoder.encode(tempPassword));
-        doctor.setFullName(request.getFullName());
+        doctor.setFullName(request.getFullName().replaceAll("\\s+", " ").trim());
         doctor.setEmail(request.getEmail());
         doctor.setPhone(request.getPhone());
         if (request.getAvatarUrl() != null) {
@@ -353,11 +368,11 @@ public class DoctorServiceImpl implements DoctorService {
 
     private void sendWelcomeEmail(Doctor doctor, String rawPassword) {
         try {
-            Map<String, Object> variables = Map.of(
-                    "fullName", doctor.getFullName(),
-                    "username", doctor.getUsername(),
-                    "password", rawPassword,
-                    "loginUrl", loginUrl);
+            Map<String, Object> variables = new java.util.HashMap<>();
+            variables.put("fullName", doctor.getFullName() != null ? doctor.getFullName() : "");
+            variables.put("username", doctor.getUsername());
+            variables.put("password", rawPassword);
+            variables.put("loginUrl", loginUrl);
 
             mailUtil.sendTemplateMail(
                     doctor.getEmail(),
@@ -370,3 +385,4 @@ public class DoctorServiceImpl implements DoctorService {
         }
     }
 }
+

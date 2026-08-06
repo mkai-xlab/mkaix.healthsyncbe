@@ -1,23 +1,14 @@
 package com.g93.be.controller;
-import com.g93.be.dto.PatientGradeStatsDto;
-
-
-
-import com.g93.be.entity.User;
 import com.g93.be.dto.DicomVerifyRequest;
+import com.g93.be.entity.User;
+import com.g93.be.repository.UserRepository;
 import com.g93.be.service.DicomVerifyService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import com.g93.be.dto.AiPredictionRequest;
-import com.g93.be.service.AiService;
-import com.g93.be.service.NotificationService;
-import com.g93.be.repository.UserRepository;
-import com.g93.be.dto.SendNotificationRequest;
-import com.g93.be.entity.User;
-import com.g93.be.dto.ExaminationDto;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.security.Principal;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 @RestController
 @RequestMapping("/dicom")
@@ -25,79 +16,30 @@ import java.security.Principal;
 public class DicomVerifyController {
 
     private final DicomVerifyService dicomVerifyService;
-    private final AiService aiService;
-    private final NotificationService notificationService;
     private final UserRepository userRepository;
 
     @PostMapping("/verify")
+    @PreAuthorize("hasAnyRole('DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT') or (hasRole('DOCTOR') and hasAuthority('UPLOAD_DICOM_IMAGE') and hasAuthority('TRIGGER_AI_ANALYSIS'))")
     public ResponseEntity<?> verifyUploadSession(@RequestBody DicomVerifyRequest request, Principal principal) {
-        List<Long> savedInstanceIds = dicomVerifyService.verifySession(request);
-        
-        Long userId = null;
-        if (principal != null && principal.getName() != null) {
-            User user = userRepository.findByUsername(principal.getName()).orElse(null);
-            if (user != null) {
-                userId = user.getId();
-            }
+        if (principal == null || principal.getName() == null) {
+            throw new org.springframework.security.access.AccessDeniedException(
+                    "Authenticated user was not found");
         }
-        final Long finalUserId = (userId != null) ? userId : 1L;
-
+        User user = userRepository.findByUsername(principal.getName())
+                .orElseThrow(() -> new org.springframework.security.access.AccessDeniedException(
+                        "Authenticated user was not found"));
+        String roleCode = user.getRole() == null ? null : user.getRole().getCode();
+        boolean privilegedUser = "DEPARTMENT_HEAD".equalsIgnoreCase(roleCode)
+                || "HEAD_OF_DEPARTMENT".equalsIgnoreCase(roleCode);
+        List<Long> savedInstanceIds = dicomVerifyService.verifySession(request, user.getId(), privilegedUser);
         if (savedInstanceIds != null && !savedInstanceIds.isEmpty()) {
-            try {
-                AiPredictionRequest aiRequest = new AiPredictionRequest(savedInstanceIds);
-                List<ExaminationDto> aiResultsList = aiService.predictBatch(aiRequest);
-                
-                // Calculate patient statistics based on max_predicted_grade for this specific batch
-                java.util.Map<Long, Integer> patientToMaxGrade = new java.util.HashMap<>();
-                for (ExaminationDto exam : aiResultsList) {
-                    if (exam.getPatient() != null && exam.getMaxPredictedGrade() != null) {
-                        Long patId = exam.getPatient().getId();
-                        Integer currentMax = patientToMaxGrade.getOrDefault(patId, -1);
-                        if (exam.getMaxPredictedGrade() > currentMax) {
-                            patientToMaxGrade.put(patId, exam.getMaxPredictedGrade());
-                        }
-                    }
-                }
-
-                java.util.Map<Integer, Long> gradeCountMap = new java.util.HashMap<>();
-                for (Integer grade : patientToMaxGrade.values()) {
-                    gradeCountMap.put(grade, gradeCountMap.getOrDefault(grade, 0L) + 1);
-                }
-
-                List<PatientGradeStatsDto> statsList = gradeCountMap.entrySet().stream()
-                        .map(entry -> new PatientGradeStatsDto(entry.getKey(), entry.getValue()))
-                        .collect(java.util.stream.Collectors.toList());
-                
-                // Send success notification
-                SendNotificationRequest notifReq = new SendNotificationRequest(
-                        finalUserId,
-                        "Phân tích AI hoàn tất",
-                        "Hệ thống đã phân tích thành công hình ảnh X-Quang từ phiên xác nhận.",
-                        "AI_RESULT",
-                        null
-                );
-                notificationService.sendNotification(notifReq);
-
-                return ResponseEntity.ok(statsList);
-            } catch (Exception e) {
-                e.printStackTrace();
-                // Send error notification
-                try {
-                    SendNotificationRequest errReq = new SendNotificationRequest(
-                            finalUserId,
-                            "Lỗi phân tích AI",
-                            "Đã có lỗi xảy ra trong quá trình phân tích AI.",
-                            "ERROR",
-                            null
-                    );
-                    notificationService.sendNotification(errReq);
-                } catch (Exception ignored) {}
-
-                return ResponseEntity.status(500).body("Error processing AI prediction: " + e.getMessage());
-            }
+            String username = (principal != null) ? principal.getName() : null;
+            dicomVerifyService.processVerifiedSessionAsync(savedInstanceIds, username);
+            
+            return ResponseEntity.ok(java.util.Map.of("message", "Xác nhận thành công, hệ thống đang xử lý AI"));
         }
         
-        return ResponseEntity.ok(java.util.Collections.emptyList());
+        return ResponseEntity.ok(java.util.Map.of("message", "Không có phiên ảnh nào được xác nhận"));
     }
 }
 

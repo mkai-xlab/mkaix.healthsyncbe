@@ -27,7 +27,7 @@ class ReportControllerTest {
 
     @Test
     void previewReturnsPdfInline() {
-        when(pdfExportService.getReportFile(9L, "doctor"))
+        when(pdfExportService.getReportFileByExaminationId(9L, "doctor"))
                 .thenReturn(reportFile());
 
         ResponseEntity<?> response = reportController.previewReport(9L, () -> "doctor");
@@ -36,12 +36,12 @@ class ReportControllerTest {
         assertEquals(3L, response.getHeaders().getContentLength());
         assertTrue(response.getHeaders().getFirst(HttpHeaders.CONTENT_DISPOSITION)
                 .startsWith("inline"));
-        verify(pdfExportService).getReportFile(9L, "doctor");
+        verify(pdfExportService).getReportFileByExaminationId(9L, "doctor");
     }
 
     @Test
     void downloadReturnsSamePdfAsAttachment() {
-        when(pdfExportService.getReportFile(9L, "doctor"))
+        when(pdfExportService.getReportFileByExaminationId(9L, "doctor"))
                 .thenReturn(reportFile());
 
         ResponseEntity<?> response = reportController.downloadReport(9L, () -> "doctor");
@@ -49,7 +49,7 @@ class ReportControllerTest {
         assertEquals(MediaType.APPLICATION_PDF, response.getHeaders().getContentType());
         assertTrue(response.getHeaders().getFirst(HttpHeaders.CONTENT_DISPOSITION)
                 .startsWith("attachment"));
-        verify(pdfExportService).getReportFile(9L, "doctor");
+        verify(pdfExportService).getReportFileByExaminationId(9L, "doctor");
     }
 
     private PdfExportService.ReportFile reportFile() {

@@ -35,6 +35,9 @@ class DoctorRegistrationIntegrationTest {
     private DoctorRepository doctorRepository;
 
     @Autowired
+    private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
+
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
     @MockitoBean
@@ -42,7 +45,15 @@ class DoctorRegistrationIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        doctorRepository.deleteAll();
+        jdbcTemplate.execute("SET FOREIGN_KEY_CHECKS = 0;");
+        jdbcTemplate.update("DELETE FROM audit_logs");
+        jdbcTemplate.update("DELETE FROM dicom_instances");
+        jdbcTemplate.update("DELETE FROM examinations");
+        jdbcTemplate.update("DELETE FROM patients");
+        jdbcTemplate.update("DELETE FROM doctors");
+        jdbcTemplate.update("DELETE FROM admins");
+        jdbcTemplate.update("DELETE FROM users");
+        jdbcTemplate.execute("SET FOREIGN_KEY_CHECKS = 1;");
     }
 
     @Test

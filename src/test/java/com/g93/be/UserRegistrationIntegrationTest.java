@@ -41,6 +41,9 @@ class UserRegistrationIntegrationTest {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @Autowired
+    private com.g93.be.repository.AuditLogRepository auditLogRepository;
+
     @MockitoBean
     private MailUtil mailUtil;
 
@@ -49,9 +52,7 @@ class UserRegistrationIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        userRepository.deleteAll();
-        
-        headOfDepartmentRole = roleRepository.findByCode("HEAD_OF_DEPARTMENT")
+headOfDepartmentRole = roleRepository.findByCode("HEAD_OF_DEPARTMENT")
                 .orElseGet(() -> {
                     Role r = new Role();
                     r.setCode("HEAD_OF_DEPARTMENT");

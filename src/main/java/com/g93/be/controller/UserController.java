@@ -51,4 +51,16 @@ public class UserController {
         java.util.List<UserResponse> staffList = userService.getStaffList();
         return ResponseEntity.ok(staffList);
     }
+
+    @org.springframework.web.bind.annotation.GetMapping("/count/doctors")
+    public ResponseEntity<Long> countDoctors(java.security.Principal principal) {
+        log.info("Received request to count doctors by user: {}", principal.getName());
+        return ResponseEntity.ok(userService.countDoctors(principal.getName()));
+    }
+
+    @org.springframework.web.bind.annotation.GetMapping("/count/heads")
+    public ResponseEntity<Long> countHeads(java.security.Principal principal) {
+        log.info("Received request to count heads of department by user: {}", principal.getName());
+        return ResponseEntity.ok(userService.countHeads(principal.getName()));
+    }
 }

@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.util.StringUtils;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -24,6 +25,7 @@ public class FileUploadController {
     private final StorageService storageService;
 
     @PostMapping(value = "/upload-avatar", consumes = "multipart/form-data")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Map<String, String>> uploadAvatar(@RequestParam("file") MultipartFile file) {
         log.info("Received request to upload avatar: {}", file.getOriginalFilename());
         
