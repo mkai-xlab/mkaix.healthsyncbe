@@ -45,6 +45,9 @@ public class SecurityAndRbacIntegrationTest {
         private UserRepository userRepository;
 
         @Autowired
+        private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
+
+        @Autowired
         private RoleRepository roleRepository;
 
         @Autowired
@@ -218,7 +221,7 @@ public class SecurityAndRbacIntegrationTest {
                 ChangePasswordRequest changeRequest = new ChangePasswordRequest(
                                 "test_first_time",
                                 "temp_password",
-                                "new_secure_password");
+                                "NewSecure@123");
 
                 // When - Perform change password
                 mockMvc.perform(post("/auth/change-password")
@@ -235,7 +238,7 @@ public class SecurityAndRbacIntegrationTest {
                                 .andExpect(status().isUnauthorized());
 
                 // Then - New password should work
-                LoginRequest loginNew = new LoginRequest("test_first_time", "new_secure_password");
+                LoginRequest loginNew = new LoginRequest("test_first_time", "NewSecure@123");
                 mockMvc.perform(post("/auth/login")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(loginNew)))
@@ -346,11 +349,9 @@ public class SecurityAndRbacIntegrationTest {
 
         @Test
         void testAuthenticatedEndpoints_AccessDeniedWithoutToken() throws Exception {
-                // Accessing notification endpoint without token throws AccessDeniedException,
-                // which is handled by GlobalExceptionHandler and mapped to 403 Forbidden.
+                // Spring Security rejects the request in the filter chain before a controller is invoked.
                 mockMvc.perform(get("/notifications/unread"))
-                                .andExpect(status().isForbidden())
-                                .andExpect(jsonPath("$.message", containsString("Bạn không có quyền truy cập tính năng này")));
+                                .andExpect(status().isForbidden());
         }
 
         @Test

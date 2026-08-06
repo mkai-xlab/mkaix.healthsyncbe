@@ -1,15 +1,11 @@
 package com.g93.be.service.impl;
 
-
 import com.g93.be.entity.Role;
 import com.g93.be.entity.User;
 import com.g93.be.entity.UserStatus;
 import com.g93.be.common.util.MailUtil;
 import com.g93.be.dto.CreateUserRequest;
 import com.g93.be.dto.UserResponse;
-import com.g93.be.entity.Role;
-import com.g93.be.entity.User;
-import com.g93.be.entity.UserStatus;
 import com.g93.be.repository.RoleRepository;
 import com.g93.be.repository.UserRepository;
 import com.g93.be.service.UserService;
@@ -44,7 +40,7 @@ public class UserServiceImpl implements UserService {
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
             throw new IllegalArgumentException("Email is already registered");
         }
-        
+
         if (request.getPhone() != null && !request.getPhone().isBlank()) {
             if (userRepository.findByPhone(request.getPhone()).isPresent()) {
                 throw new IllegalArgumentException("Phone '" + request.getPhone() + "' is already registered");
@@ -71,27 +67,53 @@ public class UserServiceImpl implements UserService {
         user.setEmail(request.getEmail());
         user.setPhone(request.getPhone());
         user.setRole(role);
-        
+
         // Use the role name as the userType if needed, or leave it generic.
         user.setUserType(role.getCode());
         user.setStatus(UserStatus.ACTIVE);
         user.setIsFirstActivated(true);
 
         User savedUser = userRepository.save(user);
-        
+
         log.info("User created successfully with ID: {}", savedUser.getId());
-        
+
         // Send email notification
         sendWelcomeEmail(savedUser, tempPassword);
-        
+
         return mapToResponse(savedUser);
     }
 
     @Override
     public java.util.List<UserResponse> getStaffList() {
         log.info("Fetching medical staff list");
-        java.util.List<User> staffUsers = userRepository.findByRoleCodeIn(java.util.List.of("HEAD_OF_DEPARTMENT", "DEPARTMENT_HEAD", "DOCTOR"));
+        java.util.List<User> staffUsers = userRepository
+                .findByRoleCodeIn(java.util.List.of("HEAD_OF_DEPARTMENT", "DEPARTMENT_HEAD", "DOCTOR"));
         return staffUsers.stream().map(this::mapToResponse).collect(java.util.stream.Collectors.toList());
+    }
+
+    @Override
+    public long countDoctors(String username) {
+        User currentUser = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        String currentRole = currentUser.getRole().getCode();
+
+        if (!currentRole.equals("ADMIN") && !currentRole.equals("HEAD_OF_DEPARTMENT") && !currentRole.equals("DEPARTMENT_HEAD")) {
+            throw new org.springframework.security.access.AccessDeniedException("Only Admin or Head of Department can view the total number of doctors.");
+        }
+
+        return userRepository.countByRoleCode("DOCTOR");
+    }
+
+    @Override
+    public long countHeads(String username) {
+        User currentUser = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (!currentUser.getRole().getCode().equals("ADMIN")) {
+            throw new org.springframework.security.access.AccessDeniedException("Only Admin can view the total number of heads of department.");
+        }
+
+        return userRepository.countByRoleCode("HEAD_OF_DEPARTMENT") + userRepository.countByRoleCode("DEPARTMENT_HEAD");
     }
 
     private String generateUniqueUsername(String email) {

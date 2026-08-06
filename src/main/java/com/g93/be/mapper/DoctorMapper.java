@@ -1,9 +1,7 @@
 package com.g93.be.mapper;
 
-
 import com.g93.be.entity.Doctor;
 import com.g93.be.dto.DoctorResponse;
-import com.g93.be.entity.Doctor;
 import org.springframework.stereotype.Component;
 
 /**
@@ -22,7 +20,7 @@ public class DoctorMapper {
         if (doctor == null) {
             return null;
         }
-        
+
         DoctorResponse response = new DoctorResponse();
         response.setId(doctor.getId());
         response.setUsername(doctor.getUsername());
@@ -32,11 +30,11 @@ public class DoctorMapper {
         response.setAvatarUrl(doctor.getAvatar() != null ? doctor.getAvatar().getFilePath() : null);
         response.setRole(doctor.getRole() != null ? doctor.getRole().getCode() : null);
         response.setStatus(doctor.getStatus());
-        
 
         response.setYearsOfExperience(doctor.getYearsOfExperience());
         response.setDegree(doctor.getDegree());
         response.setBiography(doctor.getBiography());
+        response.setInactiveReason(doctor.getInactiveReason());
         response.setCreatedAt(doctor.getCreatedAt());
         response.setUpdatedAt(doctor.getUpdatedAt());
         return response;

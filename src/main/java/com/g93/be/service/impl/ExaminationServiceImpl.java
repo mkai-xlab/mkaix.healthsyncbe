@@ -6,18 +6,20 @@ import com.g93.be.dto.PatientGradeStatsDto;
 import com.g93.be.entity.DicomInstance;
 import com.g93.be.entity.Examination;
 import com.g93.be.entity.User;
+import com.g93.be.exception.UnauthorizedAccessException;
 import com.g93.be.entity.ExaminationStatus;
 import com.g93.be.dto.ExaminationDto;
 import com.g93.be.dto.PageResponse;
-import com.g93.be.entity.DicomInstance;
-import com.g93.be.entity.Examination;
 import com.g93.be.repository.DicomInstanceRepository;
 import com.g93.be.repository.ExaminationRepository;
+import com.g93.be.repository.UserRepository;
 import com.g93.be.service.ExaminationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,12 +35,32 @@ public class ExaminationServiceImpl implements ExaminationService {
     private final ExaminationRepository examinationRepository;
     private final DicomInstanceRepository dicomInstanceRepository;
     private final ExaminationMapper examinationMapper;
-    private final com.g93.be.repository.UserRepository userRepository;
+    private final UserRepository userRepository;
 
     @Override
     @Transactional(readOnly = true)
-    public PageResponse<ExaminationDto> getAllExaminations(Pageable pageable) {
-        Page<Examination> examinationPage = examinationRepository.findAll(pageable);
+    public PageResponse<ExaminationDto> getAllExaminations(Pageable pageable, String username, Boolean isPersonal) {
+        User user = userRepository.findByUsernameOrEmail(username, username)
+                .orElseThrow(() -> new IllegalArgumentException("User with username/email " + username + " not found"));
+        
+        if (user.getRole() == null || user.getRole().getCode() == null) {
+            return new PageResponse<>(List.of(), 0, pageable.getPageSize(), 0, 0, true);
+        }
+
+        String roleCode = user.getRole().getCode();
+        Page<Examination> examinationPage;
+
+        if ("DOCTOR".equalsIgnoreCase(roleCode)) {
+            examinationPage = examinationRepository.findByDoctorId(user.getId(), getCustomSortPageable(pageable));
+        } else if ("ADMIN".equalsIgnoreCase(roleCode) || "DEPARTMENT_HEAD".equalsIgnoreCase(roleCode) || "HEAD_OF_DEPARTMENT".equalsIgnoreCase(roleCode)) {
+            if (Boolean.TRUE.equals(isPersonal)) {
+                examinationPage = examinationRepository.findByDoctorId(user.getId(), getCustomSortPageable(pageable));
+            } else {
+                examinationPage = examinationRepository.findAll(getCustomSortPageable(pageable));
+            }
+        } else {
+            return new PageResponse<>(List.of(), 0, pageable.getPageSize(), 0, 0, true);
+        }
         List<ExaminationDto> content = examinationPage.getContent().stream()
                 .map(ex -> {
                     List<DicomInstance> instances = dicomInstanceRepository.findByExaminationId(ex.getId());
@@ -57,9 +79,19 @@ public class ExaminationServiceImpl implements ExaminationService {
 
     @Override
     @Transactional(readOnly = true)
-    public ExaminationDto getExaminationById(Long id) {
+    public ExaminationDto getExaminationById(Long id, String username) {
+        User user = userRepository.findByUsernameOrEmail(username, username)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
         Examination examination = examinationRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Examination with id " + id + " not found"));
+
+        if (user.getRole() != null && "DOCTOR".equalsIgnoreCase(user.getRole().getCode())) {
+            if (examination.getDoctor() == null || !examination.getDoctor().getId().equals(user.getId())) {
+                throw new UnauthorizedAccessException("BÃƒÆ’Ã‚Â¡Ãƒâ€šÃ‚ÂºÃƒâ€šÃ‚Â¡n khÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â´ng cÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³ quyÃƒÆ’Ã‚Â¡Ãƒâ€šÃ‚Â»Ãƒâ€šÃ‚Ân truy cÃƒÆ’Ã‚Â¡Ãƒâ€šÃ‚ÂºÃƒâ€šÃ‚Â­p hÃƒÆ’Ã‚Â¡Ãƒâ€šÃ‚Â»ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ sÃƒÆ’Ã¢â‚¬Â Ãƒâ€šÃ‚Â¡ thuÃƒÆ’Ã‚Â¡Ãƒâ€šÃ‚Â»ÃƒÂ¢Ã¢â‚¬Å¾Ã‚Â¢c cÃƒÆ’Ã¢â‚¬Â Ãƒâ€šÃ‚Â¡ sÃƒÆ’Ã‚Â¡Ãƒâ€šÃ‚Â»Ãƒâ€¦Ã‚Â¸ nÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â y.");
+            }
+        }
+
         List<DicomInstance> instances = dicomInstanceRepository.findByExaminationId(examination.getId());
         return examinationMapper.toDto(examination, instances);
     }
@@ -67,7 +99,7 @@ public class ExaminationServiceImpl implements ExaminationService {
     @Override
     @Transactional(readOnly = true)
     public PageResponse<ExaminationDto> getExaminationsByDoctorId(Long doctorId, Pageable pageable) {
-        Page<Examination> examinationPage = examinationRepository.findByDoctorId(doctorId, pageable);
+        Page<Examination> examinationPage = examinationRepository.findByDoctorId(doctorId, getCustomSortPageable(pageable));
         List<ExaminationDto> content = examinationPage.getContent().stream()
                 .map(ex -> {
                     List<DicomInstance> instances = dicomInstanceRepository.findByExaminationId(ex.getId());
@@ -88,7 +120,7 @@ public class ExaminationServiceImpl implements ExaminationService {
     @Override
     @Transactional(readOnly = true)
     public PageResponse<ExaminationDto> getExaminationsByPatientId(Long patientId, Pageable pageable) {
-        Page<Examination> examinationPage = examinationRepository.findByPatientId(patientId, pageable);
+        Page<Examination> examinationPage = examinationRepository.findByPatientId(patientId, getCustomSortPageable(pageable));
         List<ExaminationDto> content = examinationPage.getContent().stream()
                 .map(ex -> {
                     List<DicomInstance> instances = dicomInstanceRepository.findByExaminationId(ex.getId());
@@ -117,7 +149,7 @@ public class ExaminationServiceImpl implements ExaminationService {
 
     @Override
     @Transactional(readOnly = true)
-    public long getTotalExaminations(Long userId) {
+    public long getTotalExaminations(Long userId, Boolean isPersonal) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User with id " + userId + " not found"));
         
@@ -126,7 +158,10 @@ public class ExaminationServiceImpl implements ExaminationService {
         }
 
         String roleCode = user.getRole().getCode();
-        if ("DEPARTMENT_HEAD".equalsIgnoreCase(roleCode) || "HEAD_OF_DEPARTMENT".equalsIgnoreCase(roleCode)) {
+        if ("ADMIN".equalsIgnoreCase(roleCode) || "DEPARTMENT_HEAD".equalsIgnoreCase(roleCode) || "HEAD_OF_DEPARTMENT".equalsIgnoreCase(roleCode)) {
+            if (Boolean.TRUE.equals(isPersonal)) {
+                return examinationRepository.countByDoctorId(userId);
+            }
             return examinationRepository.count();
         } else if ("DOCTOR".equalsIgnoreCase(roleCode)) {
             return examinationRepository.countByDoctorId(userId);
@@ -137,7 +172,32 @@ public class ExaminationServiceImpl implements ExaminationService {
 
     @Override
     @Transactional(readOnly = true)
-    public long getTotalSevereExaminations(Long userId) {
+    public long getTotalExaminationsInLast7Days(Long userId, Boolean isPersonal) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User with id " + userId + " not found"));
+        
+        if (user.getRole() == null || user.getRole().getCode() == null) {
+            return 0L;
+        }
+
+        java.time.LocalDateTime sevenDaysAgo = java.time.LocalDateTime.now().minusDays(7);
+        String roleCode = user.getRole().getCode();
+        
+        if ("ADMIN".equalsIgnoreCase(roleCode) || "DEPARTMENT_HEAD".equalsIgnoreCase(roleCode) || "HEAD_OF_DEPARTMENT".equalsIgnoreCase(roleCode)) {
+            if (Boolean.TRUE.equals(isPersonal)) {
+                return examinationRepository.countByDoctorIdAndCreatedAtAfter(userId, sevenDaysAgo);
+            }
+            return examinationRepository.countByCreatedAtAfter(sevenDaysAgo);
+        } else if ("DOCTOR".equalsIgnoreCase(roleCode)) {
+            return examinationRepository.countByDoctorIdAndCreatedAtAfter(userId, sevenDaysAgo);
+        }
+        
+        return 0L;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public long getTotalSevereExaminations(Long userId, Boolean isPersonal) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User with id " + userId + " not found"));
         
@@ -148,7 +208,10 @@ public class ExaminationServiceImpl implements ExaminationService {
         List<Integer> severeGrades = List.of(3, 4);
         String roleCode = user.getRole().getCode();
         
-        if ("DEPARTMENT_HEAD".equalsIgnoreCase(roleCode) || "HEAD_OF_DEPARTMENT".equalsIgnoreCase(roleCode)) {
+        if ("ADMIN".equalsIgnoreCase(roleCode) || "DEPARTMENT_HEAD".equalsIgnoreCase(roleCode) || "HEAD_OF_DEPARTMENT".equalsIgnoreCase(roleCode)) {
+            if (Boolean.TRUE.equals(isPersonal)) {
+                return examinationRepository.countByDoctorIdAndMaxPredictedGradeIn(userId, severeGrades);
+            }
             return examinationRepository.countByMaxPredictedGradeIn(severeGrades);
         } else if ("DOCTOR".equalsIgnoreCase(roleCode)) {
             return examinationRepository.countByDoctorIdAndMaxPredictedGradeIn(userId, severeGrades);
@@ -159,7 +222,7 @@ public class ExaminationServiceImpl implements ExaminationService {
 
     @Override
     @Transactional(readOnly = true)
-    public long getTotalVerifiedExaminations(Long userId) {
+    public long getTotalVerifiedExaminations(Long userId, Boolean isPersonal) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User with id " + userId + " not found"));
         
@@ -170,7 +233,10 @@ public class ExaminationServiceImpl implements ExaminationService {
         String roleCode = user.getRole().getCode();
         ExaminationStatus verifiedStatus = ExaminationStatus.VERIFIED;
         
-        if ("DEPARTMENT_HEAD".equalsIgnoreCase(roleCode) || "HEAD_OF_DEPARTMENT".equalsIgnoreCase(roleCode)) {
+        if ("ADMIN".equalsIgnoreCase(roleCode) || "DEPARTMENT_HEAD".equalsIgnoreCase(roleCode) || "HEAD_OF_DEPARTMENT".equalsIgnoreCase(roleCode)) {
+            if (Boolean.TRUE.equals(isPersonal)) {
+                return examinationRepository.countByDoctorIdAndStatus(userId, verifiedStatus);
+            }
             return examinationRepository.countByStatus(verifiedStatus);
         } else if ("DOCTOR".equalsIgnoreCase(roleCode)) {
             return examinationRepository.countByDoctorIdAndStatus(userId, verifiedStatus);
@@ -181,7 +247,7 @@ public class ExaminationServiceImpl implements ExaminationService {
 
     @Override
     @Transactional(readOnly = true)
-    public long getTotalUnverifiedExaminations(Long userId) {
+    public long getTotalUnverifiedExaminations(Long userId, Boolean isPersonal) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User with id " + userId + " not found"));
         
@@ -192,7 +258,10 @@ public class ExaminationServiceImpl implements ExaminationService {
         String roleCode = user.getRole().getCode();
         ExaminationStatus verifiedStatus = ExaminationStatus.VERIFIED;
         
-        if ("DEPARTMENT_HEAD".equalsIgnoreCase(roleCode) || "HEAD_OF_DEPARTMENT".equalsIgnoreCase(roleCode)) {
+        if ("ADMIN".equalsIgnoreCase(roleCode) || "DEPARTMENT_HEAD".equalsIgnoreCase(roleCode) || "HEAD_OF_DEPARTMENT".equalsIgnoreCase(roleCode)) {
+            if (Boolean.TRUE.equals(isPersonal)) {
+                return examinationRepository.countByDoctorIdAndStatusNot(userId, verifiedStatus);
+            }
             return examinationRepository.countByStatusNot(verifiedStatus);
         } else if ("DOCTOR".equalsIgnoreCase(roleCode)) {
             return examinationRepository.countByDoctorIdAndStatusNot(userId, verifiedStatus);
@@ -203,7 +272,7 @@ public class ExaminationServiceImpl implements ExaminationService {
 
     @Override
     @Transactional(readOnly = true)
-    public PageResponse<ExaminationDto> getExaminationsByStatus(ExaminationStatus status, String username, Pageable pageable) {
+    public PageResponse<ExaminationDto> getExaminationsByStatus(ExaminationStatus status, String username, Boolean isPersonal, Pageable pageable) {
         User user = userRepository.findByUsernameOrEmail(username, username)
                 .orElseThrow(() -> new IllegalArgumentException("User with username/email " + username + " not found"));
                 
@@ -216,8 +285,12 @@ public class ExaminationServiceImpl implements ExaminationService {
 
         if ("DOCTOR".equalsIgnoreCase(roleCode)) {
             examinationPage = examinationRepository.findByDoctorIdAndStatus(user.getId(), status, pageable);
-        } else if ("DEPARTMENT_HEAD".equalsIgnoreCase(roleCode) || "HEAD_OF_DEPARTMENT".equalsIgnoreCase(roleCode) || "ADMIN".equalsIgnoreCase(roleCode)) {
-            examinationPage = examinationRepository.findByStatus(status, pageable);
+        } else if ("ADMIN".equalsIgnoreCase(roleCode) || "DEPARTMENT_HEAD".equalsIgnoreCase(roleCode) || "HEAD_OF_DEPARTMENT".equalsIgnoreCase(roleCode)) {
+            if (Boolean.TRUE.equals(isPersonal)) {
+                examinationPage = examinationRepository.findByDoctorIdAndStatus(user.getId(), status, pageable);
+            } else {
+                examinationPage = examinationRepository.findByStatus(status, pageable);
+            }
         } else {
             return new PageResponse<>(List.of(), 0, pageable.getPageSize(), 0, 0, true);
         }
@@ -241,7 +314,7 @@ public class ExaminationServiceImpl implements ExaminationService {
 
     @Override
     @Transactional(readOnly = true)
-    public PageResponse<ExaminationDto> getExaminationsByGrade(Integer grade, String username, Pageable pageable) {
+    public PageResponse<ExaminationDto> getExaminationsByGrade(Integer grade, String username, Boolean isPersonal, Pageable pageable) {
         User user = userRepository.findByUsernameOrEmail(username, username)
                 .orElseThrow(() -> new IllegalArgumentException("User with username/email " + username + " not found"));
                 
@@ -254,8 +327,12 @@ public class ExaminationServiceImpl implements ExaminationService {
 
         if ("DOCTOR".equalsIgnoreCase(roleCode)) {
             examinationPage = examinationRepository.findByDoctorIdAndMaxPredictedGrade(user.getId(), grade, pageable);
-        } else if ("DEPARTMENT_HEAD".equalsIgnoreCase(roleCode) || "HEAD_OF_DEPARTMENT".equalsIgnoreCase(roleCode) || "ADMIN".equalsIgnoreCase(roleCode)) {
-            examinationPage = examinationRepository.findByMaxPredictedGrade(grade, pageable);
+        } else if ("ADMIN".equalsIgnoreCase(roleCode) || "DEPARTMENT_HEAD".equalsIgnoreCase(roleCode) || "HEAD_OF_DEPARTMENT".equalsIgnoreCase(roleCode)) {
+            if (Boolean.TRUE.equals(isPersonal)) {
+                examinationPage = examinationRepository.findByDoctorIdAndMaxPredictedGrade(user.getId(), grade, pageable);
+            } else {
+                examinationPage = examinationRepository.findByMaxPredictedGrade(grade, pageable);
+            }
         } else {
             return new PageResponse<>(List.of(), 0, pageable.getPageSize(), 0, 0, true);
         }
@@ -279,7 +356,7 @@ public class ExaminationServiceImpl implements ExaminationService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<PatientGradeStatsDto> getPatientGradeStatistics(String username) {
+    public List<PatientGradeStatsDto> getPatientGradeStatistics(String username, Boolean isPersonal) {
         User user = userRepository.findByUsernameOrEmail(username, username)
                 .orElseThrow(() -> new IllegalArgumentException("User with username/email " + username + " not found"));
 
@@ -292,7 +369,7 @@ public class ExaminationServiceImpl implements ExaminationService {
 
         if ("DOCTOR".equalsIgnoreCase(roleCode)) {
             projections = examinationRepository.countPatientsByLatestGradeForDoctor(user.getId());
-        } else if ("DEPARTMENT_HEAD".equalsIgnoreCase(roleCode) || "HEAD_OF_DEPARTMENT".equalsIgnoreCase(roleCode) || "ADMIN".equalsIgnoreCase(roleCode)) {
+        } else if ("ADMIN".equalsIgnoreCase(roleCode) || "DEPARTMENT_HEAD".equalsIgnoreCase(roleCode) || "HEAD_OF_DEPARTMENT".equalsIgnoreCase(roleCode)) {
             projections = examinationRepository.countPatientsByLatestGrade();
         } else {
             return List.of();
@@ -305,7 +382,7 @@ public class ExaminationServiceImpl implements ExaminationService {
 
     @Override
     @Transactional(readOnly = true)
-    public PageResponse<ExaminationDto> getExaminationsSortedByStudyDate(String direction, String username, Pageable pageable) {
+    public PageResponse<ExaminationDto> getExaminationsSortedByStudyDate(String direction, String username, Boolean isPersonal, Pageable pageable) {
         User user = userRepository.findByUsernameOrEmail(username, username)
                 .orElseThrow(() -> new IllegalArgumentException("User with username/email " + username + " not found"));
         if (user.getRole() == null || user.getRole().getCode() == null) {
@@ -321,7 +398,7 @@ public class ExaminationServiceImpl implements ExaminationService {
         Page<Examination> examinationPage;
         if ("DOCTOR".equalsIgnoreCase(roleCode)) {
             examinationPage = examinationRepository.findByDoctorId(user.getId(), sortedPageable);
-        } else if ("DEPARTMENT_HEAD".equalsIgnoreCase(roleCode) || "HEAD_OF_DEPARTMENT".equalsIgnoreCase(roleCode) || "ADMIN".equalsIgnoreCase(roleCode)) {
+        } else if ("ADMIN".equalsIgnoreCase(roleCode) || "DEPARTMENT_HEAD".equalsIgnoreCase(roleCode) || "HEAD_OF_DEPARTMENT".equalsIgnoreCase(roleCode)) {
             examinationPage = examinationRepository.findAll(sortedPageable);
         } else {
             return new PageResponse<>(java.util.List.of(), 0, pageable.getPageSize(), 0, 0, true);
@@ -332,7 +409,7 @@ public class ExaminationServiceImpl implements ExaminationService {
 
     @Override
     @Transactional(readOnly = true)
-    public PageResponse<ExaminationDto> getExaminationsSortedByUploadDate(String direction, String username, Pageable pageable) {
+    public PageResponse<ExaminationDto> getExaminationsSortedByUploadDate(String direction, String username, Boolean isPersonal, Pageable pageable) {
         User user = userRepository.findByUsernameOrEmail(username, username)
                 .orElseThrow(() -> new IllegalArgumentException("User with username/email " + username + " not found"));
         if (user.getRole() == null || user.getRole().getCode() == null) {
@@ -348,7 +425,7 @@ public class ExaminationServiceImpl implements ExaminationService {
         Page<Examination> examinationPage;
         if ("DOCTOR".equalsIgnoreCase(roleCode)) {
             examinationPage = examinationRepository.findByDoctorId(user.getId(), sortedPageable);
-        } else if ("DEPARTMENT_HEAD".equalsIgnoreCase(roleCode) || "HEAD_OF_DEPARTMENT".equalsIgnoreCase(roleCode) || "ADMIN".equalsIgnoreCase(roleCode)) {
+        } else if ("ADMIN".equalsIgnoreCase(roleCode) || "DEPARTMENT_HEAD".equalsIgnoreCase(roleCode) || "HEAD_OF_DEPARTMENT".equalsIgnoreCase(roleCode)) {
             examinationPage = examinationRepository.findAll(sortedPageable);
         } else {
             return new PageResponse<>(java.util.List.of(), 0, pageable.getPageSize(), 0, 0, true);
@@ -359,7 +436,7 @@ public class ExaminationServiceImpl implements ExaminationService {
 
     @Override
     @Transactional(readOnly = true)
-    public PageResponse<ExaminationDto> getExaminationsFilteredByStudyDate(java.time.LocalDate date, String username, Pageable pageable) {
+    public PageResponse<ExaminationDto> getExaminationsFilteredByStudyDate(java.time.LocalDate date, String username, Boolean isPersonal, Pageable pageable) {
         User user = userRepository.findByUsernameOrEmail(username, username)
                 .orElseThrow(() -> new IllegalArgumentException("User with username/email " + username + " not found"));
         if (user.getRole() == null || user.getRole().getCode() == null) {
@@ -370,7 +447,7 @@ public class ExaminationServiceImpl implements ExaminationService {
         Page<Examination> examinationPage;
         if ("DOCTOR".equalsIgnoreCase(roleCode)) {
             examinationPage = examinationRepository.findByDoctorIdAndStudyDate(user.getId(), date, pageable);
-        } else if ("DEPARTMENT_HEAD".equalsIgnoreCase(roleCode) || "HEAD_OF_DEPARTMENT".equalsIgnoreCase(roleCode) || "ADMIN".equalsIgnoreCase(roleCode)) {
+        } else if ("ADMIN".equalsIgnoreCase(roleCode) || "DEPARTMENT_HEAD".equalsIgnoreCase(roleCode) || "HEAD_OF_DEPARTMENT".equalsIgnoreCase(roleCode)) {
             examinationPage = examinationRepository.findByStudyDate(date, pageable);
         } else {
             return new PageResponse<>(java.util.List.of(), 0, pageable.getPageSize(), 0, 0, true);
@@ -381,7 +458,7 @@ public class ExaminationServiceImpl implements ExaminationService {
 
     @Override
     @Transactional(readOnly = true)
-    public PageResponse<ExaminationDto> getExaminationsFilteredByUploadDate(java.time.LocalDate date, String username, Pageable pageable) {
+    public PageResponse<ExaminationDto> getExaminationsFilteredByUploadDate(java.time.LocalDate date, String username, Boolean isPersonal, Pageable pageable) {
         User user = userRepository.findByUsernameOrEmail(username, username)
                 .orElseThrow(() -> new IllegalArgumentException("User with username/email " + username + " not found"));
         if (user.getRole() == null || user.getRole().getCode() == null) {
@@ -395,7 +472,7 @@ public class ExaminationServiceImpl implements ExaminationService {
         Page<Examination> examinationPage;
         if ("DOCTOR".equalsIgnoreCase(roleCode)) {
             examinationPage = examinationRepository.findByDoctorIdAndCreatedAtBetween(user.getId(), start, end, pageable);
-        } else if ("DEPARTMENT_HEAD".equalsIgnoreCase(roleCode) || "HEAD_OF_DEPARTMENT".equalsIgnoreCase(roleCode) || "ADMIN".equalsIgnoreCase(roleCode)) {
+        } else if ("ADMIN".equalsIgnoreCase(roleCode) || "DEPARTMENT_HEAD".equalsIgnoreCase(roleCode) || "HEAD_OF_DEPARTMENT".equalsIgnoreCase(roleCode)) {
             examinationPage = examinationRepository.findByCreatedAtBetween(start, end, pageable);
         } else {
             return new PageResponse<>(java.util.List.of(), 0, pageable.getPageSize(), 0, 0, true);
@@ -430,6 +507,14 @@ public class ExaminationServiceImpl implements ExaminationService {
                 examinationPage.getTotalPages(),
                 examinationPage.isLast()
         );
+    }
+
+    private Pageable getCustomSortPageable(Pageable pageable) {
+        Sort sort = Sort.by(
+            Sort.Order.desc("maxPredictedGrade").nullsLast(),
+            Sort.Order.desc("createdAt")
+        );
+        return PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), sort);
     }
 }
 

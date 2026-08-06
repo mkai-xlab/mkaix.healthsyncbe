@@ -16,6 +16,7 @@ import static org.mockito.Mockito.when;
 
 class JwtAuthenticationFilterLogoutTest {
 
+    @org.junit.jupiter.api.BeforeEach
     @AfterEach
     void clearSecurityContext() {
         SecurityContextHolder.clearContext();

@@ -10,6 +10,10 @@ post {
   auth: bearer
 }
 
+query {
+  isPersonal: true
+}
+
 auth:bearer {
   token: {{accessToken}}
 }
@@ -18,15 +22,11 @@ vars:pre-request {
   examinationId: 1
 }
 
-vars:post-response {
-  reportId: res.body.reportId
-}
-
 tests {
   test("returns report metadata", function() {
     expect(res.status).to.equal(200);
     expect(res.body.reportId).to.be.a("number");
-    expect(res.body.previewUrl).to.include("/preview");
-    expect(res.body.downloadUrl).to.include("/download");
+    expect(res.body.previewUrl).to.equal(`/api/v1/reports/${res.body.examinationId}/preview`);
+    expect(res.body.downloadUrl).to.equal(`/api/v1/reports/${res.body.examinationId}/download`);
   });
-}​
+}

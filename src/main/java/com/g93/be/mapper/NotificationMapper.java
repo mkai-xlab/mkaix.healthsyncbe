@@ -1,9 +1,7 @@
 package com.g93.be.mapper;
 
-
 import com.g93.be.entity.Notification;
 import com.g93.be.dto.NotificationDto;
-import com.g93.be.entity.Notification;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -20,7 +18,6 @@ public class NotificationMapper {
                 notification.getType(),
                 notification.getIsRead(),
                 notification.getCreatedAt(),
-                null
-        );
+                null);
     }
 }
