@@ -10,6 +10,7 @@ import com.g93.be.repository.PermissionRepository;
 import com.g93.be.repository.RolePermissionRepository;
 import com.g93.be.repository.RoleRepository;
 import com.g93.be.repository.UserRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -25,6 +26,8 @@ import java.util.Optional;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -50,6 +53,37 @@ class DataInitializerTest {
 
     @InjectMocks
     private DataInitializer dataInitializer;
+
+    @BeforeEach
+    void setUpHeadOfDepartmentRole() {
+        Role headOfDepartmentRole = role(3L, "HEAD_OF_DEPARTMENT");
+        lenient().when(roleRepository.findByCode("HEAD_OF_DEPARTMENT"))
+                .thenReturn(Optional.of(headOfDepartmentRole));
+    }
+
+    @Test
+    void freshDatabaseSeedsHeadOfDepartmentRole() throws Exception {
+        Role adminRole = role(1L, "ADMIN");
+        User adminUser = user(1L, "admin", adminRole);
+        Role headOfDepartmentRole = role(3L, "HEAD_OF_DEPARTMENT");
+
+        when(roleRepository.findByCode("ADMIN"))
+                .thenReturn(Optional.empty(), Optional.of(adminRole));
+        when(roleRepository.findByCode("HEAD_OF_DEPARTMENT"))
+                .thenReturn(Optional.of(headOfDepartmentRole));
+        when(userRepository.findByUsername("admin")).thenReturn(Optional.of(adminUser));
+
+        dataInitializer.run();
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<Role>> seededRoles = ArgumentCaptor.forClass(List.class);
+        verify(roleRepository).saveAll(seededRoles.capture());
+        Set<String> roleCodes = seededRoles.getValue().stream()
+                .map(Role::getCode)
+                .collect(java.util.stream.Collectors.toSet());
+        assertEquals(Set.of("ADMIN", "DOCTOR", "HEAD_OF_DEPARTMENT"), roleCodes);
+        assertTrue(roleCodes.contains("HEAD_OF_DEPARTMENT"));
+    }
 
     @Test
     void permissionCatalogClassifiesEverySeedPermission() {
