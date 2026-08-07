@@ -42,7 +42,8 @@ public class DataInitializer implements CommandLineRunner {
         if (roleRepository.findByCode("ADMIN").isEmpty()) {
             Role adminRole = new Role(null, "ADMIN", "System Administrator", null, null);
             Role doctorRole = new Role(null, "DOCTOR", "Medical Doctor", null, null);
-            roleRepository.saveAll(java.util.List.of(adminRole, doctorRole));
+            Role headOfDepartmentRole = new Role(null, "HEAD_OF_DEPARTMENT", "Head of Department", null, null);
+            roleRepository.saveAll(java.util.List.of(adminRole, doctorRole, headOfDepartmentRole));
 
             // Create Features
             Feature fUser = new Feature(null, "User & Account Management", "Quản lý Tài khoản");
@@ -110,25 +111,14 @@ public class DataInitializer implements CommandLineRunner {
                     rps.add(new RolePermission(null, adminRole, permission));
                 }
             }
-            // Doctor gets specific ones
-            rps.add(new RolePermission(null, doctorRole, pAuth01));
-            rps.add(new RolePermission(null, doctorRole, pAuth02));
-            rps.add(new RolePermission(null, doctorRole, pPat01));
-            rps.add(new RolePermission(null, doctorRole, pPat02));
-            rps.add(new RolePermission(null, doctorRole, pPat03));
-            rps.add(new RolePermission(null, doctorRole, pImg01));
-            rps.add(new RolePermission(null, doctorRole, pImg02));
-            rps.add(new RolePermission(null, doctorRole, pAi01));
-            rps.add(new RolePermission(null, doctorRole, pAi02));
-            rps.add(new RolePermission(null, doctorRole, pAi03));
-            rps.add(new RolePermission(null, doctorRole, pHist01));
-            rps.add(new RolePermission(null, doctorRole, pRev01));
-            rps.add(new RolePermission(null, doctorRole, pRev02));
-            rps.add(new RolePermission(null, doctorRole, pRev03));
-            rps.add(new RolePermission(null, doctorRole, pRev04));
-            rps.add(new RolePermission(null, doctorRole, pRep01));
-            rps.add(new RolePermission(null, doctorRole, pRep02));
-            rps.add(new RolePermission(null, doctorRole, pDash01));
+            List<Permission> medicalPermissions = List.of(
+                    pAuth01, pAuth02, pPat01, pPat02, pPat03, pImg01, pImg02,
+                    pAi01, pAi02, pAi03, pHist01, pRev01, pRev02, pRev03,
+                    pRev04, pRep01, pRep02, pDash01);
+            for (Role medicalRole : List.of(doctorRole, headOfDepartmentRole)) {
+                medicalPermissions.forEach(permission ->
+                        rps.add(new RolePermission(null, medicalRole, permission)));
+            }
 
             rolePermissionRepository.saveAll(rps);
 
@@ -138,6 +128,7 @@ public class DataInitializer implements CommandLineRunner {
         synchronizeChatPermissions();
         synchronizePermissionNames();
         synchronizeAdminPermissions();
+        ensureHeadOfDepartmentRole();
 
         // 2. Kiểm tra nếu tài khoản admin chưa tồn tại thì khởi tạo
         if (userRepository.findByUsername("admin").isEmpty()) {
@@ -259,6 +250,24 @@ public class DataInitializer implements CommandLineRunner {
                 .toList();
         if (!missingDefaults.isEmpty()) {
             rolePermissionRepository.saveAll(missingDefaults);
+        }
+    }
+
+    private void ensureHeadOfDepartmentRole() {
+        Role headOfDepartmentRole = roleRepository.findByCode("HEAD_OF_DEPARTMENT")
+                .orElseGet(() -> roleRepository.save(
+                        new Role(null, "HEAD_OF_DEPARTMENT", "Head of Department", null, null)));
+
+        if (rolePermissionRepository.findByRoleId(headOfDepartmentRole.getId()).isEmpty()) {
+            Role doctorRole = roleRepository.findByCode("DOCTOR").orElse(null);
+            if (doctorRole != null) {
+                List<RolePermission> doctorPermissions = rolePermissionRepository.findByRoleId(doctorRole.getId())
+                        .stream()
+                        .map(rolePermission -> new RolePermission(
+                                null, headOfDepartmentRole, rolePermission.getPermission()))
+                        .toList();
+                rolePermissionRepository.saveAll(doctorPermissions);
+            }
         }
     }
 }
