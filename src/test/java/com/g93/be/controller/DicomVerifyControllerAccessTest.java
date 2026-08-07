@@ -34,6 +34,7 @@ class DicomVerifyControllerAccessTest {
     private DicomVerifyService dicomVerifyService;
     @Autowired
     private UserRepository userRepository;
+
     @BeforeEach
     void resetMocks() {
         reset(dicomVerifyService, userRepository);
@@ -47,7 +48,8 @@ class DicomVerifyControllerAccessTest {
         DicomVerifyRequest request = new DicomVerifyRequest("session-1", List.of());
         User doctor = user(7L, "doctor", "DOCTOR");
         when(userRepository.findByUsername("doctor")).thenReturn(Optional.of(doctor));
-        when(dicomVerifyService.verifySession(request, 7L, false)).thenReturn(List.of());
+        when(dicomVerifyService.verifySession(request, 7L, false))
+                .thenReturn(new com.g93.be.dto.VerifySessionResultDto(List.of(), List.of()));
 
         assertEquals(200, controller.verifyUploadSession(request, () -> "doctor")
                 .getStatusCode().value());
@@ -55,7 +57,7 @@ class DicomVerifyControllerAccessTest {
     }
 
     @Test
-    @WithMockUser(authorities = {"ROLE_DOCTOR", "UPLOAD_DICOM_IMAGE"})
+    @WithMockUser(authorities = { "ROLE_DOCTOR", "UPLOAD_DICOM_IMAGE" })
     void doctorWithoutAiTriggerPermissionCannotVerifySession() {
         DicomVerifyRequest request = new DicomVerifyRequest("session-1", List.of());
 
@@ -64,7 +66,7 @@ class DicomVerifyControllerAccessTest {
     }
 
     @Test
-    @WithMockUser(authorities = {"ROLE_ADMIN", "UPLOAD_DICOM_IMAGE", "TRIGGER_AI_ANALYSIS"})
+    @WithMockUser(authorities = { "ROLE_ADMIN", "UPLOAD_DICOM_IMAGE", "TRIGGER_AI_ANALYSIS" })
     void adminCannotVerifyEvenWithClinicalPermissionsInAnExistingToken() {
         DicomVerifyRequest request = new DicomVerifyRequest("session-1", List.of());
 
@@ -79,7 +81,8 @@ class DicomVerifyControllerAccessTest {
         DicomVerifyRequest request = new DicomVerifyRequest("session-1", List.of());
         User departmentHead = user(2L, "head", "HEAD_OF_DEPARTMENT");
         when(userRepository.findByUsername("head")).thenReturn(Optional.of(departmentHead));
-        when(dicomVerifyService.verifySession(request, 2L, true)).thenReturn(List.of());
+        when(dicomVerifyService.verifySession(request, 2L, true))
+                .thenReturn(new com.g93.be.dto.VerifySessionResultDto(List.of(), List.of()));
 
         assertEquals(200, controller.verifyUploadSession(request, () -> "head")
                 .getStatusCode().value());

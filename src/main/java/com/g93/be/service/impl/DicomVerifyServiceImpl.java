@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.g93.be.dto.DicomUploadSessionDTO;
 import com.g93.be.dto.DicomVerifyRequest;
 import com.g93.be.dto.PendingDicomUploadDTO;
+import com.g93.be.dto.VerifySessionResultDto;
+import com.g93.be.dto.PatientUploadErrorDto;
 import com.g93.be.entity.*;
 import com.g93.be.repository.*;
 import com.g93.be.service.DicomVerifyService;
@@ -15,6 +17,10 @@ import com.g93.be.dto.ExaminationDto;
 import com.g93.be.dto.PatientGradeStatsDto;
 import com.g93.be.dto.SendNotificationRequest;
 import lombok.RequiredArgsConstructor;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import java.util.Objects;
+import org.springframework.scheduling.annotation.Async;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
@@ -53,12 +59,12 @@ public class DicomVerifyServiceImpl implements DicomVerifyService {
     private final UserRepository userRepository;
     
     private static final ObjectMapper objectMapper = new ObjectMapper()
-            .registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule())
-            .disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+            .registerModule(new JavaTimeModule())
+            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
     @Override
     @Transactional
-    public java.util.List<Long> verifySession(
+    public VerifySessionResultDto verifySession(
             DicomVerifyRequest request,
             Long requestingUserId,
             boolean privilegedUser) {
@@ -78,17 +84,23 @@ public class DicomVerifyServiceImpl implements DicomVerifyService {
             throw new RuntimeException("Failed to parse session data", e);
         }
 
-        if (!privilegedUser && !java.util.Objects.equals(sessionDTO.getUploaderUserId(), requestingUserId)) {
-            throw new org.springframework.security.access.AccessDeniedException(
+        if (!privilegedUser && !Objects.equals(sessionDTO.getUploaderUserId(), requestingUserId)) {
+            throw new AccessDeniedException(
                     "You are not allowed to verify this upload session");
         }
 
         List<String> acceptedCodes = request.getAcceptedPatientCodes() != null ? request.getAcceptedPatientCodes() : List.of();
         List<Long> savedInstanceIds = new ArrayList<>();
+        List<PatientUploadErrorDto> failedPatients = new ArrayList<>();
 
         for (PendingDicomUploadDTO pending : sessionDTO.getPatients().values()) {
             if (acceptedCodes.contains(pending.getPatientCode())) {
-                savedInstanceIds.addAll(savePatientData(pending, sessionDTO.getUploaderUserId()));
+                try {
+                    savedInstanceIds.addAll(savePatientData(pending, sessionDTO.getUploaderUserId()));
+                } catch (Exception e) {
+                    log.error("Error saving patient data for {}: {}", pending.getPatientCode(), e.getMessage());
+                    failedPatients.add(new PatientUploadErrorDto(pending.getPatientCode(), pending.getPatientName(), e.getMessage()));
+                }
             } else {
                 deletePhysicalFiles(pending);
             }
@@ -99,7 +111,7 @@ public class DicomVerifyServiceImpl implements DicomVerifyService {
         stringRedisTemplate.opsForZSet().remove("uploadSessionTimeouts", sessionId);
         log.info("Session {} verified and cleaned from Redis.", sessionId);
         
-        return savedInstanceIds;
+        return new VerifySessionResultDto(savedInstanceIds, failedPatients);
     }
 
     private List<Long> savePatientData(PendingDicomUploadDTO pending, Long uploaderUserId) {
@@ -254,7 +266,7 @@ public class DicomVerifyServiceImpl implements DicomVerifyService {
     }
 
     @Override
-    @org.springframework.scheduling.annotation.Async
+    @Async
     public void processVerifiedSessionAsync(List<Long> savedInstanceIds, String username) {
         if (savedInstanceIds == null || savedInstanceIds.isEmpty()) {
             return;
@@ -327,3 +339,5 @@ public class DicomVerifyServiceImpl implements DicomVerifyService {
         }
     }
 }
+
+
