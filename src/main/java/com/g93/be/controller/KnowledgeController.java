@@ -1,9 +1,11 @@
 package com.g93.be.controller;
 
 import com.g93.be.aspect.LogAction;
+import com.g93.be.dto.KnowledgeBatchUploadResponse;
 import com.g93.be.dto.KnowledgeDocumentResponse;
 import com.g93.be.dto.KnowledgeUrlRequest;
 import com.g93.be.entity.KnowledgeAccessScope;
+import com.g93.be.service.KnowledgeBatchIngestionService;
 import com.g93.be.service.KnowledgeIngestionService;
 import com.g93.be.service.ReportKnowledgeSyncService;
 import jakarta.validation.Valid;
@@ -34,6 +36,7 @@ import java.util.List;
 public class KnowledgeController {
 
     private final KnowledgeIngestionService ingestionService;
+    private final KnowledgeBatchIngestionService batchIngestionService;
     private final ReportKnowledgeSyncService reportKnowledgeSyncService;
 
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -46,6 +49,17 @@ public class KnowledgeController {
             Principal principal) {
         return ResponseEntity.status(HttpStatus.ACCEPTED)
                 .body(ingestionService.upload(file, title, accessScope, principal.getName()));
+    }
+
+    @PostMapping(value = "/upload/batch", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasAnyRole('ADMIN', 'DOCTOR', 'DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT') and hasAuthority('MANAGE_MEDICAL_KNOWLEDGE')")
+    @LogAction("UPLOAD_MEDICAL_KNOWLEDGE_BATCH")
+    public ResponseEntity<KnowledgeBatchUploadResponse> uploadBatch(
+            @RequestPart("files") List<MultipartFile> files,
+            @RequestParam(defaultValue = "ALL") KnowledgeAccessScope accessScope,
+            Principal principal) {
+        return ResponseEntity.status(HttpStatus.ACCEPTED)
+                .body(batchIngestionService.upload(files, accessScope, principal.getName()));
     }
 
     @PostMapping("/url")

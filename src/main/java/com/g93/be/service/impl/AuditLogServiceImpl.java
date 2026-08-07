@@ -25,7 +25,7 @@ public class AuditLogServiceImpl implements AuditLogService {
     private final AuditLogRepository auditLogRepository;
     private final UserRepository userRepository;
 
-    @Async
+    @Async("taskExecutor")
     @Override
     public void saveLogAsync(String username, String title, String description, String ipAddress, String userAgent) {
         try {

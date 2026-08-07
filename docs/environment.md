@@ -33,6 +33,7 @@ Do not commit real secrets. Keep local environment files outside Git or use igno
 | `QDRANT_HOST` | No | `localhost` | Qdrant gRPC host. |
 | `QDRANT_GRPC_PORT` | No | `6334` | Qdrant gRPC port. |
 | `QDRANT_COLLECTION` | No | `healthsync_medical_knowledge` | Vector collection name. |
+| `CHAT_MAX_DOCUMENT_BYTES` | No | `52428800` (50 MiB) | Maximum size of an uploaded Knowledge/RAG document. |
 
 
 ## Database Variables

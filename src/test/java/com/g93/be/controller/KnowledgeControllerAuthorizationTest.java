@@ -15,6 +15,7 @@ class KnowledgeControllerAuthorizationTest {
     @Test
     void sharedKnowledgeOperationsRequireAdminRoleAndManagementPermission() throws Exception {
         assertAuthorization("upload", KNOWLEDGE_MANAGEMENT);
+        assertAuthorization("uploadBatch", KNOWLEDGE_MANAGEMENT);
         assertAuthorization("addUrl", KNOWLEDGE_MANAGEMENT);
         assertAuthorization("getAll", KNOWLEDGE_MANAGEMENT);
         assertAuthorization("reindex", KNOWLEDGE_MANAGEMENT);

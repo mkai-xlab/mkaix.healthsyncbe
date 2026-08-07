@@ -1,7 +1,7 @@
 # HealthSync RAG Chatbox
 
-The chatbox is implemented with Spring AI 2.0. Gemini 2.5 Flash generates and
-routes answers, Ollama serves BGE-M3 embeddings, and Qdrant stores vectors. The
+The chatbox is implemented with Spring AI 2.0. Gemini generates and routes
+answers, Ollama serves BGE-M3 embeddings, and Qdrant stores vectors. The
 feature is disabled unless `CHAT_AI_ENABLED=true`.
 
 ## Request Flow
@@ -32,6 +32,7 @@ still checks the clinical role and the `USE_AI_CHAT` permission.
 | --- | --- | --- |
 | `POST /chat/ask` | `USE_AI_CHAT` | Ask a business or medical question. |
 | `POST /knowledge-documents/upload` | `MANAGE_MEDICAL_KNOWLEDGE` | Upload PDF, DOC, DOCX, or TXT. |
+| `POST /knowledge-documents/upload/batch` | `MANAGE_MEDICAL_KNOWLEDGE` | Upload up to 10 documents with per-file results. |
 | `POST /knowledge-documents/url` | `MANAGE_MEDICAL_KNOWLEDGE` | Ingest an approved public HTTP(S) URL. |
 | `GET /knowledge-documents` | `MANAGE_MEDICAL_KNOWLEDGE` | Check indexing state and errors. |
 | `POST /knowledge-documents/{id}/reindex` | `MANAGE_MEDICAL_KNOWLEDGE` | Reindex a stored source. |
@@ -70,6 +71,12 @@ Upload is asynchronous. A successful request returns `202 Accepted` with status
 `PENDING`; use `GET /knowledge-documents` until the status becomes `INDEXED` or
 `FAILED`. URLs resolving to loopback, link-local, multicast, or private IPs are
 rejected.
+
+Batch upload accepts repeated multipart parts named `files` and one shared
+`accessScope`. Each file is limited to 50 MiB. Valid files are accepted and
+indexed independently, so one duplicate or invalid file does not reject the
+other files. The response reports `acceptedCount`, `rejectedCount`, and one
+item per submitted file.
 
 ## Database and Report Ingestion
 
