@@ -11,6 +11,7 @@ import org.springframework.security.core.AuthenticationException;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 @RestControllerAdvice
@@ -91,6 +92,19 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGeneralException(Exception ex) {
+        if (isAiProviderQuotaExceeded(ex)) {
+            log.warn("AI provider quota exceeded: {}", rootCauseMessage(ex));
+            ErrorResponse error = new ErrorResponse(
+                    HttpStatus.TOO_MANY_REQUESTS.value(),
+                    "AI_PROVIDER_QUOTA_EXCEEDED",
+                    "AI provider quota has been exceeded. Please try again after the quota resets.",
+                    LocalDateTime.now()
+            );
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(error);
+        }
+
+        // Keep the API response generic while preserving the full upstream cause in backend logs.
+        log.error("Unhandled API error", ex);
         ErrorResponse error = new ErrorResponse(
                 HttpStatus.INTERNAL_SERVER_ERROR.value(),
                 HttpStatus.INTERNAL_SERVER_ERROR.getReasonPhrase(),
@@ -98,6 +112,29 @@ public class GlobalExceptionHandler {
                 LocalDateTime.now()
         );
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+    }
+
+    private boolean isAiProviderQuotaExceeded(Throwable throwable) {
+        for (Throwable cause = throwable; cause != null; cause = cause.getCause()) {
+            String message = cause.getMessage();
+            if (message == null) {
+                continue;
+            }
+            String normalized = message.toLowerCase(Locale.ROOT);
+            if ((normalized.contains("429") || normalized.contains("resource_exhausted"))
+                    && (normalized.contains("quota") || normalized.contains("rate limit"))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private String rootCauseMessage(Throwable throwable) {
+        Throwable root = throwable;
+        while (root.getCause() != null) {
+            root = root.getCause();
+        }
+        return root.getMessage();
     }
 
     @ExceptionHandler(AccessDeniedException.class)

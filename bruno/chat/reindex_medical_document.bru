@@ -1,0 +1,26 @@
+meta {
+  name: Reindex Medical Document
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/knowledge-documents/{{documentId}}/reindex
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+vars:pre-request {
+  documentId: 1
+}
+
+tests {
+  test("accepts document for asynchronous reindexing", function() {
+    expect(res.status).to.equal(202);
+    expect(res.body.status).to.equal("PENDING");
+  });
+}​

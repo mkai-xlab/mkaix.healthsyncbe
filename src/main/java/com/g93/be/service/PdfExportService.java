@@ -1,6 +1,7 @@
 package com.g93.be.service;
 
 import com.g93.be.aspect.LogAction;
+import com.g93.be.chat.ReportKnowledgeSyncRequestedEvent;
 import com.g93.be.dto.PdfReportDataDto;
 import com.g93.be.dto.ReportResponse;
 import com.g93.be.entity.AiAnalysis;
@@ -23,6 +24,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -65,6 +67,7 @@ public class PdfExportService {
     private final DicomInstanceRepository dicomInstanceRepository;
     private final ReportRepository reportRepository;
     private final UserRepository userRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Value("${app.pdf.export-dir}")
     private String exportDir;
@@ -124,6 +127,7 @@ public class PdfExportService {
             report.setFileSize(Files.size(outputPath));
             report.setCreatedAt(LocalDateTime.now());
             Report savedReport = reportRepository.save(report);
+            eventPublisher.publishEvent(new ReportKnowledgeSyncRequestedEvent(savedReport.getId()));
 
             examination.setStatus(ExaminationStatus.REPORT_GENERATED);
             examinationRepository.save(examination);
