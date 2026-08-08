@@ -3,6 +3,7 @@ package com.g93.be.exception;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 
 import java.time.LocalDateTime;
 
@@ -40,5 +41,17 @@ class GlobalExceptionHandlerTest {
         assertEquals(
                 "AI provider quota has been exceeded. Please try again after the quota resets.",
                 response.getBody().getMessage());
+    }
+
+    @Test
+    void missingMultipartFile_ReturnsBadRequest() {
+        GlobalExceptionHandler handler = new GlobalExceptionHandler();
+
+        ResponseEntity<ErrorResponse> response = handler.handleMissingServletRequestPartException(
+                new MissingServletRequestPartException("file"));
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals("Missing required multipart field: file", response.getBody().getMessage());
     }
 }
