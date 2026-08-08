@@ -85,8 +85,6 @@ public class DicomServiceImpl implements DicomService {
     @Value("${app.storage.base-dir:D:/Capstone/data}")
     private String storageBaseDir;
 
-
-
     @Override
     public List<DicomTagResponse> extractMetadata(MultipartFile file) {
         // ... keeping the previous implementation simplified or stubbed to focus on the
@@ -112,26 +110,30 @@ public class DicomServiceImpl implements DicomService {
                 }
                 Path tempFile = Files.createTempFile("batch_", ".dcm");
                 file.transferTo(tempFile.toFile());
-                
+
                 if (!isDicomFile(tempFile)) {
-                    earlyErrors.add(new FileUploadError(originalFilename, "Tệp tin không đúng định dạng DICOM hoặc bị lỗi cấu trúc."));
+                    earlyErrors.add(new FileUploadError(originalFilename,
+                            "Tệp tin không đúng định dạng DICOM hoặc bị lỗi cấu trúc."));
                     Files.deleteIfExists(tempFile);
                     continue;
                 }
-                
+
                 filePaths.put(originalFilename, tempFile);
                 tempFilesToClean.add(tempFile);
             }
             String uploadSessionId = UUID.randomUUID().toString();
             BatchDicomUploadResponse response = processBatchPaths(filePaths, userId, uploadSessionId);
             response.getErrors().addAll(earlyErrors);
-            
+
             if (response.getSuccessfulPatients().isEmpty()) {
-                response.setMessage("Tải lên thất bại hoặc không có file nào được thêm mới. Vui lòng xem chi tiết lỗi bên dưới.");
+                response.setMessage(
+                        "Tải lên thất bại hoặc không có file nào được thêm mới. Vui lòng xem chi tiết lỗi bên dưới.");
             }
-            
-            saveAuditLog(userId, "DICOM Batch Upload", "Uploaded " + files.size() + " files (" + totalSize + " bytes). Success: " + response.getSuccessfulPatients().size() + ", Errors: " + response.getErrors().size());
-            
+
+            saveAuditLog(userId, "DICOM Batch Upload",
+                    "Uploaded " + files.size() + " files (" + totalSize + " bytes). Success: "
+                            + response.getSuccessfulPatients().size() + ", Errors: " + response.getErrors().size());
+
             return response;
         } catch (Exception e) {
             saveAuditLog(userId, "DICOM Batch Upload Failed", "Error processing batch upload: " + e.getMessage());
@@ -175,9 +177,11 @@ public class DicomServiceImpl implements DicomService {
 
     /**
      * Xử lý tải lên một mẻ nhiều file DICOM độc lập.
-     * @param files Danh sách các file DICOM được gửi từ client.
+     * 
+     * @param files    Danh sách các file DICOM được gửi từ client.
      * @param username Tên đăng nhập của người dùng thực hiện tải lên.
-     * @return BatchDicomUploadResponse chứa thông tin uploadSessionId và kết quả phân tích sơ bộ.
+     * @return BatchDicomUploadResponse chứa thông tin uploadSessionId và kết quả
+     *         phân tích sơ bộ.
      */
     @Override
     public BatchDicomUploadResponse uploadBatchFiles(List<MultipartFile> files, String username) {
@@ -190,9 +194,11 @@ public class DicomServiceImpl implements DicomService {
 
     /**
      * Xử lý tải lên một file nén (.zip) chứa nhiều file DICOM bên trong.
-     * @param file File nén (.zip) chứa các file DICOM.
+     * 
+     * @param file     File nén (.zip) chứa các file DICOM.
      * @param username Tên đăng nhập của bác sĩ đang thực hiện thao tác.
-     * @return BatchDicomUploadResponse chứa uploadSessionId để frontend có thể theo dõi.
+     * @return BatchDicomUploadResponse chứa uploadSessionId để frontend có thể theo
+     *         dõi.
      */
     @Override
     public BatchDicomUploadResponse uploadZipBatchFiles(java.util.List<MultipartFile> files, String username) {
@@ -209,19 +215,21 @@ public class DicomServiceImpl implements DicomService {
                 totalSize += file.getSize();
                 String filename = file.getOriginalFilename();
                 if (filename == null || !filename.toLowerCase().endsWith(".zip")) {
-                    earlyErrors.add(new FileUploadError(filename, "Invalid file format. Only .zip files are allowed for batch upload."));
+                    earlyErrors.add(new FileUploadError(filename,
+                            "Invalid file format. Only .zip files are allowed for batch upload."));
                     continue;
                 }
                 Path tempZipFile = Files.createTempFile("main_batch_", ".zip");
                 file.transferTo(tempZipFile.toFile());
                 if (!isZipFile(tempZipFile)) {
                     Files.deleteIfExists(tempZipFile);
-                    earlyErrors.add(new FileUploadError(filename, "Tệp tin không đúng định dạng ZIP hoặc bị lỗi cấu trúc."));
+                    earlyErrors.add(
+                            new FileUploadError(filename, "Tệp tin không đúng định dạng ZIP hoặc bị lỗi cấu trúc."));
                     continue;
                 }
                 tempZipFiles.add(tempZipFile);
             }
-            
+
             if (tempZipFiles.isEmpty() && !earlyErrors.isEmpty()) {
                 BatchDicomUploadResponse errRes = new BatchDicomUploadResponse();
                 errRes.setMessage("Tải lên thất bại. Toàn bộ tệp tin không đúng định dạng DICOM hoặc bị lỗi cấu trúc.");
@@ -230,17 +238,20 @@ public class DicomServiceImpl implements DicomService {
                 saveAuditLog(userId, "DICOM ZIP Upload Failed", "All uploaded files are invalid/corrupted.");
                 return errRes;
             }
-            
+
             String uploadSessionId = UUID.randomUUID().toString();
             BatchDicomUploadResponse response = processMultipleZipBatches(tempZipFiles, userId, uploadSessionId);
             response.getErrors().addAll(earlyErrors);
-            
+
             if (response.getSuccessfulPatients().isEmpty()) {
-                response.setMessage("Tải lên thất bại hoặc không có file nào được thêm mới. Vui lòng xem chi tiết lỗi bên dưới.");
+                response.setMessage(
+                        "Tải lên thất bại hoặc không có file nào được thêm mới. Vui lòng xem chi tiết lỗi bên dưới.");
             }
-            
-            saveAuditLog(userId, "DICOM ZIP Upload", "Uploaded " + files.size() + " ZIP files (" + totalSize + " bytes). Success: " + response.getSuccessfulPatients().size() + ", Errors: " + response.getErrors().size());
-            
+
+            saveAuditLog(userId, "DICOM ZIP Upload",
+                    "Uploaded " + files.size() + " ZIP files (" + totalSize + " bytes). Success: "
+                            + response.getSuccessfulPatients().size() + ", Errors: " + response.getErrors().size());
+
             return response;
         } catch (Exception e) {
             saveAuditLog(userId, "DICOM ZIP Upload Failed", "Error saving uploaded ZIP files: " + e.getMessage());
@@ -288,7 +299,8 @@ public class DicomServiceImpl implements DicomService {
     }
 
     @Override
-    public BatchDicomUploadResponse processMultipleZipBatches(List<Path> zipFilePaths, Long userId, String uploadSessionId) {
+    public BatchDicomUploadResponse processMultipleZipBatches(List<Path> zipFilePaths, Long userId,
+            String uploadSessionId) {
         log.info("Starting background processing of {} ZIP batches", zipFilePaths.size());
         if (userId != null) {
             notificationService.sendNotification(new SendNotificationRequest(
@@ -301,7 +313,7 @@ public class DicomServiceImpl implements DicomService {
         Path workDir = null;
         try {
             workDir = Files.createTempDirectory("zip_batch_work_");
-            
+
             for (Path zipFilePath : zipFilePaths) {
                 unzipFile(zipFilePath, workDir);
             }
@@ -435,10 +447,11 @@ public class DicomServiceImpl implements DicomService {
 
                 try {
                     if (!isDicomFile(tempFile)) {
-                        errors.add(new FileUploadError(originalFilename, "Tệp tin không đúng định dạng DICOM hoặc bị lỗi cấu trúc."));
+                        errors.add(new FileUploadError(originalFilename,
+                                "Tệp tin không đúng định dạng DICOM hoặc bị lỗi cấu trúc."));
                         continue;
                     }
-                    
+
                     String patientId = null;
                     String patientName = null;
                     Date patientBirthDate = null;
@@ -655,7 +668,8 @@ public class DicomServiceImpl implements DicomService {
                         notificationService.sendNotification(new SendNotificationRequest(
                                 userId,
                                 "Tải lên DICOM hoàn tất (có lỗi)",
-                                "Đã xử lý xong nhưng có " + errors.size() + " file bị lỗi. Vui lòng xem chi tiết trên giao diện.",
+                                "Đã xử lý xong nhưng có " + errors.size()
+                                        + " file bị lỗi. Vui lòng xem chi tiết trên giao diện.",
                                 "DICOM_BATCH_RESULT",
                                 null));
                     } else {
@@ -692,7 +706,7 @@ public class DicomServiceImpl implements DicomService {
         return stringRedisTemplate.opsForValue().get("uploadSession:" + sessionId);
     }
 
-    private boolean isDicomFile(Path path) {
+    protected boolean isDicomFile(Path path) {
         try (InputStream is = Files.newInputStream(path)) {
             is.skip(128);
             byte[] b = new byte[4];
@@ -707,7 +721,7 @@ public class DicomServiceImpl implements DicomService {
         return false;
     }
 
-    private boolean isZipFile(Path path) {
+    protected boolean isZipFile(Path path) {
         try (InputStream is = Files.newInputStream(path)) {
             byte[] b = new byte[4];
             int read = is.read(b);
@@ -720,5 +734,3 @@ public class DicomServiceImpl implements DicomService {
         return false;
     }
 }
-
-
