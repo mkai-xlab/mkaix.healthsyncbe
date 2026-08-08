@@ -15,6 +15,9 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -326,5 +329,88 @@ public class PatientServiceImplTest {
         assertNotNull(res);
         assertEquals(1, res.content().size());
         verify(patientRepository).findPatientsByUploadDateAndDoctor(any(), any(), eq(99L), any());
+    }
+
+    @Test
+    void getPatientDetailsWithImagesMapsExaminationsImagesAndWritesAuditLog() {
+        Patient patient = new Patient();
+        patient.setId(5L);
+        patient.setPatientCode("PAT_001");
+        User admin = new User();
+        admin.setUsername("admin");
+        Role role = new Role();
+        role.setCode("ADMIN");
+        admin.setRole(role);
+        Examination examination = new Examination();
+        examination.setId(11L);
+        examination.setEncounterCode("ENC-11");
+        examination.setStatus(ExaminationStatus.VERIFIED);
+        DicomInstance instance = new DicomInstance();
+        instance.setId(21L);
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/patients/PAT_001");
+        request.setContextPath("/api/v1");
+        request.setServerName("localhost");
+        request.setServerPort(8080);
+        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
+        when(patientRepository.findByPatientCode("PAT_001")).thenReturn(Optional.of(patient));
+        when(userRepository.findByUsername("admin")).thenReturn(Optional.of(admin));
+        when(patientMapper.toResponse(patient)).thenReturn(new PatientResponse());
+        when(examinationRepository.findByPatientIdOrderByCreatedAtDesc(5L)).thenReturn(List.of(examination));
+        when(dicomInstanceRepository.findByExaminationId(11L)).thenReturn(List.of(instance));
+
+        try {
+            PatientDetailsResponse result = patientService.getPatientDetailsWithImages("PAT_001", "admin");
+
+            assertEquals(1, result.getRecentExaminations().size());
+            assertEquals(1, result.getRecentExaminations().getFirst().getImages().size());
+            assertEquals(true, result.getRecentExaminations().getFirst().getThumbnailUrl().endsWith("/dicom/instances/21/image"));
+            verify(auditLogRepository).save(any(AuditLog.class));
+        } finally {
+            RequestContextHolder.resetRequestAttributes();
+        }
+    }
+
+    @Test
+    void getPatientDetailsWithImagesRejectsDoctorWithoutPatientAccess() {
+        Patient patient = new Patient();
+        patient.setId(5L);
+        patient.setPatientCode("PAT_001");
+        User doctor = new User();
+        doctor.setId(9L);
+        Role role = new Role();
+        role.setCode("DOCTOR");
+        doctor.setRole(role);
+        when(patientRepository.findByPatientCode("PAT_001")).thenReturn(Optional.of(patient));
+        when(userRepository.findByUsername("doctor")).thenReturn(Optional.of(doctor));
+        when(examinationRepository.existsByPatientIdAndDoctorId(5L, 9L)).thenReturn(false);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> patientService.getPatientDetailsWithImages("PAT_001", "doctor"));
+
+        verify(auditLogRepository, never()).save(any());
+    }
+
+    @Test
+    void getPatientDetailsWithImagesRejectsUnknownPatient() {
+        when(patientRepository.findByPatientCode("MISSING")).thenReturn(Optional.empty());
+
+        assertThrows(IllegalArgumentException.class,
+                () -> patientService.getPatientDetailsWithImages("MISSING", null));
+    }
+
+    @Test
+    void getPatientDetailsWithImagesAllowsNullUsernameAndReturnsEmptyExaminations() {
+        Patient patient = new Patient();
+        patient.setId(5L);
+        patient.setPatientCode("PAT_001");
+        when(patientRepository.findByPatientCode("PAT_001")).thenReturn(Optional.of(patient));
+        when(patientMapper.toResponse(patient)).thenReturn(new PatientResponse());
+        when(examinationRepository.findByPatientIdOrderByCreatedAtDesc(5L)).thenReturn(List.of());
+
+        PatientDetailsResponse result = patientService.getPatientDetailsWithImages("PAT_001", null);
+
+        assertNotNull(result);
+        assertEquals(0, result.getRecentExaminations().size());
+        verify(auditLogRepository, never()).save(any());
     }
 }

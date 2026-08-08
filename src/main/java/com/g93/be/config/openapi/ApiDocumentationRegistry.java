@@ -46,6 +46,7 @@ final class ApiDocumentationRegistry {
                 registerReports();
                 registerNotifications();
                 registerAccessManagement();
+                registerRag();
                 registerSystemAndFiles();
         }
 
@@ -308,6 +309,9 @@ final class ApiDocumentationRegistry {
         }
 
         private void registerAccessManagement() {
+                add("RoleController", "getAllRoles", "Access management", "List roles",
+                                "Return all roles for administrator role assignment and management.", "200",
+                                "Role list", "ROLE_LIST", null, ResponseKind.JSON);
                 add("PermissionController", "getPermissionTree", "Phân quyền", "Lấy cây permission",
                                 "Trả feature và permission theo cấu trúc dùng cho màn hình phân quyền.", "200",
                                 "Cây feature/permission", "FEATURE_LIST", null, ResponseKind.JSON);
@@ -337,6 +341,33 @@ final class ApiDocumentationRegistry {
                 add("FeatureController", "deleteFeature", "Tính năng", "Xóa feature",
                                 "Xóa feature cùng các permission và quan hệ phụ thuộc liên quan.", "204",
                                 "Xóa thành công, không có response body", null, null, ResponseKind.VOID);
+        }
+
+        private void registerRag() {
+                addMultipart("KnowledgeController", "upload", "Medical knowledge", "Upload medical knowledge",
+                                "Upload one medical knowledge file for asynchronous indexing.", "202",
+                                "Knowledge document accepted for indexing", null, ResponseKind.JSON);
+                addMultipart("KnowledgeController", "uploadBatch", "Medical knowledge", "Upload medical knowledge batch",
+                                "Upload multiple medical knowledge files for asynchronous indexing.", "202",
+                                "Knowledge document batch accepted for indexing", null, ResponseKind.JSON);
+                add("KnowledgeController", "addUrl", "Medical knowledge", "Add knowledge URL",
+                                "Register a knowledge source URL for asynchronous indexing.", "202",
+                                "Knowledge URL accepted for indexing", null, null, ResponseKind.JSON);
+                add("KnowledgeController", "getAll", "Medical knowledge", "List knowledge documents",
+                                "List uploaded and registered knowledge documents with their indexing status.", "200",
+                                "Knowledge documents", null, null, ResponseKind.JSON);
+                add("KnowledgeController", "reindex", "Medical knowledge", "Reindex a knowledge document",
+                                "Queue an existing knowledge document for indexing again.", "202",
+                                "Knowledge document accepted for reindexing", null, null, ResponseKind.JSON);
+                add("KnowledgeController", "syncReport", "Medical knowledge", "Sync an approved report",
+                                "Queue an approved examination report as a knowledge source.", "202",
+                                "Report accepted for indexing", null, null, ResponseKind.JSON);
+                add("KnowledgeController", "delete", "Medical knowledge", "Delete a knowledge document",
+                                "Delete a knowledge document and its indexed content.", "204",
+                                "Knowledge document deleted", null, null, ResponseKind.VOID);
+                add("ChatController", "ask", "AI chat", "Ask a medical question",
+                                "Route a question to business or medical RAG chat and return the generated answer.", "200",
+                                "Chat answer", null, null, ResponseKind.JSON);
         }
 
         private void registerSystemAndFiles() {

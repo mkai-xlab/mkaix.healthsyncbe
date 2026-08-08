@@ -182,6 +182,9 @@ final class ApiExamples {
             Map.entry("FEATURE_LIST", json("""
                     [{"id":7,"name":"Reporting & Export","description":"Lập báo cáo kết quả","permissions":[{"id":12,"code":"GENERATE_PDF_REPORT","name":"Tạo báo cáo PDF","priority":12,"requiresPermissionId":null}]}]
                     """)),
+            Map.entry("ROLE_LIST", json("""
+                    [{"id":1,"code":"ADMIN","name":"Administrator"},{"id":2,"code":"DOCTOR","name":"Medical Doctor"},{"id":3,"code":"PATIENT","name":"Patient"}]
+                    """)),
             Map.entry("ROLE_PERMISSIONS_REQUEST", json("""
                     {"permissionIds":[1,2,3,14,15,22]}
                     """)),
