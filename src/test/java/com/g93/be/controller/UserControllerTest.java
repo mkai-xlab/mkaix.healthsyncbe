@@ -7,6 +7,7 @@ import com.g93.be.service.UserService;
 import com.g93.be.exception.GlobalExceptionHandler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -46,7 +47,8 @@ class UserControllerTest {
         createUserRequest = new CreateUserRequest();
         createUserRequest.setEmail("testuser@example.com");
         createUserRequest.setFullName("Test User");
-        createUserRequest.setRoleId(2L); // 2: DOCTOR
+        createUserRequest.setRoleId(2L);
+        createUserRequest.setPhone("0123456789"); // 2: DOCTOR
 
         userResponse = new UserResponse();
         userResponse.setId(1L);

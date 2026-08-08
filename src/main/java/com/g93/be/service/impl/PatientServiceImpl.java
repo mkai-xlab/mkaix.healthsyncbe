@@ -1,5 +1,7 @@
 package com.g93.be.service.impl;
 
+import org.springframework.security.access.AccessDeniedException;
+
 import com.g93.be.entity.DicomInstance;
 import com.g93.be.dto.*;
 import com.g93.be.entity.*;
@@ -47,7 +49,7 @@ public class PatientServiceImpl implements PatientService {
                 
                 if ("DOCTOR".equals(role)) {
                     if (Boolean.FALSE.equals(isPersonal)) {
-                        throw new org.springframework.security.access.AccessDeniedException("Bạn không có quyền xem toàn bộ danh sách bệnh nhân của hệ thống.");
+                        throw new AccessDeniedException("Bạn không có quyền xem toàn bộ danh sách bệnh nhân của hệ thống.");
                     }
                     doctorId = user.getId();
                 } else if (Boolean.TRUE.equals(isPersonal)) {
