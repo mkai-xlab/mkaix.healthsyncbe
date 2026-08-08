@@ -83,6 +83,9 @@ public class OpenApiConfig {
                         .description("API quản lý ca khám, DICOM, kết quả AI và báo cáo y khoa."))
                 .components(components)
                 .tags(List.of(
+                        tag("Access management", "Manage roles and access assignments."),
+                        tag("Medical knowledge", "Manage medical knowledge sources and indexing."),
+                        tag("AI chat", "Ask business and medical questions through AI chat."),
                         tag("Xác thực", "Đăng nhập, đăng xuất và quản lý mật khẩu."),
                         tag("Bác sĩ", "Quản lý tài khoản và hồ sơ bác sĩ."),
                         tag("Người dùng", "Quản lý tài khoản người dùng."),

@@ -346,28 +346,28 @@ final class ApiDocumentationRegistry {
         private void registerRag() {
                 addMultipart("KnowledgeController", "upload", "Medical knowledge", "Upload medical knowledge",
                                 "Upload one medical knowledge file for asynchronous indexing.", "202",
-                                "Knowledge document accepted for indexing", null, ResponseKind.JSON);
+                                "Knowledge document accepted for indexing", "KNOWLEDGE_DOCUMENT", ResponseKind.JSON);
                 addMultipart("KnowledgeController", "uploadBatch", "Medical knowledge", "Upload medical knowledge batch",
                                 "Upload multiple medical knowledge files for asynchronous indexing.", "202",
-                                "Knowledge document batch accepted for indexing", null, ResponseKind.JSON);
+                                "Knowledge document batch accepted for indexing", "KNOWLEDGE_BATCH", ResponseKind.JSON);
                 add("KnowledgeController", "addUrl", "Medical knowledge", "Add knowledge URL",
                                 "Register a knowledge source URL for asynchronous indexing.", "202",
-                                "Knowledge URL accepted for indexing", null, null, ResponseKind.JSON);
+                                "Knowledge URL accepted for indexing", "KNOWLEDGE_DOCUMENT", null, ResponseKind.JSON);
                 add("KnowledgeController", "getAll", "Medical knowledge", "List knowledge documents",
                                 "List uploaded and registered knowledge documents with their indexing status.", "200",
-                                "Knowledge documents", null, null, ResponseKind.JSON);
+                                "Knowledge documents", "KNOWLEDGE_LIST", null, ResponseKind.JSON);
                 add("KnowledgeController", "reindex", "Medical knowledge", "Reindex a knowledge document",
                                 "Queue an existing knowledge document for indexing again.", "202",
-                                "Knowledge document accepted for reindexing", null, null, ResponseKind.JSON);
+                                "Knowledge document accepted for reindexing", "KNOWLEDGE_DOCUMENT", null, ResponseKind.JSON);
                 add("KnowledgeController", "syncReport", "Medical knowledge", "Sync an approved report",
                                 "Queue an approved examination report as a knowledge source.", "202",
-                                "Report accepted for indexing", null, null, ResponseKind.JSON);
+                                "Report accepted for indexing", "KNOWLEDGE_DOCUMENT", null, ResponseKind.JSON);
                 add("KnowledgeController", "delete", "Medical knowledge", "Delete a knowledge document",
                                 "Delete a knowledge document and its indexed content.", "204",
                                 "Knowledge document deleted", null, null, ResponseKind.VOID);
                 add("ChatController", "ask", "AI chat", "Ask a medical question",
                                 "Route a question to business or medical RAG chat and return the generated answer.", "200",
-                                "Chat answer", null, null, ResponseKind.JSON);
+                                "Chat answer", "CHAT_ANSWER", null, ResponseKind.JSON);
         }
 
         private void registerSystemAndFiles() {

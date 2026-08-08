@@ -406,11 +406,20 @@ public class PatientServiceImplTest {
         when(patientRepository.findByPatientCode("PAT_001")).thenReturn(Optional.of(patient));
         when(patientMapper.toResponse(patient)).thenReturn(new PatientResponse());
         when(examinationRepository.findByPatientIdOrderByCreatedAtDesc(5L)).thenReturn(List.of());
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v1/patients/PAT_001");
+        request.setContextPath("/api/v1");
+        request.setServerName("localhost");
+        request.setServerPort(8080);
+        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
 
-        PatientDetailsResponse result = patientService.getPatientDetailsWithImages("PAT_001", null);
+        try {
+            PatientDetailsResponse result = patientService.getPatientDetailsWithImages("PAT_001", null);
 
-        assertNotNull(result);
-        assertEquals(0, result.getRecentExaminations().size());
-        verify(auditLogRepository, never()).save(any());
+            assertNotNull(result);
+            assertEquals(0, result.getRecentExaminations().size());
+            verify(auditLogRepository, never()).save(any());
+        } finally {
+            RequestContextHolder.resetRequestAttributes();
+        }
     }
 }
