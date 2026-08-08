@@ -71,6 +71,8 @@ class DataInitializerTest {
 
         when(roleRepository.findByCode("ADMIN"))
                 .thenReturn(Optional.empty(), Optional.of(adminRole));
+        when(roleRepository.findByCode("DOCTOR"))
+                .thenReturn(Optional.of(role(2L, "DOCTOR")));
         when(roleRepository.findByCode("HEAD_OF_DEPARTMENT"))
                 .thenReturn(Optional.of(headOfDepartmentRole));
         when(userRepository.findByUsername("admin")).thenReturn(Optional.of(adminUser));
@@ -176,12 +178,12 @@ class DataInitializerTest {
         dataInitializer.run();
 
         ArgumentCaptor<RolePermission> assignment = ArgumentCaptor.forClass(RolePermission.class);
-        verify(rolePermissionRepository, times(2)).save(assignment.capture());
+        verify(rolePermissionRepository, times(4)).save(assignment.capture());
         assertEquals(Set.of("USE_AI_CHAT", "MANAGE_MEDICAL_KNOWLEDGE"),
                 assignment.getAllValues().stream()
                         .map(saved -> saved.getPermission().getCode())
                         .collect(java.util.stream.Collectors.toSet()));
-        assertEquals(Set.of("DOCTOR"),
+        assertEquals(Set.of("DOCTOR", "HEAD_OF_DEPARTMENT"),
                 assignment.getAllValues().stream()
                         .map(saved -> saved.getRole().getCode())
                         .collect(java.util.stream.Collectors.toSet()));
