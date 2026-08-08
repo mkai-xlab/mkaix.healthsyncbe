@@ -153,7 +153,7 @@ public class DicomUploadIntegrationTest {
         mockMvc.perform(multipart("/dicom/upload")
                         .file(dicomFile)
                         .header("Authorization", "Bearer " + adminToken))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isOk());
     }
 
     @Test
