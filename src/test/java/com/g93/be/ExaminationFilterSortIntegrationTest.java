@@ -272,8 +272,6 @@ public class ExaminationFilterSortIntegrationTest {
         mockMvc.perform(get("/examinations/filter/upload-date")
                 .param("date", tomorrow)
                 .header("Authorization", "Bearer " + headOfDepartmentToken))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content", hasSize(0)))
-                .andExpect(jsonPath("$.totalElements", is(0)));
+                .andExpect(status().isBadRequest());
     }
 }

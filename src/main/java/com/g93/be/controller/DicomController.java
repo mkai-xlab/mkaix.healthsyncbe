@@ -1,4 +1,8 @@
 package com.g93.be.controller;
+
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import org.springframework.security.access.AccessDeniedException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.g93.be.dto.BatchDicomUploadResponse;
 import com.g93.be.dto.DicomUploadSessionDTO;
@@ -31,8 +35,8 @@ import java.security.Principal;
 public class DicomController {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
-            .registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule())
-            .disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+            .registerModule(new JavaTimeModule())
+            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
     private final DicomService dicomService;
     private final DicomInstanceRepository dicomInstanceRepository;
@@ -65,11 +69,11 @@ public class DicomController {
             Principal principal) {
         log.info("Received request to upload batch of {} DICOM files", files.size());
         if (principal == null || principal.getName() == null) {
-            throw new org.springframework.security.access.AccessDeniedException(
+            throw new AccessDeniedException(
                     "Authenticated user was not found");
         }
         User user = userRepository.findByUsername(principal.getName())
-                .orElseThrow(() -> new org.springframework.security.access.AccessDeniedException(
+                .orElseThrow(() -> new AccessDeniedException(
                         "Authenticated user was not found"));
         BatchDicomUploadResponse response = dicomService.uploadBatchFiles(files, user.getUsername());
         return ResponseEntity.ok(response);
@@ -83,11 +87,11 @@ public class DicomController {
         log.info("Received request to upload ZIP batch DICOM file");
         try {
             if (principal == null || principal.getName() == null) {
-                throw new org.springframework.security.access.AccessDeniedException(
+                throw new AccessDeniedException(
                         "Authenticated user was not found");
             }
             User user = userRepository.findByUsername(principal.getName())
-                    .orElseThrow(() -> new org.springframework.security.access.AccessDeniedException(
+                    .orElseThrow(() -> new AccessDeniedException(
                             "Authenticated user was not found"));
             BatchDicomUploadResponse response = dicomService.uploadZipBatchFiles(files, user.getUsername());
             return ResponseEntity.ok(response);
@@ -123,7 +127,7 @@ public class DicomController {
         }
         User user = principal == null ? null : userRepository.findByUsername(principal.getName()).orElse(null);
         if (user == null || !canAccessUploadSession(sessionJson, user)) {
-            throw new org.springframework.security.access.AccessDeniedException(
+            throw new AccessDeniedException(
                     "You are not allowed to access this upload session");
         }
         return ResponseEntity.ok(sessionJson);

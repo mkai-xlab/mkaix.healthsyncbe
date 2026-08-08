@@ -13,7 +13,7 @@ import java.lang.reflect.Method;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -28,7 +28,7 @@ class AuthControllerLoginTest {
         boolean hasValidAnnotation = List.of(parameterAnnotations).stream()
                 .anyMatch(annotation -> annotation.annotationType().equals(Valid.class));
 
-        assertFalse(hasValidAnnotation);
+        assertTrue(hasValidAnnotation);
     }
 
     @Test

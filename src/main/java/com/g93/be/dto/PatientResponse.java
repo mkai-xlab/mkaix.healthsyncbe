@@ -1,5 +1,7 @@
 package com.g93.be.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import com.g93.be.entity.Gender;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -27,7 +29,7 @@ public class PatientResponse {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    @com.fasterxml.jackson.annotation.JsonProperty("patient_id")
+    @JsonProperty("patient_id")
     public String getPatientId() {
         return patientCode;
     }

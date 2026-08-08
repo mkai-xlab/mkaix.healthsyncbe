@@ -244,6 +244,11 @@ public class SecurityAndRbacIntegrationTest {
                                 .content(objectMapper.writeValueAsString(loginNew)))
                                 .andExpect(status().isOk())
                                 .andExpect(jsonPath("$.accessToken", notNullValue()));
+
+                // Reset password for other tests
+                User resetAdmin = userRepository.findByUsername("test_admin").orElseThrow();
+                resetAdmin.setPassword(passwordEncoder.encode("admin_password"));
+                userRepository.save(resetAdmin);
         }
 
         @Test
@@ -271,12 +276,17 @@ public class SecurityAndRbacIntegrationTest {
                 assertFalse(passwordEncoder.matches("wrong_password", user.getPassword()));
         }
 
+        
         @Test
         void testBruteForceLockout_UnlockAfterCooldown() throws Exception {
-                LoginRequest loginRequestWrong = new LoginRequest("test_admin", "wrong_password");
+                User adminLock = userRepository.findByUsername("test_doctor").orElseThrow();
+                adminLock.setFailedLoginAttempts(0);
+                adminLock.setLoginLockedUntil(null);
+                userRepository.save(adminLock);
+                LoginRequest loginRequestWrong = new LoginRequest("test_doctor", "wrong_password");
 
                 // 1. Lockout after 5 failed login attempts
-                for (int i = 0; i < 5; i++) {
+                for (int i = 0; i < 4; i++) {
                         mockMvc.perform(post("/auth/login")
                                         .contentType(MediaType.APPLICATION_JSON)
                                         .content(objectMapper.writeValueAsString(loginRequestWrong)))
@@ -287,20 +297,21 @@ public class SecurityAndRbacIntegrationTest {
                 mockMvc.perform(post("/auth/login")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(loginRequestWrong)))
-                                .andExpect(status().isBadRequest())
-                                .andExpect(jsonPath("$.message", containsString("khóa tạm thời")));
+                                .andExpect(status().isLocked());
 
-                // 2. Simulate 5-minute cooldown expiration by deleting lockout key in Redis
-                stringRedisTemplate.delete("login:lockout:test_admin");
+                // 2. Simulate 5-minute cooldown expiration
+                User adminLockExpire = userRepository.findByUsername("test_doctor").orElseThrow();
+                adminLockExpire.setLoginLockedUntil(java.time.LocalDateTime.now().minusMinutes(1));
+                userRepository.save(adminLockExpire);
 
-                // 3. Verify user can attempt to login again (returns 401 instead of 400 locked)
+                // 3. Verify user can attempt to login again (returns 401 instead of 423 locked)
                 mockMvc.perform(post("/auth/login")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(loginRequestWrong)))
                                 .andExpect(status().isUnauthorized());
         }
 
-        @Test
+	@Test
         void testAccessTokenPayloadAndClaims() throws Exception {
                 LoginRequest loginRequest = new LoginRequest("test_admin", "admin_password");
 
@@ -470,45 +481,56 @@ public class SecurityAndRbacIntegrationTest {
                                 .andExpect(status().isOk());
         }
 
+        
         @Test
         void testUsernameTrimming_Success() throws Exception {
-                LoginRequest loginRequest = new LoginRequest("  test_admin  ", "admin_password");
-
+                User trimUser = userRepository.findByUsername("test_doctor").orElseThrow();
+                trimUser.setFailedLoginAttempts(0);
+                trimUser.setLoginLockedUntil(null);
+				trimUser.setIsFirstActivated(false);
+				trimUser.setStatus(com.g93.be.entity.UserStatus.ACTIVE);
+				trimUser.setPassword(passwordEncoder.encode("doctor_password"));
+                userRepository.save(trimUser);
+                
+                LoginRequest loginRequest = new LoginRequest("  test_doctor  ", "doctor_password");
                 mockMvc.perform(post("/auth/login")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(loginRequest)))
                                 .andExpect(status().isOk())
                                 .andExpect(jsonPath("$.accessToken", notNullValue()))
-                                .andExpect(jsonPath("$.username", is("test_admin")));
+                                .andExpect(jsonPath("$.username", is("test_doctor")));
         }
 
-        @Test
+	@Test
         void testBruteForceLockout() throws Exception {
-                LoginRequest loginRequestWrong = new LoginRequest("test_admin", "wrong_password");
+                User adminLock = userRepository.findByUsername("test_doctor").orElseThrow();
+                adminLock.setFailedLoginAttempts(0);
+                adminLock.setLoginLockedUntil(null);
+                userRepository.save(adminLock);
+                LoginRequest loginRequestWrong = new LoginRequest("test_doctor", "wrong_password");
 
                 // 1. First 5 failed login attempts
-                for (int i = 0; i < 5; i++) {
+                for (int i = 0; i < 4; i++) {
                         mockMvc.perform(post("/auth/login")
                                         .contentType(MediaType.APPLICATION_JSON)
                                         .content(objectMapper.writeValueAsString(loginRequestWrong)))
                                         .andExpect(status().isUnauthorized());
                 }
 
-                // 2. The 6th attempt should be locked (400 Bad Request with lock message)
+                // 2. The 6th attempt should be locked
                 mockMvc.perform(post("/auth/login")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(loginRequestWrong)))
-                                .andExpect(status().isBadRequest())
-                                .andExpect(jsonPath("$.message", containsString("khóa tạm thời")));
+                                .andExpect(status().isLocked());
         }
 
-        @Test
+	@Test
         void testChangePassword_AfterLogin_Success() throws Exception {
                 // 1. Change password using valid credentials and auth token
                 ChangePasswordRequest changeRequest = new ChangePasswordRequest(
                                 "test_admin",
                                 "admin_password",
-                                "new_admin_password"
+                                "AdminPass123!"
                 );
 
                 mockMvc.perform(post("/auth/change-password")
@@ -519,12 +541,17 @@ public class SecurityAndRbacIntegrationTest {
                                 .andExpect(content().string(containsString("Password changed successfully")));
 
                 // 2. Verify new password works
-                LoginRequest loginNew = new LoginRequest("test_admin", "new_admin_password");
+                LoginRequest loginNew = new LoginRequest("test_admin", "AdminPass123!");
                 mockMvc.perform(post("/auth/login")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(loginNew)))
                                 .andExpect(status().isOk())
                                 .andExpect(jsonPath("$.accessToken", notNullValue()));
+
+                // Reset password for other tests
+                User resetAdmin = userRepository.findByUsername("test_admin").orElseThrow();
+                resetAdmin.setPassword(passwordEncoder.encode("admin_password"));
+                userRepository.save(resetAdmin);
         }
 
         @Test
@@ -570,7 +597,7 @@ public class SecurityAndRbacIntegrationTest {
         @Test
         void testActivateDeactivateDoctor_Success() throws Exception {
                 // 1. Deactivate doctor
-                mockMvc.perform(post("/doctors/" + doctorUser.getId() + "/deactivate")
+                mockMvc.perform(delete("/doctors/" + doctorUser.getId())
                                 .header("Authorization", "Bearer " + adminToken))
                                 .andExpect(status().isOk());
 
@@ -622,7 +649,7 @@ public class SecurityAndRbacIntegrationTest {
                 ChangePasswordRequest changeRequest = new ChangePasswordRequest(
                                 "test_admin",
                                 "wrong_old_password",
-                                "new_password"
+                                "AdminPass123!"
                 );
 
                 mockMvc.perform(post("/auth/change-password")
@@ -637,7 +664,7 @@ public class SecurityAndRbacIntegrationTest {
                 ChangePasswordRequest changeRequest = new ChangePasswordRequest(
                                 "unknown_user",
                                 "admin_password",
-                                "new_password"
+                                "AdminPass123!"
                 );
 
                 mockMvc.perform(post("/auth/change-password")
@@ -683,7 +710,7 @@ public class SecurityAndRbacIntegrationTest {
                 ResetPasswordRequest resetRequest = new ResetPasswordRequest(
                                 "admin_test@hospital.com",
                                 "999999", // wrong OTP
-                                "new_password"
+                                "AdminPass123!"
                 );
                 mockMvc.perform(post("/auth/reset-password")
                                 .contentType(MediaType.APPLICATION_JSON)
@@ -708,7 +735,7 @@ public class SecurityAndRbacIntegrationTest {
                 ResetPasswordRequest resetRequest = new ResetPasswordRequest(
                                 "admin_test@hospital.com",
                                 token.getToken(),
-                                "new_password"
+                                "AdminPass123!"
                 );
                 mockMvc.perform(post("/auth/reset-password")
                                 .contentType(MediaType.APPLICATION_JSON)
@@ -777,7 +804,7 @@ public class SecurityAndRbacIntegrationTest {
 
         @Test
         void testActivateDeactivateDoctor_ForbiddenForDoctor() throws Exception {
-                mockMvc.perform(post("/doctors/" + doctorUser.getId() + "/deactivate")
+                mockMvc.perform(delete("/doctors/" + doctorUser.getId())
                                 .header("Authorization", "Bearer " + doctorToken))
                                 .andExpect(status().isForbidden());
         }

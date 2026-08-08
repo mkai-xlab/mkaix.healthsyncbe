@@ -17,7 +17,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+import org.springframework.security.access.AccessDeniedException;
 
 @Service
 @RequiredArgsConstructor
@@ -34,6 +37,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
+    @com.g93.be.aspect.LogAction("CREATE_USER")
     public UserResponse createUser(CreateUserRequest request) {
         log.info("Creating user with email: {}", request.getEmail());
 
@@ -41,10 +45,8 @@ public class UserServiceImpl implements UserService {
             throw new IllegalArgumentException("Email is already registered");
         }
 
-        if (request.getPhone() != null && !request.getPhone().isBlank()) {
-            if (userRepository.findByPhone(request.getPhone()).isPresent()) {
-                throw new IllegalArgumentException("Phone '" + request.getPhone() + "' is already registered");
-            }
+        if (userRepository.findByPhone(request.getPhone()).isPresent()) {
+            throw new IllegalArgumentException("Phone '" + request.getPhone() + "' is already registered");
         }
 
         // Validate role
@@ -84,11 +86,11 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public java.util.List<UserResponse> getStaffList() {
+    public List<UserResponse> getStaffList() {
         log.info("Fetching medical staff list");
-        java.util.List<User> staffUsers = userRepository
-                .findByRoleCodeIn(java.util.List.of("HEAD_OF_DEPARTMENT", "DEPARTMENT_HEAD", "DOCTOR"));
-        return staffUsers.stream().map(this::mapToResponse).collect(java.util.stream.Collectors.toList());
+        List<User> staffUsers = userRepository
+                .findByRoleCodeIn(List.of("HEAD_OF_DEPARTMENT", "DOCTOR"));
+        return staffUsers.stream().map(this::mapToResponse).collect(Collectors.toList());
     }
 
     @Override
@@ -97,8 +99,8 @@ public class UserServiceImpl implements UserService {
                 .orElseThrow(() -> new RuntimeException("User not found"));
         String currentRole = currentUser.getRole().getCode();
 
-        if (!currentRole.equals("ADMIN") && !currentRole.equals("HEAD_OF_DEPARTMENT") && !currentRole.equals("DEPARTMENT_HEAD")) {
-            throw new org.springframework.security.access.AccessDeniedException("Only Admin or Head of Department can view the total number of doctors.");
+        if (!currentRole.equals("ADMIN") && !currentRole.equals("HEAD_OF_DEPARTMENT")) {
+            throw new AccessDeniedException("Only Admin or Head of Department can view the total number of doctors.");
         }
 
         return userRepository.countByRoleCode("DOCTOR");
@@ -110,10 +112,10 @@ public class UserServiceImpl implements UserService {
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         if (!currentUser.getRole().getCode().equals("ADMIN")) {
-            throw new org.springframework.security.access.AccessDeniedException("Only Admin can view the total number of heads of department.");
+            throw new AccessDeniedException("Only Admin can view the total number of heads of department.");
         }
 
-        return userRepository.countByRoleCode("HEAD_OF_DEPARTMENT") + userRepository.countByRoleCode("DEPARTMENT_HEAD");
+        return userRepository.countByRoleCode("HEAD_OF_DEPARTMENT");
     }
 
     private String generateUniqueUsername(String email) {

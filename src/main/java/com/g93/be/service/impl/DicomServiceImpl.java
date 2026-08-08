@@ -1,5 +1,7 @@
 package com.g93.be.service.impl;
 
+import com.fasterxml.jackson.databind.SerializationFeature;
+
 import com.g93.be.dto.BatchDicomUploadResponse;
 import com.g93.be.dto.FileUploadError;
 import com.g93.be.dto.PatientDetailsResponse;
@@ -78,7 +80,7 @@ public class DicomServiceImpl implements DicomService {
 
     private static final ObjectMapper objectMapper = new ObjectMapper()
             .registerModule(new JavaTimeModule())
-            .disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
     @Value("${app.storage.base-dir:D:/Capstone/data}")
     private String storageBaseDir;

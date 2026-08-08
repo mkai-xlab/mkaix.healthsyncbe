@@ -26,6 +26,7 @@ import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.security.access.AccessDeniedException;
 
 import java.util.List;
+import com.g93.be.dto.VerifySessionResultDto;
 import java.util.Map;
 import java.util.Optional;
 
@@ -92,9 +93,9 @@ class DicomVerifyServiceAccessTest {
         stubSession("session-own", 7L);
         when(stringRedisTemplate.opsForZSet()).thenReturn(zSetOperations);
 
-        List<Long> instanceIds = dicomVerifyService.verifySession(request, 7L, false);
+        VerifySessionResultDto result = dicomVerifyService.verifySession(request, 7L, false);
 
-        assertEquals(List.of(), instanceIds);
+        assertEquals(List.of(), result.getSavedInstanceIds());
         verify(stringRedisTemplate).delete("uploadSession:session-own");
         verify(zSetOperations).remove("uploadSessionTimeouts", "session-own");
     }
@@ -105,9 +106,9 @@ class DicomVerifyServiceAccessTest {
         stubSession("session-head", 7L);
         when(stringRedisTemplate.opsForZSet()).thenReturn(zSetOperations);
 
-        List<Long> instanceIds = dicomVerifyService.verifySession(request, 1L, true);
+        VerifySessionResultDto result = dicomVerifyService.verifySession(request, 1L, true);
 
-        assertEquals(List.of(), instanceIds);
+        assertEquals(List.of(), result.getSavedInstanceIds());
     }
 
     @Test
@@ -137,3 +138,4 @@ class DicomVerifyServiceAccessTest {
                 .thenReturn(new ObjectMapper().writeValueAsString(session));
     }
 }
+

@@ -7,8 +7,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
+import com.g93.be.dto.VerifySessionResultDto;
 import java.security.Principal;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.access.AccessDeniedException;
 
 @RestController
 @RequestMapping("/dicom")
@@ -22,24 +24,21 @@ public class DicomVerifyController {
     @PreAuthorize("hasAnyRole('DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT') or (hasRole('DOCTOR') and hasAuthority('UPLOAD_DICOM_IMAGE') and hasAuthority('TRIGGER_AI_ANALYSIS'))")
     public ResponseEntity<?> verifyUploadSession(@RequestBody DicomVerifyRequest request, Principal principal) {
         if (principal == null || principal.getName() == null) {
-            throw new org.springframework.security.access.AccessDeniedException(
+            throw new AccessDeniedException(
                     "Authenticated user was not found");
         }
         User user = userRepository.findByUsername(principal.getName())
-                .orElseThrow(() -> new org.springframework.security.access.AccessDeniedException(
+                .orElseThrow(() -> new AccessDeniedException(
                         "Authenticated user was not found"));
         String roleCode = user.getRole() == null ? null : user.getRole().getCode();
         boolean privilegedUser = "DEPARTMENT_HEAD".equalsIgnoreCase(roleCode)
                 || "HEAD_OF_DEPARTMENT".equalsIgnoreCase(roleCode);
-        List<Long> savedInstanceIds = dicomVerifyService.verifySession(request, user.getId(), privilegedUser);
-        if (savedInstanceIds != null && !savedInstanceIds.isEmpty()) {
+        VerifySessionResultDto result = dicomVerifyService.verifySession(request, user.getId(), privilegedUser);
+        if (result.getSavedInstanceIds() != null && !result.getSavedInstanceIds().isEmpty()) {
             String username = (principal != null) ? principal.getName() : null;
-            dicomVerifyService.processVerifiedSessionAsync(savedInstanceIds, username);
-            
-            return ResponseEntity.ok(java.util.Map.of("message", "Xác nhận thành công, hệ thống đang xử lý AI"));
+            dicomVerifyService.processVerifiedSessionAsync(result.getSavedInstanceIds(), username);
         }
-        
-        return ResponseEntity.ok(java.util.Map.of("message", "Không có phiên ảnh nào được xác nhận"));
+        return ResponseEntity.ok(result);
     }
 }
 

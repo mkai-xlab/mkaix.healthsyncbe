@@ -1,4 +1,7 @@
 package com.g93.be.service.impl;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.g93.be.dto.ExaminationImageDto;
 
 
@@ -242,7 +245,7 @@ public class AiServiceImpl implements AiService {
                 log.error("HTTP error during AI prediction for instance {}", instanceId, e);
                 String errorMessage = e.getResponseBodyAsString();
                 try {
-                    com.fasterxml.jackson.databind.JsonNode rootNode = new com.fasterxml.jackson.databind.ObjectMapper().readTree(errorMessage);
+                    JsonNode rootNode = new ObjectMapper().readTree(errorMessage);
                     if (rootNode.has("detail")) {
                         errorMessage = rootNode.get("detail").asText();
                     }

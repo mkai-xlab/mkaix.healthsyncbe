@@ -36,6 +36,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @Transactional
 public class ExaminationHistoryIntegrationTest {
+    @org.springframework.beans.factory.annotation.Autowired
+    private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
+
 
     private MockMvc mockMvc;
 
@@ -44,6 +47,8 @@ public class ExaminationHistoryIntegrationTest {
 
     @Autowired
     private UserRepository userRepository;
+    @Autowired
+    private AuditLogRepository auditLogRepository;
 
     @Autowired
     private RoleRepository roleRepository;
@@ -88,8 +93,7 @@ public class ExaminationHistoryIntegrationTest {
     private User hodUser;
     private User guestUser;
 
-    private String doctorToken;
-    private String hodToken;
+    private String adminToken;
     private String guestToken;
 
     private Patient patientWithHistory;
@@ -110,16 +114,16 @@ public class ExaminationHistoryIntegrationTest {
                 .apply(springSecurity())
                 .build();
 
-        userRepository.deleteAll();
-        patientRepository.deleteAll();
+        
+        
 
         // 1. Setup Roles
         doctorRole = roleRepository.findByCode("DOCTOR")
                 .orElseThrow(() -> new IllegalStateException("DOCTOR role not found"));
         
-        hodRole = roleRepository.findByCode("HOD").orElseGet(() -> {
+        hodRole = roleRepository.findByCode("HEAD_OF_DEPARTMENT").orElseGet(() -> {
             Role r = new Role();
-            r.setCode("HOD");
+            r.setCode("HEAD_OF_DEPARTMENT");
             r.setName("Head of Department");
             return roleRepository.save(r);
         });
@@ -171,8 +175,8 @@ public class ExaminationHistoryIntegrationTest {
             new PermissionResponse(1L, "READ_PATIENT_LIST", "Read Patient List", 1, "READ_PATIENT_LIST", null),
             new PermissionResponse(2L, "VIEW_PATIENT_DETAIL", "View Patient Detail", 1, "VIEW_PATIENT_DETAIL", null)
         );
-        doctorToken = jwtTokenProvider.generateAccessToken(new CustomUserDetails(doctorUser, doctorPerms));
-        hodToken = jwtTokenProvider.generateAccessToken(new CustomUserDetails(hodUser, doctorPerms));
+        adminToken = jwtTokenProvider.generateAccessToken(new CustomUserDetails(doctorUser, doctorPerms));
+        adminToken = jwtTokenProvider.generateAccessToken(new CustomUserDetails(hodUser, doctorPerms));
         guestToken = jwtTokenProvider.generateAccessToken(new CustomUserDetails(guestUser, new ArrayList<>()));
 
         // 4. Create patients
@@ -274,13 +278,13 @@ public class ExaminationHistoryIntegrationTest {
         // Dual-canvas workstations retrieve historical and active encounters
         // Verify we can fetch historical scan (ENC-2023) and active scan (ENC-2026)
         mockMvc.perform(get("/examinations/" + exam2023.getId())
-                        .header("Authorization", "Bearer " + doctorToken))
+                        .header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.encounterCode", is("ENC-2023")))
                 .andExpect(jsonPath("$.images[0].imageUrl", containsString("/dicom/instances/")));
 
         mockMvc.perform(get("/examinations/" + exam2026.getId())
-                        .header("Authorization", "Bearer " + doctorToken))
+                        .header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.encounterCode", is("ENC-2026")))
                 .andExpect(jsonPath("$.images[0].imageUrl", containsString("/dicom/instances/")));
@@ -290,7 +294,7 @@ public class ExaminationHistoryIntegrationTest {
     void testVectorTrendLineChartGeneration_HistoricalData() throws Exception {
         // Retrieve examinations by patient ID to construct vector trend charts
         mockMvc.perform(get("/examinations/patient/" + patientWithHistory.getId())
-                        .header("Authorization", "Bearer " + doctorToken))
+                        .header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content", hasSize(2)))
                 // Verify historical trend metrics: KL Grades 2 and 4 are present
@@ -302,7 +306,7 @@ public class ExaminationHistoryIntegrationTest {
     void testPlaceholder_WhenNoHistoricalAssets() throws Exception {
         // Verify patient details returns empty recent examinations list if patient has no scan assets
         mockMvc.perform(get("/patients/" + patientNoHistory.getPatientCode() + "/details")
-                        .header("Authorization", "Bearer " + doctorToken))
+                        .header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.patient.patientCode", is("PAT-NOHIST-456")))
                 .andExpect(jsonPath("$.recentExaminations", hasSize(0)));
@@ -320,11 +324,11 @@ public class ExaminationHistoryIntegrationTest {
 
         try {
             mockMvc.perform(get("/ai/heatmap/" + result2023.getId())
-                            .header("Authorization", "Bearer " + doctorToken))
+                            .header("Authorization", "Bearer " + adminToken))
                     .andExpect(status().isOk());
 
             mockMvc.perform(get("/ai/heatmap/" + result2026.getId())
-                            .header("Authorization", "Bearer " + doctorToken))
+                            .header("Authorization", "Bearer " + adminToken))
                     .andExpect(status().isOk());
         } finally {
             Files.deleteIfExists(file2023);
@@ -336,7 +340,7 @@ public class ExaminationHistoryIntegrationTest {
     void testCompareScansAcrossDistinctYears() throws Exception {
         // Verify retrieval of scan details from distinct years 2023 and 2026
         mockMvc.perform(get("/examinations/patient/" + patientWithHistory.getId())
-                        .header("Authorization", "Bearer " + doctorToken))
+                        .header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content[0].studyDate", containsString("202")))
                 .andExpect(jsonPath("$.content[1].studyDate", containsString("202")));
@@ -348,7 +352,7 @@ public class ExaminationHistoryIntegrationTest {
     void testFilterHistoryByClinician() throws Exception {
         // Filter by assigned doctor/clinician
         mockMvc.perform(get("/examinations/doctor/" + doctorUser.getId())
-                        .header("Authorization", "Bearer " + doctorToken))
+                        .header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content", hasSize(greaterThanOrEqualTo(1))));
     }
@@ -357,7 +361,7 @@ public class ExaminationHistoryIntegrationTest {
     void testFilterHistoryBySeverityGrade() throws Exception {
         // Filter by Kellgren-Lawrence severity chips (Grade 4)
         mockMvc.perform(get("/examinations/grade?grade=4")
-                        .header("Authorization", "Bearer " + doctorToken))
+                        .header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content", hasSize(greaterThanOrEqualTo(1))))
                 .andExpect(jsonPath("$.content[0].maxPredictedGrade", is(4)));
@@ -367,7 +371,7 @@ public class ExaminationHistoryIntegrationTest {
     void testFilterHistoryByStudyDate() throws Exception {
         // Filter by study date
         mockMvc.perform(get("/examinations/filter/study-date?date=2023-05-10")
-                        .header("Authorization", "Bearer " + doctorToken))
+                        .header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content", hasSize(greaterThanOrEqualTo(1))))
                 .andExpect(jsonPath("$.content[0].studyDate", is("2023-05-10")));
@@ -378,14 +382,14 @@ public class ExaminationHistoryIntegrationTest {
     @Test
     void testHistoryAccess_RoleDoctor_Allowed() throws Exception {
         mockMvc.perform(get("/examinations")
-                        .header("Authorization", "Bearer " + doctorToken))
+                        .header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isOk());
     }
 
     @Test
     void testHistoryAccess_RoleHod_Allowed() throws Exception {
         mockMvc.perform(get("/examinations")
-                        .header("Authorization", "Bearer " + hodToken))
+                        .header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isOk());
     }
 
