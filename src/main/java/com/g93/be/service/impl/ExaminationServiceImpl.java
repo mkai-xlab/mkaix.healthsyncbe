@@ -560,7 +560,10 @@ public class ExaminationServiceImpl implements ExaminationService {
             Boolean isPersonal, Pageable pageable) {
         log.info("Filtering examinations by study date: {} for username: {}, isPersonal: {}", date, username,
                 isPersonal);
-        if (date != null && date.isAfter(LocalDate.now())) {
+        if (date == null) {
+            throw new IllegalArgumentException("Study date cannot be null");
+        }
+        if (date.isAfter(LocalDate.now())) {
             throw new IllegalArgumentException("Study date cannot be in the future");
         }
         User user = userRepository.findByUsernameOrEmail(username, username)
@@ -602,7 +605,10 @@ public class ExaminationServiceImpl implements ExaminationService {
             Boolean isPersonal, Pageable pageable) {
         log.info("Filtering examinations by upload date: {} for username: {}, isPersonal: {}", date, username,
                 isPersonal);
-        if (date != null && date.isAfter(LocalDate.now())) {
+        if (date == null) {
+            throw new IllegalArgumentException("Upload date cannot be null");
+        }
+        if (date.isAfter(LocalDate.now())) {
             throw new IllegalArgumentException("Upload date cannot be in the future");
         }
         User user = userRepository.findByUsernameOrEmail(username, username)

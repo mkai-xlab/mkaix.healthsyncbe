@@ -52,7 +52,6 @@ import java.util.List;
 import java.nio.file.Files;
 import java.util.stream.Collectors;
 import java.util.Comparator;
-import java.io.File;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipEntry;
 import java.nio.file.StandardCopyOption;
@@ -372,8 +371,8 @@ public class DicomServiceImpl implements DicomService {
                 try {
                     Files.walk(workDir)
                             .sorted(Comparator.reverseOrder())
-                            .map(Path::toFile)
-                            .forEach(File::delete);
+                            .map(p -> p.toFile())
+                            .forEach(f -> f.delete());
                 } catch (IOException ignored) {
                 }
             }

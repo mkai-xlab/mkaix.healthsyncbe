@@ -75,11 +75,11 @@ public class JwtTokenProvider {
     }
 
     public String extractUsernameFromAccessToken(String token) {
-        return extractClaim(token, accessKey, Claims::getSubject);
+        return extractClaim(token, accessKey, claims -> claims.getSubject());
     }
 
     public String extractUsernameFromRefreshToken(String token) {
-        return extractClaim(token, refreshKey, Claims::getSubject);
+        return extractClaim(token, refreshKey, claims -> claims.getSubject());
     }
 
     public <T> T extractClaim(String token, SecretKey key, Function<Claims, T> claimsResolver) {
@@ -172,6 +172,6 @@ public class JwtTokenProvider {
     }
 
     private Date extractExpiration(String token, SecretKey key) {
-        return extractClaim(token, key, Claims::getExpiration);
+        return extractClaim(token, key, claims -> claims.getExpiration());
     }
 }

@@ -1,4 +1,5 @@
 package com.g93.be.controller;
+
 import com.g93.be.dto.DicomVerifyRequest;
 import com.g93.be.entity.User;
 import com.g93.be.repository.UserRepository;
@@ -6,7 +7,6 @@ import com.g93.be.service.DicomVerifyService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import java.util.List;
 import com.g93.be.dto.VerifySessionResultDto;
 import java.security.Principal;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -41,4 +41,3 @@ public class DicomVerifyController {
         return ResponseEntity.ok(result);
     }
 }
-
