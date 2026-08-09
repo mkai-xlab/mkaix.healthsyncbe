@@ -1,6 +1,7 @@
 package com.g93.be.service;
 
 import com.g93.be.dto.NotificationDto;
+import com.g93.be.dto.SendNotificationRequest;
 import com.g93.be.entity.Notification;
 import com.g93.be.entity.User;
 import com.g93.be.mapper.NotificationMapper;
@@ -10,12 +11,14 @@ import com.g93.be.service.impl.NotificationServiceImpl;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -40,6 +43,101 @@ class NotificationServiceTest {
 
     @InjectMocks
     private NotificationServiceImpl notificationService;
+
+    @Test
+    void sendNotificationPersistsUnreadNotificationAndPublishesWebSocketMessage() {
+        User user = new User();
+        user.setId(7L);
+        user.setUsername("doctor");
+        Notification saved = notification(15L, false);
+        saved.setUser(user);
+        NotificationDto savedDto = dto(saved);
+        SendNotificationRequest request = new SendNotificationRequest(
+                7L, "New result", "A result is ready", "RESULT", Map.of("examinationId", 12L));
+        when(userRepository.findById(7L)).thenReturn(Optional.of(user));
+        when(notificationRepository.save(any(Notification.class))).thenReturn(saved);
+        when(notificationMapper.toDto(saved)).thenReturn(savedDto);
+
+        notificationService.sendNotification(request);
+
+        ArgumentCaptor<Notification> persisted = ArgumentCaptor.forClass(Notification.class);
+        verify(notificationRepository).save(persisted.capture());
+        assertEquals(user, persisted.getValue().getUser());
+        assertEquals(false, persisted.getValue().getIsRead());
+        ArgumentCaptor<NotificationDto> payload = ArgumentCaptor.forClass(NotificationDto.class);
+        verify(messagingTemplate).convertAndSendToUser(eq("doctor"), eq("/queue/notifications"), payload.capture());
+        assertEquals(Map.of("examinationId", 12L), payload.getValue().data());
+    }
+
+    @Test
+    void sendNotificationRejectsUnknownTargetUser() {
+        when(userRepository.findById(99L)).thenReturn(Optional.empty());
+
+        IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
+                () -> notificationService.sendNotification(new SendNotificationRequest(99L, "Title", "Message", "SYSTEM", null)));
+
+        assertEquals("User not found with id: 99", error.getMessage());
+        verify(notificationRepository, never()).save(any());
+    }
+
+    @Test
+    void getUnreadNotificationsReturnsMappedUnreadNotifications() {
+        User user = new User();
+        user.setId(7L);
+        Notification unread = notification(2L, false);
+        NotificationDto unreadDto = dto(unread);
+        when(userRepository.findByUsername("doctor")).thenReturn(Optional.of(user));
+        when(notificationRepository.findByUserIdAndIsReadFalseOrderByCreatedAtDesc(7L)).thenReturn(List.of(unread));
+        when(notificationMapper.toDto(unread)).thenReturn(unreadDto);
+
+        assertEquals(List.of(unreadDto), notificationService.getUnreadNotifications("doctor"));
+    }
+
+    @Test
+    void getUnreadNotificationsRejectsUnknownUser() {
+        when(userRepository.findByUsername("unknown")).thenReturn(Optional.empty());
+
+        assertThrows(IllegalArgumentException.class, () -> notificationService.getUnreadNotifications("unknown"));
+
+        verify(notificationRepository, never()).findByUserIdAndIsReadFalseOrderByCreatedAtDesc(any());
+    }
+
+    @Test
+    void markAsReadUpdatesNotificationOwnedByCurrentUser() {
+        User user = new User();
+        user.setUsername("doctor");
+        Notification unread = notification(3L, false);
+        unread.setUser(user);
+        when(notificationRepository.findById(3L)).thenReturn(Optional.of(unread));
+
+        notificationService.markAsRead(3L, "doctor");
+
+        assertEquals(true, unread.getIsRead());
+        assertEquals(false, unread.getReadAt() == null);
+        verify(notificationRepository).save(unread);
+    }
+
+    @Test
+    void markAsReadRejectsAnotherUsersNotification() {
+        User owner = new User();
+        owner.setUsername("other");
+        Notification unread = notification(3L, false);
+        unread.setUser(owner);
+        when(notificationRepository.findById(3L)).thenReturn(Optional.of(unread));
+
+        assertThrows(IllegalArgumentException.class, () -> notificationService.markAsRead(3L, "doctor"));
+
+        verify(notificationRepository, never()).save(any());
+    }
+
+    @Test
+    void markAsReadRejectsUnknownNotification() {
+        when(notificationRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThrows(IllegalArgumentException.class, () -> notificationService.markAsRead(99L, "doctor"));
+
+        verify(notificationRepository, never()).save(any());
+    }
 
     @Test
     void getAllNotificationsReturnsReadAndUnreadNewestFirst() {

@@ -1,6 +1,7 @@
 package com.g93.be.config.openapi;
 
 import com.g93.be.controller.AiController;
+import com.g93.be.controller.ChatController;
 import com.g93.be.controller.AuditLogController;
 import com.g93.be.controller.AuthController;
 import com.g93.be.controller.DiagnosisReviewController;
@@ -13,8 +14,10 @@ import com.g93.be.controller.FileUploadController;
 import com.g93.be.controller.MailTestController;
 import com.g93.be.controller.NotificationController;
 import com.g93.be.controller.PatientController;
+import com.g93.be.controller.KnowledgeController;
 import com.g93.be.controller.PermissionController;
 import com.g93.be.controller.ReportController;
+import com.g93.be.controller.RoleController;
 import com.g93.be.controller.TestS3Controller;
 import com.g93.be.controller.UserController;
 import io.swagger.v3.oas.models.OpenAPI;
@@ -50,6 +53,7 @@ class OpenApiDocumentationTest {
 
     private static final List<Class<?>> CONTROLLERS = List.of(
             AiController.class,
+            ChatController.class,
             AuditLogController.class,
             AuthController.class,
             DiagnosisReviewController.class,
@@ -62,8 +66,10 @@ class OpenApiDocumentationTest {
             MailTestController.class,
             NotificationController.class,
             PatientController.class,
+            KnowledgeController.class,
             PermissionController.class,
             ReportController.class,
+            RoleController.class,
             TestS3Controller.class,
             UserController.class);
 

@@ -119,6 +119,24 @@ class AuthServiceTest {
     }
 
     @Test
+    void login_PassesRequestCredentialsToAuthenticationManager() {
+        LoginRequest request = new LoginRequest("test_user", "password123");
+        Authentication authentication = mock(Authentication.class);
+        when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class))).thenReturn(authentication);
+        when(authentication.getPrincipal()).thenReturn(mockUserDetails);
+        when(jwtTokenProvider.generateAccessToken(mockUserDetails)).thenReturn("access_token");
+        when(jwtTokenProvider.generateRefreshToken(mockUserDetails)).thenReturn("refresh_token");
+
+        authService.login(request);
+
+        org.mockito.ArgumentCaptor<UsernamePasswordAuthenticationToken> token =
+                org.mockito.ArgumentCaptor.forClass(UsernamePasswordAuthenticationToken.class);
+        verify(authenticationManager).authenticate(token.capture());
+        assertEquals("test_user", token.getValue().getName());
+        assertEquals("password123", token.getValue().getCredentials());
+    }
+
+    @Test
     void login_WrongPassword_RecordsFailedAttempt() {
         LoginRequest request = new LoginRequest("test_user", "wrong_password");
         BadCredentialsException failure = new BadCredentialsException("Bad credentials");
@@ -154,6 +172,20 @@ class AuthServiceTest {
     }
 
     @Test
+    void login_AlreadyLockedDoesNotAttemptAuthentication() {
+        LoginRequest request = new LoginRequest("test_user", "password123");
+        LocalDateTime lockedUntil = LocalDateTime.now().plusMinutes(15);
+        doThrow(new LoginLockedException(lockedUntil))
+                .when(loginAttemptService).ensureLoginAllowed("test_user");
+
+        LoginLockedException error = assertThrows(LoginLockedException.class, () -> authService.login(request));
+
+        assertEquals(lockedUntil, error.getLockedUntil());
+        verifyNoInteractions(authenticationManager);
+        verify(loginAttemptService, never()).recordFailedAttempt(anyString());
+    }
+
+    @Test
     void login_FirstTimeLogin_ThrowsException() {
         mockUser.setIsFirstActivated(true);
         LoginRequest request = new LoginRequest("test_user", "password123");
@@ -167,6 +199,23 @@ class AuthServiceTest {
         
         verify(jwtTokenProvider, never()).generateAccessToken(any());
         verify(jwtTokenProvider, never()).generateRefreshToken(any());
+    }
+
+    @Test
+    void login_NullFirstActivationIsTreatedAsActivatedAccount() {
+        mockUser.setIsFirstActivated(null);
+        LoginRequest request = new LoginRequest("test_user", "password123");
+        Authentication authentication = mock(Authentication.class);
+        when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class))).thenReturn(authentication);
+        when(authentication.getPrincipal()).thenReturn(mockUserDetails);
+        when(jwtTokenProvider.generateAccessToken(mockUserDetails)).thenReturn("access_token");
+        when(jwtTokenProvider.generateRefreshToken(mockUserDetails)).thenReturn("refresh_token");
+
+        LoginResponse response = authService.login(request);
+
+        assertEquals("access_token", response.accessToken());
+        assertEquals("refresh_token", response.refreshToken());
+        verify(loginAttemptService).resetFailedAttempts("test_user");
     }
 
     @Test
@@ -196,6 +245,30 @@ class AuthServiceTest {
         assertThrows(IllegalArgumentException.class,
                 () -> authService.logout("access_token", "refresh_token", "test_user"));
 
+        verifyNoInteractions(tokenBlacklistService);
+    }
+
+    @Test
+    void logout_RejectsInvalidAccessTokenBeforeReadingTokenOwners() {
+        when(jwtTokenProvider.isAccessTokenValid("bad_access")).thenReturn(false);
+
+        IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
+                () -> authService.logout("bad_access", "refresh_token", "test_user"));
+
+        assertEquals("Invalid or expired token", error.getMessage());
+        verify(jwtTokenProvider, never()).extractUsernameFromAccessToken(anyString());
+        verifyNoInteractions(tokenBlacklistService);
+    }
+
+    @Test
+    void logout_RejectsInvalidRefreshTokenBeforeReadingTokenOwners() {
+        when(jwtTokenProvider.isAccessTokenValid("access_token")).thenReturn(true);
+        when(jwtTokenProvider.isRefreshTokenValid("bad_refresh")).thenReturn(false);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> authService.logout("access_token", "bad_refresh", "test_user"));
+
+        verify(jwtTokenProvider, never()).extractUsernameFromRefreshToken(anyString());
         verifyNoInteractions(tokenBlacklistService);
     }
 
@@ -277,6 +350,18 @@ class AuthServiceTest {
         authService.forgotPassword(request);
 
         verify(passwordResetTokenRepository).save(any(PasswordResetToken.class));
+        verify(mailUtil).sendTemplateMail(eq("test@hospital.com"), anyString(), eq("reset-password"), anyMap());
+    }
+
+    @Test
+    void forgotPassword_ReusesExistingResetTokenRecord() {
+        ForgotPasswordRequest request = new ForgotPasswordRequest("test@hospital.com");
+        when(userRepository.findByEmail("test@hospital.com")).thenReturn(Optional.of(mockUser));
+        when(passwordResetTokenRepository.findByUser(mockUser)).thenReturn(Optional.of(mockToken));
+
+        authService.forgotPassword(request);
+
+        verify(passwordResetTokenRepository).save(mockToken);
         verify(mailUtil).sendTemplateMail(eq("test@hospital.com"), anyString(), eq("reset-password"), anyMap());
     }
 
