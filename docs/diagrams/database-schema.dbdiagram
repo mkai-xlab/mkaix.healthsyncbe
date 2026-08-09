@@ -18,8 +18,7 @@
       { "name": "patients", "schemaName": "public", "x": 600, "y": 1100 },
       { "name": "examinations", "schemaName": "public", "x": 900, "y": 900 },
       { "name": "dicom_instances", "schemaName": "public", "x": 1200, "y": 900 },
-      { "name": "ai_analyses", "schemaName": "public", "x": 1200, "y": 1200 },
-      { "name": "result_attachments", "schemaName": "public", "x": 1500, "y": 900 }
+      { "name": "ai_analyses", "schemaName": "public", "x": 1200, "y": 1200 }
     ],
     "tableGroupCollapseStates": [],
     "stickyNoteLayouts": [],
@@ -92,11 +91,6 @@
       {
         "firstFieldNames": ["examination_id"], "firstTableName": "ai_analyses", "firstSchemaName": "public", "firstRelation": "*",
         "secondFieldNames": ["id"], "secondTableName": "examinations", "secondSchemaName": "public", "secondRelation": "1",
-        "checkPoints": []
-      },
-      {
-        "firstFieldNames": ["dicom_study_id"], "firstTableName": "result_attachments", "firstSchemaName": "public", "firstRelation": "*",
-        "secondFieldNames": ["id"], "secondTableName": "dicom_instances", "secondSchemaName": "public", "secondRelation": "1",
         "checkPoints": []
       }
     ]
