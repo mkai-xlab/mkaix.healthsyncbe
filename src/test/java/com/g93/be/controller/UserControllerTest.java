@@ -3,6 +3,7 @@ package com.g93.be.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.g93.be.dto.CreateUserRequest;
 import com.g93.be.dto.UserResponse;
+import com.g93.be.dto.UpdateUserRoleRequest;
 import com.g93.be.service.UserService;
 import com.g93.be.exception.GlobalExceptionHandler;
 import org.junit.jupiter.api.BeforeEach;
@@ -19,6 +20,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -166,6 +168,30 @@ class UserControllerTest {
         mockMvc.perform(post("/users")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(createUserRequest)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void testUpdateUserRole() throws Exception {
+        userResponse.setUserType("DOCTOR");
+        when(userService.updateUserRole(org.mockito.ArgumentMatchers.eq(7L),
+                any(UpdateUserRoleRequest.class), org.mockito.ArgumentMatchers.eq("admin")))
+                .thenReturn(userResponse);
+
+        mockMvc.perform(put("/users/7/role")
+                .principal(() -> "admin")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"roleId\":3}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.userType").value("DOCTOR"));
+    }
+
+    @Test
+    void testUpdateUserRole_RoleIdNull() throws Exception {
+        mockMvc.perform(put("/users/7/role")
+                .principal(() -> "admin")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{}"))
                 .andExpect(status().isBadRequest());
     }
 }

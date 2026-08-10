@@ -1,0 +1,30 @@
+meta {
+  name: Update user role
+  type: http
+  seq: 7
+}
+
+put {
+  url: {{baseUrl}}/users/{{targetUserId}}/role
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "roleId": {{targetRoleId}}
+  }
+}
+
+tests {
+  test("Admin updates role and preserves userType", function() {
+    expect(res.status).to.equal(200);
+    expect(res.body.role.code).to.be.a("string").and.not.be.empty;
+    expect(res.body.userType).to.equal("DOCTOR");
+  });
+}
+​
