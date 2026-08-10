@@ -227,6 +227,59 @@ public class ExaminationServiceImpl implements ExaminationService {
 
     @Override
     @Transactional(readOnly = true)
+    public java.util.List<com.g93.be.dto.DailyStatDto> getDailyExaminationsInLast7Days(Long userId, Boolean isPersonal) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User with id " + userId + " not found"));
+
+        java.time.LocalDate today = java.time.LocalDate.now();
+        java.time.LocalDateTime sevenDaysAgo = today.minusDays(6).atStartOfDay();
+
+        // 1. Khởi tạo mảng 7 ngày (từ 6 ngày trước đến hôm nay), mặc định count = 0
+        java.util.List<com.g93.be.dto.DailyStatDto> result = new java.util.ArrayList<>();
+        for (int i = 6; i >= 0; i--) {
+            java.time.LocalDate date = today.minusDays(i);
+            result.add(new com.g93.be.dto.DailyStatDto(date.toString(), 0L));
+        }
+
+        if (user.getRole() == null || user.getRole().getCode() == null) {
+            return result;
+        }
+
+        String roleCode = user.getRole().getCode();
+        java.util.List<java.time.LocalDateTime> createdDates = new java.util.ArrayList<>();
+
+        // 2. Fetch danh sách createdAt theo Role và cờ isPersonal
+        if ("DOCTOR".equalsIgnoreCase(roleCode)) {
+            createdDates = examinationRepository.findCreatedAtByDoctorIdAndCreatedAtAfter(userId, sevenDaysAgo);
+        } else if ("HEAD_OF_DEPARTMENT".equalsIgnoreCase(roleCode) || "DEPARTMENT_HEAD".equalsIgnoreCase(roleCode)) {
+            if (Boolean.TRUE.equals(isPersonal)) {
+                createdDates = examinationRepository.findCreatedAtByDoctorIdAndCreatedAtAfter(userId, sevenDaysAgo);
+            } else {
+                createdDates = examinationRepository.findCreatedAtByCreatedAtAfter(sevenDaysAgo);
+            }
+        } else if ("ADMIN".equalsIgnoreCase(roleCode)) {
+            if (Boolean.FALSE.equals(isPersonal)) {
+                createdDates = examinationRepository.findCreatedAtByCreatedAtAfter(sevenDaysAgo);
+            }
+        }
+
+        // 3. Gom nhóm theo ngày
+        for (java.time.LocalDateTime dt : createdDates) {
+            String dateString = dt.toLocalDate().toString();
+            // Tìm trong mảng result và tăng count
+            for (com.g93.be.dto.DailyStatDto stat : result) {
+                if (stat.getDate().equals(dateString)) {
+                    stat.setCount(stat.getCount() + 1);
+                    break;
+                }
+            }
+        }
+
+        return result;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public long getTotalSevereExaminations(Long userId, Boolean isPersonal) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User with id " + userId + " not found"));

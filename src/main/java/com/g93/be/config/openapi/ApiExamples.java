@@ -37,6 +37,18 @@ final class ApiExamples {
             Map.entry("RESET_PASSWORD_REQUEST", json("""
                     {"email":"doctor01@healthsync.vn","token":"482913","newPassword":"Doctor@456"}
                     """)),
+            Map.entry("DAILY_STATS", json("""
+                    [
+                      {
+                        "date": "2026-08-04",
+                        "count": 3
+                      },
+                      {
+                        "date": "2026-08-05",
+                        "count": 5
+                      }
+                    ]
+                    """)),
             Map.entry("CREATE_DOCTOR_REQUEST", json("""
                     {
                       "fullName":"BS. Trần Thu Hà",

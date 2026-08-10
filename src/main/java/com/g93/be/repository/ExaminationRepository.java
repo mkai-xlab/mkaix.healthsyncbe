@@ -84,4 +84,10 @@ public interface ExaminationRepository extends JpaRepository<Examination, Long> 
     
     long countByCreatedAtAfter(java.time.LocalDateTime date);
     long countByDoctorIdAndCreatedAtAfter(Long doctorId, java.time.LocalDateTime date);
+
+    @Query("SELECT e.createdAt FROM Examination e WHERE e.createdAt >= :startDate")
+    List<java.time.LocalDateTime> findCreatedAtByCreatedAtAfter(@Param("startDate") java.time.LocalDateTime startDate);
+
+    @Query("SELECT e.createdAt FROM Examination e WHERE e.doctor.id = :doctorId AND e.createdAt >= :startDate")
+    List<java.time.LocalDateTime> findCreatedAtByDoctorIdAndCreatedAtAfter(@Param("doctorId") Long doctorId, @Param("startDate") java.time.LocalDateTime startDate);
 }

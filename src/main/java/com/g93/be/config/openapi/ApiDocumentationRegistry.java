@@ -230,6 +230,10 @@ final class ApiDocumentationRegistry {
                                 "Đếm ca chưa xác nhận của tôi",
                                 "Đếm ca chưa VERIFIED của người dùng đang đăng nhập.", "200",
                                 "Số ca chưa xác nhận của tôi", "LONG", null, ResponseKind.JSON);
+                add("ExaminationController", "getDailyExaminationsInLast7Days", "Ca khám",
+                                "Thống kê 7 ngày",
+                                "Đếm số ca khám của 7 ngày gần nhất, có thể truyền isPersonal theo quy tắc phân quyền.", "200",
+                                "Danh sách thống kê theo ngày", "DAILY_STATS", null, ResponseKind.JSON);
         }
 
         private void registerDicom() {

@@ -76,7 +76,7 @@ public class UserServiceImpl implements UserService {
         user.setRole(role);
 
         // userType identifies the medical staff entity; role carries authorization.
-        user.setUserType(MEDICAL_STAFF_USER_TYPE);
+        user.setUserType(role.getCode());
         user.setStatus(UserStatus.ACTIVE);
         user.setIsFirstActivated(true);
 
