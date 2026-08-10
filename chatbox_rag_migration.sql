@@ -25,6 +25,40 @@ CREATE TABLE IF NOT EXISTS knowledge_documents (
         ON DELETE SET NULL
 );
 
+CREATE TABLE IF NOT EXISTS chat_sessions (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    user_id BIGINT NOT NULL,
+    examination_id BIGINT NULL,
+    title VARCHAR(160) NOT NULL,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at DATETIME(6) NOT NULL,
+    updated_at DATETIME(6) NOT NULL,
+    PRIMARY KEY (id),
+    KEY idx_chat_sessions_user_updated (user_id, updated_at, id),
+    KEY idx_chat_sessions_examination (examination_id),
+    CONSTRAINT fk_chat_sessions_user
+        FOREIGN KEY (user_id) REFERENCES users(id)
+        ON DELETE CASCADE,
+    CONSTRAINT fk_chat_sessions_examination
+        FOREIGN KEY (examination_id) REFERENCES examinations(id)
+        ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS chat_messages (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    session_id BIGINT NOT NULL,
+    role VARCHAR(20) NOT NULL,
+    content TEXT NOT NULL,
+    route VARCHAR(30) NULL,
+    tokens_used INT NULL,
+    created_at DATETIME(6) NOT NULL,
+    PRIMARY KEY (id),
+    KEY idx_chat_messages_session_created (session_id, created_at, id),
+    CONSTRAINT fk_chat_messages_session
+        FOREIGN KEY (session_id) REFERENCES chat_sessions(id)
+        ON DELETE CASCADE
+);
+
 INSERT INTO features (name, description)
 SELECT 'AI Chatbox & Medical Knowledge', 'Tro ly AI va kho tri thuc y khoa'
 WHERE NOT EXISTS (SELECT 1 FROM features WHERE name = 'AI Chatbox & Medical Knowledge');

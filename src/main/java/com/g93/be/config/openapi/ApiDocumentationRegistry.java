@@ -366,8 +366,20 @@ final class ApiDocumentationRegistry {
                                 "Delete a knowledge document and its indexed content.", "204",
                                 "Knowledge document deleted", null, null, ResponseKind.VOID);
                 add("ChatController", "ask", "AI chat", "Ask a medical question",
-                                "Route a question to business or medical RAG chat and return the generated answer.", "200",
-                                "Chat answer", "CHAT_ANSWER", null, ResponseKind.JSON);
+                                "Route a question inside a persisted conversation and return the generated answer.", "200",
+                                "Chat answer", "CHAT_ANSWER", "CHAT_QUESTION", ResponseKind.JSON);
+                add("ChatController", "createSession", "AI chat", "Create chat session",
+                                "Create an owned conversation, optionally linked to an accessible examination.", "201",
+                                "Created chat session", "CHAT_SESSION", "CREATE_CHAT_SESSION", ResponseKind.JSON);
+                add("ChatController", "getSessions", "AI chat", "List chat sessions",
+                                "List the current user's conversations by most recent activity.", "200",
+                                "Chat session page", "CHAT_SESSION_PAGE", null, ResponseKind.JSON);
+                add("ChatController", "getMessages", "AI chat", "Get chat messages",
+                                "Read the ordered message history of an owned conversation.", "200",
+                                "Chat message page", "CHAT_MESSAGE_PAGE", null, ResponseKind.JSON);
+                add("ChatController", "updateSession", "AI chat", "Update chat session",
+                                "Rename, close, or reopen an owned conversation.", "200",
+                                "Updated chat session", "CHAT_SESSION", "UPDATE_CHAT_SESSION", ResponseKind.JSON);
         }
 
         private void registerSystemAndFiles() {

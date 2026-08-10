@@ -1,11 +1,15 @@
 package com.g93.be.chat;
 
 public interface AiChatGateway {
-    ChatRoutingDecision route(String question, String roleCode);
+    ChatRoutingDecision route(String question, String roleCode, String conversationHistory);
 
-    String answerBusiness(String question, String businessContext);
+    GeneratedChatAnswer answerBusiness(String question, String businessContext, String conversationHistory);
 
-    String answerMedical(String question, String medicalContext);
+    GeneratedChatAnswer answerMedical(String question, String medicalContext, String conversationHistory);
 
-    String answerHybrid(String question, String businessContext, String medicalContext);
+    GeneratedChatAnswer answerHybrid(
+            String question,
+            String businessContext,
+            String medicalContext,
+            String conversationHistory);
 }
