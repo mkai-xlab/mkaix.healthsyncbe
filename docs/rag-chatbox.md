@@ -96,7 +96,7 @@ item per submitted file.
 The migration creates `knowledge_documents`, `chat_sessions`, and `chat_messages`.
 The chat tables store conversation ownership and content; Qdrant still stores only
 knowledge vectors. The migration is
-`chatbox_rag_migration.sql`.
+`database/migrations/chatbox_rag_migration.sql`.
 
 The scheduled report sync reads generated reports and their verified diagnosis
 reviews. It indexes report ID, examination ID, study date, final diagnosis,
