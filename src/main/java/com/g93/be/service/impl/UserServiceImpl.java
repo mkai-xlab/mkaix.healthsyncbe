@@ -5,7 +5,9 @@ import com.g93.be.entity.User;
 import com.g93.be.entity.UserStatus;
 import com.g93.be.common.util.MailUtil;
 import com.g93.be.dto.CreateUserRequest;
+import com.g93.be.dto.UpdateUserRoleRequest;
 import com.g93.be.dto.UserResponse;
+import com.g93.be.exception.ResourceNotFoundException;
 import com.g93.be.repository.RoleRepository;
 import com.g93.be.repository.UserRepository;
 import com.g93.be.service.UserService;
@@ -19,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.security.SecureRandom;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import org.springframework.security.access.AccessDeniedException;
 
@@ -26,6 +29,8 @@ import org.springframework.security.access.AccessDeniedException;
 @RequiredArgsConstructor
 @Slf4j
 public class UserServiceImpl implements UserService {
+
+    private static final String MEDICAL_STAFF_USER_TYPE = "DOCTOR";
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
@@ -70,7 +75,7 @@ public class UserServiceImpl implements UserService {
         user.setPhone(request.getPhone());
         user.setRole(role);
 
-        // Use the role name as the userType if needed, or leave it generic.
+        // userType identifies the medical staff entity; role carries authorization.
         user.setUserType(role.getCode());
         user.setStatus(UserStatus.ACTIVE);
         user.setIsFirstActivated(true);
@@ -82,6 +87,45 @@ public class UserServiceImpl implements UserService {
         // Send email notification
         sendWelcomeEmail(savedUser, tempPassword);
 
+        return mapToResponse(savedUser);
+    }
+
+    @Override
+    @Transactional
+    @com.g93.be.aspect.LogAction("UPDATE_USER_ROLE")
+    public UserResponse updateUserRole(Long userId, UpdateUserRoleRequest request, String actorUsername) {
+        if (request == null || request.roleId() == null) {
+            throw new IllegalArgumentException("Role ID cannot be null");
+        }
+
+        User actor = actorUsername == null
+                ? null
+                : userRepository.findByUsername(actorUsername).orElse(null);
+        if (actor == null || !hasRole(actor, "ADMIN")) {
+            throw new AccessDeniedException("Only Admin can update user roles");
+        }
+
+        if (Objects.equals(actor.getId(), userId)) {
+            throw new IllegalArgumentException("An admin cannot change their own role");
+        }
+
+        User target = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User with id " + userId + " not found"));
+        if (hasRole(target, "ADMIN")) {
+            throw new IllegalArgumentException("An admin role cannot be changed via this endpoint");
+        }
+
+        Role role = roleRepository.findById(request.roleId())
+                .orElseThrow(() -> new ResourceNotFoundException("Role with id " + request.roleId() + " not found"));
+        if (hasRole(role, "ADMIN")) {
+            throw new IllegalArgumentException("Cannot assign the ADMIN role via this endpoint");
+        }
+
+        String previousRoleCode = target.getRole() == null ? null : target.getRole().getCode();
+        target.setRole(role);
+        User savedUser = userRepository.save(target);
+        log.info("User {} role changed from {} to {} by {}", userId,
+                previousRoleCode, role.getCode(), actorUsername);
         return mapToResponse(savedUser);
     }
 
@@ -194,5 +238,14 @@ public class UserServiceImpl implements UserService {
         response.setCreatedAt(user.getCreatedAt());
         response.setUpdatedAt(user.getUpdatedAt());
         return response;
+    }
+
+    private boolean hasRole(User user, String roleCode) {
+        return user != null && user.getRole() != null && hasRole(user.getRole(), roleCode);
+    }
+
+    private boolean hasRole(Role role, String roleCode) {
+        return role != null && role.getCode() != null
+                && roleCode.equalsIgnoreCase(role.getCode().trim());
     }
 }

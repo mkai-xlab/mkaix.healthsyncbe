@@ -33,6 +33,8 @@ Recommended approach:
 - Keep role names consistent with the `UserRole` enum (`ROLE_DOCTOR`, `ROLE_ADMIN`).
 - Deny access by default for protected resources.
 
+The `PUT /users/{userId}/role` endpoint is restricted to the `ADMIN` role. It cannot assign the `ADMIN` role, change an administrator account, or allow an administrator to change their own role. It changes only the user's role; `userType` remains `DOCTOR` for medical staff. Access tokens issued before a role change retain their prior authorities until expiry; the user should refresh the token or sign in again.
+
 ## CORS
 
 When frontend integration starts, configure CORS explicitly:

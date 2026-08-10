@@ -61,6 +61,10 @@ class DataInitializerTest {
         Role headOfDepartmentRole = role(3L, "HEAD_OF_DEPARTMENT");
         lenient().when(roleRepository.findByCode("HEAD_OF_DEPARTMENT"))
                 .thenReturn(Optional.of(headOfDepartmentRole));
+        lenient().when(roleRepository.findByCode("DOCTOR"))
+                .thenReturn(Optional.empty());
+        lenient().when(roleRepository.findByCode("DEPARTMENT_HEAD"))
+                .thenReturn(Optional.empty());
     }
 
     @Test
@@ -69,11 +73,9 @@ class DataInitializerTest {
         User adminUser = user(1L, "admin", adminRole);
         Role headOfDepartmentRole = role(3L, "HEAD_OF_DEPARTMENT");
 
-        when(roleRepository.findByCode("ADMIN"))
+        lenient().when(roleRepository.findByCode("ADMIN"))
                 .thenReturn(Optional.empty(), Optional.of(adminRole));
-        when(roleRepository.findByCode("DOCTOR"))
-                .thenReturn(Optional.of(role(2L, "DOCTOR")));
-        when(roleRepository.findByCode("HEAD_OF_DEPARTMENT"))
+        lenient().when(roleRepository.findByCode("HEAD_OF_DEPARTMENT"))
                 .thenReturn(Optional.of(headOfDepartmentRole));
         when(userRepository.findByUsername("admin")).thenReturn(Optional.of(adminUser));
 
@@ -112,7 +114,7 @@ class DataInitializerTest {
         RolePermission retainedAssignment = new RolePermission(1L, adminRole, adminPermission);
         RolePermission clinicalAssignment = new RolePermission(2L, adminRole, clinicalPermission);
 
-        when(roleRepository.findByCode("ADMIN")).thenReturn(Optional.of(adminRole));
+        lenient().when(roleRepository.findByCode("ADMIN")).thenReturn(Optional.of(adminRole));
         when(permissionRepository.findAll()).thenReturn(List.of(adminPermission, clinicalPermission));
         when(rolePermissionRepository.findByRoleId(1L))
                 .thenReturn(List.of(retainedAssignment, clinicalAssignment));
@@ -135,7 +137,7 @@ class DataInitializerTest {
         Permission adminPermission = permission(
                 14L, "VIEW_ADMIN_DASHBOARD", "Xem trang tổng quan quản trị");
 
-        when(roleRepository.findByCode("ADMIN")).thenReturn(Optional.of(adminRole));
+        lenient().when(roleRepository.findByCode("ADMIN")).thenReturn(Optional.of(adminRole));
         when(permissionRepository.findAll()).thenReturn(List.of(adminPermission));
         when(rolePermissionRepository.findByRoleId(1L)).thenReturn(List.of());
         when(userRepository.findByUsername("admin")).thenReturn(Optional.of(adminUser));
@@ -162,8 +164,8 @@ class DataInitializerTest {
         RolePermission adminChat = new RolePermission(1L, adminRole, useChat);
         RolePermission adminManagement = new RolePermission(2L, adminRole, manageKnowledge);
 
-        when(roleRepository.findByCode("ADMIN")).thenReturn(Optional.of(adminRole));
-        when(roleRepository.findByCode("DOCTOR")).thenReturn(Optional.of(doctorRole));
+        lenient().when(roleRepository.findByCode("ADMIN")).thenReturn(Optional.of(adminRole));
+        lenient().when(roleRepository.findByCode("DOCTOR")).thenReturn(Optional.of(doctorRole));
         when(featureRepository.findByName("AI Chatbox & Medical Knowledge"))
                 .thenReturn(Optional.of(feature));
         when(permissionRepository.findByCode("USE_AI_CHAT")).thenReturn(Optional.of(useChat));

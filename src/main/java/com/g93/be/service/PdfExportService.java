@@ -392,8 +392,8 @@ public class PdfExportService {
             List<PdfReportDataDto.AiResultExportDto> aiResults,
             String expectedSide) {
         return aiResults.stream()
-                .filter(result -> expectedSide.equals(normalizeKneeSide(result.getKneeSide())))
-                .map(PdfReportDataDto.AiResultExportDto::getKlGrade)
+                .filter(result -> result != null && expectedSide.equals(normalizeKneeSide(result.getKneeSide())))
+                .map(result -> result.getKlGrade())
                 .filter(grade -> grade != null && !grade.isBlank())
                 .map(Integer::valueOf)
                 .max(Integer::compareTo)

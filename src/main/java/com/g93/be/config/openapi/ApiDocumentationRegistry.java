@@ -123,6 +123,9 @@ final class ApiDocumentationRegistry {
                 add("UserController", "createUser", "Người dùng", "Tạo người dùng",
                                 "Admin tạo tài khoản theo role ID; không cho phép tạo thêm ADMIN qua endpoint này.",
                                 "201", "Tạo người dùng thành công", "USER", "CREATE_USER_REQUEST", ResponseKind.JSON);
+                add("UserController", "updateUserRole", "Người dùng", "Cập nhật role người dùng",
+                                "Admin chuyển role của một user sang role khác không phải ADMIN; không thể tự đổi role hoặc đổi role của admin khác.",
+                                "200", "Cập nhật role thành công", "USER", "UPDATE_USER_ROLE_REQUEST", ResponseKind.JSON);
                 add("UserController", "getStaffList", "Người dùng", "Lấy danh sách nhân sự y tế",
                                 "Trả bác sĩ và trưởng khoa phục vụ phân công ca khám.",
                                 "200", "Danh sách nhân sự y tế", "USER_LIST", null, ResponseKind.JSON);
@@ -227,6 +230,10 @@ final class ApiDocumentationRegistry {
                                 "Đếm ca chưa xác nhận của tôi",
                                 "Đếm ca chưa VERIFIED của người dùng đang đăng nhập.", "200",
                                 "Số ca chưa xác nhận của tôi", "LONG", null, ResponseKind.JSON);
+                add("ExaminationController", "getDailyExaminationsInLast7Days", "Ca khám",
+                                "Thống kê 7 ngày",
+                                "Đếm số ca khám của 7 ngày gần nhất, có thể truyền isPersonal theo quy tắc phân quyền.", "200",
+                                "Danh sách thống kê theo ngày", "DAILY_STATS", null, ResponseKind.JSON);
         }
 
         private void registerDicom() {

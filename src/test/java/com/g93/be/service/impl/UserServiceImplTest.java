@@ -2,6 +2,7 @@ package com.g93.be.service.impl;
 
 import com.g93.be.common.util.MailUtil;
 import com.g93.be.dto.CreateUserRequest;
+import com.g93.be.dto.UpdateUserRoleRequest;
 import com.g93.be.dto.UserResponse;
 import com.g93.be.entity.Role;
 import com.g93.be.entity.User;
@@ -15,6 +16,7 @@ import jakarta.validation.ValidatorFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -87,7 +89,9 @@ public class UserServiceImplTest {
 
         assertNotNull(res);
         assertEquals("doc", res.getUsername());
-        verify(userRepository).save(any(User.class));
+        ArgumentCaptor<User> savedUserCaptor = ArgumentCaptor.forClass(User.class);
+        verify(userRepository).save(savedUserCaptor.capture());
+        assertEquals("DOCTOR", savedUserCaptor.getValue().getUserType());
         verify(mailUtil).sendTemplateMail(anyString(), anyString(), anyString(), any());
     }
 
@@ -408,5 +412,103 @@ public class UserServiceImplTest {
 
         RuntimeException ex = assertThrows(RuntimeException.class, () -> userService.countHeads("adminUser"));
         assertEquals("DB Connection refused", ex.getMessage());
+    }
+
+    @Test
+    void updateUserRole_AdminCanPromoteDoctorToHeadOfDepartment() {
+        User actor = userWithRole(1L, "ADMIN");
+        User target = userWithRole(2L, "DOCTOR");
+        Role headRole = role(3L, "HEAD_OF_DEPARTMENT");
+
+        when(userRepository.findByUsername("admin")).thenReturn(Optional.of(actor));
+        when(userRepository.findById(2L)).thenReturn(Optional.of(target));
+        when(roleRepository.findById(3L)).thenReturn(Optional.of(headRole));
+        when(userRepository.save(target)).thenReturn(target);
+
+        UserResponse response = userService.updateUserRole(2L, new UpdateUserRoleRequest(3L), "admin");
+
+        assertSame(headRole, target.getRole());
+        assertEquals("DOCTOR", target.getUserType());
+        assertEquals("HEAD_OF_DEPARTMENT", response.getRole().getCode());
+        assertEquals("DOCTOR", response.getUserType());
+        verify(userRepository).save(target);
+    }
+
+    @Test
+    void updateUserRole_AdminCanDemoteHeadOfDepartmentToDoctor() {
+        User actor = userWithRole(1L, "ADMIN");
+        User target = userWithRole(2L, "HEAD_OF_DEPARTMENT");
+        Role doctorRole = role(2L, "DOCTOR");
+
+        when(userRepository.findByUsername("admin")).thenReturn(Optional.of(actor));
+        when(userRepository.findById(2L)).thenReturn(Optional.of(target));
+        when(roleRepository.findById(2L)).thenReturn(Optional.of(doctorRole));
+        when(userRepository.save(target)).thenReturn(target);
+
+        UserResponse response = userService.updateUserRole(2L, new UpdateUserRoleRequest(2L), "admin");
+
+        assertEquals("DOCTOR", target.getRole().getCode());
+        assertEquals("DOCTOR", target.getUserType());
+        assertEquals("DOCTOR", response.getRole().getCode());
+    }
+
+    @Test
+    void updateUserRole_NonAdminIsRejected() {
+        User actor = userWithRole(1L, "DOCTOR");
+
+        when(userRepository.findByUsername("doctor")).thenReturn(Optional.of(actor));
+
+        AccessDeniedException exception = assertThrows(AccessDeniedException.class,
+                () -> userService.updateUserRole(2L, new UpdateUserRoleRequest(3L), "doctor"));
+
+        assertEquals("Only Admin can update user roles", exception.getMessage());
+        verify(userRepository, never()).findById(anyLong());
+        verify(userRepository, never()).save(any(User.class));
+    }
+
+    @Test
+    void updateUserRole_AdminRoleAndSelfChangesAreRejected() {
+        User actor = userWithRole(1L, "ADMIN");
+        Role adminRole = role(1L, "ADMIN");
+        User targetAdmin = userWithRole(2L, "ADMIN");
+
+        when(userRepository.findByUsername("admin")).thenReturn(Optional.of(actor));
+
+        IllegalArgumentException selfChange = assertThrows(IllegalArgumentException.class,
+                () -> userService.updateUserRole(1L, new UpdateUserRoleRequest(2L), "admin"));
+        assertEquals("An admin cannot change their own role", selfChange.getMessage());
+
+        when(userRepository.findById(2L)).thenReturn(Optional.of(targetAdmin));
+        IllegalArgumentException adminTarget = assertThrows(IllegalArgumentException.class,
+                () -> userService.updateUserRole(2L, new UpdateUserRoleRequest(2L), "admin"));
+        assertEquals("An admin role cannot be changed via this endpoint", adminTarget.getMessage());
+
+        User target = userWithRole(3L, "DOCTOR");
+        when(userRepository.findById(3L)).thenReturn(Optional.of(target));
+        when(roleRepository.findById(1L)).thenReturn(Optional.of(adminRole));
+        IllegalArgumentException adminAssignment = assertThrows(IllegalArgumentException.class,
+                () -> userService.updateUserRole(3L, new UpdateUserRoleRequest(1L), "admin"));
+        assertEquals("Cannot assign the ADMIN role via this endpoint", adminAssignment.getMessage());
+        verify(userRepository, never()).save(any(User.class));
+    }
+
+    private User userWithRole(Long id, String code) {
+        User user = new User();
+        user.setId(id);
+        user.setRole(role(id, code));
+        user.setStatus(UserStatus.ACTIVE);
+        user.setUserType("ADMIN".equals(code) ? "ADMIN" : "DOCTOR");
+        user.setUsername(code.toLowerCase());
+        user.setFullName("Test " + code);
+        user.setEmail(code.toLowerCase() + "@test.com");
+        return user;
+    }
+
+    private Role role(Long id, String code) {
+        Role role = new Role();
+        role.setId(id);
+        role.setCode(code);
+        role.setName(code);
+        return role;
     }
 }

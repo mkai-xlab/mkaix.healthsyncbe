@@ -43,7 +43,7 @@ public class KnowledgeIndexingWorker {
         try {
             List<Document> parsed = readDocuments(knowledge);
             List<Document> enriched = parsed.stream()
-                    .filter(Document::isText)
+                    .filter(document -> document != null && document.isText())
                     .map(document -> new Document(document.getText(), metadata(knowledge)))
                     .toList();
             List<Document> chunks = splitter.apply(enriched);
