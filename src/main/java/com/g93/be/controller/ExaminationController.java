@@ -259,12 +259,17 @@ public class ExaminationController {
      * @return A list of daily statistics.
      */
     @GetMapping("/stats/daily-last-7-days")
-    @PreAuthorize("@accessControl.canAccessUser(#p0, authentication)")
+    @PreAuthorize("hasAnyRole('ADMIN', 'DOCTOR', 'DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT')")
     public ResponseEntity<List<com.g93.be.dto.DailyStatDto>> getDailyExaminationsInLast7Days(
-            @RequestParam Long userId,
+            java.security.Principal principal,
             @RequestParam(defaultValue = "false", required = false) Boolean isPersonal) {
-        log.info("Received request to get daily examinations in last 7 days for user id: {}", userId);
-        return ResponseEntity.ok(examinationService.getDailyExaminationsInLast7Days(userId, isPersonal));
+        
+        String username = principal.getName();
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        
+        log.info("Received request to get daily examinations in last 7 days for user id: {}", user.getId());
+        return ResponseEntity.ok(examinationService.getDailyExaminationsInLast7Days(user.getId(), isPersonal));
     }
 
     /**
