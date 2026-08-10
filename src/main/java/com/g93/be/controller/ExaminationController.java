@@ -253,6 +253,21 @@ public class ExaminationController {
     }
 
     /**
+     * Retrieves daily statistics for examinations in the last 7 days.
+     *
+     * @param userId The ID of the user requesting the stats.
+     * @return A list of daily statistics.
+     */
+    @GetMapping("/stats/daily-last-7-days")
+    @PreAuthorize("@accessControl.canAccessUser(#p0, authentication)")
+    public ResponseEntity<List<com.g93.be.dto.DailyStatDto>> getDailyExaminationsInLast7Days(
+            @RequestParam Long userId,
+            @RequestParam(defaultValue = "false", required = false) Boolean isPersonal) {
+        log.info("Received request to get daily examinations in last 7 days for user id: {}", userId);
+        return ResponseEntity.ok(examinationService.getDailyExaminationsInLast7Days(userId, isPersonal));
+    }
+
+    /**
      * Retrieves total severe examinations (KL3, KL4) based on user role.
      *
      * @param userId The ID of the user requesting the total.
