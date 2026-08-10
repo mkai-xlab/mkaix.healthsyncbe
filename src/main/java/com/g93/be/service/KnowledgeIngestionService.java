@@ -244,7 +244,10 @@ public class KnowledgeIngestionService {
 
     private String extension(String name) {
         String safe = safeFileName(name);
-        int index = safe == null ? -1 : safe.lastIndexOf('.');
+        if (safe == null) {
+            return "";
+        }
+        int index = safe.lastIndexOf('.');
         return index < 0 ? "" : safe.substring(index + 1).toLowerCase(Locale.ROOT);
     }
 

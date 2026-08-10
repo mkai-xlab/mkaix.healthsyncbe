@@ -135,7 +135,7 @@ public class PermissionServiceImpl implements PermissionService {
         List<Permission> permissions = permissionRepository.findByFeatureId(id);
 
         if (!permissions.isEmpty()) {
-            List<Long> permissionIds = permissions.stream().map(Permission::getId).toList();
+            List<Long> permissionIds = permissions.stream().map(p -> p.getId()).toList();
             permissionIds.forEach(permissionRepository::clearRequiredPermissionReferences);
             rolePermissionRepository.deleteByPermissionIdIn(permissionIds);
             permissionRepository.deleteAll(permissions);

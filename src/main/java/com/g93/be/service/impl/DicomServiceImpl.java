@@ -52,7 +52,6 @@ import java.util.List;
 import java.nio.file.Files;
 import java.util.stream.Collectors;
 import java.util.Comparator;
-import java.io.File;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipEntry;
 import java.nio.file.StandardCopyOption;
@@ -134,7 +133,8 @@ public class DicomServiceImpl implements DicomService {
                 
                 // Bước 2: Kiểm tra magic bytes của file để xác nhận đây thực sự là chuẩn file DICOM
                 if (!isDicomFile(tempFile)) {
-                    earlyErrors.add(new FileUploadError(originalFilename, "Tệp tin không đúng định dạng DICOM hoặc bị lỗi cấu trúc."));
+                    earlyErrors.add(new FileUploadError(originalFilename,
+                            "Tệp tin không đúng định dạng DICOM hoặc bị lỗi cấu trúc."));
                     Files.deleteIfExists(tempFile);
                     continue;
                 }
@@ -155,7 +155,8 @@ public class DicomServiceImpl implements DicomService {
             
             // Thông báo lỗi nếu toàn bộ mẻ file tải lên đều thất bại
             if (response.getSuccessfulPatients().isEmpty()) {
-                response.setMessage("Tải lên thất bại hoặc không có file nào được thêm mới. Vui lòng xem chi tiết lỗi bên dưới.");
+                response.setMessage(
+                        "Tải lên thất bại hoặc không có file nào được thêm mới. Vui lòng xem chi tiết lỗi bên dưới.");
             }
             
             // Lưu nhật ký hệ thống (Audit Log) về hành động tải lên
@@ -213,9 +214,11 @@ public class DicomServiceImpl implements DicomService {
 
     /**
      * Xử lý tải lên một mẻ nhiều file DICOM độc lập.
-     * @param files Danh sách các file DICOM được gửi từ client.
+     * 
+     * @param files    Danh sách các file DICOM được gửi từ client.
      * @param username Tên đăng nhập của người dùng thực hiện tải lên.
-     * @return BatchDicomUploadResponse chứa thông tin uploadSessionId và kết quả phân tích sơ bộ.
+     * @return BatchDicomUploadResponse chứa thông tin uploadSessionId và kết quả
+     *         phân tích sơ bộ.
      */
     @Override
     public BatchDicomUploadResponse uploadBatchFiles(List<MultipartFile> files, String username) {
@@ -252,7 +255,8 @@ public class DicomServiceImpl implements DicomService {
                 
                 // Bắt buộc phải là đuôi .zip
                 if (filename == null || !filename.toLowerCase().endsWith(".zip")) {
-                    earlyErrors.add(new FileUploadError(filename, "Invalid file format. Only .zip files are allowed for batch upload."));
+                    earlyErrors.add(new FileUploadError(filename,
+                            "Invalid file format. Only .zip files are allowed for batch upload."));
                     continue;
                 }
                 
@@ -263,7 +267,8 @@ public class DicomServiceImpl implements DicomService {
                 // Kiểm tra magic bytes xem có đúng là cấu trúc file ZIP chuẩn không
                 if (!isZipFile(tempZipFile)) {
                     Files.deleteIfExists(tempZipFile);
-                    earlyErrors.add(new FileUploadError(filename, "Tệp tin không đúng định dạng ZIP hoặc bị lỗi cấu trúc."));
+                    earlyErrors.add(
+                            new FileUploadError(filename, "Tệp tin không đúng định dạng ZIP hoặc bị lỗi cấu trúc."));
                     continue;
                 }
                 tempZipFiles.add(tempZipFile);
@@ -285,13 +290,16 @@ public class DicomServiceImpl implements DicomService {
             
             // Gộp các lỗi ban đầu vào kết quả trả về cho Frontend
             response.getErrors().addAll(earlyErrors);
-            
+
             if (response.getSuccessfulPatients().isEmpty()) {
-                response.setMessage("Tải lên thất bại hoặc không có file nào được thêm mới. Vui lòng xem chi tiết lỗi bên dưới.");
+                response.setMessage(
+                        "Tải lên thất bại hoặc không có file nào được thêm mới. Vui lòng xem chi tiết lỗi bên dưới.");
             }
-            
-            saveAuditLog(userId, "DICOM ZIP Upload", "Uploaded " + files.size() + " ZIP files (" + totalSize + " bytes). Success: " + response.getSuccessfulPatients().size() + ", Errors: " + response.getErrors().size());
-            
+
+            saveAuditLog(userId, "DICOM ZIP Upload",
+                    "Uploaded " + files.size() + " ZIP files (" + totalSize + " bytes). Success: "
+                            + response.getSuccessfulPatients().size() + ", Errors: " + response.getErrors().size());
+
             return response;
         } catch (Exception e) {
             saveAuditLog(userId, "DICOM ZIP Upload Failed", "Error saving uploaded ZIP files: " + e.getMessage());
@@ -354,7 +362,8 @@ public class DicomServiceImpl implements DicomService {
      * @return BatchDicomUploadResponse (Kết quả xử lý bóc tách từ các file bên trong)
      */
     @Override
-    public BatchDicomUploadResponse processMultipleZipBatches(List<Path> zipFilePaths, Long userId, String uploadSessionId) {
+    public BatchDicomUploadResponse processMultipleZipBatches(List<Path> zipFilePaths, Long userId,
+            String uploadSessionId) {
         log.info("Starting background processing of {} ZIP batches", zipFilePaths.size());
         if (userId != null) {
             // Thông báo qua STOMP (Websocket) cho User biết hệ thống đang giải nén
@@ -369,7 +378,7 @@ public class DicomServiceImpl implements DicomService {
         try {
             // Bước 1: Tạo thư mục làm việc tạm thời để bung nén
             workDir = Files.createTempDirectory("zip_batch_work_");
-            
+
             for (Path zipFilePath : zipFilePaths) {
                 unzipFile(zipFilePath, workDir);
             }
@@ -434,8 +443,8 @@ public class DicomServiceImpl implements DicomService {
                 try {
                     Files.walk(workDir)
                             .sorted(Comparator.reverseOrder())
-                            .map(Path::toFile)
-                            .forEach(File::delete);
+                            .map(p -> p.toFile())
+                            .forEach(f -> f.delete());
                 } catch (IOException ignored) {
                 }
             }
@@ -533,7 +542,8 @@ public class DicomServiceImpl implements DicomService {
                 try {
                     // Kiểm tra một lần nữa chắc chắn file là định dạng DICOM chuẩn
                     if (!isDicomFile(tempFile)) {
-                        errors.add(new FileUploadError(originalFilename, "Tệp tin không đúng định dạng DICOM hoặc bị lỗi cấu trúc."));
+                        errors.add(new FileUploadError(originalFilename,
+                                "Tệp tin không đúng định dạng DICOM hoặc bị lỗi cấu trúc."));
                         continue;
                     }
                     
@@ -775,7 +785,8 @@ public class DicomServiceImpl implements DicomService {
                         notificationService.sendNotification(new SendNotificationRequest(
                                 userId,
                                 "Tải lên DICOM hoàn tất (có lỗi)",
-                                "Đã xử lý xong nhưng có " + errors.size() + " file bị lỗi. Vui lòng xem chi tiết trên giao diện.",
+                                "Đã xử lý xong nhưng có " + errors.size()
+                                        + " file bị lỗi. Vui lòng xem chi tiết trên giao diện.",
                                 "DICOM_BATCH_RESULT",
                                 null));
                     } else {
@@ -821,7 +832,7 @@ public class DicomServiceImpl implements DicomService {
      * Tiện ích: Đọc các byte đầu tiên (Magic Bytes) để kiểm chứng tính xác thực của file DICOM.
      * DICOM file hợp lệ phải có chuỗi "DICM" nằm ở byte thứ 128-131.
      */
-    private boolean isDicomFile(Path path) {
+    boolean isDicomFile(Path path) {
         try (InputStream is = Files.newInputStream(path)) {
             is.skip(128);
             byte[] b = new byte[4];
@@ -840,7 +851,7 @@ public class DicomServiceImpl implements DicomService {
      * Tiện ích: Đọc các byte đầu tiên để xác minh định dạng file ZIP.
      * File ZIP chuẩn thường bắt đầu bằng chữ ký "PK" (0x50 0x4B).
      */
-    private boolean isZipFile(Path path) {
+    boolean isZipFile(Path path) {
         try (InputStream is = Files.newInputStream(path)) {
             byte[] b = new byte[4];
             int read = is.read(b);
@@ -853,5 +864,3 @@ public class DicomServiceImpl implements DicomService {
         return false;
     }
 }
-
-

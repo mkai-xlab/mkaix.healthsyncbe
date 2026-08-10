@@ -1,7 +1,6 @@
 package com.g93.be.service.impl;
 
 import com.g93.be.dto.AiPredictionRequest;
-import com.g93.be.dto.AiPredictionResultDto;
 import com.g93.be.dto.ExaminationDto;
 import com.g93.be.dto.ExaminationImageDto;
 import com.g93.be.dto.FastApiPredictionResponse;
@@ -38,14 +37,22 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class AiServiceImplTest {
 
-    @Mock private DicomInstanceRepository dicomInstanceRepository;
-    @Mock private ExaminationRepository examinationRepository;
-    @Mock private AiAnalysisRepository aiAnalysisRepository;
-    @Mock private AiResultRepository aiResultRepository;
-    @Mock private AiResultConfidenceScoreRepository aiResultConfidenceScoreRepository;
-    @Mock private ImageRepository imageRepository;
-    @Mock private ExaminationMapper examinationMapper;
-    @Mock private NotificationService notificationService;
+    @Mock
+    private DicomInstanceRepository dicomInstanceRepository;
+    @Mock
+    private ExaminationRepository examinationRepository;
+    @Mock
+    private AiAnalysisRepository aiAnalysisRepository;
+    @Mock
+    private AiResultRepository aiResultRepository;
+    @Mock
+    private AiResultConfidenceScoreRepository aiResultConfidenceScoreRepository;
+    @Mock
+    private ImageRepository imageRepository;
+    @Mock
+    private ExaminationMapper examinationMapper;
+    @Mock
+    private NotificationService notificationService;
 
     @InjectMocks
     private AiServiceImpl aiService;
@@ -69,12 +76,14 @@ class AiServiceImplTest {
             if (a.getDicomInstance() != null) {
                 a.getDicomInstance().setAiAnalysis(a);
             }
-            if (a.getId() == null) a.setId(new Random().nextLong());
+            if (a.getId() == null)
+                a.setId(new Random().nextLong());
             return a;
         });
         lenient().when(aiResultRepository.save(any())).thenAnswer(i -> {
             AiResult r = i.getArgument(0);
-            if (r.getId() == null) r.setId(new Random().nextLong());
+            if (r.getId() == null)
+                r.setId(new Random().nextLong());
             return r;
         });
         lenient().when(imageRepository.save(any())).thenAnswer(i -> i.getArgument(0));
@@ -88,7 +97,7 @@ class AiServiceImplTest {
             Image image = new Image();
             image.setFilePath(filePath);
             instance.setImage(image);
-            
+
             File imgFile = tempDir.resolve(filePath).toFile();
             imgFile.getParentFile().mkdirs();
             Files.write(imgFile.toPath(), "dummy image data".getBytes());
@@ -127,7 +136,7 @@ class AiServiceImplTest {
         fakeResponse.setAnnotatedImage(base64);
         return fakeResponse;
     }
-    
+
     // ==============================================================================
     // UTCID01: 1 Valid ID, DB OK, API 200 OK, Valid Predictions
     // ==============================================================================
@@ -136,7 +145,7 @@ class AiServiceImplTest {
         setupCommonRepositoryMocks();
         AiPredictionRequest request = new AiPredictionRequest();
         request.setDicomInstanceIds(Arrays.asList(101L));
-        
+
         DicomInstance instance = createMockInstance(101L, DicomInstanceStatus.AI_SENDING, "valid_101.png");
         when(dicomInstanceRepository.findById(101L)).thenReturn(Optional.of(instance));
 
@@ -153,9 +162,9 @@ class AiServiceImplTest {
                     when(mock.postForEntity(anyString(), any(), eq(FastApiPredictionResponse.class)))
                             .thenReturn(new ResponseEntity<>(fakeResponse, HttpStatus.OK));
                 })) {
-            
+
             List<ExaminationDto> result = aiService.predictBatch(request);
-            
+
             assertFalse(result.isEmpty());
             assertEquals(DicomInstanceStatus.GET_RESULTED, instance.getStatus());
             assertEquals(4, instance.getExamination().getMaxPredictedGrade());
@@ -171,7 +180,7 @@ class AiServiceImplTest {
         setupCommonRepositoryMocks();
         AiPredictionRequest request = new AiPredictionRequest();
         request.setDicomInstanceIds(Arrays.asList(101L, 102L));
-        
+
         DicomInstance instance1 = createMockInstance(101L, DicomInstanceStatus.AI_SENDING, "valid_101.png");
         DicomInstance instance2 = createMockInstance(102L, DicomInstanceStatus.AI_SENDING, "valid_102.png");
         instance2.setExamination(instance1.getExamination());
@@ -180,8 +189,10 @@ class AiServiceImplTest {
         when(dicomInstanceRepository.findById(102L)).thenReturn(Optional.of(instance2));
 
         ExaminationDto examDto = new ExaminationDto();
-        ExaminationImageDto imgDto1 = new ExaminationImageDto(); imgDto1.setDicomInstanceId(101L);
-        ExaminationImageDto imgDto2 = new ExaminationImageDto(); imgDto2.setDicomInstanceId(102L);
+        ExaminationImageDto imgDto1 = new ExaminationImageDto();
+        imgDto1.setDicomInstanceId(101L);
+        ExaminationImageDto imgDto2 = new ExaminationImageDto();
+        imgDto2.setDicomInstanceId(102L);
         examDto.setImages(Arrays.asList(imgDto1, imgDto2));
         when(examinationMapper.toDto(any(), anyList())).thenReturn(examDto);
 
@@ -192,9 +203,9 @@ class AiServiceImplTest {
                     when(mock.postForEntity(anyString(), any(), eq(FastApiPredictionResponse.class)))
                             .thenReturn(new ResponseEntity<>(fakeResponse1, HttpStatus.OK));
                 })) {
-            
+
             List<ExaminationDto> result = aiService.predictBatch(request);
-            
+
             assertFalse(result.isEmpty());
             assertEquals(DicomInstanceStatus.GET_RESULTED, instance1.getStatus());
             assertEquals(DicomInstanceStatus.GET_RESULTED, instance2.getStatus());
@@ -278,7 +289,7 @@ class AiServiceImplTest {
                     when(mock.postForEntity(anyString(), any(), eq(FastApiPredictionResponse.class)))
                             .thenThrow(new HttpClientErrorException(HttpStatus.BAD_REQUEST, "Bad Request"));
                 })) {
-            
+
             aiService.predictBatch(request);
             assertEquals(DicomInstanceStatus.AI_FAILED, instance.getStatus());
             assertEquals(ExaminationStatus.AI_FAILED, instance.getExamination().getStatus());
@@ -302,7 +313,7 @@ class AiServiceImplTest {
                     when(mock.postForEntity(anyString(), any(), eq(FastApiPredictionResponse.class)))
                             .thenThrow(new ResourceAccessException("Connection refused"));
                 })) {
-            
+
             aiService.predictBatch(request);
             assertEquals(DicomInstanceStatus.AI_FAILED, instance.getStatus());
             assertNotNull(instance.getAiAnalysis());
@@ -328,7 +339,7 @@ class AiServiceImplTest {
                     when(mock.postForEntity(anyString(), any(), eq(FastApiPredictionResponse.class)))
                             .thenThrow(new ResourceAccessException(longMsg));
                 })) {
-            
+
             aiService.predictBatch(request);
             assertNotNull(instance.getAiAnalysis());
             assertTrue(instance.getAiAnalysis().getErrorMessage().length() <= 500);
@@ -356,7 +367,7 @@ class AiServiceImplTest {
                     when(mock.postForEntity(anyString(), any(), eq(FastApiPredictionResponse.class)))
                             .thenReturn(new ResponseEntity<>(fakeResponse, HttpStatus.OK));
                 })) {
-            
+
             aiService.predictBatch(request);
             assertEquals(DicomInstanceStatus.GET_RESULTED, instance.getStatus());
             assertNotNull(instance.getAiAnalysis());
@@ -374,9 +385,10 @@ class AiServiceImplTest {
         request.setDicomInstanceIds(Arrays.asList(101L));
         DicomInstance instance = createMockInstance(101L, DicomInstanceStatus.AI_SENDING, "valid_101.png");
         when(dicomInstanceRepository.findById(101L)).thenReturn(Optional.of(instance));
-        
+
         ExaminationDto examDto = new ExaminationDto();
-        ExaminationImageDto imgDto = new ExaminationImageDto(); imgDto.setDicomInstanceId(101L);
+        ExaminationImageDto imgDto = new ExaminationImageDto();
+        imgDto.setDicomInstanceId(101L);
         examDto.setImages(Arrays.asList(imgDto));
         when(examinationMapper.toDto(any(), anyList())).thenReturn(examDto);
 
@@ -387,7 +399,7 @@ class AiServiceImplTest {
                     when(mock.postForEntity(anyString(), any(), eq(FastApiPredictionResponse.class)))
                             .thenReturn(new ResponseEntity<>(fakeResponse, HttpStatus.OK));
                 })) {
-            
+
             aiService.predictBatch(request);
             assertEquals(3, instance.getExamination().getMaxPredictedGrade());
         }
@@ -403,9 +415,10 @@ class AiServiceImplTest {
         request.setDicomInstanceIds(Arrays.asList(101L));
         DicomInstance instance = createMockInstance(101L, DicomInstanceStatus.AI_SENDING, "valid_101.png");
         when(dicomInstanceRepository.findById(101L)).thenReturn(Optional.of(instance));
-        
+
         ExaminationDto examDto = new ExaminationDto();
-        ExaminationImageDto imgDto = new ExaminationImageDto(); imgDto.setDicomInstanceId(101L);
+        ExaminationImageDto imgDto = new ExaminationImageDto();
+        imgDto.setDicomInstanceId(101L);
         examDto.setImages(Arrays.asList(imgDto));
         when(examinationMapper.toDto(any(), anyList())).thenReturn(examDto);
 
@@ -416,7 +429,7 @@ class AiServiceImplTest {
                     when(mock.postForEntity(anyString(), any(), eq(FastApiPredictionResponse.class)))
                             .thenReturn(new ResponseEntity<>(fakeResponse, HttpStatus.OK));
                 })) {
-            
+
             aiService.predictBatch(request);
             assertEquals(0, instance.getExamination().getMaxPredictedGrade());
         }
@@ -432,9 +445,10 @@ class AiServiceImplTest {
         request.setDicomInstanceIds(Arrays.asList(101L));
         DicomInstance instance = createMockInstance(101L, DicomInstanceStatus.AI_SENDING, "valid_101.png");
         when(dicomInstanceRepository.findById(101L)).thenReturn(Optional.of(instance));
-        
+
         ExaminationDto examDto = new ExaminationDto();
-        ExaminationImageDto imgDto = new ExaminationImageDto(); imgDto.setDicomInstanceId(101L);
+        ExaminationImageDto imgDto = new ExaminationImageDto();
+        imgDto.setDicomInstanceId(101L);
         examDto.setImages(Arrays.asList(imgDto));
         when(examinationMapper.toDto(any(), anyList())).thenReturn(examDto);
 
@@ -445,7 +459,7 @@ class AiServiceImplTest {
                     when(mock.postForEntity(anyString(), any(), eq(FastApiPredictionResponse.class)))
                             .thenReturn(new ResponseEntity<>(fakeResponse, HttpStatus.OK));
                 })) {
-            
+
             aiService.predictBatch(request);
             assertEquals(DicomInstanceStatus.GET_RESULTED, instance.getStatus());
         }
@@ -459,17 +473,19 @@ class AiServiceImplTest {
         setupCommonRepositoryMocks();
         AiPredictionRequest request = new AiPredictionRequest();
         request.setDicomInstanceIds(Arrays.asList(101L, 102L));
-        
+
         DicomInstance instance1 = createMockInstance(101L, DicomInstanceStatus.AI_SENDING, "valid_101.png");
         DicomInstance instance2 = createMockInstance(102L, DicomInstanceStatus.AI_SENDING, "valid_102.png");
         instance2.setExamination(instance1.getExamination());
 
         when(dicomInstanceRepository.findById(101L)).thenReturn(Optional.of(instance1));
         when(dicomInstanceRepository.findById(102L)).thenReturn(Optional.of(instance2));
-        
+
         ExaminationDto examDto = new ExaminationDto();
-        ExaminationImageDto imgDto1 = new ExaminationImageDto(); imgDto1.setDicomInstanceId(101L);
-        ExaminationImageDto imgDto2 = new ExaminationImageDto(); imgDto2.setDicomInstanceId(102L);
+        ExaminationImageDto imgDto1 = new ExaminationImageDto();
+        imgDto1.setDicomInstanceId(101L);
+        ExaminationImageDto imgDto2 = new ExaminationImageDto();
+        imgDto2.setDicomInstanceId(102L);
         examDto.setImages(Arrays.asList(imgDto1, imgDto2));
         when(examinationMapper.toDto(any(), anyList())).thenReturn(examDto);
 
@@ -481,9 +497,9 @@ class AiServiceImplTest {
                             .thenReturn(new ResponseEntity<>(fakeResponse, HttpStatus.OK))
                             .thenThrow(new ResourceAccessException("Connection refused"));
                 })) {
-            
+
             aiService.predictBatch(request);
-            
+
             assertEquals(DicomInstanceStatus.GET_RESULTED, instance1.getStatus());
             assertEquals(DicomInstanceStatus.AI_FAILED, instance2.getStatus());
             assertEquals(ExaminationStatus.NEED_VERIFY, instance1.getExamination().getStatus());

@@ -23,7 +23,10 @@ public class CustomUserDetails implements UserDetails {
     public List<String> getPermissionCodes() {
         if (permissions == null)
             return java.util.Collections.emptyList();
-        return permissions.stream().map(PermissionResponse::code).collect(java.util.stream.Collectors.toList());
+        return permissions.stream()
+                .filter(java.util.Objects::nonNull)
+                .map(p -> p.code())
+                .collect(java.util.stream.Collectors.toList());
     }
 
     @Override

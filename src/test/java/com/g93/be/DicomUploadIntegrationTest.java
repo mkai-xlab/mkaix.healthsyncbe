@@ -179,15 +179,17 @@ public class DicomUploadIntegrationTest {
                         .file(file2)
                         .header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.successfulPatients", org.hamcrest.Matchers.hasSize(0)))
-                ;
+                .andExpect(jsonPath("$.successfulPatients", org.hamcrest.Matchers.hasSize(0)));
+
+        // Wait for async processing to finish to avoid test pollution
+        Thread.sleep(2000);
     }
 
     @Test
     void testUploadBatch_Failure_EmptyFileList() throws Exception {
         mockMvc.perform(multipart("/dicom/upload/batch")
                         .header("Authorization", "Bearer " + adminToken))
-                .andExpect(status().isInternalServerError());
+                .andExpect(status().isBadRequest());
     }
 
     @Test

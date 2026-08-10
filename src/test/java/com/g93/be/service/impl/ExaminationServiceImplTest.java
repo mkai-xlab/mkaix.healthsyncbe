@@ -14,6 +14,7 @@ import com.g93.be.repository.ExaminationRepository;
 import com.g93.be.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -1624,4 +1625,96 @@ class ExaminationServiceImplTest {
         assertTrue(ex.getMessage().contains("future"));
     }
 
+
+    // -------------------------------------------------------------------------
+    // Tests for markAsViewed(Long id)
+    // -------------------------------------------------------------------------
+
+    @Test
+    @DisplayName("UTC_MAV_01: Normal - Valid existing ID, isViewed is 0 initially")
+    void testMarkAsViewed_Normal_Success() {
+        Long examId = 1L;
+        Examination exam = new Examination();
+        exam.setId(examId);
+        exam.setIsViewed(0);
+
+        when(examinationRepository.findById(examId)).thenReturn(Optional.of(exam));
+
+        examinationService.markAsViewed(examId);
+
+        assertEquals(1, exam.getIsViewed());
+        verify(examinationRepository, times(1)).save(exam);
+    }
+
+    @Test
+    @DisplayName("UTC_MAV_02: Normal - Valid existing ID, isViewed is 1 initially")
+    void testMarkAsViewed_Normal_AlreadyViewed() {
+        Long examId = 2L;
+        Examination exam = new Examination();
+        exam.setId(examId);
+        exam.setIsViewed(1);
+
+        when(examinationRepository.findById(examId)).thenReturn(Optional.of(exam));
+
+        examinationService.markAsViewed(examId);
+
+        assertEquals(1, exam.getIsViewed());
+        verify(examinationRepository, times(1)).save(exam);
+    }
+
+    @Test
+    @DisplayName("UTC_MAV_03: Abnormal - ID not found")
+    void testMarkAsViewed_Abnormal_NotFound() {
+        Long examId = 999L;
+        when(examinationRepository.findById(examId)).thenReturn(Optional.empty());
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            examinationService.markAsViewed(examId);
+        });
+
+        assertEquals("Examination with id 999 not found", exception.getMessage());
+        verify(examinationRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("UTC_MAV_04: Abnormal - ID is null")
+    void testMarkAsViewed_Abnormal_NullId() {
+        // Since findById(null) typically throws IllegalArgumentException in Spring Data JPA:
+        when(examinationRepository.findById(null)).thenThrow(new IllegalArgumentException("The given id must not be null!"));
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            examinationService.markAsViewed(null);
+        });
+
+        assertTrue(exception.getMessage().contains("must not be null"));
+        verify(examinationRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("UTC_MAV_05: Boundary - ID is negative or zero")
+    void testMarkAsViewed_Boundary_NegativeId() {
+        Long examId = -1L;
+        when(examinationRepository.findById(examId)).thenReturn(Optional.empty());
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            examinationService.markAsViewed(examId);
+        });
+
+        assertEquals("Examination with id -1 not found", exception.getMessage());
+        verify(examinationRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("UTC_MAV_06: Boundary - ID is Long.MAX_VALUE")
+    void testMarkAsViewed_Boundary_MaxId() {
+        Long examId = Long.MAX_VALUE;
+        when(examinationRepository.findById(examId)).thenReturn(Optional.empty());
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            examinationService.markAsViewed(examId);
+        });
+
+        assertEquals("Examination with id " + Long.MAX_VALUE + " not found", exception.getMessage());
+        verify(examinationRepository, never()).save(any());
+    }
 }
