@@ -34,10 +34,6 @@ public class DataInitializer implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) throws Exception {
-        System.out.println("Migrating old NEED_REVERIFY statuses to NEED_VERIFY...");
-        jdbcTemplate.update("UPDATE examinations SET status = 'NEED_VERIFY' WHERE status = 'NEED_REVERIFY'");
-        System.out.println("Migration completed.");
-
         // 1. Initialize Dynamic Roles and Permissions FIRST
         if (roleRepository.findByCode("ADMIN").isEmpty()) {
             Role adminRole = new Role(null, "ADMIN", "System Administrator", null, null);
