@@ -1,6 +1,7 @@
 package com.g93.be.controller;
 
 import com.g93.be.dto.CreateUserRequest;
+import com.g93.be.dto.UpdateUserRoleRequest;
 import com.g93.be.dto.UserResponse;
 import com.g93.be.service.UserService;
 import jakarta.validation.Valid;
@@ -9,6 +10,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -43,6 +46,27 @@ public class UserController {
         UserResponse response = userService.createUser(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
+
+    /**
+     * Changes a non-admin user's role. Admin accounts cannot be changed through this endpoint.
+     *
+     * @param userId    The user whose role is being changed.
+     * @param request   The target role payload.
+     * @param principal The authenticated administrator.
+     * @return The user with the updated role.
+     */
+    @PutMapping("/{userId}/role")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<UserResponse> updateUserRole(
+            @PathVariable Long userId,
+            @Valid @RequestBody UpdateUserRoleRequest request,
+            Principal principal) {
+        log.info("Received request to update role for user ID: {}", userId);
+        UserResponse response = userService.updateUserRole(userId, request,
+                principal == null ? null : principal.getName());
+        return ResponseEntity.ok(response);
+    }
+
     /**
      * Retrieves the list of medical staff (Doctors, Head of Departments).
      *

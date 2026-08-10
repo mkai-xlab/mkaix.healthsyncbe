@@ -80,6 +80,9 @@ final class ApiExamples {
             Map.entry("CREATE_USER_REQUEST", json("""
                     {"fullName":"Nguyễn Hải Yến","email":"staff01@healthsync.vn","phone":"0987654321","roleId":2}
                     """)),
+            Map.entry("UPDATE_USER_ROLE_REQUEST", json("""
+                    {"roleId":3}
+                    """)),
             Map.entry("USER", json("""
                     {"id":12,"username":"staff01","fullName":"Nguyễn Hải Yến","email":"staff01@healthsync.vn","phone":"0987654321","role":{"id":2,"code":"DOCTOR","name":"Medical Doctor"},"status":"ACTIVE","userType":"DOCTOR","createdAt":"2026-08-02T08:00:00","updatedAt":null}
                     """)),
