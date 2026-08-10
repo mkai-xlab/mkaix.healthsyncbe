@@ -111,6 +111,26 @@ Returns all notifications owned by the authenticated user, including both read a
 
 Status codes: `200 OK`, `401 Unauthorized`.
 
+### Admin role reassignment
+
+#### `PUT /users/{userId}/role`
+
+Changes the role of a non-admin user. The endpoint requires an authenticated `ADMIN` account. It supports transitions such as `DOCTOR` to `HEAD_OF_DEPARTMENT` and the reverse transition without changing the user's profile, doctor-specific data, examinations, or audit history.
+
+Request:
+
+```json
+{
+  "roleId": 3
+}
+```
+
+The target role must exist and cannot be `ADMIN`. An administrator cannot change their own role or change the role of another administrator. On success, the service updates only `users.role_id`. `users.user_type` identifies the medical-staff entity and remains `DOCTOR` for doctors, heads of department, nurses, and future medical roles. Access tokens issued before the change retain their old authority claims until they expire (15 minutes by default), so the client should refresh its token or sign in again to receive the new role.
+
+Response: the updated `UserResponse` object, including the new `role`; `userType` remains unchanged.
+
+Status codes: `200 OK`, `400 Bad Request` for an invalid role transition or payload, `401 Unauthorized`, `403 Forbidden` for non-admin callers, `404 Not Found` when the target user or role does not exist.
+
 ### `DELETE /permissions/{id}`
 
 Deletes a permission and removes its role assignments and dependency references. Requires the `ADMIN` role and returns no response body.
