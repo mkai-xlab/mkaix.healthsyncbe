@@ -26,7 +26,7 @@ public class ReportController {
     private final PdfExportService pdfExportService;
 
     @PostMapping("/examinations/{id}/generate-report")
-    @PreAuthorize("hasAnyRole('DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT') or hasAuthority('GENERATE_PDF_REPORT')")
+    @PreAuthorize("hasAnyRole('DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT') or (hasRole('DOCTOR') and hasAuthority('GENERATE_PDF_REPORT'))")
     public ResponseEntity<ReportResponse> generatePdfReport(
             @PathVariable Long id,
             Principal principal) {
@@ -35,7 +35,7 @@ public class ReportController {
     }
 
     @GetMapping("/reports/{examinationId}/preview")
-    @PreAuthorize("hasAnyRole('DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT') or hasAuthority('GENERATE_PDF_REPORT')")
+    @PreAuthorize("hasAnyRole('DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT') or (hasRole('DOCTOR') and hasAuthority('GENERATE_PDF_REPORT'))")
     public ResponseEntity<Resource> previewReport(
             @PathVariable Long examinationId,
             Principal principal) {
@@ -44,7 +44,7 @@ public class ReportController {
     }
 
     @GetMapping("/reports/{examinationId}/download")
-    @PreAuthorize("hasAnyRole('DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT') or hasAuthority('EXPORT_DOWNLOAD_PDF')")
+    @PreAuthorize("hasAnyRole('DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT') or (hasRole('DOCTOR') and hasAuthority('EXPORT_DOWNLOAD_PDF'))")
     @LogAction("DOWNLOAD_PDF_REPORT")
     public ResponseEntity<Resource> downloadReport(
             @PathVariable Long examinationId,

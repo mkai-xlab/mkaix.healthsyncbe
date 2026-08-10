@@ -12,7 +12,11 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.security.access.prepost.PreAuthorize;
+
+import java.security.Principal;
+import java.util.List;
 
 /**
  * Controller for managing user-related operations.
@@ -44,11 +48,25 @@ public class UserController {
      *
      * @return List of UserResponse.
      */
-    @org.springframework.web.bind.annotation.GetMapping("/staff")
-    @PreAuthorize("hasAnyRole('HEAD_OF_DEPARTMENT', 'DEPARTMENT_HEAD', 'ADMIN')")
-    public ResponseEntity<java.util.List<UserResponse>> getStaffList() {
+    @GetMapping("/staff")
+    @PreAuthorize("hasAnyRole('HEAD_OF_DEPARTMENT', 'ADMIN')")
+    public ResponseEntity<List<UserResponse>> getStaffList() {
         log.info("Received request to fetch medical staff list");
-        java.util.List<UserResponse> staffList = userService.getStaffList();
+        List<UserResponse> staffList = userService.getStaffList();
         return ResponseEntity.ok(staffList);
+    }
+
+    @GetMapping("/count/doctors")
+    @PreAuthorize("hasAnyRole('HEAD_OF_DEPARTMENT', 'ADMIN')")
+    public ResponseEntity<Long> countDoctors(Principal principal) {
+        log.info("Received request to count doctors by user: {}", principal.getName());
+        return ResponseEntity.ok(userService.countDoctors(principal.getName()));
+    }
+
+    @GetMapping("/count/heads")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Long> countHeads(Principal principal) {
+        log.info("Received request to count heads of department by user: {}", principal.getName());
+        return ResponseEntity.ok(userService.countHeads(principal.getName()));
     }
 }

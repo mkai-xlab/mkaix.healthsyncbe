@@ -13,4 +13,6 @@ public interface UserService {
      */
     UserResponse createUser(CreateUserRequest request);
     java.util.List<UserResponse> getStaffList();
+    long countDoctors(String username);
+    long countHeads(String username);
 }

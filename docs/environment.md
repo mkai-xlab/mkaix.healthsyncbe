@@ -24,6 +24,16 @@ Do not commit real secrets. Keep local environment files outside Git or use igno
 | `DB_PASSWORD` | No | `capstone_root_password` | Database password. |
 | `SPRING_MAIL_HOST` | No | `localhost` | SMTP mail server host. |
 | `SPRING_MAIL_PORT` | No | `1025` | SMTP mail server port (MailDev default is 1025). |
+| `CHAT_AI_ENABLED` | No | `false` | Enables the Spring AI chatbox and knowledge endpoints. |
+| `CHAT_MODEL_PROVIDER` | When chat is enabled | `none` | Set to `google-genai`. |
+| `CHAT_EMBEDDING_PROVIDER` | When chat is enabled | `none` | Set to `ollama` for BGE-M3. |
+| `CHAT_VECTOR_STORE` | When chat is enabled | `none` | Set to `qdrant`. |
+| `GEMINI_API_KEY` | When chat is enabled | None | Gemini API key; never commit this value. |
+| `OLLAMA_BASE_URL` | No | `http://localhost:11434` | Ollama endpoint serving BGE-M3. |
+| `QDRANT_HOST` | No | `localhost` | Qdrant gRPC host. |
+| `QDRANT_GRPC_PORT` | No | `6334` | Qdrant gRPC port. |
+| `QDRANT_COLLECTION` | No | `healthsync_medical_knowledge` | Vector collection name. |
+| `CHAT_MAX_DOCUMENT_BYTES` | No | `52428800` (50 MiB) | Maximum size of an uploaded Knowledge/RAG document. |
 
 
 ## Database Variables

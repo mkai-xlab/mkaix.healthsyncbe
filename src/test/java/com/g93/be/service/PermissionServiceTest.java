@@ -100,6 +100,25 @@ class PermissionServiceTest {
     }
 
     @Test
+    void getPermissionTreeReturnsEmptyListWhenNoFeaturesExist() {
+        when(featureRepository.findAll()).thenReturn(List.of());
+        when(permissionRepository.findAll()).thenReturn(List.of());
+
+        assertEquals(List.of(), permissionService.getPermissionTree());
+    }
+
+    @Test
+    void updateRolePermissionsRejectsUnknownRoleBeforeReadingPermissions() {
+        when(roleRepository.findByCode("UNKNOWN")).thenReturn(Optional.empty());
+
+        assertThrows(IllegalArgumentException.class,
+                () -> permissionService.updateRolePermissions("UNKNOWN", new UpdateRolePermissionsRequest(List.of())));
+
+        verify(permissionRepository, never()).findById(any());
+        verify(rolePermissionRepository, never()).saveAll(any());
+    }
+
+    @Test
     @SuppressWarnings({"unchecked", "rawtypes"})
     void updateRolePermissionsReplacesExistingAssignments() {
         Role role = role(5L, "DOCTOR");
@@ -133,6 +152,43 @@ class PermissionServiceTest {
 
         assertEquals("Permission not found with ID: 999", error.getMessage());
         verify(rolePermissionRepository, never()).saveAll(any());
+    }
+
+    @Test
+    void updateRolePermissionsRejectsClinicalPermissionForAdmin() {
+        Role adminRole = role(1L, "ADMIN");
+        Permission clinicalPermission = new Permission(
+                30L, "VIEW_AI_RESULT", "Xem kết quả AI", 1, null, feature, null);
+        when(roleRepository.findByCode("ADMIN")).thenReturn(Optional.of(adminRole));
+        when(permissionRepository.findById(30L)).thenReturn(Optional.of(clinicalPermission));
+
+        IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
+                () -> permissionService.updateRolePermissions(
+                        "ADMIN", new UpdateRolePermissionsRequest(List.of(30L))));
+
+        assertEquals("Clinical permission cannot be assigned to ADMIN: VIEW_AI_RESULT", error.getMessage());
+        verify(rolePermissionRepository, never()).deleteByRoleId(any());
+        verify(rolePermissionRepository, never()).saveAll(any());
+    }
+
+    @Test
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    void updateRolePermissionsAllowsAdministrativePermissionForAdmin() {
+        Role adminRole = role(1L, "ADMIN");
+        Permission adminPermission = new Permission(
+                31L, "VIEW_ADMIN_DASHBOARD", "Xem trang tổng quan quản trị", 1, null, feature, null);
+        when(roleRepository.findByCode("ADMIN")).thenReturn(Optional.of(adminRole));
+        when(permissionRepository.findById(31L)).thenReturn(Optional.of(adminPermission));
+
+        permissionService.updateRolePermissions(
+                "ADMIN", new UpdateRolePermissionsRequest(List.of(31L)));
+
+        verify(rolePermissionRepository).deleteByRoleId(1L);
+        ArgumentCaptor<List<RolePermission>> captor = ArgumentCaptor.forClass(List.class);
+        verify(rolePermissionRepository).saveAll(captor.capture());
+        assertEquals(List.of("VIEW_ADMIN_DASHBOARD"), captor.getValue().stream()
+                .map(rolePermission -> rolePermission.getPermission().getCode())
+                .toList());
     }
 
     @Test
@@ -177,6 +233,27 @@ class PermissionServiceTest {
     }
 
     @Test
+    void updateFeatureRejectsDuplicateNameBeforeSaving() {
+        when(featureRepository.findById(10L)).thenReturn(Optional.of(feature));
+        when(featureRepository.existsByName("Clinical reports")).thenReturn(true);
+
+        assertThrows(IllegalArgumentException.class, () -> permissionService.updateFeature(10L,
+                new UpdateFeatureRequest("Clinical reports", "Duplicate")));
+
+        verify(featureRepository, never()).save(any());
+    }
+
+    @Test
+    void updateFeatureRejectsUnknownFeature() {
+        when(featureRepository.findById(999L)).thenReturn(Optional.empty());
+
+        assertThrows(IllegalArgumentException.class, () -> permissionService.updateFeature(999L,
+                new UpdateFeatureRequest("Missing", "Missing")));
+
+        verify(featureRepository, never()).save(any());
+    }
+
+    @Test
     void deleteFeatureRemovesPermissionRelationsBeforeFeature() {
         when(featureRepository.findById(10L)).thenReturn(Optional.of(feature));
         when(permissionRepository.findByFeatureId(10L)).thenReturn(List.of(viewPermission));
@@ -198,6 +275,18 @@ class PermissionServiceTest {
 
         assertEquals("Feature not found with ID: 999", error.getMessage());
         verify(featureRepository, never()).delete(any());
+    }
+
+    @Test
+    void deleteFeatureDeletesFeatureDirectlyWhenItHasNoPermissions() {
+        when(featureRepository.findById(10L)).thenReturn(Optional.of(feature));
+        when(permissionRepository.findByFeatureId(10L)).thenReturn(List.of());
+
+        permissionService.deleteFeature(10L);
+
+        verify(featureRepository).delete(feature);
+        verify(rolePermissionRepository, never()).deleteByPermissionIdIn(any());
+        verify(permissionRepository, never()).deleteAll(any());
     }
 
     @Test
@@ -230,6 +319,29 @@ class PermissionServiceTest {
     }
 
     @Test
+    void createPermissionRejectsMissingFeature() {
+        when(permissionRepository.existsByCode("CREATE_REPORT")).thenReturn(false);
+        when(featureRepository.findById(999L)).thenReturn(Optional.empty());
+
+        assertThrows(IllegalArgumentException.class, () -> permissionService.createPermission(
+                new CreatePermissionRequest("CREATE_REPORT", "Create", 1, "Create", 999L, null)));
+
+        verify(permissionRepository, never()).save(any());
+    }
+
+    @Test
+    void createPermissionRejectsMissingRequiredPermission() {
+        when(permissionRepository.existsByCode("CREATE_REPORT")).thenReturn(false);
+        when(featureRepository.findById(10L)).thenReturn(Optional.of(feature));
+        when(permissionRepository.findById(999L)).thenReturn(Optional.empty());
+
+        assertThrows(IllegalArgumentException.class, () -> permissionService.createPermission(
+                new CreatePermissionRequest("CREATE_REPORT", "Create", 1, "Create", 10L, 999L)));
+
+        verify(permissionRepository, never()).save(any());
+    }
+
+    @Test
     void updatePermissionClearsRequirementAndPreservesPriorityWhenOmitted() {
         viewPermission.setRequiresPermission(new Permission());
         when(permissionRepository.findById(20L)).thenReturn(Optional.of(viewPermission));
@@ -254,6 +366,28 @@ class PermissionServiceTest {
                                 "View", 20L)));
 
         assertEquals("Permission cannot require itself", error.getMessage());
+        verify(permissionRepository, never()).save(any());
+    }
+
+    @Test
+    void updatePermissionRejectsDuplicateCode() {
+        when(permissionRepository.findById(20L)).thenReturn(Optional.of(viewPermission));
+        when(permissionRepository.existsByCode("EDIT_REPORT")).thenReturn(true);
+
+        assertThrows(IllegalArgumentException.class, () -> permissionService.updatePermission(20L,
+                new UpdatePermissionRequest("EDIT_REPORT", "Edit", 2, "Edit", null)));
+
+        verify(permissionRepository, never()).save(any());
+    }
+
+    @Test
+    void updatePermissionRejectsMissingRequiredPermission() {
+        when(permissionRepository.findById(20L)).thenReturn(Optional.of(viewPermission));
+        when(permissionRepository.findById(999L)).thenReturn(Optional.empty());
+
+        assertThrows(IllegalArgumentException.class, () -> permissionService.updatePermission(20L,
+                new UpdatePermissionRequest("VIEW_REPORT", "View", 2, "View", 999L)));
+
         verify(permissionRepository, never()).save(any());
     }
 

@@ -41,6 +41,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -238,7 +239,7 @@ class DoctorServiceTest {
     void deactivateDoctorPersistsInactiveStatus() {
         when(doctorRepository.findById(7L)).thenReturn(Optional.of(doctor));
 
-        doctorService.softDeleteDoctor(7L);
+        doctorService.softDeleteDoctor(7L, org.mockito.ArgumentMatchers.any());
 
         ArgumentCaptor<Doctor> captor = ArgumentCaptor.forClass(Doctor.class);
         verify(doctorRepository).save(captor.capture());
@@ -290,4 +291,94 @@ class DoctorServiceTest {
             TransactionSynchronizationManager.clearSynchronization();
         }
     }
+
+    @Test
+    void updateDoctorAvatarDeletesNewAvatarWhenTransactionRollsBack() {
+        MockMultipartFile file = new MockMultipartFile("file", "new.jpg", "image/jpeg", new byte[] {1});
+        AvatarStorageService.StoredAvatar stored = new AvatarStorageService.StoredAvatar("/avatars/7/new.jpg", "jpg");
+        when(doctorRepository.findProfileByUsername("doctor.one")).thenReturn(Optional.of(doctor));
+        when(avatarStorageService.store(7L, file)).thenReturn(stored);
+        when(doctorRepository.save(doctor)).thenReturn(doctor);
+        when(doctorMapper.toResponse(doctor)).thenReturn(response);
+
+        TransactionSynchronizationManager.initSynchronization();
+        try {
+            doctorService.updateDoctorAvatar("doctor.one", file);
+            TransactionSynchronizationManager.getSynchronizations()
+                    .forEach(sync -> sync.afterCompletion(TransactionSynchronization.STATUS_ROLLED_BACK));
+
+            verify(avatarStorageService).delete("/avatars/7/new.jpg");
+        } finally {
+            TransactionSynchronizationManager.clearSynchronization();
+        }
+    }
+
+    @Test
+    void updateDoctorAvatarCreatesAvatarWhenDoctorHasNone() {
+        doctor.setAvatar(null);
+        MockMultipartFile file = new MockMultipartFile("file", "new.jpg", "image/jpeg", new byte[] {1});
+        AvatarStorageService.StoredAvatar stored = new AvatarStorageService.StoredAvatar("/avatars/7/new.jpg", "jpg");
+        when(doctorRepository.findProfileByUsername("doctor.one")).thenReturn(Optional.of(doctor));
+        when(avatarStorageService.store(7L, file)).thenReturn(stored);
+        when(doctorRepository.save(doctor)).thenReturn(doctor);
+        when(doctorMapper.toResponse(doctor)).thenReturn(response);
+
+        TransactionSynchronizationManager.initSynchronization();
+        try {
+            doctorService.updateDoctorAvatar("doctor.one", file);
+            TransactionSynchronizationManager.getSynchronizations()
+                    .forEach(sync -> sync.afterCommit());
+
+            assertNotNull(doctor.getAvatar());
+            assertEquals(stored.publicUrl(), doctor.getAvatar().getFilePath());
+            verify(avatarStorageService).delete(null);
+        } finally {
+            TransactionSynchronizationManager.clearSynchronization();
+        }
+    }
+
+    @Test
+    void updateDoctorAvatarDeletesNewFileWhenSavingFails() {
+        MockMultipartFile file = new MockMultipartFile("file", "new.jpg", "image/jpeg", new byte[] {1});
+        AvatarStorageService.StoredAvatar stored = new AvatarStorageService.StoredAvatar("/avatars/7/new.jpg", "jpg");
+        when(doctorRepository.findProfileByUsername("doctor.one")).thenReturn(Optional.of(doctor));
+        when(avatarStorageService.store(7L, file)).thenReturn(stored);
+        when(doctorRepository.save(doctor)).thenThrow(new RuntimeException("db failure"));
+
+        assertThrows(RuntimeException.class, () -> doctorService.updateDoctorAvatar("doctor.one", file));
+
+        verify(avatarStorageService).delete(stored.publicUrl());
+    }
+
+    @Test
+    void updateDoctorAvatarRejectsUnknownDoctorBeforeStoringFile() {
+        MockMultipartFile file = new MockMultipartFile("file", "new.jpg", "image/jpeg", new byte[] {1});
+        when(doctorRepository.findProfileByUsername("missing")).thenReturn(Optional.empty());
+
+        assertThrows(IllegalArgumentException.class, () -> doctorService.updateDoctorAvatar("missing", file));
+
+        verifyNoInteractions(avatarStorageService);
+    }
+
+    @Test
+    void updateDoctorAvatarDoesNotDeleteNewFileAfterSuccessfulCompletionCallback() {
+        MockMultipartFile file = new MockMultipartFile("file", "new.jpg", "image/jpeg", new byte[] {1});
+        AvatarStorageService.StoredAvatar stored = new AvatarStorageService.StoredAvatar("/avatars/7/new.jpg", "jpg");
+        when(doctorRepository.findProfileByUsername("doctor.one")).thenReturn(Optional.of(doctor));
+        when(avatarStorageService.store(7L, file)).thenReturn(stored);
+        when(doctorRepository.save(doctor)).thenReturn(doctor);
+        when(doctorMapper.toResponse(doctor)).thenReturn(response);
+
+        TransactionSynchronizationManager.initSynchronization();
+        try {
+            doctorService.updateDoctorAvatar("doctor.one", file);
+            TransactionSynchronizationManager.getSynchronizations()
+                    .forEach(sync -> sync.afterCompletion(TransactionSynchronization.STATUS_COMMITTED));
+
+            verify(avatarStorageService, never()).delete(stored.publicUrl());
+        } finally {
+            TransactionSynchronizationManager.clearSynchronization();
+        }
+    }
 }
+

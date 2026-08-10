@@ -246,7 +246,7 @@ public class ExaminationFilterSortIntegrationTest {
         mockMvc.perform(get("/examinations/patient/" + patient.getId() + "/filter/study-month")
                         .param("year", String.valueOf(year))
                         .param("month", String.valueOf(month))
-                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + doctor1Token)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + headOfDepartmentToken)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andDo(org.springframework.test.web.servlet.result.MockMvcResultHandlers.print())
                 .andExpect(status().isOk())
@@ -272,8 +272,6 @@ public class ExaminationFilterSortIntegrationTest {
         mockMvc.perform(get("/examinations/filter/upload-date")
                 .param("date", tomorrow)
                 .header("Authorization", "Bearer " + headOfDepartmentToken))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content", hasSize(0)))
-                .andExpect(jsonPath("$.totalElements", is(0)));
+                .andExpect(status().isBadRequest());
     }
 }

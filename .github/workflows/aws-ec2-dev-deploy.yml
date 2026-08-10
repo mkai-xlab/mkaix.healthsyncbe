@@ -36,3 +36,4 @@ jobs:
             git pull --ff-only origin dev
             docker compose config --quiet
             docker compose up -d --build be
+            docker image prune -f

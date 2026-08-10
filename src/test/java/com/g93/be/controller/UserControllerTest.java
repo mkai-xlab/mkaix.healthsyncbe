@@ -7,6 +7,7 @@ import com.g93.be.service.UserService;
 import com.g93.be.exception.GlobalExceptionHandler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -46,7 +47,8 @@ class UserControllerTest {
         createUserRequest = new CreateUserRequest();
         createUserRequest.setEmail("testuser@example.com");
         createUserRequest.setFullName("Test User");
-        createUserRequest.setRoleId(2L); // 2: DOCTOR
+        createUserRequest.setRoleId(2L);
+        createUserRequest.setPhone("0123456789"); // 2: DOCTOR
 
         userResponse = new UserResponse();
         userResponse.setId(1L);
@@ -72,7 +74,7 @@ class UserControllerTest {
     void testCreateUser_Abnormal_NoBody() throws Exception {
         mockMvc.perform(post("/users")
                 .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isInternalServerError()); // GlobalExceptionHandler maps unhandled HttpMessageNotReadableException to 500
+                .andExpect(status().isBadRequest()); // GlobalExceptionHandler maps unhandled HttpMessageNotReadableException to 400
     }
 
     // --- Validation Tests ---

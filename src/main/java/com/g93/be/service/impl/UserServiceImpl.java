@@ -1,15 +1,11 @@
 package com.g93.be.service.impl;
 
-
 import com.g93.be.entity.Role;
 import com.g93.be.entity.User;
 import com.g93.be.entity.UserStatus;
 import com.g93.be.common.util.MailUtil;
 import com.g93.be.dto.CreateUserRequest;
 import com.g93.be.dto.UserResponse;
-import com.g93.be.entity.Role;
-import com.g93.be.entity.User;
-import com.g93.be.entity.UserStatus;
 import com.g93.be.repository.RoleRepository;
 import com.g93.be.repository.UserRepository;
 import com.g93.be.service.UserService;
@@ -21,7 +17,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+import org.springframework.security.access.AccessDeniedException;
 
 @Service
 @RequiredArgsConstructor
@@ -38,17 +37,16 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
+    @com.g93.be.aspect.LogAction("CREATE_USER")
     public UserResponse createUser(CreateUserRequest request) {
         log.info("Creating user with email: {}", request.getEmail());
 
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
             throw new IllegalArgumentException("Email is already registered");
         }
-        
-        if (request.getPhone() != null && !request.getPhone().isBlank()) {
-            if (userRepository.findByPhone(request.getPhone()).isPresent()) {
-                throw new IllegalArgumentException("Phone '" + request.getPhone() + "' is already registered");
-            }
+
+        if (userRepository.findByPhone(request.getPhone()).isPresent()) {
+            throw new IllegalArgumentException("Phone '" + request.getPhone() + "' is already registered");
         }
 
         // Validate role
@@ -71,27 +69,53 @@ public class UserServiceImpl implements UserService {
         user.setEmail(request.getEmail());
         user.setPhone(request.getPhone());
         user.setRole(role);
-        
+
         // Use the role name as the userType if needed, or leave it generic.
         user.setUserType(role.getCode());
         user.setStatus(UserStatus.ACTIVE);
         user.setIsFirstActivated(true);
 
         User savedUser = userRepository.save(user);
-        
+
         log.info("User created successfully with ID: {}", savedUser.getId());
-        
+
         // Send email notification
         sendWelcomeEmail(savedUser, tempPassword);
-        
+
         return mapToResponse(savedUser);
     }
 
     @Override
-    public java.util.List<UserResponse> getStaffList() {
+    public List<UserResponse> getStaffList() {
         log.info("Fetching medical staff list");
-        java.util.List<User> staffUsers = userRepository.findByRoleCodeIn(java.util.List.of("HEAD_OF_DEPARTMENT", "DEPARTMENT_HEAD", "DOCTOR"));
-        return staffUsers.stream().map(this::mapToResponse).collect(java.util.stream.Collectors.toList());
+        List<User> staffUsers = userRepository
+                .findByRoleCodeIn(List.of("HEAD_OF_DEPARTMENT", "DOCTOR"));
+        return staffUsers.stream().map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    public long countDoctors(String username) {
+        User currentUser = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        String currentRole = currentUser.getRole().getCode();
+
+        if (!currentRole.equals("ADMIN") && !currentRole.equals("HEAD_OF_DEPARTMENT")) {
+            throw new AccessDeniedException("Only Admin or Head of Department can view the total number of doctors.");
+        }
+
+        return userRepository.countByRoleCode("DOCTOR");
+    }
+
+    @Override
+    public long countHeads(String username) {
+        User currentUser = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (!currentUser.getRole().getCode().equals("ADMIN")) {
+            throw new AccessDeniedException("Only Admin can view the total number of heads of department.");
+        }
+
+        return userRepository.countByRoleCode("HEAD_OF_DEPARTMENT");
     }
 
     private String generateUniqueUsername(String email) {

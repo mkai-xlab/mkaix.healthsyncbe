@@ -18,8 +18,12 @@ public class PatientSpecification {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
 
-            if (request.getFullName() != null && !request.getFullName().isBlank()) {
-                predicates.add(cb.like(cb.lower(root.get("fullName")), "%" + request.getFullName().trim().toLowerCase() + "%"));
+            if (request.getKeyword() != null && !request.getKeyword().isBlank()) {
+                String kw = "%" + request.getKeyword().trim().toLowerCase() + "%";
+                predicates.add(cb.or(
+                        cb.like(cb.lower(root.get("fullName")), kw),
+                        cb.like(cb.lower(root.get("patientCode")), kw)
+                ));
             }
             if (request.getDateOfBirth() != null) {
                 predicates.add(cb.equal(root.get("dob"), request.getDateOfBirth()));
