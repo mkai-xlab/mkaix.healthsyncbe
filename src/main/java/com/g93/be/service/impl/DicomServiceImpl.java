@@ -832,7 +832,7 @@ public class DicomServiceImpl implements DicomService {
      * Tiện ích: Đọc các byte đầu tiên (Magic Bytes) để kiểm chứng tính xác thực của file DICOM.
      * DICOM file hợp lệ phải có chuỗi "DICM" nằm ở byte thứ 128-131.
      */
-    private boolean isDicomFile(Path path) {
+    boolean isDicomFile(Path path) {
         try (InputStream is = Files.newInputStream(path)) {
             is.skip(128);
             byte[] b = new byte[4];
@@ -851,7 +851,7 @@ public class DicomServiceImpl implements DicomService {
      * Tiện ích: Đọc các byte đầu tiên để xác minh định dạng file ZIP.
      * File ZIP chuẩn thường bắt đầu bằng chữ ký "PK" (0x50 0x4B).
      */
-    private boolean isZipFile(Path path) {
+    boolean isZipFile(Path path) {
         try (InputStream is = Files.newInputStream(path)) {
             byte[] b = new byte[4];
             int read = is.read(b);
