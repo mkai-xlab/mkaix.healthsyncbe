@@ -17,8 +17,6 @@ erDiagram
     
     images ||--o{ dicom_instances : "Has"
     
-    dicom_instances ||--o{ result_attachments : "Return"
-
     roles {
         bigint id PK
         varchar name
@@ -135,12 +133,4 @@ erDiagram
         int number_of_result
         decimal accuracy_rate
         datetime created_at
-    }
-
-    result_attachments {
-        bigint id PK
-        bigint dicom_study_id FK
-        varchar KL_level
-        text diagnosis
-        decimal accuracy_rate
     }
