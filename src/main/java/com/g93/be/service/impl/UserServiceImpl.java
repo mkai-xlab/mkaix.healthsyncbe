@@ -214,7 +214,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public long countDoctors(String username) {
         User currentUser = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new com.g93.be.exception.ResourceNotFoundException("User not found"));
         String currentRole = currentUser.getRole().getCode();
 
         if (!currentRole.equals("ADMIN") && !currentRole.equals("HEAD_OF_DEPARTMENT")) {
@@ -227,7 +227,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public long countHeads(String username) {
         User currentUser = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new com.g93.be.exception.ResourceNotFoundException("User not found"));
 
         if (!currentUser.getRole().getCode().equals("ADMIN")) {
             throw new AccessDeniedException("Only Admin can view the total number of heads of department.");

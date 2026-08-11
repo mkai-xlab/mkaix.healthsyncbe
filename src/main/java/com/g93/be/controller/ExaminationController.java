@@ -266,7 +266,7 @@ public class ExaminationController {
         
         String username = principal.getName();
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new com.g93.be.exception.ResourceNotFoundException("User not found"));
         
         log.info("Received request to get daily examinations in last 7 days for user id: {}", user.getId());
         return ResponseEntity.ok(examinationService.getDailyExaminationsInLast7Days(user.getId(), isPersonal));
@@ -319,7 +319,7 @@ public class ExaminationController {
     public ResponseEntity<Long> getMyTotalExaminations(@RequestParam(defaultValue = "false", required = false) Boolean isPersonal) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String userEmail = (String) authentication.getPrincipal();
-        User user = userRepository.findByUsername(userEmail).orElseThrow(() -> new RuntimeException("User not found"));
+        User user = userRepository.findByUsername(userEmail).orElseThrow(() -> new com.g93.be.exception.ResourceNotFoundException("User not found"));
         Long userId = user.getId();
         log.info("Received request to get total examinations for my token, user id: {}", userId);
         return ResponseEntity.ok(examinationService.getTotalExaminations(userId, isPersonal));
@@ -333,7 +333,7 @@ public class ExaminationController {
     public ResponseEntity<Long> getMyTotalLast7Days(@RequestParam(defaultValue = "false", required = false) Boolean isPersonal) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String userEmail = (String) authentication.getPrincipal();
-        User user = userRepository.findByUsername(userEmail).orElseThrow(() -> new RuntimeException("User not found"));
+        User user = userRepository.findByUsername(userEmail).orElseThrow(() -> new com.g93.be.exception.ResourceNotFoundException("User not found"));
         Long userId = user.getId();
         log.info("Received request to get total examinations in the last 7 days for my token, user id: {}", userId);
         return ResponseEntity.ok(examinationService.getTotalExaminationsInLast7Days(userId, isPersonal));
@@ -347,7 +347,7 @@ public class ExaminationController {
     public ResponseEntity<Long> getMyTotalSevereExaminations(@RequestParam(defaultValue = "false", required = false) Boolean isPersonal) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String userEmail = (String) authentication.getPrincipal();
-        User user = userRepository.findByUsername(userEmail).orElseThrow(() -> new RuntimeException("User not found"));
+        User user = userRepository.findByUsername(userEmail).orElseThrow(() -> new com.g93.be.exception.ResourceNotFoundException("User not found"));
         Long userId = user.getId();
         log.info("Received request to get total severe examinations for my token, user id: {}", userId);
         return ResponseEntity.ok(examinationService.getTotalSevereExaminations(userId, isPersonal));
@@ -361,7 +361,7 @@ public class ExaminationController {
     public ResponseEntity<Long> getMyTotalVerifiedExaminations(@RequestParam(defaultValue = "false", required = false) Boolean isPersonal) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String userEmail = (String) authentication.getPrincipal();
-        User user = userRepository.findByUsername(userEmail).orElseThrow(() -> new RuntimeException("User not found"));
+        User user = userRepository.findByUsername(userEmail).orElseThrow(() -> new com.g93.be.exception.ResourceNotFoundException("User not found"));
         Long userId = user.getId();
         log.info("Received request to get total verified examinations for my token, user id: {}", userId);
         return ResponseEntity.ok(examinationService.getTotalVerifiedExaminations(userId, isPersonal));
@@ -376,7 +376,7 @@ public class ExaminationController {
     public ResponseEntity<Long> getMyTotalUnverifiedExaminations(@RequestParam(defaultValue = "false", required = false) Boolean isPersonal) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String userEmail = (String) authentication.getPrincipal();
-        User user = userRepository.findByUsername(userEmail).orElseThrow(() -> new RuntimeException("User not found"));
+        User user = userRepository.findByUsername(userEmail).orElseThrow(() -> new com.g93.be.exception.ResourceNotFoundException("User not found"));
         Long userId = user.getId();
         log.info("Received request to get total unverified examinations for my token, user id: {}", userId);
         return ResponseEntity.ok(examinationService.getTotalUnverifiedExaminations(userId, isPersonal));
