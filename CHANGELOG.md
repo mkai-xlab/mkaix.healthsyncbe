@@ -8,6 +8,8 @@ This project can follow semantic versioning when formal releases start.
 
 ### Added
 
+- Added Staff Management endpoints (`GET /users/staff/search` and `PATCH /users/{userId}/status/toggle`) with email notification support.
+- Added `UserMapper` to extract mapping logic and maintain clean architecture.
 - Added explicit KL review decisions: assigned doctors can confirm or adjust AI results; department heads inherit both review actions across assignments; both actions are audit logged.
 - Added persistent diagnosis reviews that retain the original AI grade and expose the decision, confirmed grade, and effective grade in examination responses.
 - Updated PDF export to use only the latest confirmed AI analysis and select the final KL grade from either the confirmed AI prediction or the doctor/department-head adjustment.
