@@ -1,12 +1,12 @@
 # HealthSync RAG Chatbox
 
-The chatbox is implemented with Spring AI 2.0. Gemini generates and routes
+The chatbox is implemented with Spring AI 2.0. Gemini Flash generates and routes
 answers, Ollama serves BGE-M3 embeddings, and Qdrant stores vectors. The
 feature is disabled unless `CHAT_AI_ENABLED=true`.
 
 ## Request Flow
 
-1. `POST /chat/ask` authenticates the doctor, department head, or administrator.
+1. `POST /chat/ask` authenticates the doctor, department head, or administrator and resolves or creates a chat session.
 2. Gemini returns a structured routing decision: `BUSINESS_DATA`, `MEDICAL_RAG`,
    `HYBRID`, or `CLARIFICATION`.
 3. Business questions execute one of the read-only queries defined in
@@ -15,6 +15,8 @@ feature is disabled unless `CHAT_AI_ENABLED=true`.
    are filtered by publication status, role scope, and report owner.
 5. Gemini receives only the filtered context and returns an answer with source
    metadata and a clinical warning.
+6. The user message and assistant answer are stored under the session. Up to 20
+   recent messages (capped at 12,000 characters) provide follow-up context.
 
 Doctors only see aggregates and clinical records assigned to them. Department
 heads may access general and doctor-scoped clinical knowledge; owner-scoped
@@ -30,7 +32,11 @@ still checks the clinical role and the `USE_AI_CHAT` permission.
 
 | Method and path | Permission | Purpose |
 | --- | --- | --- |
-| `POST /chat/ask` | `USE_AI_CHAT` | Ask a business or medical question. |
+| `POST /chat/ask` | `USE_AI_CHAT` | Ask a question in an existing session or automatically create one. |
+| `POST /chat/sessions` | `USE_AI_CHAT` | Create a session, optionally linked to an examination. |
+| `GET /chat/sessions` | `USE_AI_CHAT` | List the current user's sessions, newest activity first. |
+| `GET /chat/sessions/{id}/messages` | `USE_AI_CHAT` | Read one owned session's message history. |
+| `PATCH /chat/sessions/{id}` | `USE_AI_CHAT` | Rename, close, or reopen an owned session. |
 | `POST /knowledge-documents/upload` | `MANAGE_MEDICAL_KNOWLEDGE` | Upload PDF, DOC, DOCX, or TXT. |
 | `POST /knowledge-documents/upload/batch` | `MANAGE_MEDICAL_KNOWLEDGE` | Upload up to 10 documents with per-file results. |
 | `POST /knowledge-documents/url` | `MANAGE_MEDICAL_KNOWLEDGE` | Ingest an approved public HTTP(S) URL. |
@@ -43,14 +49,20 @@ Example question request:
 
 ```json
 {
+  "sessionId": 12,
   "question": "Hom nay toi co bao nhieu ca kham?"
 }
 ```
+
+`sessionId` is optional. Omit it on the first question to let the backend create
+a titled session automatically, then reuse the returned `sessionId` for follow-up questions.
 
 Example answer:
 
 ```json
 {
+  "sessionId": 12,
+  "messageId": 84,
   "route": "BUSINESS_DATA",
   "answer": "Hom nay ban co 4 ca kham.",
   "sources": [
@@ -63,7 +75,8 @@ Example answer:
     }
   ],
   "warning": null,
-  "generatedAt": "2026-08-06T10:00:00"
+  "generatedAt": "2026-08-06T10:00:00",
+  "tokensUsed": 176
 }
 ```
 
@@ -80,9 +93,10 @@ item per submitted file.
 
 ## Database and Report Ingestion
 
-The only new MySQL table is `knowledge_documents`; it stores source metadata and
-indexing state, not vectors. Qdrant stores vectors. The migration is
-`chatbox_rag_migration.sql`.
+The migration creates `knowledge_documents`, `chat_sessions`, and `chat_messages`.
+The chat tables store conversation ownership and content; Qdrant still stores only
+knowledge vectors. The migration is
+`database/migrations/chatbox_rag_migration.sql`.
 
 The scheduled report sync reads generated reports and their verified diagnosis
 reviews. It indexes report ID, examination ID, study date, final diagnosis,
@@ -106,6 +120,7 @@ CHAT_MODEL_PROVIDER=google-genai
 CHAT_EMBEDDING_PROVIDER=ollama
 CHAT_VECTOR_STORE=qdrant
 GEMINI_API_KEY=replace_with_your_key
+GEMINI_CHAT_MODEL=gemini-3.5-flash
 OLLAMA_BASE_URL=http://ollama:11434
 QDRANT_HOST=qdrant
 QDRANT_GRPC_PORT=6334

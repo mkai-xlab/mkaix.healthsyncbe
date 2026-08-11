@@ -29,6 +29,7 @@ Do not commit real secrets. Keep local environment files outside Git or use igno
 | `CHAT_EMBEDDING_PROVIDER` | When chat is enabled | `none` | Set to `ollama` for BGE-M3. |
 | `CHAT_VECTOR_STORE` | When chat is enabled | `none` | Set to `qdrant`. |
 | `GEMINI_API_KEY` | When chat is enabled | None | Gemini API key; never commit this value. |
+| `GEMINI_CHAT_MODEL` | No | `gemini-3.5-flash` | Gemini model used for routing and chat responses. |
 | `OLLAMA_BASE_URL` | No | `http://localhost:11434` | Ollama endpoint serving BGE-M3. |
 | `QDRANT_HOST` | No | `localhost` | Qdrant gRPC host. |
 | `QDRANT_GRPC_PORT` | No | `6334` | Qdrant gRPC port. |

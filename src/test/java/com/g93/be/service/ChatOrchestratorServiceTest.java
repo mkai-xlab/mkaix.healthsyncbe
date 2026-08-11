@@ -5,12 +5,14 @@ import com.g93.be.chat.BusinessQueryIntent;
 import com.g93.be.chat.BusinessQueryResult;
 import com.g93.be.chat.ChatRoute;
 import com.g93.be.chat.ChatRoutingDecision;
+import com.g93.be.chat.GeneratedChatAnswer;
 import com.g93.be.chat.MedicalRetrievalResult;
 import com.g93.be.dto.ChatAnswerResponse;
 import com.g93.be.dto.ChatSourceResponse;
 import com.g93.be.entity.Role;
+import com.g93.be.entity.ChatMessage;
+import com.g93.be.entity.ChatSession;
 import com.g93.be.entity.User;
-import com.g93.be.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -18,7 +20,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
-import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -30,20 +31,20 @@ import static org.mockito.Mockito.when;
 class ChatOrchestratorServiceTest {
 
     @Mock
-    private UserRepository userRepository;
-    @Mock
     private AiChatGateway aiGateway;
     @Mock
     private BusinessDataQueryService businessDataQueryService;
     @Mock
     private MedicalRagService medicalRagService;
+    @Mock
+    private ChatSessionService chatSessionService;
 
     private ChatOrchestratorService service;
 
     @BeforeEach
     void setUp() {
         service = new ChatOrchestratorService(
-                userRepository, aiGateway, businessDataQueryService, medicalRagService);
+                aiGateway, businessDataQueryService, medicalRagService, chatSessionService);
     }
 
     @Test
@@ -55,15 +56,18 @@ class ChatOrchestratorServiceTest {
         BusinessQueryResult data = new BusinessQueryResult("examination_count=3", List.of(
                 new ChatSourceResponse("db", "Examinations", "BUSINESS_DATA",
                         "database:examinations", null)));
-        when(userRepository.findByUsername("doctor")).thenReturn(Optional.of(doctor));
-        when(aiGateway.route("How many examinations today?", "DOCTOR")).thenReturn(decision);
+        prepareConversation(doctor, "");
+        when(aiGateway.route("How many examinations today?", "DOCTOR", "")).thenReturn(decision);
         when(businessDataQueryService.execute(decision, "doctor")).thenReturn(data);
-        when(aiGateway.answerBusiness("How many examinations today?", data.context()))
-                .thenReturn("There are 3 examinations today.");
+        when(aiGateway.answerBusiness("How many examinations today?", data.context(), ""))
+                .thenReturn(new GeneratedChatAnswer("There are 3 examinations today.", 42));
 
-        ChatAnswerResponse response = service.ask("How many examinations today?", "doctor");
+        ChatAnswerResponse response = service.ask(null, "How many examinations today?", "doctor");
 
         assertEquals("BUSINESS_DATA", response.route());
+        assertEquals(12L, response.sessionId());
+        assertEquals(84L, response.messageId());
+        assertEquals(42, response.tokensUsed());
         assertEquals(1, response.sources().size());
         verify(medicalRagService, never()).retrieve(
                 org.mockito.ArgumentMatchers.anyString(),
@@ -79,14 +83,18 @@ class ChatOrchestratorServiceTest {
         MedicalRetrievalResult retrieval = new MedicalRetrievalResult("KL grade evidence", List.of(
                 new ChatSourceResponse("guideline", "OA guideline", "FILE",
                         "knowledge-document:1", 0.92)));
-        when(userRepository.findByUsername("doctor")).thenReturn(Optional.of(doctor));
-        when(aiGateway.route("Explain KL grade 3", "DOCTOR")).thenReturn(decision);
-        when(medicalRagService.retrieve("Explain KL grade 3", "DOCTOR", 7L))
+        prepareConversation(doctor, "USER: What is KL grading?");
+        when(aiGateway.route("Explain KL grade 3", "DOCTOR", "USER: What is KL grading?"))
+                .thenReturn(decision);
+        when(medicalRagService.retrieve(
+                "USER: What is KL grading?\nCURRENT QUESTION: Explain KL grade 3", "DOCTOR", 7L))
                 .thenReturn(retrieval);
-        when(aiGateway.answerMedical("Explain KL grade 3", retrieval.context()))
-                .thenReturn("KL grade 3 indicates definite joint-space narrowing.");
+        when(aiGateway.answerMedical(
+                "Explain KL grade 3", retrieval.context(), "USER: What is KL grading?"))
+                .thenReturn(new GeneratedChatAnswer(
+                        "KL grade 3 indicates definite joint-space narrowing.", 64));
 
-        ChatAnswerResponse response = service.ask("Explain KL grade 3", "doctor");
+        ChatAnswerResponse response = service.ask(12L, "Explain KL grade 3", "doctor");
 
         assertEquals("MEDICAL_RAG", response.route());
         assertNotNull(response.warning());
@@ -99,16 +107,18 @@ class ChatOrchestratorServiceTest {
         User doctor = user(7L, "DOCTOR");
         ChatRoutingDecision decision = new ChatRoutingDecision(
                 ChatRoute.MEDICAL_RAG, BusinessQueryIntent.UNKNOWN, null, null, null, null);
-        when(userRepository.findByUsername("doctor")).thenReturn(Optional.of(doctor));
-        when(aiGateway.route("Unknown medical topic", "DOCTOR")).thenReturn(decision);
+        prepareConversation(doctor, "");
+        when(aiGateway.route("Unknown medical topic", "DOCTOR", "")).thenReturn(decision);
         when(medicalRagService.retrieve("Unknown medical topic", "DOCTOR", 7L))
                 .thenReturn(new MedicalRetrievalResult("", List.of()));
 
-        ChatAnswerResponse response = service.ask("Unknown medical topic", "doctor");
+        ChatAnswerResponse response = service.ask(null, "Unknown medical topic", "doctor");
 
         assertEquals(0, response.sources().size());
         verify(aiGateway, never()).answerMedical(
-                org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.anyString());
+                org.mockito.ArgumentMatchers.anyString(),
+                org.mockito.ArgumentMatchers.anyString(),
+                org.mockito.ArgumentMatchers.anyString());
     }
 
     private User user(Long id, String roleCode) {
@@ -119,5 +129,26 @@ class ChatOrchestratorServiceTest {
         user.setUsername("doctor");
         user.setRole(role);
         return user;
+    }
+
+    private void prepareConversation(User user, String history) {
+        ChatSession session = new ChatSession();
+        session.setId(12L);
+        session.setUser(user);
+        ChatSessionService.PreparedConversation prepared =
+                new ChatSessionService.PreparedConversation(session, user, history);
+        when(chatSessionService.prepare(
+                org.mockito.ArgumentMatchers.nullable(Long.class),
+                org.mockito.ArgumentMatchers.anyString(),
+                org.mockito.ArgumentMatchers.eq("doctor")))
+                .thenReturn(prepared);
+
+        ChatMessage saved = new ChatMessage();
+        saved.setId(84L);
+        when(chatSessionService.saveAssistantMessage(
+                org.mockito.ArgumentMatchers.eq(session),
+                org.mockito.ArgumentMatchers.anyString(),
+                org.mockito.ArgumentMatchers.any(GeneratedChatAnswer.class)))
+                .thenReturn(saved);
     }
 }
