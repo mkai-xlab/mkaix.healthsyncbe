@@ -417,4 +417,244 @@ public class DicomServiceImplTest {
         });
         assertEquals("Uploaded files are empty", ex.getMessage());
     }
+
+    // ==========================================
+    // Missing Tests added by AI
+    // ==========================================
+
+    @Test
+    void testUploadBatch_Abnormal_InvalidMagicBytes() throws Exception {
+        Long userId = 1L;
+        List<MultipartFile> files = new ArrayList<>();
+        
+        MultipartFile mockFile = mock(MultipartFile.class);
+        when(mockFile.getOriginalFilename()).thenReturn("invalid_magic.dcm");
+        when(mockFile.getSize()).thenReturn(1024L);
+        files.add(mockFile);
+
+        doReturn(false).when(dicomService).isDicomFile(any(Path.class));
+        
+        BatchDicomUploadResponse mockResponse = new BatchDicomUploadResponse();
+        mockResponse.setErrors(new ArrayList<>());
+        mockResponse.setSuccessfulPatients(new ArrayList<>());
+        doReturn(mockResponse).when(dicomService).processBatchPaths(any(), eq(userId), anyString());
+
+        when(userRepository.findById(userId)).thenReturn(Optional.of(new User()));
+
+        BatchDicomUploadResponse result = dicomService.uploadBatch(files, userId);
+
+        assertNotNull(result);
+        assertEquals(1, result.getErrors().size());
+        assertTrue(result.getErrors().get(0).getErrorReason().contains("Tệp tin không đúng định dạng DICOM"));
+    }
+
+    @Test
+    void testProcessBatchPaths_Normal() throws Exception {
+        java.util.Map<String, Path> filePaths = new java.util.LinkedHashMap<>();
+        Path tempFile = Files.createTempFile("test_", ".dcm");
+        filePaths.put("test.dcm", tempFile);
+
+        doReturn(valueOperations).when(stringRedisTemplate).opsForValue();
+        doReturn(mock(org.springframework.data.redis.core.ZSetOperations.class)).when(stringRedisTemplate).opsForZSet();
+
+        BatchDicomUploadResponse result = dicomService.processBatchPaths(filePaths, 1L, "sess-123");
+        assertNotNull(result);
+    }
+
+    @Test
+    void testProcessBatchPaths_Abnormal_MissingSOP() throws Exception {
+        java.util.Map<String, Path> filePaths = new java.util.LinkedHashMap<>();
+        Path tempFile = Files.createTempFile("test_", ".dcm");
+        filePaths.put("test.dcm", tempFile);
+
+        doReturn(valueOperations).when(stringRedisTemplate).opsForValue();
+        doReturn(mock(org.springframework.data.redis.core.ZSetOperations.class)).when(stringRedisTemplate).opsForZSet();
+
+        BatchDicomUploadResponse result = dicomService.processBatchPaths(filePaths, 1L, "sess-123");
+        assertNotNull(result);
+    }
+
+    @Test
+    void testProcessMultipleZipBatches_Normal() throws Exception {
+        List<Path> zipFiles = new ArrayList<>();
+        
+        BatchDicomUploadResponse mockResponse = new BatchDicomUploadResponse();
+        mockResponse.setErrors(new ArrayList<>());
+        mockResponse.setSuccessfulPatients(new ArrayList<>());
+        doReturn(mockResponse).when(dicomService).processBatchPaths(any(), eq(1L), anyString());
+
+        BatchDicomUploadResponse result = dicomService.processMultipleZipBatches(zipFiles, 1L, "sess-123");
+        assertNotNull(result);
+    }
+
+    @Test
+    void testProcessMultipleZipBatches_Abnormal_StrangeFiles() throws Exception {
+        List<Path> zipFiles = new ArrayList<>();
+        
+        BatchDicomUploadResponse mockResponse = new BatchDicomUploadResponse();
+        mockResponse.setErrors(new ArrayList<>());
+        mockResponse.setSuccessfulPatients(new ArrayList<>());
+        doReturn(mockResponse).when(dicomService).processBatchPaths(any(), eq(1L), anyString());
+
+        BatchDicomUploadResponse result = dicomService.processMultipleZipBatches(zipFiles, 1L, "sess-123");
+        assertEquals(1, result.getErrors().size());
+    }
+
+    @Test
+    void testExtractMetadata_Abnormal_InvalidFile() {
+        MultipartFile mockFile = mock(MultipartFile.class);
+        lenient().when(mockFile.getOriginalFilename()).thenReturn("invalid.txt");
+        List<DicomTagResponse> result = dicomService.extractMetadata(mockFile);
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void testExtractMetadata_Boundary_NullFile() {
+        List<DicomTagResponse> result = dicomService.extractMetadata(null);
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void testGetInstanceImageResource_Abnormal_DBFail() {
+        when(dicomInstanceRepository.findById(anyLong())).thenThrow(new org.springframework.dao.DataRetrievalFailureException("DB Error"));
+        assertThrows(org.springframework.dao.DataAccessException.class, () -> dicomService.getInstanceImageResource(1L));
+    }
+
+    @Test
+    void testGetInstanceRawResource_Abnormal_FileMissing() {
+        Long id = 3L;
+        DicomInstance instance = new DicomInstance();
+        DicomRaw raw = new DicomRaw();
+        raw.setFilePath("missing_raw.dcm");
+        instance.setDicomRaw(raw);
+        when(dicomInstanceRepository.findById(id)).thenReturn(Optional.of(instance));
+        Resource resource = dicomService.getInstanceRawResource(id);
+        assertNull(resource);
+    }
+
+    @Test
+    void testGetInstanceRawResource_Abnormal_DBFail() {
+        when(dicomInstanceRepository.findById(anyLong())).thenThrow(new org.springframework.dao.DataRetrievalFailureException("DB Error"));
+        assertThrows(org.springframework.dao.DataAccessException.class, () -> dicomService.getInstanceRawResource(1L));
+    }
+
+    @Test
+    void testGetUploadSession_Boundary_NullSession() {
+        when(stringRedisTemplate.opsForValue()).thenReturn(valueOperations);
+        String result = dicomService.getUploadSession(null);
+        assertNull(result);
+    }
+
+    @Test
+    void testGetUploadSession_Abnormal_RedisFail() {
+        when(stringRedisTemplate.opsForValue()).thenThrow(new org.springframework.data.redis.RedisConnectionFailureException("Redis Error"));
+        assertThrows(org.springframework.data.redis.RedisConnectionFailureException.class, () -> {
+            dicomService.getUploadSession("sess-123");
+        });
+    }
+
+    @Test
+    void testUploadBatch_Boundary_EmptyList() {
+        doReturn(valueOperations).when(stringRedisTemplate).opsForValue();
+        doReturn(mock(org.springframework.data.redis.core.ZSetOperations.class)).when(stringRedisTemplate).opsForZSet();
+        List<MultipartFile> files = new ArrayList<>();
+        BatchDicomUploadResponse result = dicomService.uploadBatch(files, 1L);
+        assertNotNull(result);
+        assertEquals(0, result.getSuccessfulPatients().size());
+    }
+
+    @Test
+    void testUploadBatch_Abnormal_TempUnwritable() throws Exception {
+        Long userId = 1L;
+        List<MultipartFile> files = new ArrayList<>();
+        MultipartFile mockFile = mock(MultipartFile.class);
+        when(mockFile.getOriginalFilename()).thenReturn("valid.dcm");
+        when(mockFile.getSize()).thenReturn(1024L);
+        doThrow(new IOException("Disk Full")).when(mockFile).transferTo(any(java.io.File.class));
+        files.add(mockFile);
+        
+        when(userRepository.findById(userId)).thenReturn(Optional.of(new User()));
+        assertThrows(RuntimeException.class, () -> {
+            dicomService.uploadBatch(files, userId);
+        });
+    }
+
+    @Test
+    void testUploadBatchFiles_Abnormal_DBFail() {
+        String username = "doctor1";
+        when(userRepository.findByUsername(username)).thenThrow(new org.springframework.dao.DataRetrievalFailureException("DB Error"));
+        List<MultipartFile> files = new ArrayList<>();
+        files.add(mock(MultipartFile.class));
+        assertThrows(org.springframework.dao.DataAccessException.class, () -> {
+            dicomService.uploadBatchFiles(files, username);
+        });
+    }
+
+    @Test
+    void testUploadZipBatchFiles_Abnormal_DBFail() {
+        String username = "doctor1";
+        when(userRepository.findByUsername(username)).thenThrow(new org.springframework.dao.DataRetrievalFailureException("DB Error"));
+        List<MultipartFile> files = new ArrayList<>();
+        files.add(mock(MultipartFile.class));
+        assertThrows(org.springframework.dao.DataAccessException.class, () -> {
+            dicomService.uploadZipBatchFiles(files, username);
+        });
+    }
+
+    @Test
+    void testUploadZipBatchFiles_Abnormal_TempUnwritable() throws Exception {
+        String username = "doctor1";
+        User user = new User();
+        user.setId(1L);
+        user.setUsername(username);
+        when(userRepository.findByUsername(username)).thenReturn(Optional.of(user));
+        
+        List<MultipartFile> files = new ArrayList<>();
+        MultipartFile mockFile = mock(MultipartFile.class);
+        when(mockFile.getOriginalFilename()).thenReturn("valid.zip");
+        when(mockFile.getSize()).thenReturn(1024L);
+        doThrow(new IOException("Disk Full")).when(mockFile).transferTo(any(java.io.File.class));
+        files.add(mockFile);
+        
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        
+        assertThrows(RuntimeException.class, () -> {
+            dicomService.uploadZipBatchFiles(files, username);
+        });
+    }
+
+    @Test
+    void testProcessBatchPaths_Boundary_EmptyMap() throws Exception {
+        java.util.Map<String, Path> filePaths = new java.util.LinkedHashMap<>();
+        doReturn(valueOperations).when(stringRedisTemplate).opsForValue();
+        doReturn(mock(org.springframework.data.redis.core.ZSetOperations.class)).when(stringRedisTemplate).opsForZSet();
+        
+        BatchDicomUploadResponse result = dicomService.processBatchPaths(filePaths, 1L, "sess-123");
+        assertNotNull(result);
+    }
+
+    @Test
+    void testProcessBatchPaths_Abnormal_RedisUnwritable() throws Exception {
+        java.util.Map<String, Path> filePaths = new java.util.LinkedHashMap<>();
+        doThrow(new RuntimeException("Redis down")).when(stringRedisTemplate).opsForValue();
+        
+        assertThrows(RuntimeException.class, () -> {
+            dicomService.processBatchPaths(filePaths, 1L, "sess-123");
+        });
+    }
+
+    @Test
+    void testProcessBatchPaths_Abnormal_FSUnwritable() throws Exception {
+        // Force the storageBaseDir to be an invalid path to trigger IOException
+        org.springframework.test.util.ReflectionTestUtils.setField(dicomService, "storageBaseDir", "Z:\\invalid\\path\\/:*?");
+        java.util.Map<String, Path> filePaths = new java.util.LinkedHashMap<>();
+        assertThrows(RuntimeException.class, () -> {
+            dicomService.processBatchPaths(filePaths, 1L, "sess-123");
+        });
+        // Restore for other tests
+        org.springframework.test.util.ReflectionTestUtils.setField(dicomService, "storageBaseDir", tempStorageDir.toAbsolutePath().toString());
+    }
+
 }
