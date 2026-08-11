@@ -4,6 +4,8 @@ import com.g93.be.dto.LoginRequest;
 import com.g93.be.dto.LoginResponse;
 import com.g93.be.service.AuthService;
 import jakarta.validation.Valid;
+import jakarta.validation.Validation;
+import jakarta.validation.Validator;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -13,6 +15,7 @@ import java.lang.reflect.Method;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -20,8 +23,16 @@ import static org.mockito.Mockito.when;
 
 class AuthControllerLoginTest {
 
+    private final Validator validator = Validation.buildDefaultValidatorFactory().getValidator();
+
     @Test
-    void loginDoesNotApplyBeanValidation() throws NoSuchMethodException {
+    void loginAllowsPasswordsShorterThanEightCharacters() {
+        assertFalse(validator.validate(new LoginRequest("doctor.one", "short")).stream()
+                .anyMatch(error -> error.getPropertyPath().toString().equals("password")));
+    }
+
+    @Test
+    void loginAppliesBeanValidationForRequiredFields() throws NoSuchMethodException {
         Method loginMethod = AuthController.class.getDeclaredMethod("login", LoginRequest.class);
         Annotation[] parameterAnnotations = loginMethod.getParameterAnnotations()[0];
 
