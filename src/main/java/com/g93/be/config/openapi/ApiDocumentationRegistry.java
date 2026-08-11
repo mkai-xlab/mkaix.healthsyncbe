@@ -135,6 +135,12 @@ final class ApiDocumentationRegistry {
                 add("UserController", "countHeads", "Người dùng", "Đếm số lượng trưởng khoa",
                                 "Trả về tổng số tài khoản trưởng khoa (và phó khoa) trên hệ thống. Chỉ Admin mới có quyền truy cập.",
                                 "200", "Tổng số trưởng khoa", "LONG", null, ResponseKind.JSON);
+                add("UserController", "searchStaff", "Người dùng", "Tìm kiếm nhân sự y tế",
+                                "Tìm kiếm và lọc danh sách nhân sự y tế theo từ khóa và trạng thái.",
+                                "200", "Trang kết quả nhân sự y tế", "USER_PAGE", null, ResponseKind.JSON);
+                add("UserController", "toggleUserStatus", "Người dùng", "Bật/Tắt trạng thái hoạt động",
+                                "Thay đổi trạng thái tài khoản người dùng thành ACTIVE hoặc DEACTIVE.",
+                                "200", "Trạng thái người dùng sau cập nhật", "USER", "TOGGLE_STATUS_REQUEST", ResponseKind.JSON);
         }
 
         private void registerPatients() {
