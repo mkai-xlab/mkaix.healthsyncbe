@@ -354,8 +354,15 @@ To avoid duplicating fields (like timestamps and user properties) while preservi
 
 ### Clinical Reporting, Reviews & Metadata
 * **`DiagnosisReview`** (`com.g93.be.entity.DiagnosisReview`): Maps to `diagnosis_reviews`. Stores the original AI-result relationship, final `confirmed_kl_grade`, decision (`AI_CONFIRMED` or `DOCTOR_ADJUSTED`), review note, reviewing doctor, and review time.
+
 * **`Report`** (`com.g93.be.entity.Report`): Maps to `report`. Stores the examination and operating doctor relationships, clinical summary, generated file path/name, content type, file size, and creation time. PDF bytes are stored on the filesystem under `app.pdf.export-dir`, not as a database BLOB.
 * **`DicomInformation`** (`com.g93.be.entity.DicomInformation`): Maps to `dicom_informations` (linked 1-to-1 with `XrayImage`). Stores parsed DICOM metadata tags (Patient ID, Name, Birth Date, Sex, SOP Instance UID, etc.) for uploaded files.
+
+### Chat Conversations
+
+* **`ChatSession`** (`chat_sessions`): One user-owned conversation, optionally linked to an examination. Stores its title, active state, and activity timestamps.
+* **`ChatMessage`** (`chat_messages`): Ordered user, assistant, or system messages belonging to a session. Assistant messages also retain the selected route and provider token usage when available.
+* Deleting a session cascades to its messages. Deleting an examination keeps the session but clears `examination_id`.
 
 ---
 
@@ -364,4 +371,3 @@ To avoid duplicating fields (like timestamps and user properties) while preservi
 - [Back to Documentation Index](README.md)
 - [Previous: Environment Configuration](environment.md)
 - [Next: API Documentation](api.md)
-

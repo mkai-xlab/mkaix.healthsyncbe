@@ -4,12 +4,11 @@ import com.g93.be.chat.AiChatGateway;
 import com.g93.be.chat.BusinessQueryResult;
 import com.g93.be.chat.ChatRoute;
 import com.g93.be.chat.ChatRoutingDecision;
+import com.g93.be.chat.GeneratedChatAnswer;
 import com.g93.be.chat.MedicalRetrievalResult;
 import com.g93.be.dto.ChatAnswerResponse;
 import com.g93.be.dto.ChatSourceResponse;
-import com.g93.be.entity.User;
-import com.g93.be.exception.ResourceNotFoundException;
-import com.g93.be.repository.UserRepository;
+import com.g93.be.entity.ChatMessage;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
@@ -26,53 +25,79 @@ public class ChatOrchestratorService {
     private static final String MEDICAL_WARNING =
             "AI-generated medical information is for decision support and must be reviewed by a qualified clinician.";
 
-    private final UserRepository userRepository;
     private final AiChatGateway aiGateway;
     private final BusinessDataQueryService businessDataQueryService;
     private final MedicalRagService medicalRagService;
+    private final ChatSessionService chatSessionService;
 
-    public ChatAnswerResponse ask(String question, String username) {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-        String roleCode = user.getRole().getCode();
-        ChatRoutingDecision decision = normalize(aiGateway.route(question, roleCode));
+    public ChatAnswerResponse ask(Long sessionId, String question, String username) {
+        ChatSessionService.PreparedConversation conversation =
+                chatSessionService.prepare(sessionId, question, username);
+        String roleCode = conversation.user().getRole().getCode();
+        String history = conversation.history();
+        ChatRoutingDecision decision = normalize(aiGateway.route(question, roleCode, history));
 
-        return switch (decision.route()) {
-            case CLARIFICATION -> response(decision.route(), clarification(decision), List.of(), null);
-            case BUSINESS_DATA -> businessAnswer(question, username, decision);
-            case MEDICAL_RAG -> medicalAnswer(question, roleCode, user.getId());
-            case HYBRID -> hybridAnswer(question, username, roleCode, user.getId(), decision);
+        AnswerResult result = switch (decision.route()) {
+            case CLARIFICATION -> new AnswerResult(
+                    new GeneratedChatAnswer(clarification(decision), null), List.of(), null);
+            case BUSINESS_DATA -> businessAnswer(question, username, decision, history);
+            case MEDICAL_RAG -> medicalAnswer(question, roleCode, conversation.user().getId(), history);
+            case HYBRID -> hybridAnswer(
+                    question, username, roleCode, conversation.user().getId(), decision, history);
         };
+        ChatMessage savedMessage = chatSessionService.saveAssistantMessage(
+                conversation.session(), decision.route().name(), result.answer());
+        return response(
+                conversation.session().getId(),
+                savedMessage.getId(),
+                decision.route(),
+                result.answer(),
+                result.sources(),
+                result.warning());
     }
 
-    private ChatAnswerResponse businessAnswer(String question, String username, ChatRoutingDecision decision) {
+    private AnswerResult businessAnswer(
+            String question,
+            String username,
+            ChatRoutingDecision decision,
+            String history) {
         BusinessQueryResult result = businessDataQueryService.execute(decision, username);
-        return response(decision.route(), aiGateway.answerBusiness(question, result.context()), result.sources(), null);
+        return new AnswerResult(
+                aiGateway.answerBusiness(question, result.context(), history), result.sources(), null);
     }
 
-    private ChatAnswerResponse medicalAnswer(String question, String roleCode, Long userId) {
-        MedicalRetrievalResult result = medicalRagService.retrieve(question, roleCode, userId);
+    private AnswerResult medicalAnswer(String question, String roleCode, Long userId, String history) {
+        MedicalRetrievalResult result = medicalRagService.retrieve(
+                contextualRetrievalQuery(question, history), roleCode, userId);
         if (result.isEmpty()) {
-            return response(ChatRoute.MEDICAL_RAG,
-                    "I could not find sufficient approved medical evidence in the knowledge base.",
+            return new AnswerResult(new GeneratedChatAnswer(
+                    "I could not find sufficient approved medical evidence in the knowledge base.", null),
                     List.of(), MEDICAL_WARNING);
         }
-        return response(ChatRoute.MEDICAL_RAG,
-                aiGateway.answerMedical(question, result.context()), result.sources(), MEDICAL_WARNING);
+        return new AnswerResult(
+                aiGateway.answerMedical(question, result.context(), history), result.sources(), MEDICAL_WARNING);
     }
 
-    private ChatAnswerResponse hybridAnswer(
-            String question, String username, String roleCode, Long userId, ChatRoutingDecision decision) {
+    private AnswerResult hybridAnswer(
+            String question,
+            String username,
+            String roleCode,
+            Long userId,
+            ChatRoutingDecision decision,
+            String history) {
         BusinessQueryResult business = businessDataQueryService.execute(decision, username);
-        MedicalRetrievalResult medical = medicalRagService.retrieve(question, roleCode, userId);
+        MedicalRetrievalResult medical = medicalRagService.retrieve(
+                contextualRetrievalQuery(question, history), roleCode, userId);
         if (medical.isEmpty()) {
-            return response(ChatRoute.HYBRID,
-                    aiGateway.answerBusiness(question, business.context()), business.sources(), MEDICAL_WARNING);
+            return new AnswerResult(
+                    aiGateway.answerBusiness(question, business.context(), history),
+                    business.sources(), MEDICAL_WARNING);
         }
         List<ChatSourceResponse> sources = new ArrayList<>(business.sources());
         sources.addAll(medical.sources());
-        return response(ChatRoute.HYBRID,
-                aiGateway.answerHybrid(question, business.context(), medical.context()), sources, MEDICAL_WARNING);
+        return new AnswerResult(
+                aiGateway.answerHybrid(question, business.context(), medical.context(), history),
+                sources, MEDICAL_WARNING);
     }
 
     private ChatRoutingDecision normalize(ChatRoutingDecision decision) {
@@ -89,8 +114,35 @@ public class ChatOrchestratorService {
                 : decision.clarificationQuestion();
     }
 
+    private String contextualRetrievalQuery(String question, String history) {
+        if (history == null || history.isBlank()) {
+            return question;
+        }
+        int start = Math.max(0, history.length() - 2_000);
+        return history.substring(start) + "\nCURRENT QUESTION: " + question;
+    }
+
     private ChatAnswerResponse response(
-            ChatRoute route, String answer, List<ChatSourceResponse> sources, String warning) {
-        return new ChatAnswerResponse(route.name(), answer, List.copyOf(sources), warning, LocalDateTime.now());
+            Long sessionId,
+            Long messageId,
+            ChatRoute route,
+            GeneratedChatAnswer answer,
+            List<ChatSourceResponse> sources,
+            String warning) {
+        return new ChatAnswerResponse(
+                sessionId,
+                messageId,
+                route.name(),
+                answer.content(),
+                List.copyOf(sources),
+                warning,
+                LocalDateTime.now(),
+                answer.tokensUsed());
+    }
+
+    private record AnswerResult(
+            GeneratedChatAnswer answer,
+            List<ChatSourceResponse> sources,
+            String warning) {
     }
 }

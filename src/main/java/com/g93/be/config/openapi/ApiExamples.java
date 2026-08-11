@@ -207,7 +207,25 @@ final class ApiExamples {
                     [{"id":8,"title":"Knee osteoarthritis guideline","sourceType":"FILE","sourceUrl":null,"originalName":"knee-guideline.pdf","accessScope":"ALL","status":"INDEXED","chunkCount":12,"errorMessage":null,"createdAt":"2026-08-08T09:00:00","indexedAt":"2026-08-08T09:02:00"}]
                     """)),
             Map.entry("CHAT_ANSWER", json("""
-                    {"route":"MEDICAL_RAG","answer":"The answer is based on the approved knowledge base.","sources":[],"warning":null,"generatedAt":"2026-08-08T09:03:00"}
+                    {"sessionId":12,"messageId":84,"route":"MEDICAL_RAG","answer":"The answer is based on the approved knowledge base.","sources":[],"warning":null,"generatedAt":"2026-08-08T09:03:00","tokensUsed":176}
+                    """)),
+            Map.entry("CHAT_QUESTION", json("""
+                    {"sessionId":12,"question":"Explain KL grade 3 using the previous context."}
+                    """)),
+            Map.entry("CREATE_CHAT_SESSION", json("""
+                    {"title":"Knee OA discussion","examinationId":42}
+                    """)),
+            Map.entry("UPDATE_CHAT_SESSION", json("""
+                    {"title":"Follow-up for examination 42","active":false}
+                    """)),
+            Map.entry("CHAT_SESSION", json("""
+                    {"id":12,"examinationId":42,"title":"Knee OA discussion","active":true,"createdAt":"2026-08-08T09:00:00","updatedAt":"2026-08-08T09:03:00"}
+                    """)),
+            Map.entry("CHAT_SESSION_PAGE", json("""
+                    {"content":[{"id":12,"examinationId":42,"title":"Knee OA discussion","active":true,"createdAt":"2026-08-08T09:00:00","updatedAt":"2026-08-08T09:03:00"}],"pageNumber":0,"pageSize":20,"totalElements":1,"totalPages":1,"isLast":true}
+                    """)),
+            Map.entry("CHAT_MESSAGE_PAGE", json("""
+                    {"content":[{"id":83,"sessionId":12,"role":"USER","content":"Explain KL grade 3","route":null,"tokensUsed":null,"createdAt":"2026-08-08T09:02:55"},{"id":84,"sessionId":12,"role":"ASSISTANT","content":"KL grade 3 indicates definite narrowing.","route":"MEDICAL_RAG","tokensUsed":176,"createdAt":"2026-08-08T09:03:00"}],"pageNumber":0,"pageSize":50,"totalElements":2,"totalPages":1,"isLast":true}
                     """)),
             Map.entry("ROLE_LIST", json("""
                     [{"id":1,"code":"ADMIN","name":"Administrator"},{"id":2,"code":"DOCTOR","name":"Medical Doctor"},{"id":3,"code":"PATIENT","name":"Patient"}]
