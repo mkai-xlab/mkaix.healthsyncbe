@@ -163,6 +163,22 @@ class OpenApiDocumentationTest {
         }
     }
 
+    @Test
+    void login403DocumentsBothFirstTimeAndDeactivatedAccountErrors() throws ReflectiveOperationException {
+        ApiDocumentationRegistry registry = new ApiDocumentationRegistry();
+        OperationCustomizer customizer = new OpenApiConfig().documentedOperationCustomizer(registry);
+        Method loginMethod = AuthController.class.getDeclaredMethod("login", com.g93.be.dto.LoginRequest.class);
+        AuthController controller = new AuthController(null);
+
+        Operation operation = customizer.customize(
+                new Operation().responses(new ApiResponses()),
+                new HandlerMethod(controller, loginMethod));
+        ApiResponse forbidden = operation.getResponses().get("403");
+
+        assertNotNull(forbidden);
+        assertEquals("#/components/responses/LoginForbidden", forbidden.get$ref());
+    }
+
     private Set<String> endpointKeys() {
         Set<String> keys = new LinkedHashSet<>();
         for (Class<?> controller : CONTROLLERS) {

@@ -3,6 +3,8 @@ package com.g93.be.exception;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.web.multipart.support.MissingServletRequestPartException;
 
 import java.time.LocalDateTime;
@@ -53,5 +55,31 @@ class GlobalExceptionHandlerTest {
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
         assertNotNull(response.getBody());
         assertEquals("Missing required multipart field: file", response.getBody().getMessage());
+    }
+
+    @Test
+    void disabledAccount_ReturnsDeactivatedAccountResponse() {
+        GlobalExceptionHandler handler = new GlobalExceptionHandler();
+
+        ResponseEntity<ErrorResponse> response = handler.handleDisabledException(
+                new DisabledException("Account is disabled"));
+
+        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals(HttpStatus.FORBIDDEN.value(), response.getBody().getStatus());
+        assertEquals("ACCOUNT_DEACTIVATED", response.getBody().getError());
+        assertEquals("Tài khoản của bạn đã bị vô hiệu hóa.", response.getBody().getMessage());
+    }
+
+    @Test
+    void badCredentials_StillReturnsGenericUnauthorizedResponse() {
+        GlobalExceptionHandler handler = new GlobalExceptionHandler();
+
+        ResponseEntity<ErrorResponse> response = handler.handleAuthenticationException(
+                new BadCredentialsException("Bad credentials"));
+
+        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals("Tên đăng nhập hoặc mật khẩu không chính xác.", response.getBody().getMessage());
     }
 }

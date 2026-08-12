@@ -54,7 +54,9 @@ public class CustomUserDetails implements UserDetails {
 
     @Override
     public boolean isAccountNonLocked() {
-        return user.getStatus() == UserStatus.ACTIVE;
+        // LoginAttemptService owns temporary login lockout. Account status is a
+        // separate concern and must be reported as disabled by Spring Security.
+        return true;
     }
 
     @Override
