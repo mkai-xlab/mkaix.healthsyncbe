@@ -11,6 +11,10 @@ import org.springframework.stereotype.Repository;
 import java.util.Optional;
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import com.g93.be.entity.UserStatus;
+
 @Repository
 public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByEmail(String email);
@@ -22,5 +26,15 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByPhone(String phone);
     List<User> findByRoleCodeIn(List<String> roleCodes);
     long countByRoleCode(String roleCode);
+
+    @Query("SELECT u FROM User u WHERE u.role.code IN :roles " +
+           "AND (:keyword IS NULL OR LOWER(u.fullName) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+           "OR LOWER(u.email) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+           "OR LOWER(u.username) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
+           "AND (:status IS NULL OR u.status = :status)")
+    Page<User> searchStaff(@Param("roles") List<String> roles,
+                           @Param("keyword") String keyword,
+                           @Param("status") UserStatus status,
+                           Pageable pageable);
 }
 

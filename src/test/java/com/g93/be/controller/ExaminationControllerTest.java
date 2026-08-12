@@ -360,7 +360,7 @@ class ExaminationControllerTest {
         Mockito.when(userRepository.findByUsername("notfound@test.healthsync.com")).thenReturn(Optional.empty());
 
         mockMvc.perform(get("/examinations/my-total"))
-                .andExpect(status().isInternalServerError())
+                .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message").value("User not found"));
     }
 
@@ -412,7 +412,7 @@ class ExaminationControllerTest {
         Mockito.when(userRepository.findByUsername("notfound@test.healthsync.com")).thenReturn(Optional.empty());
 
         mockMvc.perform(get("/examinations/my-total-severe"))
-                .andExpect(status().isInternalServerError())
+                .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message").value("User not found"));
     }
 
@@ -464,7 +464,7 @@ class ExaminationControllerTest {
         Mockito.when(userRepository.findByUsername("notfound@test.healthsync.com")).thenReturn(Optional.empty());
 
         mockMvc.perform(get("/examinations/my-total-verified"))
-                .andExpect(status().isInternalServerError())
+                .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message").value("User not found"));
     }
 
@@ -516,7 +516,7 @@ class ExaminationControllerTest {
         Mockito.when(userRepository.findByUsername("notfound@test.healthsync.com")).thenReturn(Optional.empty());
 
         mockMvc.perform(get("/examinations/my-total-unverified"))
-                .andExpect(status().isInternalServerError())
+                .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message").value("User not found"));
     }
 

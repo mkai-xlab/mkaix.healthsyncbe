@@ -19,6 +19,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -43,6 +44,8 @@ public class UserServiceImplTest {
     private PasswordEncoder passwordEncoder;
     @Mock
     private MailUtil mailUtil;
+    @Spy
+    private com.g93.be.mapper.UserMapper userMapper = new com.g93.be.mapper.UserMapper();
 
     @InjectMocks
     private UserServiceImpl userService;
@@ -510,5 +513,119 @@ public class UserServiceImplTest {
         role.setCode(code);
         role.setName(code);
         return role;
+    }
+
+    // ==========================================
+    // 5. searchStaff (1 Test Case)
+    // ==========================================
+
+    @Test
+    void testSearchStaff_Normal() {
+        org.springframework.data.domain.Page<User> mockPage = new org.springframework.data.domain.PageImpl<>(
+                java.util.List.of(userWithRole(2L, "DOCTOR"))
+        );
+        when(userRepository.searchStaff(
+                eq(java.util.List.of("HEAD_OF_DEPARTMENT", "DOCTOR")),
+                eq("doctor"),
+                eq(UserStatus.ACTIVE),
+                any(org.springframework.data.domain.Pageable.class)
+        )).thenReturn(mockPage);
+
+        org.springframework.data.domain.Page<UserResponse> result = userService.searchStaff("doctor", UserStatus.ACTIVE, 0, 10);
+        
+        assertNotNull(result);
+        assertEquals(1, result.getContent().size());
+        assertEquals("doctor", result.getContent().get(0).getUsername());
+    }
+
+    // ==========================================
+    // 6. toggleUserStatus (5 Test Cases)
+    // ==========================================
+
+    @Test
+    void testToggleUserStatus_Deactivate_Normal() {
+        User admin = userWithRole(1L, "ADMIN");
+        User target = userWithRole(2L, "DOCTOR");
+        target.setStatus(UserStatus.ACTIVE);
+
+        when(userRepository.findByUsername("admin")).thenReturn(Optional.of(admin));
+        when(userRepository.findById(2L)).thenReturn(Optional.of(target));
+        when(userRepository.save(any(User.class))).thenReturn(target);
+
+        com.g93.be.dto.ToggleStatusRequest req = new com.g93.be.dto.ToggleStatusRequest();
+        req.setInactiveReason("Vi phạm nội quy");
+
+        UserResponse res = userService.toggleUserStatus(2L, req, "admin");
+
+        assertEquals(UserStatus.INACTIVE.name(), res.getStatus());
+        assertEquals("Vi phạm nội quy", target.getInactiveReason());
+        verify(mailUtil).sendPlainTextMail(eq("doctor@test.com"), anyString(), anyString());
+    }
+
+    @Test
+    void testToggleUserStatus_Activate_Normal() {
+        User admin = userWithRole(1L, "ADMIN");
+        User target = userWithRole(2L, "DOCTOR");
+        target.setStatus(UserStatus.INACTIVE);
+        target.setInactiveReason("Cũ");
+
+        when(userRepository.findByUsername("admin")).thenReturn(Optional.of(admin));
+        when(userRepository.findById(2L)).thenReturn(Optional.of(target));
+        when(userRepository.save(any(User.class))).thenReturn(target);
+
+        com.g93.be.dto.ToggleStatusRequest req = new com.g93.be.dto.ToggleStatusRequest();
+
+        UserResponse res = userService.toggleUserStatus(2L, req, "admin");
+
+        assertEquals(UserStatus.ACTIVE.name(), res.getStatus());
+        assertNull(target.getInactiveReason());
+        verify(mailUtil).sendPlainTextMail(eq("doctor@test.com"), anyString(), anyString());
+    }
+
+    @Test
+    void testToggleUserStatus_Deactivate_MissingReason_ThrowsException() {
+        User admin = userWithRole(1L, "ADMIN");
+        User target = userWithRole(2L, "DOCTOR");
+        target.setStatus(UserStatus.ACTIVE);
+
+        when(userRepository.findByUsername("admin")).thenReturn(Optional.of(admin));
+        when(userRepository.findById(2L)).thenReturn(Optional.of(target));
+
+        com.g93.be.dto.ToggleStatusRequest req = new com.g93.be.dto.ToggleStatusRequest();
+        req.setInactiveReason(""); // Blank
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, 
+            () -> userService.toggleUserStatus(2L, req, "admin"));
+        
+        assertEquals("Inactive reason is required when deactivating a user", ex.getMessage());
+        verify(userRepository, never()).save(any(User.class));
+    }
+
+    @Test
+    void testToggleUserStatus_TargetIsAdmin_ThrowsException() {
+        User admin = userWithRole(1L, "ADMIN");
+        User target = userWithRole(2L, "ADMIN"); // Target is ADMIN
+
+        when(userRepository.findByUsername("admin")).thenReturn(Optional.of(admin));
+        when(userRepository.findById(2L)).thenReturn(Optional.of(target));
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, 
+            () -> userService.toggleUserStatus(2L, new com.g93.be.dto.ToggleStatusRequest(), "admin"));
+        
+        assertEquals("Cannot modify the status of an ADMIN user via this endpoint", ex.getMessage());
+        verify(userRepository, never()).save(any(User.class));
+    }
+
+    @Test
+    void testToggleUserStatus_UserNotFound_ThrowsException() {
+        User admin = userWithRole(1L, "ADMIN");
+
+        when(userRepository.findByUsername("admin")).thenReturn(Optional.of(admin));
+        when(userRepository.findById(99L)).thenReturn(Optional.empty());
+
+        com.g93.be.exception.ResourceNotFoundException ex = assertThrows(com.g93.be.exception.ResourceNotFoundException.class, 
+            () -> userService.toggleUserStatus(99L, new com.g93.be.dto.ToggleStatusRequest(), "admin"));
+        
+        assertTrue(ex.getMessage().contains("not found"));
     }
 }

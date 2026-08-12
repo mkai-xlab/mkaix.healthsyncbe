@@ -212,6 +212,86 @@ Endpoint to reset the password using the 6-digit OTP sent to the user's email.
 Password reset successfully
 ```
 
+## `GET /users/staff/search`
+
+Retrieves a paginated list of medical staff (Doctors and Head of Departments). Supports search and status filtering.
+
+### Query Parameters
+
+- `keyword` (Optional): Search term for username, email, or full name.
+- `status` (Optional): Filter by status (`ACTIVE` or `INACTIVE`).
+- `page` (Optional): Page index (0-based, default: `0`).
+- `size` (Optional): Items per page (default: `10`).
+
+### Request
+
+```http
+GET /users/staff/search?keyword=doctor&status=ACTIVE&page=0&size=10
+```
+
+### Response
+
+```json
+{
+  "content": [
+    {
+      "id": 2,
+      "username": "doctor.smith",
+      "fullName": "John Smith",
+      "email": "doctor@example.com",
+      "phone": "0987654321",
+      "role": { "id": 2, "code": "DOCTOR", "name": "Doctor" },
+      "status": "ACTIVE",
+      "userType": "DOCTOR",
+      "avatarUrl": "/images/avatar/123.jpg",
+      "createdAt": "2026-06-01T10:00:00"
+    }
+  ],
+  "pageNumber": 0,
+  "pageSize": 10,
+  "totalElements": 1,
+  "totalPages": 1,
+  "isLast": true
+}
+```
+
+### Status Codes
+
+- `200 OK`: Request successful
+- `401 Unauthorized`: Authentication is required
+- `403 Forbidden`: Authenticated user is not allowed (requires ADMIN, VIEW_USER_LIST, or HEAD_OF_DEPARTMENT)
+
+## `PATCH /users/{userId}/status/toggle`
+
+Toggles the active/inactive status of a user. If deactivating, an `inactiveReason` is required and an email is sent to the user. Reactivating clears the reason and sends a welcome back email. Target cannot be an ADMIN.
+
+### Request
+
+```json
+{
+  "inactiveReason": "Violation of policies"
+}
+```
+
+### Response
+
+```json
+{
+  "id": 2,
+  "username": "doctor.smith",
+  "status": "INACTIVE",
+  "avatarUrl": "/images/avatar/123.jpg"
+}
+```
+
+### Status Codes
+
+- `200 OK`: Status toggled successfully
+- `400 Bad Request`: Missing inactive reason when deactivating, or attempting to toggle an ADMIN user
+- `401 Unauthorized`: Authentication is required
+- `403 Forbidden`: Authenticated user is not allowed (requires ADMIN or UPDATE_USER)
+- `404 Not Found`: User not found
+
 ### `GET /doctors`
 
 Retrieves a paginated list of all doctors. Supports search, filter, and sorting.

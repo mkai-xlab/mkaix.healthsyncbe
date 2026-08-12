@@ -14,6 +14,11 @@ public interface UserService {
      */
     UserResponse createUser(CreateUserRequest request);
     UserResponse updateUserRole(Long userId, UpdateUserRoleRequest request, String actorUsername);
+    
+    org.springframework.data.domain.Page<UserResponse> searchStaff(String keyword, com.g93.be.entity.UserStatus status, int page, int size);
+    
+    UserResponse toggleUserStatus(Long userId, com.g93.be.dto.ToggleStatusRequest request, String actorUsername);
+    
     java.util.List<UserResponse> getStaffList();
     long countDoctors(String username);
     long countHeads(String username);

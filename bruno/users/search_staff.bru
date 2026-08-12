@@ -1,0 +1,23 @@
+meta {
+  name: Search Medical Staff
+  type: http
+  seq: 10
+}
+
+get {
+  url: {{baseUrl}}/users/staff/search?keyword=doctor&status=ACTIVE&page=0&size=10
+  body: none
+  auth: bearer
+}
+
+query {
+  keyword: doctor
+  status: ACTIVE
+  page: 0
+  size: 10
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+​

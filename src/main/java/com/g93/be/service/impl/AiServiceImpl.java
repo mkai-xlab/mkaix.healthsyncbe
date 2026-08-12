@@ -57,11 +57,15 @@ public class AiServiceImpl implements AiService {
     @Override
     @Transactional
     public List<ExaminationDto> predictBatch(AiPredictionRequest request) {
+        // Cấu hình RestTemplate để giao tiếp HTTP với AI Server (Python/FastAPI)
         RestTemplate restTemplate = new RestTemplate();
+        // Bản đồ lưu kết quả dự đoán của AI tương ứng với từng ID ảnh DICOM
         Map<Long, List<AiPredictionResultDto>> aiResultMap = new HashMap<>();
+        // Cache danh sách các Ca Khám (Examination) để tổng hợp trạng thái chung sau cùng
         Map<Long, Examination> uniqueExams = new HashMap<>();
         Map<Long, List<DicomInstance>> instancesByExam = new HashMap<>();
 
+        // Bước 1: Duyệt qua từng ảnh DICOM cần gửi đi phân tích
         for (Long instanceId : request.getDicomInstanceIds()) {
             Optional<DicomInstance> instanceOpt = dicomInstanceRepository.findById(instanceId);
             if (instanceOpt.isEmpty()) {
@@ -91,7 +95,7 @@ public class AiServiceImpl implements AiService {
             }
 
             try {
-                // Call external API
+                // Bước 2: Đóng gói file ảnh PNG vào form 'multipart/form-data' để gửi cho AI
                 HttpHeaders headers = new HttpHeaders();
                 headers.setContentType(MediaType.MULTIPART_FORM_DATA);
 
@@ -100,6 +104,7 @@ public class AiServiceImpl implements AiService {
 
                 HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
 
+                // Bắt đầu bấm giờ đo lường thời gian phản hồi của AI
                 long startTime = System.currentTimeMillis();
                 ResponseEntity<FastApiPredictionResponse> response = restTemplate.postForEntity(aiApiUrl, requestEntity,
                         FastApiPredictionResponse.class);
@@ -108,10 +113,12 @@ public class AiServiceImpl implements AiService {
                 if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
                     FastApiPredictionResponse aiData = response.getBody();
 
-                    // Decode base64 Annotated Image
+                    // Bước 3: Phân rã dữ liệu từ AI gửi về
+                    // 3.1 - Xử lý ảnh Annotated (Ảnh phác thảo có khoanh vùng bệnh - dạng chuỗi Base64)
                     String annotatedBase64 = aiData.getAnnotatedImage();
                     Image annotatedImageEntity = null;
                     if (annotatedBase64 != null) {
+                        // Decode chuỗi Base64 thành file vật lý, lưu lên đĩa cứng và lưu Path vào Database
                         String annotatedPath = saveBase64ToDisk(annotatedBase64, "anno",
                                 UUID.randomUUID().toString() + "_annotated.png");
                         if (annotatedPath != null) {
@@ -122,26 +129,27 @@ public class AiServiceImpl implements AiService {
                         }
                     }
 
-                    // Save AiAnalysis
+                    // 3.2 - Tạo mới hoặc ghi đè lịch sử phân tích (AiAnalysis)
                     AiAnalysis analysis = instance.getAiAnalysis();
                     if (analysis == null) {
                         analysis = new AiAnalysis();
                         analysis.setDicomInstance(instance);
                     } else {
+                        // Nếu ảnh này đã được phân tích trước đó, xóa bỏ kết quả cũ để lưu kết quả mới
                         if (analysis.getAiResults() != null) {
                             aiResultRepository.deleteAll(analysis.getAiResults());
                             analysis.getAiResults().clear();
                         }
                     }
                     analysis.setStartTime(LocalDateTime.now());
-                    analysis.setDuration(duration);
+                    analysis.setDuration(duration); // Ghi nhận AI mất bao nhiêu mili-giây để xử lý
                     analysis.setStatus("SUCCESS");
                     analysis = aiAnalysisRepository.save(analysis);
 
                     List<FastApiPredictionResponse.AiPredictionData> preds = aiData.getPredictions();
                     if (preds != null) {
                         for (FastApiPredictionResponse.AiPredictionData p : preds) {
-                            // Decode ROI
+                            // 3.3 - Giải mã và lưu file ảnh ROI (Vùng đầu gối cắt cúp)
                             Image roiImageEntity = null;
                             if (p.getRoiImage() != null) {
                                 String roiPath = saveBase64ToDisk(p.getRoiImage(), "roi",
@@ -153,7 +161,7 @@ public class AiServiceImpl implements AiService {
                                 }
                             }
 
-                            // Decode GradCAM
+                            // 3.4 - Giải mã và lưu file ảnh GradCAM (Bản đồ nhiệt độ mô phỏng lý do chẩn đoán)
                             Image gradcamImageEntity = null;
                             if (p.getGradcamImage() != null) {
                                 String gradcamPath = saveBase64ToDisk(p.getGradcamImage(), "gradcam",
@@ -191,7 +199,7 @@ public class AiServiceImpl implements AiService {
                             }
                             aiResult = aiResultRepository.save(aiResult);
 
-                            // Save Confidence Scores
+                            // 3.5 - Lưu chi tiết tỷ lệ % (Confidence Scores) cho từng mức độ bệnh
                             if (p.getDetails() != null) {
                                 AiResultConfidenceScore score = new AiResultConfidenceScore();
                                 score.setAiResult(aiResult);
@@ -226,7 +234,7 @@ public class AiServiceImpl implements AiService {
                         }
                     }
 
-                    // Update Examination Status and DicomInstance Status
+                    // Bước 4: Đánh dấu file ảnh này đã có kết quả (GET_RESULTED)
                     instance.setStatus(DicomInstanceStatus.GET_RESULTED);
                     dicomInstanceRepository.save(instance);
 
@@ -345,7 +353,8 @@ public class AiServiceImpl implements AiService {
             }
         }
 
-        // --- WebSocket Notification Logic ---
+        // --- Bước 5: Bắn thông báo qua Web Socket cho Bác sĩ ---
+        // Biến gộp thông tin: Bác sĩ -> Bệnh nhân -> Cấp độ bệnh nghiêm trọng nhất
         Map<Long, Map<Long, Integer>> maxGradeByPatientByDoctor = new HashMap<>();
 
         for (Examination exam : uniqueExams.values()) {
@@ -353,6 +362,7 @@ public class AiServiceImpl implements AiService {
                 continue;
                 
             if (exam.getStatus() == ExaminationStatus.AI_FAILED) {
+                // Phân tích bị lỗi -> Bắn thông báo thất bại
                 SendNotificationRequest req = new SendNotificationRequest(
                         exam.getDoctor().getId(),
                         "Lỗi phân tích AI",
@@ -406,18 +416,28 @@ public class AiServiceImpl implements AiService {
         return finalResults;
     }
 
+    /**
+     * Hàm Utility: Dùng để chuyển đổi ảnh dạng Base64 (Chuỗi mã hóa) thành file tĩnh PNG
+     */
     private String saveBase64ToDisk(String base64String, String subDir, String fileName) {
         if (base64String == null || !base64String.startsWith("data:image"))
             return null;
+            
+        // Loại bỏ tiền tố (VD: 'data:image/png;base64,') để lấy data nhị phân thực sự
         String[] parts = base64String.split(",");
         if (parts.length != 2)
             return null;
 
         try {
+            // Giải mã ngược từ Base64 về dạng byte[]
             byte[] decodedImg = Base64.getDecoder().decode(parts[1]);
             String filePath = "/images/" + subDir + "/" + fileName;
+            
+            // Tìm ổ đĩa thực tế để lưu (VD: D:/Capstone/data/images/roi/abc.png)
             Path targetPath = Paths.get(storageBaseDir, "images", subDir, fileName);
-            targetPath.getParent().toFile().mkdirs();
+            targetPath.getParent().toFile().mkdirs(); // Đảm bảo thư mục đã tồn tại
+            
+            // Tiến hành ghi data ra file
             try (FileOutputStream fos = new FileOutputStream(targetPath.toFile())) {
                 fos.write(decodedImg);
             }

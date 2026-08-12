@@ -642,3 +642,27 @@ Lệnh kiểm thử: `mvn test -Dtest=DoctorControllerTest`
 | UTC-DOC-29 | `DELETE /doctors/{id}` | `Abnormal`: Security - role DOCTOR | 403 Forbidden | P |
 
 Kết quả: **29/29 tests passed (100% Success Rate).** Các lỗi `400 Bad Request` do validation hoặc không tìm thấy dữ liệu đều đã được GlobalExceptionHandler bắt và xử lý triệt để (không rớt về 500). Toàn bộ RBAC security cũng đã được verify bằng MockMvc + Spring Security.
+
+---
+
+## 11. Staff Management (UserServiceImpl)
+
+| Thu?c t�nh | Gi� tr? |
+|---|---|
+| Code Module | "UserServiceImpl" |
+| Method | "searchStaff", "toggleUserStatus" |
+| Test Class | "UserServiceImplTest" |
+| Test Requirement | T�m ki?m staff (DOCTOR, HEAD_OF_DEPARTMENT), k�ch ho?t/v� hi?u h�a staff v� g?i email. |
+
+| Passed | Failed | Untested | N | A | B | Total | Success Rate |
+|---:|---:|---:|---:|---:|---:|---:|---:|
+| 6 | 0 | 0 | 3 | 3 | 0 | 6 | 100% |
+
+| UTCID | Test case | Result | Date |
+|---|---|:---:|---|
+| UTC-STAFF-SEARCH-01 | "testSearchStaff_Normal" | P | 12/08/2026 |
+| UTC-STAFF-TOGGLE-01 | "testToggleUserStatus_Deactivate_Normal" | P | 12/08/2026 |
+| UTC-STAFF-TOGGLE-02 | "testToggleUserStatus_Activate_Normal" | P | 12/08/2026 |
+| UTC-STAFF-TOGGLE-03 | "testToggleUserStatus_Deactivate_MissingReason_ThrowsException" | P | 12/08/2026 |
+| UTC-STAFF-TOGGLE-04 | "testToggleUserStatus_TargetIsAdmin_ThrowsException" | P | 12/08/2026 |
+| UTC-STAFF-TOGGLE-05 | "testToggleUserStatus_UserNotFound_ThrowsException" | P | 12/08/2026 |
