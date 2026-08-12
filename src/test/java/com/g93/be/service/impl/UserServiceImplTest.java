@@ -4,9 +4,11 @@ import com.g93.be.common.util.MailUtil;
 import com.g93.be.dto.CreateUserRequest;
 import com.g93.be.dto.UpdateUserRoleRequest;
 import com.g93.be.dto.UserResponse;
+import com.g93.be.entity.Doctor;
 import com.g93.be.entity.Role;
 import com.g93.be.entity.User;
 import com.g93.be.entity.UserStatus;
+import com.g93.be.repository.DoctorRepository;
 import com.g93.be.repository.RoleRepository;
 import com.g93.be.repository.UserRepository;
 import jakarta.validation.ConstraintViolation;
@@ -44,6 +46,8 @@ public class UserServiceImplTest {
     private PasswordEncoder passwordEncoder;
     @Mock
     private MailUtil mailUtil;
+    @Mock
+    private DoctorRepository doctorRepository;
     @Spy
     private com.g93.be.mapper.UserMapper userMapper = new com.g93.be.mapper.UserMapper();
 
@@ -74,7 +78,7 @@ public class UserServiceImplTest {
         role.setId(2L);
         role.setCode("DOCTOR");
 
-        User savedUser = new User();
+        Doctor savedUser = new Doctor();
         savedUser.setId(10L);
         savedUser.setUsername("doc");
         savedUser.setFullName("New Doctor");
@@ -86,15 +90,16 @@ public class UserServiceImplTest {
         when(userRepository.findByPhone("0901234567")).thenReturn(Optional.empty());
         when(roleRepository.findById(2L)).thenReturn(Optional.of(role));
         when(passwordEncoder.encode(anyString())).thenReturn("encodedPassword");
-        when(userRepository.save(any(User.class))).thenReturn(savedUser);
+        // DOCTOR role → doctorRepository.save() is called (JPA JOINED inheritance)
+        when(doctorRepository.save(any(Doctor.class))).thenReturn((Doctor) savedUser);
 
         UserResponse res = userService.createUser(req);
 
         assertNotNull(res);
         assertEquals("doc", res.getUsername());
-        ArgumentCaptor<User> savedUserCaptor = ArgumentCaptor.forClass(User.class);
-        verify(userRepository).save(savedUserCaptor.capture());
-        assertEquals("DOCTOR", savedUserCaptor.getValue().getUserType());
+        ArgumentCaptor<Doctor> savedDoctorCaptor = ArgumentCaptor.forClass(Doctor.class);
+        verify(doctorRepository).save(savedDoctorCaptor.capture());
+        assertEquals("DOCTOR", savedDoctorCaptor.getValue().getUserType());
         verify(mailUtil).sendTemplateMail(anyString(), anyString(), anyString(), any());
     }
 
@@ -121,12 +126,20 @@ public class UserServiceImplTest {
         when(userRepository.findByPhone("0902223334")).thenReturn(Optional.empty());
         when(roleRepository.findById(3L)).thenReturn(Optional.of(role));
         when(passwordEncoder.encode(anyString())).thenReturn("encoded");
-        when(userRepository.save(any(User.class))).thenReturn(savedUser);
+        // HEAD_OF_DEPARTMENT role → doctorRepository.save() is called (JPA JOINED inheritance)
+        Doctor savedDoctor = new Doctor();
+        savedDoctor.setId(11L);
+        savedDoctor.setUsername("head");
+        savedDoctor.setFullName("Head Doctor");
+        savedDoctor.setEmail("head@test.com");
+        savedDoctor.setRole(role);
+        savedDoctor.setStatus(UserStatus.ACTIVE);
+        when(doctorRepository.save(any(Doctor.class))).thenReturn(savedDoctor);
 
         UserResponse res = userService.createUser(req);
 
         assertNotNull(res);
-        verify(userRepository).save(any(User.class));
+        verify(doctorRepository).save(any(Doctor.class));
     }
 
     @Test
@@ -147,7 +160,7 @@ public class UserServiceImplTest {
         Role role = new Role();
         role.setCode("DOCTOR");
 
-        User savedUser = new User();
+        Doctor savedUser = new Doctor();
         savedUser.setId(13L);
         savedUser.setUsername("abc2"); // System auto adds 2
         savedUser.setFullName("New Doctor");
@@ -165,7 +178,8 @@ public class UserServiceImplTest {
         when(userRepository.findByUsername("abc2")).thenReturn(Optional.empty());
 
         when(passwordEncoder.encode(anyString())).thenReturn("encoded");
-        when(userRepository.save(any(User.class))).thenReturn(savedUser);
+        // DOCTOR role → doctorRepository.save() is called
+        when(doctorRepository.save(any(Doctor.class))).thenReturn((Doctor) savedUser);
 
         UserResponse res = userService.createUser(req);
         assertEquals("abc2", res.getUsername()); // Username tự sinh thêm hậu tố
@@ -258,7 +272,8 @@ public class UserServiceImplTest {
         when(roleRepository.findById(2L)).thenReturn(Optional.of(role));
         when(passwordEncoder.encode(anyString())).thenReturn("encoded");
         
-        when(userRepository.save(any(User.class))).thenThrow(new RuntimeException("DB Connection refused"));
+        // DOCTOR role → doctorRepository.save() is called
+        when(doctorRepository.save(any(Doctor.class))).thenThrow(new RuntimeException("DB Connection refused"));
 
         RuntimeException ex = assertThrows(RuntimeException.class, () -> userService.createUser(req));
         assertEquals("DB Connection refused", ex.getMessage());
