@@ -28,6 +28,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import com.g93.be.dto.ToggleStatusRequest;
 import com.g93.be.mapper.UserMapper;
+import com.g93.be.entity.Doctor;
+import com.g93.be.repository.DoctorRepository;
 
 @Service
 @RequiredArgsConstructor
@@ -41,6 +43,7 @@ public class UserServiceImpl implements UserService {
     private final PasswordEncoder passwordEncoder;
     private final MailUtil mailUtil;
     private final UserMapper userMapper;
+    private final DoctorRepository doctorRepository;
 
     @Value("${app.login-url:http://localhost:3000/login}")
     private String loginUrl;
@@ -71,21 +74,39 @@ public class UserServiceImpl implements UserService {
         String tempUsername = generateUniqueUsername(request.getEmail());
         String tempPassword = generateSecurePassword();
 
-        // Map and create user
-        User user = new User();
-        user.setUsername(tempUsername);
-        user.setPassword(passwordEncoder.encode(tempPassword));
-        user.setFullName(request.getFullName());
-        user.setEmail(request.getEmail());
-        user.setPhone(request.getPhone());
-        user.setRole(role);
+        // Các role thuộc nhóm y tế bác sĩ phải được lưu vào bảng doctors (JPA JOINED inheritance)
+        boolean isMedicalRole = "DOCTOR".equalsIgnoreCase(role.getCode())
+                || "HEAD_OF_DEPARTMENT".equalsIgnoreCase(role.getCode())
+                || "DEPARTMENT_HEAD".equalsIgnoreCase(role.getCode());
 
-        // userType identifies the medical staff entity; role carries authorization.
-        user.setUserType(role.getCode());
-        user.setStatus(UserStatus.ACTIVE);
-        user.setIsFirstActivated(true);
-
-        User savedUser = userRepository.save(user);
+        User savedUser;
+        if (isMedicalRole) {
+            // Tạo Doctor entity để JPA insert vào cả bảng `users` và `doctors`
+            Doctor doctor = new Doctor();
+            doctor.setUsername(tempUsername);
+            doctor.setPassword(passwordEncoder.encode(tempPassword));
+            doctor.setFullName(request.getFullName());
+            doctor.setEmail(request.getEmail());
+            doctor.setPhone(request.getPhone());
+            doctor.setRole(role);
+            doctor.setUserType(role.getCode());
+            doctor.setStatus(UserStatus.ACTIVE);
+            doctor.setIsFirstActivated(true);
+            savedUser = doctorRepository.save(doctor);
+        } else {
+            // Các role khác (non-medical) lưu vào bảng users thông thường
+            User user = new User();
+            user.setUsername(tempUsername);
+            user.setPassword(passwordEncoder.encode(tempPassword));
+            user.setFullName(request.getFullName());
+            user.setEmail(request.getEmail());
+            user.setPhone(request.getPhone());
+            user.setRole(role);
+            user.setUserType(role.getCode());
+            user.setStatus(UserStatus.ACTIVE);
+            user.setIsFirstActivated(true);
+            savedUser = userRepository.save(user);
+        }
 
         log.info("User created successfully with ID: {}", savedUser.getId());
 
