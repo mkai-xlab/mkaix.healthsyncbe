@@ -9,6 +9,7 @@ import com.g93.be.dto.ResetPasswordRequest;
 import com.g93.be.entity.PasswordResetToken;
 import com.g93.be.entity.Role;
 import com.g93.be.entity.User;
+import com.g93.be.entity.UserStatus;
 import com.g93.be.exception.FirstTimeLoginException;
 import com.g93.be.exception.LoginLockedException;
 import com.g93.be.repository.PasswordResetTokenRepository;
@@ -24,6 +25,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -186,6 +188,19 @@ class AuthServiceTest {
     }
 
     @Test
+    void login_InactiveUser_ReturnsDeactivatedAccountErrorBeforeLockoutCheck() {
+        mockUser.setStatus(UserStatus.INACTIVE);
+        when(userRepository.findByUsernameOrEmail("test_user", "test_user"))
+                .thenReturn(Optional.of(mockUser));
+        LoginRequest request = new LoginRequest("test_user", "password123");
+
+        assertThrows(DisabledException.class, () -> authService.login(request));
+
+        verifyNoInteractions(authenticationManager);
+        verify(loginAttemptService, never()).ensureLoginAllowed(anyString());
+    }
+
+    @Test
     void login_FirstTimeLogin_ThrowsException() {
         mockUser.setIsFirstActivated(true);
         LoginRequest request = new LoginRequest("test_user", "password123");
@@ -216,6 +231,14 @@ class AuthServiceTest {
         assertEquals("access_token", response.accessToken());
         assertEquals("refresh_token", response.refreshToken());
         verify(loginAttemptService).resetFailedAttempts("test_user");
+    }
+
+    @Test
+    void inactiveUserDetails_IsDisabledButNotTemporarilyLocked() {
+        mockUser.setStatus(UserStatus.INACTIVE);
+
+        assertFalse(mockUserDetails.isEnabled());
+        assertTrue(mockUserDetails.isAccountNonLocked());
     }
 
     @Test

@@ -59,6 +59,7 @@ public class OpenApiConfig {
                                 "message", "Bạn không có quyền truy cập tính năng này (Access Denied).",
                                 "timestamp", "2026-08-02T10:15:30")))
                 .addResponses("FirstTimeLoginRequired", firstTimeLoginResponse())
+                .addResponses("LoginForbidden", loginForbiddenResponse())
                 .addResponses("NotFound", new ApiResponse()
                         .description("Không tìm thấy tài nguyên hoặc tệp; response không có body"))
                 .addResponses("UnsupportedMediaType", errorResponse(
@@ -231,9 +232,14 @@ public class OpenApiConfig {
             responses.addApiResponse("403", reference("Forbidden"));
         }
         for (String status : document.extraErrorResponses()) {
-            String component = "403".equals(status)
-                    ? "FirstTimeLoginRequired"
-                    : "401".equals(status) ? "Unauthorized" : "BadRequest";
+            String component;
+            if ("AuthController#login".equals(endpointKey) && "403".equals(status)) {
+                component = "LoginForbidden";
+            } else {
+                component = "403".equals(status)
+                        ? "FirstTimeLoginRequired"
+                        : "401".equals(status) ? "Unauthorized" : "BadRequest";
+            }
             responses.addApiResponse(status, reference(component));
         }
         if (document.notFoundResponse()) {
@@ -340,9 +346,31 @@ public class OpenApiConfig {
                 .description("Tài khoản đăng nhập lần đầu phải đổi mật khẩu")
                 .content(new Content().addMediaType("application/json", new MediaType()
                         .schema(new Schema<>().$ref("#/components/schemas/FirstTimeLoginError"))
-                        .example(Map.of(
+                .example(Map.of(
+                        "error", "FIRST_TIME_LOGIN_REQUIRED",
+                        "message", "Please change your password before continuing"))));
+    }
+
+    private static ApiResponse loginForbiddenResponse() {
+        MediaType mediaType = new MediaType()
+                .schema(new Schema<>().$ref("#/components/schemas/ErrorResponse"))
+                .addExamples("firstTimeLoginRequired", new Example()
+                        .summary("Đăng nhập lần đầu")
+                        .value(Map.of(
+                                "status", 403,
                                 "error", "FIRST_TIME_LOGIN_REQUIRED",
-                                "message", "Please change your password before continuing"))));
+                                "message", "Account not activated or requires password change on first login.",
+                                "timestamp", "2026-08-02T10:15:30")))
+                .addExamples("accountDeactivated", new Example()
+                        .summary("Tài khoản bị vô hiệu hóa")
+                        .value(Map.of(
+                                "status", 403,
+                                "error", "ACCOUNT_DEACTIVATED",
+                                "message", "Tài khoản của bạn đã bị vô hiệu hóa.",
+                                "timestamp", "2026-08-02T10:15:30")));
+        return new ApiResponse()
+                .description("Tài khoản không được phép đăng nhập: cần đổi mật khẩu lần đầu hoặc tài khoản đã bị vô hiệu hóa")
+                .content(new Content().addMediaType("application/json", mediaType));
     }
 
     private static ApiResponse zipUploadBadRequest() {

@@ -641,7 +641,9 @@ public class SecurityAndRbacIntegrationTest {
                 mockMvc.perform(post("/auth/login")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(loginRequest)))
-                                .andExpect(status().isUnauthorized());
+                                .andExpect(status().isForbidden())
+                                .andExpect(jsonPath("$.error", is("ACCOUNT_DEACTIVATED")))
+                                .andExpect(jsonPath("$.message", is("Tài khoản của bạn đã bị vô hiệu hóa.")));
         }
 
         @Test
