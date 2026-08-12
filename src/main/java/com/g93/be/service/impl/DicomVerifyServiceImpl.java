@@ -221,7 +221,7 @@ public class DicomVerifyServiceImpl implements DicomVerifyService {
                 doctor = doctorRepository.findById(uploaderUserId).orElse(null);
             }
             if (doctor == null) {
-                throw new AccessDeniedException("Bạn không có quyền truy cập hoặc hệ thống không tìm thấy thông tin Bác sĩ (Missing/Invalid Doctor ID).");
+                log.warn("Uploader with ID {} is not found in doctors table. Setting doctor_id to null for examination.", uploaderUserId);
             }
             examination.setDoctor(doctor);
 
