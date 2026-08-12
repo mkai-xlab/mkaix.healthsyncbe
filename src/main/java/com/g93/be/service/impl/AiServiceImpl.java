@@ -29,6 +29,7 @@ import org.springframework.web.client.RestTemplate;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
@@ -451,13 +452,15 @@ public class AiServiceImpl implements AiService {
     @Override
     public org.springframework.core.io.Resource getHeatmapImageResource(Long aiResultId) {
         AiResult result = aiResultRepository.findById(aiResultId).orElse(null);
-        if (result != null && result.getStorageHeatmapFilePath() != null) {
+        if (result != null
+                && result.getStorageHeatmapFilePath() != null
+                && !result.getStorageHeatmapFilePath().isBlank()) {
             String imagePath = result.getStorageHeatmapFilePath();
             try {
                 String relPath = imagePath.startsWith("/") ? imagePath.substring(1) : imagePath;
                 Path path = Paths.get(storageBaseDir, relPath);
                 org.springframework.core.io.Resource resource = new org.springframework.core.io.UrlResource(path.toUri());
-                if (resource.exists() || resource.isReadable()) {
+                if (resource.exists() && resource.isReadable() && !Files.isDirectory(path)) {
                     return resource;
                 }
             } catch (Exception e) {
