@@ -8,6 +8,9 @@ import com.g93.be.dto.CreateDoctorRequest;
 import com.g93.be.dto.DoctorResponse;
 import com.g93.be.dto.PageResponse;
 import org.springframework.data.domain.Pageable;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
 
 public interface DoctorService {
     DoctorResponse createDoctor(CreateDoctorRequest request);
@@ -15,9 +18,9 @@ public interface DoctorService {
     PageResponse<DoctorResponse> searchDoctors(String keyword, String specialization, UserStatus status,
             Pageable pageable);
 
-    java.util.List<DoctorResponse> getAllDoctors();
+    List<DoctorResponse> getAllDoctors();
 
-    java.util.List<DoctorResponse> getActiveDoctors();
+    List<DoctorResponse> getActiveDoctors();
 
     void softDeleteDoctor(Long id, String reason);
 
@@ -29,5 +32,5 @@ public interface DoctorService {
 
     DoctorResponse editDoctorProfile(String username, EditDoctorProfileRequest request);
 
-    DoctorResponse updateDoctorAvatar(String username, org.springframework.web.multipart.MultipartFile file);
+    DoctorResponse updateDoctorAvatar(String username, MultipartFile file);
 }
