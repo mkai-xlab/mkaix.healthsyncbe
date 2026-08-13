@@ -80,7 +80,7 @@ app:
     issuer: capstone-ai-knee-diagnosis
     access-secret: ${JWT_ACCESS_SECRET:dGVzdC1hY2Nlc3Mtc2VjcmV0LWtleS1tdXN0LWJlLWF0LWxlYXN0LTI1Ni1iaXRzLWxvbmc=}
     refresh-secret: ${JWT_REFRESH_SECRET:dGVzdC1yZWZyZXNoLXNlY3JldC1rZXktbXVzdC1iZS1hdC1sZWFzdC0yNTYtYml0cy1sb25n}
-    access-expiration-ms: 900000 # 15 minutes
+    access-expiration-ms: 7200000 # 2 hours
     refresh-expiration-ms: 604800000 # 7 days
   aws:
     region: ${AWS_REGION:ap-southeast-1}
