@@ -48,12 +48,29 @@ public class BusinessDataQueryService {
 
         return switch (intent) {
             case TODAY_EXAMINATION_COUNT, EXAMINATION_COUNT -> countExaminations(parameters, range, scopedDoctor);
+            case TODAY_EXAMINATION_LIST -> recentExaminations(parameters, range, scopedDoctor);
             case REPORT_COUNT -> countReports(parameters, range, scopedDoctor);
             case EXAMINATION_FINAL_RESULT -> examinationResult(parameters, decision.entityId(), scopedDoctor);
             case REPORT_SUMMARY -> reportSummary(parameters, decision.entityId(), scopedDoctor);
             case GRADE_DISTRIBUTION -> gradeDistribution(parameters, range, scopedDoctor);
             case UNKNOWN -> throw new IllegalArgumentException("Unsupported business data question");
         };
+    }
+
+    private BusinessQueryResult recentExaminations(
+            MapSqlParameterSource parameters, DateRange range, boolean scopedDoctor) {
+        String examinationTime = "COALESCE(e.visit_time, e.created_at)";
+        String sql = "SELECT e.id AS examination_id, e.encounter_code, p.patient_code, "
+                + "p.full_name AS patient_name, " + examinationTime + " AS visit_time, "
+                + "e.status, e.priority FROM examinations e "
+                + "JOIN patients p ON p.patient_code = e.patient_id "
+                + "WHERE " + examinationTime + " >= :from AND " + examinationTime + " < :to"
+                + (scopedDoctor ? " AND e.doctor_id = :userId" : "")
+                + " ORDER BY " + examinationTime + " DESC, e.id DESC LIMIT 10";
+        List<Map<String, Object>> rows = jdbcTemplate.queryForList(sql, parameters);
+        return result("recent_examinations=" + rows + ", from=" + range.from() + ", to=" + range.to()
+                        + ", maximum_results=10",
+                "MySQL recent examinations", "database:examinations/recent");
     }
 
     private BusinessQueryResult countExaminations(
@@ -125,7 +142,8 @@ public class BusinessDataQueryService {
     }
 
     private boolean isClinical(BusinessQueryIntent intent) {
-        return intent == BusinessQueryIntent.EXAMINATION_FINAL_RESULT
+        return intent == BusinessQueryIntent.TODAY_EXAMINATION_LIST
+                || intent == BusinessQueryIntent.EXAMINATION_FINAL_RESULT
                 || intent == BusinessQueryIntent.REPORT_SUMMARY
                 || intent == BusinessQueryIntent.GRADE_DISTRIBUTION;
     }
@@ -133,7 +151,8 @@ public class BusinessDataQueryService {
     private DateRange dateRange(ChatRoutingDecision decision, BusinessQueryIntent intent) {
         boolean noExplicitDate = (decision.dateFrom() == null || decision.dateFrom().isBlank())
                 && (decision.dateTo() == null || decision.dateTo().isBlank());
-        if (noExplicitDate && intent != BusinessQueryIntent.TODAY_EXAMINATION_COUNT) {
+        if (noExplicitDate && intent != BusinessQueryIntent.TODAY_EXAMINATION_COUNT
+                && intent != BusinessQueryIntent.TODAY_EXAMINATION_LIST) {
             return new DateRange(LocalDate.of(1970, 1, 1).atStartOfDay(),
                     LocalDate.now().plusDays(1).atStartOfDay());
         }

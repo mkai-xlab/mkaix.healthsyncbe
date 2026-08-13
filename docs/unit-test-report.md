@@ -1,5 +1,72 @@
 # UNIT TEST REPORT - HEALTHSYNC BACKEND
 
+## Report RAG and today's examination list update (13/08/2026)
+
+| Thuộc tính | Giá trị |
+|---|---|
+| Executed By | Codex |
+| Executed Date | 13/08/2026 |
+| Framework | JUnit Jupiter, Mockito |
+| Java | 21 (Maven Docker image) |
+| Phạm vi | Controlled examination list, chat routing, report sync/metadata access, RAG filter, PDF resync |
+
+Lệnh kiểm thử:
+
+```bash
+docker run --rm -v /Users/duyanh/healthsync/mkaix.healthsyncbe:/workspace -v healthsync-m2:/root/.m2 -w /workspace maven:3-eclipse-temurin-21 mvn -q -Dtest=BusinessDataQueryServiceTest,ChatOrchestratorServiceTest,ReportKnowledgeSyncServiceTest,MedicalRagServiceTest,PdfExportServiceTest test
+```
+
+| Passed | Failed | Untested | Total Test Cases | Success Rate |
+|---:|---:|---:|---:|---:|
+| 29 | 0 | 0 | 29 | 100% |
+
+| Test Class | Test cases | Result |
+|---|---:|:---:|
+| `BusinessDataQueryServiceTest` | Doctor scope/count; clinical report denial; today's 10-item query; admin list denial | 4 P |
+| `ChatOrchestratorServiceTest` | Controlled business path; owner-aware RAG; empty evidence; report-aware HYBRID query | 4 P |
+| `ReportKnowledgeSyncServiceTest` | Retry/metadata-upgrade selection; assigned-doctor report metadata and sync access | 2 P |
+| `MedicalRagServiceTest` | Owner/assigned-doctor filter; unsupported role; configured top 12 | 3 P |
+| `PdfExportServiceTest` | PDF generation/access/error coverage plus existing-report resync event | 16 P |
+
+Surefire result: `Tests run: 29, Failures: 0, Errors: 0, Skipped: 0`.
+
+---
+
+## RAG medical-document management update (13/08/2026)
+
+| Thuộc tính | Giá trị |
+|---|---|
+| Executed By | Codex |
+| Executed Date | 13/08/2026 |
+| Framework | JUnit Jupiter, Mockito |
+| Java | 21 (Maven Docker image) |
+| Test result source | `target/surefire-reports/TEST-*.xml` |
+| Phạm vi | RAG validation, ingestion, deletion, indexing, retrieval và endpoint authorization |
+
+Lệnh kiểm thử:
+
+```bash
+docker run --rm -v /Users/duyanh/healthsync/mkaix.healthsyncbe:/workspace -v healthsync-m2:/root/.m2 -w /workspace maven:3-eclipse-temurin-21 mvn -q -Dtest=MedicalDocumentValidatorTest,KnowledgeDocumentDeletionServiceTest,KnowledgeIngestionServiceTest,KnowledgeBatchIngestionServiceTest,KnowledgeIndexingWorkerTest,MedicalRagServiceTest,KnowledgeControllerAuthorizationTest test
+```
+
+| Passed | Failed | Untested | Normal (N) | Abnormal (A) | Boundary (B) | Total Test Cases | Success Rate |
+|---:|---:|---:|---:|---:|---:|---:|---:|
+| 15 | 0 | 0 | 8 | 5 | 2 | 15 | 100% |
+
+| Test Class | Test cases | Type | Result |
+|---|---:|:---:|:---:|
+| `MedicalDocumentValidatorTest` | Accept medical content; reject non-medical content; reject low-confidence assessment; sample beginning/middle/end | N/A/B | 4 P |
+| `KnowledgeDocumentDeletionServiceTest` | Remove vectors, relational metadata, and stored source file | N | 1 P |
+| `KnowledgeIngestionServiceTest` | Coordinate deletion; reject validation before storing or publishing an index event | N/A | 2 P |
+| `KnowledgeBatchIngestionServiceTest` | Preserve accepted files when one fails; enforce 10-file limit | N/B | 2 P |
+| `KnowledgeIndexingWorkerTest` | Read UTF-8 plain-text medical knowledge | N | 1 P |
+| `MedicalRagServiceTest` | Preserve owner filter; deny unsupported role; retrieve configured top 12 | N/A | 3 P |
+| `KnowledgeControllerAuthorizationTest` | Enforce knowledge management and report-sync authorization expressions | N/A | 2 P |
+
+Surefire result: `Tests run: 15, Failures: 0, Errors: 0, Skipped: 0`.
+
+---
+
 ## 1. Thông tin thực thi
 
 | Thuộc tính | Giá trị |
@@ -647,12 +714,12 @@ Kết quả: **29/29 tests passed (100% Success Rate).** Các lỗi `400 Bad Req
 
 ## 11. Staff Management (UserServiceImpl)
 
-| Thu?c t�nh | Gi� tr? |
+| Thuộc tính | Giá trị |
 |---|---|
 | Code Module | "UserServiceImpl" |
 | Method | "searchStaff", "toggleUserStatus" |
 | Test Class | "UserServiceImplTest" |
-| Test Requirement | T�m ki?m staff (DOCTOR, HEAD_OF_DEPARTMENT), k�ch ho?t/v� hi?u h�a staff v� g?i email. |
+| Test Requirement | Tìm kiếm staff (DOCTOR, HEAD_OF_DEPARTMENT), kích hoạt/vô hiệu hóa staff và gửi email. |
 
 | Passed | Failed | Untested | N | A | B | Total | Success Rate |
 |---:|---:|---:|---:|---:|---:|---:|---:|

@@ -8,6 +8,10 @@ This project can follow semantic versioning when formal releases start.
 
 ### Added
 
+- Added `TODAY_EXAMINATION_LIST` chat routing and a controlled query returning up to 10 newest examinations from today for backend selection flows.
+- Added report-aware HYBRID retrieval that uses stored report context to locate relevant approved medical evidence.
+- Added synchronous AI medical-content validation for uploaded files and public URL knowledge sources using large samples from the beginning, middle, and end.
+- Added focused deletion, validation, sampling, batch rejection, and retrieval-size tests plus a Bruno request for deleting knowledge documents.
 - Added Staff Management endpoints (`GET /users/staff/search` and `PATCH /users/{userId}/status/toggle`) with email notification support.
 - Added `UserMapper` to extract mapping logic and maintain clean architecture.
 - Added explicit KL review decisions: assigned doctors can confirm or adjust AI results; department heads inherit both review actions across assignments; both actions are audit logged.
@@ -39,13 +43,16 @@ This project can follow semantic versioning when formal releases start.
 
 ### Changed
 
+- Report vectors now authorize both the report creator and the examination's assigned doctor, while remaining owner-scoped for other users.
+- Report reconciliation now retries incomplete indexing, upgrades legacy report metadata, and resynchronizes when an existing PDF is returned.
+- Increased the default medical RAG retrieval size from 5 to 12 chunks.
+- Hardened knowledge deletion against concurrent asynchronous indexing so deleted vectors are not recreated.
 - Refactored `ExaminationDto` to return a list of `images` (`ExaminationImageDto`) instead of a single `imageUrl`.
 - Documentation should be updated whenever backend behavior changes.
 
 ### Fixed
 
+- Fixed generated reports becoming permanently invisible to RAG after an indexing failure or when a department head generated the assigned doctor's report.
 - Resolved duplicate fields issue in `DicomInstance` entity.
 - Fixed Tomcat `/tmp` space issue in Docker environment by adding `VOLUME /tmp`.
 - Resolved compilation error due to mismatched JDK versions in Dockerfile.
-
-

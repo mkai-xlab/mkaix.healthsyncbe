@@ -35,6 +35,9 @@ Do not commit real secrets. Keep local environment files outside Git or use igno
 | `QDRANT_GRPC_PORT` | No | `6334` | Qdrant gRPC port. |
 | `QDRANT_COLLECTION` | No | `healthsync_medical_knowledge` | Vector collection name. |
 | `CHAT_MAX_DOCUMENT_BYTES` | No | `52428800` (50 MiB) | Maximum size of an uploaded Knowledge/RAG document. |
+| `CHAT_RETRIEVAL_TOP_K` | No | `12` | Maximum number of vector chunks retrieved for a medical question. |
+| `CHAT_MEDICAL_VALIDATION_SAMPLE_CHARS` | No | `6000` | Characters taken from each beginning/middle/end sample for medical-content validation. |
+| `CHAT_MEDICAL_VALIDATION_MIN_CONFIDENCE` | No | `0.7` | Minimum structured classifier confidence required to accept a knowledge source. |
 
 
 ## Database Variables

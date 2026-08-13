@@ -358,13 +358,13 @@ final class ApiDocumentationRegistry {
 
         private void registerRag() {
                 addMultipart("KnowledgeController", "upload", "Medical knowledge", "Upload medical knowledge",
-                                "Upload one medical knowledge file for asynchronous indexing.", "202",
+                                "Validate one file as medical content, then accept it for asynchronous indexing.", "202",
                                 "Knowledge document accepted for indexing", "KNOWLEDGE_DOCUMENT", ResponseKind.JSON);
                 addMultipart("KnowledgeController", "uploadBatch", "Medical knowledge", "Upload medical knowledge batch",
-                                "Upload multiple medical knowledge files for asynchronous indexing.", "202",
+                                "Validate and asynchronously index up to 10 files with per-file rejection results.", "202",
                                 "Knowledge document batch accepted for indexing", "KNOWLEDGE_BATCH", ResponseKind.JSON);
                 add("KnowledgeController", "addUrl", "Medical knowledge", "Add knowledge URL",
-                                "Register a knowledge source URL for asynchronous indexing.", "202",
+                                "Validate a public URL as medical content, then accept it for asynchronous indexing.", "202",
                                 "Knowledge URL accepted for indexing", "KNOWLEDGE_DOCUMENT", null, ResponseKind.JSON);
                 add("KnowledgeController", "getAll", "Medical knowledge", "List knowledge documents",
                                 "List uploaded and registered knowledge documents with their indexing status.", "200",

@@ -29,6 +29,7 @@ import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -52,7 +53,9 @@ public class ReportKnowledgeSyncService {
             throw new UnauthorizedAccessException("Administrators cannot index clinical reports");
         }
         ReportKnowledge row = loadReport(reportId);
-        if ("DOCTOR".equals(requester.getRole().getCode()) && !requester.getId().equals(row.ownerUserId())) {
+        if ("DOCTOR".equals(requester.getRole().getCode())
+                && !requester.getId().equals(row.ownerUserId())
+                && !requester.getId().equals(row.assignedDoctorUserId())) {
             throw new UnauthorizedAccessException("You can only index reports from your own examinations");
         }
         return index(row);
@@ -75,7 +78,9 @@ public class ReportKnowledgeSyncService {
     public void syncNewReports() {
         String sql = "SELECT r.id FROM report r JOIN examinations e ON e.id = r.examination_id "
                 + "LEFT JOIN knowledge_documents k ON k.source_key = CONCAT('report:', r.id) "
-                + "WHERE k.id IS NULL AND (e.doctor_id IS NOT NULL OR r.operating_doctor_id IS NOT NULL) "
+                + "WHERE (e.doctor_id IS NOT NULL OR r.operating_doctor_id IS NOT NULL) "
+                + "AND (k.id IS NULL OR k.status <> 'INDEXED' "
+                + "OR COALESCE(k.checksum, '') <> 'report-metadata-v2') "
                 + "ORDER BY r.id LIMIT 100";
         for (Long reportId : jdbcTemplate.queryForList(sql, Map.of(), Long.class)) {
             try {
@@ -94,6 +99,7 @@ public class ReportKnowledgeSyncService {
         knowledge.setSourceType(KnowledgeSourceType.REPORT);
         knowledge.setAccessScope(KnowledgeAccessScope.OWNER);
         knowledge.setStatus(KnowledgeDocumentStatus.PROCESSING);
+        knowledge.setChecksum("report-metadata-v2");
         knowledge.setUploadedBy(userRepository.findById(row.ownerUserId()).orElse(null));
         knowledge = repository.save(knowledge);
 
@@ -103,15 +109,18 @@ public class ReportKnowledgeSyncService {
                 + ". Final diagnosis: " + nullable(row.finalDiagnosis())
                 + ". Confirmed KL grades: " + nullable(row.confirmedGrades())
                 + ". Clinical summary: " + nullable(row.clinicalSummary()) + ".";
-        Map<String, Object> metadata = Map.of(
-                "sourceKey", sourceKey,
-                "knowledgeDocumentId", knowledge.getId(),
-                "title", knowledge.getTitle(),
-                "sourceType", KnowledgeSourceType.REPORT.name(),
-                "reference", "report:" + row.reportId(),
-                "accessScope", KnowledgeAccessScope.OWNER.name(),
-                "ownerUserId", row.ownerUserId(),
-                "publicationStatus", "PUBLISHED");
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("sourceKey", sourceKey);
+        metadata.put("knowledgeDocumentId", knowledge.getId());
+        metadata.put("title", knowledge.getTitle());
+        metadata.put("sourceType", KnowledgeSourceType.REPORT.name());
+        metadata.put("reference", "report:" + row.reportId());
+        metadata.put("accessScope", KnowledgeAccessScope.OWNER.name());
+        metadata.put("ownerUserId", row.ownerUserId());
+        if (row.assignedDoctorUserId() != null) {
+            metadata.put("assignedDoctorUserId", row.assignedDoctorUserId());
+        }
+        metadata.put("publicationStatus", "PUBLISHED");
         List<Document> chunks = splitter.apply(List.of(new Document(text, metadata)));
         try {
             vectorStore.delete(new FilterExpressionBuilder().eq("sourceKey", sourceKey).build());
@@ -133,7 +142,8 @@ public class ReportKnowledgeSyncService {
 
     private ReportKnowledge loadReport(Long reportId) {
         String sql = "SELECT r.id AS report_id, e.id AS examination_id, "
-                + "COALESCE(r.operating_doctor_id, e.doctor_id) AS owner_user_id, e.study_date, "
+                + "COALESCE(r.operating_doctor_id, e.doctor_id) AS owner_user_id, "
+                + "e.doctor_id AS assigned_doctor_user_id, e.study_date, "
                 + "e.final_diagnosis, r.clinical_summary, "
                 + "GROUP_CONCAT(dr.confirmed_kl_grade ORDER BY dr.id SEPARATOR ',') AS confirmed_grades "
                 + "FROM report r JOIN examinations e ON e.id = r.examination_id "
@@ -143,7 +153,9 @@ public class ReportKnowledgeSyncService {
         List<ReportKnowledge> rows = jdbcTemplate.query(sql, new MapSqlParameterSource("reportId", reportId),
                 (resultSet, rowNum) -> new ReportKnowledge(
                         resultSet.getLong("report_id"), resultSet.getLong("examination_id"),
-                        resultSet.getLong("owner_user_id"), resultSet.getObject("study_date"),
+                        resultSet.getLong("owner_user_id"),
+                        resultSet.getObject("assigned_doctor_user_id", Long.class),
+                        resultSet.getObject("study_date"),
                         resultSet.getString("final_diagnosis"), resultSet.getString("confirmed_grades"),
                         resultSet.getString("clinical_summary")));
         if (rows.isEmpty() || rows.getFirst().ownerUserId() == 0) {
@@ -164,7 +176,7 @@ public class ReportKnowledgeSyncService {
     }
 
     private record ReportKnowledge(
-            Long reportId, Long examinationId, Long ownerUserId, Object studyDate,
+            Long reportId, Long examinationId, Long ownerUserId, Long assignedDoctorUserId, Object studyDate,
             String finalDiagnosis, String confirmedGrades, String clinicalSummary) {
     }
 }

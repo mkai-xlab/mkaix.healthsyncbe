@@ -87,6 +87,7 @@ public class PdfExportService {
                     .filter(this::reportFileExists)
                     .orElse(null);
             if (existingReport != null) {
+                eventPublisher.publishEvent(new ReportKnowledgeSyncRequestedEvent(existingReport.getId()));
                 return toResponse(existingReport);
             }
         }
