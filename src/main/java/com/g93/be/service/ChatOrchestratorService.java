@@ -87,7 +87,8 @@ public class ChatOrchestratorService {
             String history) {
         BusinessQueryResult business = businessDataQueryService.execute(decision, username);
         MedicalRetrievalResult medical = medicalRagService.retrieve(
-                contextualRetrievalQuery(question, history), roleCode, userId);
+                contextualRetrievalQuery(question + "\nHEALTHSYNC DATA:\n" + business.context(), history),
+                roleCode, userId);
         if (medical.isEmpty()) {
             return new AnswerResult(
                     aiGateway.answerBusiness(question, business.context(), history),

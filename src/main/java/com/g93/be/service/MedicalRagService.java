@@ -73,11 +73,13 @@ public class MedicalRagService {
             // do not carry a department identifier in the vector metadata yet, so
             // do not broaden this scope to every owner's private report.
             return published + "(accessScope == 'ALL' || accessScope == 'DOCTOR' "
-                    + "|| (accessScope == 'OWNER' && ownerUserId == " + userId + "))";
+                    + "|| (accessScope == 'OWNER' && (ownerUserId == " + userId
+                    + " || assignedDoctorUserId == " + userId + ")))";
         }
         if ("DOCTOR".equals(roleCode)) {
             return published + "(accessScope == 'ALL' || accessScope == 'DOCTOR' "
-                    + "|| (accessScope == 'OWNER' && ownerUserId == " + userId + "))";
+                    + "|| (accessScope == 'OWNER' && (ownerUserId == " + userId
+                    + " || assignedDoctorUserId == " + userId + ")))";
         }
         throw new AccessDeniedException("Role is not allowed to search medical knowledge");
     }

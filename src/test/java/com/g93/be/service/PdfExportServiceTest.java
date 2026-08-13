@@ -1,5 +1,6 @@
 package com.g93.be.service;
 
+import com.g93.be.chat.ReportKnowledgeSyncRequestedEvent;
 import com.g93.be.entity.Examination;
 import com.g93.be.entity.ExaminationStatus;
 import com.g93.be.entity.AiAnalysis;
@@ -299,6 +300,7 @@ class PdfExportServiceTest {
         assertEquals("existing.pdf", response.fileName());
         verify(templateEngine, never()).process(anyString(), any(IContext.class));
         verify(reportRepository, never()).save(any());
+        verify(eventPublisher).publishEvent(new ReportKnowledgeSyncRequestedEvent(31L));
     }
 
     @Test

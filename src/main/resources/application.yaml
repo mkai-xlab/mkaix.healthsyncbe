@@ -99,8 +99,10 @@ app:
     knowledge-dir: ${CHAT_KNOWLEDGE_DIR:${app.storage.base-dir}/knowledge}
     max-document-bytes: ${CHAT_MAX_DOCUMENT_BYTES:52428800}
     max-url-bytes: ${CHAT_MAX_URL_BYTES:5242880}
-    retrieval-top-k: ${CHAT_RETRIEVAL_TOP_K:5}
+    retrieval-top-k: ${CHAT_RETRIEVAL_TOP_K:12}
     similarity-threshold: ${CHAT_SIMILARITY_THRESHOLD:0.4}
+    medical-validation-sample-chars: ${CHAT_MEDICAL_VALIDATION_SAMPLE_CHARS:6000}
+    medical-validation-min-confidence: ${CHAT_MEDICAL_VALIDATION_MIN_CONFIDENCE:0.7}
     report-sync-delay-ms: ${CHAT_REPORT_SYNC_DELAY_MS:300000}
 
 logging:

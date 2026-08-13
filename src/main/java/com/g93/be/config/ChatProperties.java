@@ -10,5 +10,7 @@ public record ChatProperties(
         long maxUrlBytes,
         int retrievalTopK,
         double similarityThreshold,
+        int medicalValidationSampleChars,
+        double medicalValidationMinConfidence,
         long reportSyncDelayMs) {
 }

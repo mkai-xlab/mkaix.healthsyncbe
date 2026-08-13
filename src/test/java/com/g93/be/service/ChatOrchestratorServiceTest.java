@@ -121,6 +121,33 @@ class ChatOrchestratorServiceTest {
                 org.mockito.ArgumentMatchers.anyString());
     }
 
+    @Test
+    void hybridReportQuestionUsesReportDataToRetrieveMedicalEvidence() {
+        User doctor = user(7L, "DOCTOR");
+        ChatRoutingDecision decision = new ChatRoutingDecision(
+                ChatRoute.HYBRID, BusinessQueryIntent.REPORT_SUMMARY, 31L, null, null, null);
+        BusinessQueryResult business = new BusinessQueryResult(
+                "{id=31, examination_id=21, final_diagnosis=Knee osteoarthritis}", List.of());
+        MedicalRetrievalResult medical = new MedicalRetrievalResult("Clinical guideline", List.of(
+                new ChatSourceResponse("guideline", "OA guideline", "FILE",
+                        "knowledge-document:1", 0.91)));
+        prepareConversation(doctor, "");
+        when(aiGateway.route("Interpret report 31", "DOCTOR", "")).thenReturn(decision);
+        when(businessDataQueryService.execute(decision, "doctor")).thenReturn(business);
+        when(medicalRagService.retrieve(
+                "Interpret report 31\nHEALTHSYNC DATA:\n" + business.context(), "DOCTOR", 7L))
+                .thenReturn(medical);
+        when(aiGateway.answerHybrid(
+                "Interpret report 31", business.context(), medical.context(), ""))
+                .thenReturn(new GeneratedChatAnswer("Interpretation", 21));
+
+        ChatAnswerResponse response = service.ask(null, "Interpret report 31", "doctor");
+
+        assertEquals("HYBRID", response.route());
+        verify(medicalRagService).retrieve(
+                "Interpret report 31\nHEALTHSYNC DATA:\n" + business.context(), "DOCTOR", 7L);
+    }
+
     private User user(Long id, String roleCode) {
         Role role = new Role();
         role.setCode(roleCode);

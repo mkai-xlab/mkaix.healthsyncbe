@@ -13,8 +13,6 @@ import com.g93.be.exception.ResourceNotFoundException;
 import com.g93.be.repository.KnowledgeDocumentRepository;
 import com.g93.be.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.ai.vectorstore.VectorStore;
-import org.springframework.ai.vectorstore.filter.FilterExpressionBuilder;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
@@ -45,9 +43,11 @@ public class KnowledgeIngestionService {
 
     private final KnowledgeDocumentRepository repository;
     private final UserRepository userRepository;
-    private final VectorStore vectorStore;
     private final RestClient knowledgeRestClient;
     private final ChatProperties properties;
+    private final MedicalDocumentValidator medicalDocumentValidator;
+    private final KnowledgeDocumentOperationCoordinator operationCoordinator;
+    private final KnowledgeDocumentDeletionService deletionService;
     private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
@@ -59,6 +59,7 @@ public class KnowledgeIngestionService {
         if (repository.existsBySourceKey("file:" + checksum)) {
             throw new IllegalArgumentException("This document has already been uploaded");
         }
+        medicalDocumentValidator.validate(bytes, file.getOriginalFilename(), file.getContentType());
         User user = findUser(username);
         Path storagePath = storeFile(bytes, file.getOriginalFilename());
 
@@ -85,6 +86,7 @@ public class KnowledgeIngestionService {
             throw new IllegalArgumentException("This URL has already been added");
         }
         byte[] bytes = download(uri);
+        medicalDocumentValidator.validate(bytes, "source.html", "text/html");
         Path storagePath = storeFile(bytes, "source.html");
 
         KnowledgeDocument document = new KnowledgeDocument();
@@ -118,18 +120,11 @@ public class KnowledgeIngestionService {
         return toResponse(document);
     }
 
-    @Transactional
     public void delete(Long id) {
-        KnowledgeDocument document = findDocument(id);
-        vectorStore.delete(sourceFilter(document.getSourceKey()));
-        repository.delete(document);
-        if (document.getStoragePath() != null) {
-            try {
-                Files.deleteIfExists(Path.of(document.getStoragePath()));
-            } catch (IOException exception) {
-                throw new IllegalStateException("Could not delete stored knowledge document", exception);
-            }
-        }
+        operationCoordinator.executeExclusively(id, () -> {
+            deletionService.delete(id);
+            return null;
+        });
     }
 
     private void requestIndex(Long documentId) {
@@ -258,9 +253,4 @@ public class KnowledgeIngestionService {
             throw new IllegalStateException("SHA-256 is not available", exception);
         }
     }
-
-    private org.springframework.ai.vectorstore.filter.Filter.Expression sourceFilter(String sourceKey) {
-        return new FilterExpressionBuilder().eq("sourceKey", sourceKey).build();
-    }
-
 }
