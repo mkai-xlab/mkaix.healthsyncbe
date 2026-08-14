@@ -48,7 +48,8 @@ public class UserController {
     }
 
     /**
-     * Changes a non-admin user's role. Admin accounts cannot be changed through this endpoint.
+     * Changes a non-admin user's role. Admin accounts cannot be changed through
+     * this endpoint.
      *
      * @param userId    The user whose role is being changed.
      * @param request   The target role payload.
@@ -83,7 +84,8 @@ public class UserController {
             @org.springframework.web.bind.annotation.RequestParam(defaultValue = "0") int page,
             @org.springframework.web.bind.annotation.RequestParam(defaultValue = "10") int size) {
         log.info("Received request to search medical staff");
-        org.springframework.data.domain.Page<UserResponse> staffPage = userService.searchStaff(keyword, status, page, size);
+        org.springframework.data.domain.Page<UserResponse> staffPage = userService.searchStaff(keyword, status, page,
+                size);
         return ResponseEntity.ok(staffPage);
     }
 
