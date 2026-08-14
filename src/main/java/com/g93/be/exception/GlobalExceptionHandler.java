@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.authentication.DisabledException;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -165,6 +166,16 @@ public class GlobalExceptionHandler {
                 "Tên đăng nhập hoặc mật khẩu không chính xác.",
                 LocalDateTime.now());
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+    }
+
+    @ExceptionHandler(DisabledException.class)
+    public ResponseEntity<ErrorResponse> handleDisabledException(DisabledException ex) {
+        ErrorResponse error = new ErrorResponse(
+                HttpStatus.FORBIDDEN.value(),
+                "ACCOUNT_DEACTIVATED",
+                "Tài khoản của bạn đã bị vô hiệu hóa.",
+                LocalDateTime.now());
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
     }
 
     @ExceptionHandler(LoginLockedException.class)

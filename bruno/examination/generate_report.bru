@@ -10,7 +10,7 @@ post {
   auth: bearer
 }
 
-query {
+params:query {
   isPersonal: true
 }
 
@@ -19,7 +19,7 @@ auth:bearer {
 }
 
 vars:pre-request {
-  examinationId: 1
+  examinationId: 4
 }
 
 tests {
@@ -30,3 +30,4 @@ tests {
     expect(res.body.downloadUrl).to.equal(`/api/v1/reports/${res.body.examinationId}/download`);
   });
 }
+​

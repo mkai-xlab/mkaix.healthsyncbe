@@ -6,6 +6,65 @@ All paths below are relative to the configured `/api/v1` context path.
 
 ## Recent API Updates
 
+### Today's examination selection and report-aware RAG
+
+`POST /chat/ask` now recognizes requests such as `Cho toi xem cac ca kham hom nay`
+as `TODAY_EXAMINATION_LIST`. The backend returns an AI-formatted numbered list from
+a controlled read-only query of at most 10 rows, newest visit first. Each row supplies
+the examination ID, encounter code, patient code and name, visit time, status, and
+priority so the user can select an examination in a follow-up message.
+
+```json
+{
+  "question": "Cho toi xem cac ca kham hom nay"
+}
+```
+
+Doctors receive only examinations assigned to them. Department heads can receive
+the clinical list; administrators are rejected because the rows contain patient data.
+No new endpoint or request field is required. A visual selection control is outside
+the backend contract; the current `answer` contains the numbered options.
+
+Stored report summaries use the controlled MySQL `BUSINESS_DATA` path. When a user
+asks to medically interpret a report, the router uses `HYBRID`, passes the stored
+report fields into retrieval, and combines them with approved Qdrant evidence.
+Report indexing now retries unfinished records, resynchronizes when an existing PDF
+is requested again, and permits both the report creator and assigned doctor to find
+the owner-scoped report vector.
+
+### Medical knowledge validation and deletion
+
+`POST /knowledge-documents/upload`, `POST /knowledge-documents/upload/batch`, and
+`POST /knowledge-documents/url` validate source content before storing or indexing it.
+The backend reads the document and classifies large samples from its beginning, middle,
+and end. Only clearly medical or healthcare content at the configured confidence
+threshold is accepted. A rejected single upload returns `400 Bad Request`:
+
+```json
+{
+  "status": 400,
+  "error": "Bad Request",
+  "message": "Document rejected: Software documentation",
+  "timestamp": "2026-08-13T10:30:00"
+}
+```
+
+Batch requests still return `202 Accepted`; each non-medical file has
+`accepted: false` and its rejection reason in `error`. Accepted sources return status
+`PENDING` and are indexed asynchronously. Medical retrieval now requests up to 12
+matching chunks by default.
+
+#### `DELETE /knowledge-documents/{id}`
+
+Deletes the knowledge metadata, locally stored source, and all matching Qdrant chunks.
+The endpoint requires a supported management role and the
+`MANAGE_MEDICAL_KNOWLEDGE` authority. It is safe when indexing is still in flight.
+
+Response: no body.
+
+Status codes: `204 No Content`, `401 Unauthorized`, `403 Forbidden`, and
+`404 Not Found` when the document does not exist.
+
 ### KL result confirmation and adjustment
 
 The reviewing doctor must choose exactly one final-result action. A doctor assigned to the examination can confirm the AI prediction, or adjust it to a clinically determined Kellgren-Lawrence grade. A department head inherits both actions and can review examinations outside their own assignment.
@@ -211,6 +270,86 @@ Endpoint to reset the password using the 6-digit OTP sent to the user's email.
 ```text
 Password reset successfully
 ```
+
+## `GET /users/staff/search`
+
+Retrieves a paginated list of medical staff (Doctors and Head of Departments). Supports search and status filtering.
+
+### Query Parameters
+
+- `keyword` (Optional): Search term for username, email, or full name.
+- `status` (Optional): Filter by status (`ACTIVE` or `INACTIVE`).
+- `page` (Optional): Page index (0-based, default: `0`).
+- `size` (Optional): Items per page (default: `10`).
+
+### Request
+
+```http
+GET /users/staff/search?keyword=doctor&status=ACTIVE&page=0&size=10
+```
+
+### Response
+
+```json
+{
+  "content": [
+    {
+      "id": 2,
+      "username": "doctor.smith",
+      "fullName": "John Smith",
+      "email": "doctor@example.com",
+      "phone": "0987654321",
+      "role": { "id": 2, "code": "DOCTOR", "name": "Doctor" },
+      "status": "ACTIVE",
+      "userType": "DOCTOR",
+      "avatarUrl": "/images/avatar/123.jpg",
+      "createdAt": "2026-06-01T10:00:00"
+    }
+  ],
+  "pageNumber": 0,
+  "pageSize": 10,
+  "totalElements": 1,
+  "totalPages": 1,
+  "isLast": true
+}
+```
+
+### Status Codes
+
+- `200 OK`: Request successful
+- `401 Unauthorized`: Authentication is required
+- `403 Forbidden`: Authenticated user is not allowed (requires ADMIN, VIEW_USER_LIST, or HEAD_OF_DEPARTMENT)
+
+## `PATCH /users/{userId}/status/toggle`
+
+Toggles the active/inactive status of a user. If deactivating, an `inactiveReason` is required and an email is sent to the user. Reactivating clears the reason and sends a welcome back email. Target cannot be an ADMIN.
+
+### Request
+
+```json
+{
+  "inactiveReason": "Violation of policies"
+}
+```
+
+### Response
+
+```json
+{
+  "id": 2,
+  "username": "doctor.smith",
+  "status": "INACTIVE",
+  "avatarUrl": "/images/avatar/123.jpg"
+}
+```
+
+### Status Codes
+
+- `200 OK`: Status toggled successfully
+- `400 Bad Request`: Missing inactive reason when deactivating, or attempting to toggle an ADMIN user
+- `401 Unauthorized`: Authentication is required
+- `403 Forbidden`: Authenticated user is not allowed (requires ADMIN or UPDATE_USER)
+- `404 Not Found`: User not found
 
 ### `GET /doctors`
 

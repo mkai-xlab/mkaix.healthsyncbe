@@ -8,6 +8,7 @@ import com.g93.be.dto.LoginResponse;
 import com.g93.be.dto.ResetPasswordRequest;
 import com.g93.be.entity.PasswordResetToken;
 import com.g93.be.entity.User;
+import com.g93.be.entity.UserStatus;
 import com.g93.be.exception.FirstTimeLoginException;
 import com.g93.be.exception.LoginLockedException;
 import com.g93.be.repository.PasswordResetTokenRepository;
@@ -19,6 +20,7 @@ import com.g93.be.service.LoginAttemptService;
 import com.g93.be.service.TokenBlacklistService;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -72,6 +74,7 @@ public class AuthServiceImpl implements AuthService {
      */
     @Override
     public LoginResponse login(LoginRequest request) {
+        ensureAccountIsActive(request.username());
         loginAttemptService.ensureLoginAllowed(request.username());
 
         Authentication authentication;
@@ -113,6 +116,14 @@ public class AuthServiceImpl implements AuthService {
                 userDetails.getUser().getFullName(),
                 userDetails.getPermissions()
         );
+    }
+
+    private void ensureAccountIsActive(String identifier) {
+        userRepository.findByUsernameOrEmail(identifier, identifier)
+                .filter(user -> user.getStatus() == UserStatus.INACTIVE)
+                .ifPresent(user -> {
+                    throw new DisabledException("Account is deactivated");
+                });
     }
 
     @Override

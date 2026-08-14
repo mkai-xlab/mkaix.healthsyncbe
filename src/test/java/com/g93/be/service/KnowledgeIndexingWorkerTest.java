@@ -26,9 +26,9 @@ class KnowledgeIndexingWorkerTest {
         knowledge.setOriginalName(file.getFileName().toString());
         knowledge.setContentType("text/plain");
 
-        KnowledgeIndexingWorker worker = new KnowledgeIndexingWorker(null, null, null);
+        KnowledgeDocumentReader reader = new KnowledgeDocumentReader();
 
-        assertThat(worker.readDocuments(knowledge))
+        assertThat(reader.read(knowledge))
                 .singleElement()
                 .satisfies(document -> assertThat(document.getText()).isEqualTo(content));
     }

@@ -135,6 +135,12 @@ final class ApiDocumentationRegistry {
                 add("UserController", "countHeads", "Người dùng", "Đếm số lượng trưởng khoa",
                                 "Trả về tổng số tài khoản trưởng khoa (và phó khoa) trên hệ thống. Chỉ Admin mới có quyền truy cập.",
                                 "200", "Tổng số trưởng khoa", "LONG", null, ResponseKind.JSON);
+                add("UserController", "searchStaff", "Người dùng", "Tìm kiếm nhân sự y tế",
+                                "Tìm kiếm và lọc danh sách nhân sự y tế theo từ khóa và trạng thái.",
+                                "200", "Trang kết quả nhân sự y tế", "USER_PAGE", null, ResponseKind.JSON);
+                add("UserController", "toggleUserStatus", "Người dùng", "Bật/Tắt trạng thái hoạt động",
+                                "Thay đổi trạng thái tài khoản người dùng thành ACTIVE hoặc DEACTIVE.",
+                                "200", "Trạng thái người dùng sau cập nhật", "USER", "TOGGLE_STATUS_REQUEST", ResponseKind.JSON);
         }
 
         private void registerPatients() {
@@ -352,13 +358,13 @@ final class ApiDocumentationRegistry {
 
         private void registerRag() {
                 addMultipart("KnowledgeController", "upload", "Medical knowledge", "Upload medical knowledge",
-                                "Upload one medical knowledge file for asynchronous indexing.", "202",
+                                "Validate one file as medical content, then accept it for asynchronous indexing.", "202",
                                 "Knowledge document accepted for indexing", "KNOWLEDGE_DOCUMENT", ResponseKind.JSON);
                 addMultipart("KnowledgeController", "uploadBatch", "Medical knowledge", "Upload medical knowledge batch",
-                                "Upload multiple medical knowledge files for asynchronous indexing.", "202",
+                                "Validate and asynchronously index up to 10 files with per-file rejection results.", "202",
                                 "Knowledge document batch accepted for indexing", "KNOWLEDGE_BATCH", ResponseKind.JSON);
                 add("KnowledgeController", "addUrl", "Medical knowledge", "Add knowledge URL",
-                                "Register a knowledge source URL for asynchronous indexing.", "202",
+                                "Validate a public URL as medical content, then accept it for asynchronous indexing.", "202",
                                 "Knowledge URL accepted for indexing", "KNOWLEDGE_DOCUMENT", null, ResponseKind.JSON);
                 add("KnowledgeController", "getAll", "Medical knowledge", "List knowledge documents",
                                 "List uploaded and registered knowledge documents with their indexing status.", "200",

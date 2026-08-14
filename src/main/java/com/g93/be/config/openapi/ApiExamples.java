@@ -256,7 +256,13 @@ final class ApiExamples {
                     """)),
             Map.entry("STRING_SUCCESS", "Thao tác thành công"),
             Map.entry("LONG", 18),
-            Map.entry("S3_URL", "https://storage.example.com/test/550e8400-e29b-41d4-a716-446655440000-knee.png")
+            Map.entry("S3_URL", "https://storage.example.com/test/550e8400-e29b-41d4-a716-446655440000-knee.png"),
+            Map.entry("USER_PAGE", json("""
+                    {"content":[{"id":4,"username":"doctor@healthsync.com","email":"doctor@healthsync.com","fullName":"Dr. Smith","avatarUrl":"/api/v1/files/avatar/4","isActive":true,"role":{"id":2,"code":"DOCTOR","name":"Bác sĩ"}}],"pageNumber":0,"pageSize":10,"totalElements":1,"totalPages":1,"isLast":true}
+                    """)),
+            Map.entry("TOGGLE_STATUS_REQUEST", json("""
+                    {"status":"ACTIVE"}
+                    """))
     );
 
     private ApiExamples() {

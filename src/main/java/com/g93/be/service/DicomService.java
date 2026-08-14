@@ -3,8 +3,11 @@ package com.g93.be.service;
 import com.g93.be.dto.DicomTagResponse;
 import org.springframework.web.multipart.MultipartFile;
 import com.g93.be.dto.BatchDicomUploadResponse;
+import org.springframework.core.io.Resource;
 
 import java.util.List;
+import java.nio.file.Path;
+import java.util.Map;
 
 /**
  * Service interface for handling DICOM files.
@@ -31,11 +34,11 @@ public interface DicomService {
 
     BatchDicomUploadResponse uploadBatchFiles(List<MultipartFile> files, String username);
 
-    BatchDicomUploadResponse uploadZipBatchFiles(java.util.List<MultipartFile> files, String username);
+    BatchDicomUploadResponse uploadZipBatchFiles(List<MultipartFile> files, String username);
 
-    org.springframework.core.io.Resource getInstanceImageResource(Long id);
+    Resource getInstanceImageResource(Long id);
 
-    org.springframework.core.io.Resource getInstanceRawResource(Long id);
+    Resource getInstanceRawResource(Long id);
 
     /**
      * Processes a single zip file containing a batch of patient DICOM zip files
@@ -44,7 +47,8 @@ public interface DicomService {
      * @param zipFilePath Path to the uploaded zip file.
      * @param userId      The ID of the uploading user for notifications.
      */
-    BatchDicomUploadResponse processMultipleZipBatches(java.util.List<java.nio.file.Path> zipFilePaths, Long userId, String uploadSessionId);
+    BatchDicomUploadResponse processMultipleZipBatches(List<Path> zipFilePaths, Long userId,
+            String uploadSessionId);
 
     /**
      * Processes a batch of DICOM files mapped by their original filenames to their
@@ -53,7 +57,7 @@ public interface DicomService {
      * @param filePaths Map of original filenames to temp file paths.
      * @return Batch upload response.
      */
-    BatchDicomUploadResponse processBatchPaths(java.util.Map<String, java.nio.file.Path> filePaths, Long userId,
+    BatchDicomUploadResponse processBatchPaths(Map<String, Path> filePaths, Long userId,
             String uploadSessionId);
 
     /**

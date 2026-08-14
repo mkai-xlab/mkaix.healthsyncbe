@@ -2,7 +2,6 @@ package com.g93.be.service;
 
 import com.g93.be.entity.KnowledgeDocument;
 import com.g93.be.entity.KnowledgeDocumentStatus;
-import com.g93.be.exception.ResourceNotFoundException;
 import com.g93.be.repository.KnowledgeDocumentRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -21,32 +20,37 @@ public class KnowledgeIndexStateService {
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public KnowledgeDocument markProcessing(Long documentId) {
-        KnowledgeDocument document = findDocument(documentId);
+        KnowledgeDocument document = repository.findById(documentId).orElse(null);
+        if (document == null) {
+            return null;
+        }
         document.setStatus(KnowledgeDocumentStatus.PROCESSING);
         document.setErrorMessage(null);
         return repository.save(document);
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void markIndexed(Long documentId, int chunkCount) {
-        KnowledgeDocument document = findDocument(documentId);
+    public boolean markIndexed(Long documentId, int chunkCount) {
+        KnowledgeDocument document = repository.findById(documentId).orElse(null);
+        if (document == null) {
+            return false;
+        }
         document.setChunkCount(chunkCount);
         document.setStatus(KnowledgeDocumentStatus.INDEXED);
         document.setIndexedAt(LocalDateTime.now());
         document.setErrorMessage(null);
         repository.save(document);
+        return true;
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void markFailed(Long documentId, String errorMessage) {
-        KnowledgeDocument document = findDocument(documentId);
+    public void markFailedIfPresent(Long documentId, String errorMessage) {
+        KnowledgeDocument document = repository.findById(documentId).orElse(null);
+        if (document == null) {
+            return;
+        }
         document.setStatus(KnowledgeDocumentStatus.FAILED);
         document.setErrorMessage(errorMessage);
         repository.save(document);
-    }
-
-    private KnowledgeDocument findDocument(Long documentId) {
-        return repository.findById(documentId)
-                .orElseThrow(() -> new ResourceNotFoundException("Knowledge document not found"));
     }
 }

@@ -67,17 +67,36 @@ public class UserController {
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * Retrieves the list of medical staff (Doctors, Head of Departments).
-     *
-     * @return List of UserResponse.
-     */
     @GetMapping("/staff")
     @PreAuthorize("hasAnyRole('HEAD_OF_DEPARTMENT', 'ADMIN')")
     public ResponseEntity<List<UserResponse>> getStaffList() {
         log.info("Received request to fetch medical staff list");
         List<UserResponse> staffList = userService.getStaffList();
         return ResponseEntity.ok(staffList);
+    }
+
+    @GetMapping("/staff/search")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('VIEW_USER_LIST') or hasRole('HEAD_OF_DEPARTMENT')")
+    public ResponseEntity<org.springframework.data.domain.Page<UserResponse>> searchStaff(
+            @org.springframework.web.bind.annotation.RequestParam(required = false) String keyword,
+            @org.springframework.web.bind.annotation.RequestParam(required = false) com.g93.be.entity.UserStatus status,
+            @org.springframework.web.bind.annotation.RequestParam(defaultValue = "0") int page,
+            @org.springframework.web.bind.annotation.RequestParam(defaultValue = "10") int size) {
+        log.info("Received request to search medical staff");
+        org.springframework.data.domain.Page<UserResponse> staffPage = userService.searchStaff(keyword, status, page, size);
+        return ResponseEntity.ok(staffPage);
+    }
+
+    @org.springframework.web.bind.annotation.PatchMapping("/{userId}/status/toggle")
+    @PreAuthorize("hasRole('ADMIN') or hasAuthority('UPDATE_USER')")
+    public ResponseEntity<UserResponse> toggleUserStatus(
+            @PathVariable Long userId,
+            @RequestBody(required = false) com.g93.be.dto.ToggleStatusRequest request,
+            Principal principal) {
+        log.info("Received request to toggle status for user ID: {}", userId);
+        UserResponse response = userService.toggleUserStatus(userId, request,
+                principal == null ? null : principal.getName());
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/count/doctors")

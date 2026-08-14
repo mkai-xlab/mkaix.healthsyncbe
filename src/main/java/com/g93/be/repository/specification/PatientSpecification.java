@@ -1,6 +1,5 @@
 package com.g93.be.repository.specification;
 
-
 import com.g93.be.entity.Patient;
 import com.g93.be.dto.PatientFilterRequest;
 import com.g93.be.entity.Patient;
@@ -22,8 +21,7 @@ public class PatientSpecification {
                 String kw = "%" + request.getKeyword().trim().toLowerCase() + "%";
                 predicates.add(cb.or(
                         cb.like(cb.lower(root.get("fullName")), kw),
-                        cb.like(cb.lower(root.get("patientCode")), kw)
-                ));
+                        cb.like(cb.lower(root.get("patientCode")), kw)));
             }
             if (request.getDateOfBirth() != null) {
                 predicates.add(cb.equal(root.get("dob"), request.getDateOfBirth()));
@@ -32,10 +30,12 @@ public class PatientSpecification {
                 predicates.add(cb.equal(root.get("gender"), request.getGender()));
             }
             if (request.getPhone() != null && !request.getPhone().isBlank()) {
-                predicates.add(cb.like(cb.lower(root.get("phone")), "%" + request.getPhone().trim().toLowerCase() + "%"));
+                predicates
+                        .add(cb.like(cb.lower(root.get("phone")), "%" + request.getPhone().trim().toLowerCase() + "%"));
             }
             if (request.getEmail() != null && !request.getEmail().isBlank()) {
-                predicates.add(cb.like(cb.lower(root.get("email")), "%" + request.getEmail().trim().toLowerCase() + "%"));
+                predicates
+                        .add(cb.like(cb.lower(root.get("email")), "%" + request.getEmail().trim().toLowerCase() + "%"));
             }
 
             return cb.and(predicates.toArray(new Predicate[0]));

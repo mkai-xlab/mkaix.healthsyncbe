@@ -82,7 +82,7 @@ public class DicomController {
     @PostMapping(value = "/upload/zip-batch", consumes = "multipart/form-data")
     @PreAuthorize("hasAnyRole('DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT') or (hasRole('DOCTOR') and hasAuthority('UPLOAD_DICOM_IMAGE'))")
     public ResponseEntity<?> uploadZipBatch(
-            @RequestParam("file") java.util.List<MultipartFile> files,
+            @RequestParam("file") List<MultipartFile> files,
             Principal principal) {
         log.info("Received request to upload ZIP batch DICOM file");
         try {
@@ -102,8 +102,6 @@ public class DicomController {
             return ResponseEntity.badRequest().body(errResponse);
         }
     }
-
-
 
     @GetMapping("/total-studies")
     @PreAuthorize("hasAnyRole('ADMIN', 'DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT') or (hasRole('DOCTOR') and hasAuthority('VIEW_ANALYTIC_HISTORY'))")
@@ -173,4 +171,3 @@ public class DicomController {
         return ResponseEntity.notFound().build();
     }
 }
-

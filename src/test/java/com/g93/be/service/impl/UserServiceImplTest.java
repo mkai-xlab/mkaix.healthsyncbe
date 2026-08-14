@@ -4,9 +4,11 @@ import com.g93.be.common.util.MailUtil;
 import com.g93.be.dto.CreateUserRequest;
 import com.g93.be.dto.UpdateUserRoleRequest;
 import com.g93.be.dto.UserResponse;
+import com.g93.be.entity.Doctor;
 import com.g93.be.entity.Role;
 import com.g93.be.entity.User;
 import com.g93.be.entity.UserStatus;
+import com.g93.be.repository.DoctorRepository;
 import com.g93.be.repository.RoleRepository;
 import com.g93.be.repository.UserRepository;
 import jakarta.validation.ConstraintViolation;
@@ -19,6 +21,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -43,6 +46,10 @@ public class UserServiceImplTest {
     private PasswordEncoder passwordEncoder;
     @Mock
     private MailUtil mailUtil;
+    @Mock
+    private DoctorRepository doctorRepository;
+    @Spy
+    private com.g93.be.mapper.UserMapper userMapper = new com.g93.be.mapper.UserMapper();
 
     @InjectMocks
     private UserServiceImpl userService;
@@ -71,7 +78,7 @@ public class UserServiceImplTest {
         role.setId(2L);
         role.setCode("DOCTOR");
 
-        User savedUser = new User();
+        Doctor savedUser = new Doctor();
         savedUser.setId(10L);
         savedUser.setUsername("doc");
         savedUser.setFullName("New Doctor");
@@ -83,15 +90,16 @@ public class UserServiceImplTest {
         when(userRepository.findByPhone("0901234567")).thenReturn(Optional.empty());
         when(roleRepository.findById(2L)).thenReturn(Optional.of(role));
         when(passwordEncoder.encode(anyString())).thenReturn("encodedPassword");
-        when(userRepository.save(any(User.class))).thenReturn(savedUser);
+        // DOCTOR role → doctorRepository.save() is called (JPA JOINED inheritance)
+        when(doctorRepository.save(any(Doctor.class))).thenReturn((Doctor) savedUser);
 
         UserResponse res = userService.createUser(req);
 
         assertNotNull(res);
         assertEquals("doc", res.getUsername());
-        ArgumentCaptor<User> savedUserCaptor = ArgumentCaptor.forClass(User.class);
-        verify(userRepository).save(savedUserCaptor.capture());
-        assertEquals("DOCTOR", savedUserCaptor.getValue().getUserType());
+        ArgumentCaptor<Doctor> savedDoctorCaptor = ArgumentCaptor.forClass(Doctor.class);
+        verify(doctorRepository).save(savedDoctorCaptor.capture());
+        assertEquals("DOCTOR", savedDoctorCaptor.getValue().getUserType());
         verify(mailUtil).sendTemplateMail(anyString(), anyString(), anyString(), any());
     }
 
@@ -118,12 +126,20 @@ public class UserServiceImplTest {
         when(userRepository.findByPhone("0902223334")).thenReturn(Optional.empty());
         when(roleRepository.findById(3L)).thenReturn(Optional.of(role));
         when(passwordEncoder.encode(anyString())).thenReturn("encoded");
-        when(userRepository.save(any(User.class))).thenReturn(savedUser);
+        // HEAD_OF_DEPARTMENT role → doctorRepository.save() is called (JPA JOINED inheritance)
+        Doctor savedDoctor = new Doctor();
+        savedDoctor.setId(11L);
+        savedDoctor.setUsername("head");
+        savedDoctor.setFullName("Head Doctor");
+        savedDoctor.setEmail("head@test.com");
+        savedDoctor.setRole(role);
+        savedDoctor.setStatus(UserStatus.ACTIVE);
+        when(doctorRepository.save(any(Doctor.class))).thenReturn(savedDoctor);
 
         UserResponse res = userService.createUser(req);
 
         assertNotNull(res);
-        verify(userRepository).save(any(User.class));
+        verify(doctorRepository).save(any(Doctor.class));
     }
 
     @Test
@@ -144,7 +160,7 @@ public class UserServiceImplTest {
         Role role = new Role();
         role.setCode("DOCTOR");
 
-        User savedUser = new User();
+        Doctor savedUser = new Doctor();
         savedUser.setId(13L);
         savedUser.setUsername("abc2"); // System auto adds 2
         savedUser.setFullName("New Doctor");
@@ -162,7 +178,8 @@ public class UserServiceImplTest {
         when(userRepository.findByUsername("abc2")).thenReturn(Optional.empty());
 
         when(passwordEncoder.encode(anyString())).thenReturn("encoded");
-        when(userRepository.save(any(User.class))).thenReturn(savedUser);
+        // DOCTOR role → doctorRepository.save() is called
+        when(doctorRepository.save(any(Doctor.class))).thenReturn((Doctor) savedUser);
 
         UserResponse res = userService.createUser(req);
         assertEquals("abc2", res.getUsername()); // Username tự sinh thêm hậu tố
@@ -255,7 +272,8 @@ public class UserServiceImplTest {
         when(roleRepository.findById(2L)).thenReturn(Optional.of(role));
         when(passwordEncoder.encode(anyString())).thenReturn("encoded");
         
-        when(userRepository.save(any(User.class))).thenThrow(new RuntimeException("DB Connection refused"));
+        // DOCTOR role → doctorRepository.save() is called
+        when(doctorRepository.save(any(Doctor.class))).thenThrow(new RuntimeException("DB Connection refused"));
 
         RuntimeException ex = assertThrows(RuntimeException.class, () -> userService.createUser(req));
         assertEquals("DB Connection refused", ex.getMessage());
@@ -510,5 +528,119 @@ public class UserServiceImplTest {
         role.setCode(code);
         role.setName(code);
         return role;
+    }
+
+    // ==========================================
+    // 5. searchStaff (1 Test Case)
+    // ==========================================
+
+    @Test
+    void testSearchStaff_Normal() {
+        org.springframework.data.domain.Page<User> mockPage = new org.springframework.data.domain.PageImpl<>(
+                java.util.List.of(userWithRole(2L, "DOCTOR"))
+        );
+        when(userRepository.searchStaff(
+                eq(java.util.List.of("HEAD_OF_DEPARTMENT", "DOCTOR")),
+                eq("doctor"),
+                eq(UserStatus.ACTIVE),
+                any(org.springframework.data.domain.Pageable.class)
+        )).thenReturn(mockPage);
+
+        org.springframework.data.domain.Page<UserResponse> result = userService.searchStaff("doctor", UserStatus.ACTIVE, 0, 10);
+        
+        assertNotNull(result);
+        assertEquals(1, result.getContent().size());
+        assertEquals("doctor", result.getContent().get(0).getUsername());
+    }
+
+    // ==========================================
+    // 6. toggleUserStatus (5 Test Cases)
+    // ==========================================
+
+    @Test
+    void testToggleUserStatus_Deactivate_Normal() {
+        User admin = userWithRole(1L, "ADMIN");
+        User target = userWithRole(2L, "DOCTOR");
+        target.setStatus(UserStatus.ACTIVE);
+
+        when(userRepository.findByUsername("admin")).thenReturn(Optional.of(admin));
+        when(userRepository.findById(2L)).thenReturn(Optional.of(target));
+        when(userRepository.save(any(User.class))).thenReturn(target);
+
+        com.g93.be.dto.ToggleStatusRequest req = new com.g93.be.dto.ToggleStatusRequest();
+        req.setInactiveReason("Vi phạm nội quy");
+
+        UserResponse res = userService.toggleUserStatus(2L, req, "admin");
+
+        assertEquals(UserStatus.INACTIVE.name(), res.getStatus());
+        assertEquals("Vi phạm nội quy", target.getInactiveReason());
+        verify(mailUtil).sendPlainTextMail(eq("doctor@test.com"), anyString(), anyString());
+    }
+
+    @Test
+    void testToggleUserStatus_Activate_Normal() {
+        User admin = userWithRole(1L, "ADMIN");
+        User target = userWithRole(2L, "DOCTOR");
+        target.setStatus(UserStatus.INACTIVE);
+        target.setInactiveReason("Cũ");
+
+        when(userRepository.findByUsername("admin")).thenReturn(Optional.of(admin));
+        when(userRepository.findById(2L)).thenReturn(Optional.of(target));
+        when(userRepository.save(any(User.class))).thenReturn(target);
+
+        com.g93.be.dto.ToggleStatusRequest req = new com.g93.be.dto.ToggleStatusRequest();
+
+        UserResponse res = userService.toggleUserStatus(2L, req, "admin");
+
+        assertEquals(UserStatus.ACTIVE.name(), res.getStatus());
+        assertNull(target.getInactiveReason());
+        verify(mailUtil).sendPlainTextMail(eq("doctor@test.com"), anyString(), anyString());
+    }
+
+    @Test
+    void testToggleUserStatus_Deactivate_MissingReason_ThrowsException() {
+        User admin = userWithRole(1L, "ADMIN");
+        User target = userWithRole(2L, "DOCTOR");
+        target.setStatus(UserStatus.ACTIVE);
+
+        when(userRepository.findByUsername("admin")).thenReturn(Optional.of(admin));
+        when(userRepository.findById(2L)).thenReturn(Optional.of(target));
+
+        com.g93.be.dto.ToggleStatusRequest req = new com.g93.be.dto.ToggleStatusRequest();
+        req.setInactiveReason(""); // Blank
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, 
+            () -> userService.toggleUserStatus(2L, req, "admin"));
+        
+        assertEquals("Inactive reason is required when deactivating a user", ex.getMessage());
+        verify(userRepository, never()).save(any(User.class));
+    }
+
+    @Test
+    void testToggleUserStatus_TargetIsAdmin_ThrowsException() {
+        User admin = userWithRole(1L, "ADMIN");
+        User target = userWithRole(2L, "ADMIN"); // Target is ADMIN
+
+        when(userRepository.findByUsername("admin")).thenReturn(Optional.of(admin));
+        when(userRepository.findById(2L)).thenReturn(Optional.of(target));
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, 
+            () -> userService.toggleUserStatus(2L, new com.g93.be.dto.ToggleStatusRequest(), "admin"));
+        
+        assertEquals("Cannot modify the status of an ADMIN user via this endpoint", ex.getMessage());
+        verify(userRepository, never()).save(any(User.class));
+    }
+
+    @Test
+    void testToggleUserStatus_UserNotFound_ThrowsException() {
+        User admin = userWithRole(1L, "ADMIN");
+
+        when(userRepository.findByUsername("admin")).thenReturn(Optional.of(admin));
+        when(userRepository.findById(99L)).thenReturn(Optional.empty());
+
+        com.g93.be.exception.ResourceNotFoundException ex = assertThrows(com.g93.be.exception.ResourceNotFoundException.class, 
+            () -> userService.toggleUserStatus(99L, new com.g93.be.dto.ToggleStatusRequest(), "admin"));
+        
+        assertTrue(ex.getMessage().contains("not found"));
     }
 }

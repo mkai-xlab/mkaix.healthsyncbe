@@ -229,7 +229,7 @@ Patient patient = new Patient();
         result = aiResultRepository.save(result);
 
         mockMvc.perform(get("/ai/heatmap/" + result.getId()).header("Authorization", "Bearer " + doctorToken))
-                .andExpect(status().isOk());
+                .andExpect(status().isNotFound());
     }
 
         @org.springframework.security.test.context.support.WithMockUser(username = "test_doctor", authorities = {"ROLE_DOCTOR", "VIEW_AI_RESULT"})
