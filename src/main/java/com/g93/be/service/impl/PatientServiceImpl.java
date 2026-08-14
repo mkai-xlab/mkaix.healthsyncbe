@@ -39,17 +39,19 @@ public class PatientServiceImpl implements PatientService {
 
     @Override
     @Transactional(readOnly = true)
-    public PageResponse<PatientResponse> getAllPatients(PatientFilterRequest filter, Pageable pageable, String username) {
+    public PageResponse<PatientResponse> getAllPatients(PatientFilterRequest filter, Pageable pageable,
+            String username) {
         Long doctorId = null;
         if (username != null) {
             User user = userRepository.findByUsername(username).orElse(null);
             if (user != null && user.getRole() != null) {
                 String role = user.getRole().getCode();
                 Boolean isPersonal = filter.getIsPersonal();
-                
+
                 if ("DOCTOR".equals(role)) {
                     if (Boolean.FALSE.equals(isPersonal)) {
-                        throw new AccessDeniedException("Bạn không có quyền xem toàn bộ danh sách bệnh nhân của hệ thống.");
+                        throw new AccessDeniedException(
+                                "Bạn không có quyền xem toàn bộ danh sách bệnh nhân của hệ thống.");
                     }
                     doctorId = user.getId();
                 } else if (Boolean.TRUE.equals(isPersonal)) {
@@ -61,9 +63,6 @@ public class PatientServiceImpl implements PatientService {
         String keyword = null;
         if (filter.getKeyword() != null && !filter.getKeyword().isBlank()) {
             keyword = filter.getKeyword().trim();
-            if (keyword.length() < 2) {
-                throw new IllegalArgumentException("Từ khóa tìm kiếm phải từ 2 ký tự trở lên!");
-            }
         }
 
         boolean hasStatuses = filter.getStatuses() != null && !filter.getStatuses().isEmpty();
@@ -174,7 +173,7 @@ public class PatientServiceImpl implements PatientService {
         if (username != null) {
             user = userRepository.findByUsername(username).orElse(null);
         }
-        
+
         if (user != null && user.getRole() != null && "DOCTOR".equals(user.getRole().getCode())) {
             boolean hasAccess = examinationRepository.existsByPatientIdAndDoctorId(patient.getId(), user.getId());
             if (!hasAccess) {
