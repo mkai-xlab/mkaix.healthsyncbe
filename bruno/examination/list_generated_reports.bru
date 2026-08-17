@@ -1,0 +1,43 @@
+meta {
+  name: List Generated Reports
+  type: http
+  seq: 16
+}
+
+get {
+  url: {{baseUrl}}/reports
+  body: none
+  auth: bearer
+}
+
+params:query {
+  page: 0
+  size: 10
+  sort: createdAt,desc
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+tests {
+  test("returns paginated generated reports", function() {
+    expect(res.status).to.equal(200);
+    expect(res.body.content).to.be.an("array");
+    expect(res.body.pageNumber).to.equal(0);
+    expect(res.body.pageSize).to.equal(10);
+  });
+
+  test("report items include display and file links", function() {
+    if (res.body.content.length === 0) {
+      return;
+    }
+    const report = res.body.content[0];
+    expect(report.reportId).to.be.a("number");
+    expect(report.examinationId).to.be.a("number");
+    expect(report.fileName).to.be.a("string");
+    expect(report.previewUrl).to.include(`/reports/${report.examinationId}/preview`);
+    expect(report.downloadUrl).to.include(`/reports/${report.examinationId}/download`);
+  });
+}
+​

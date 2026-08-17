@@ -3,6 +3,8 @@ package com.g93.be.service;
 import com.g93.be.aspect.LogAction;
 import com.g93.be.chat.ReportKnowledgeSyncRequestedEvent;
 import com.g93.be.dto.PdfReportDataDto;
+import com.g93.be.dto.PageResponse;
+import com.g93.be.dto.ReportListItemResponse;
 import com.g93.be.dto.ReportResponse;
 import com.g93.be.entity.AiAnalysis;
 import com.g93.be.entity.AiResult;
@@ -26,6 +28,8 @@ import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
@@ -140,6 +144,23 @@ public class PdfExportService {
             log.error("Failed to generate PDF for examination {}", examinationId, exception);
             throw new RuntimeException("Failed to generate PDF: " + exception.getMessage(), exception);
         }
+    }
+
+    @Transactional(readOnly = true)
+    public PageResponse<ReportListItemResponse> getGeneratedReports(Pageable pageable, String username) {
+        User currentUser = getUser(username);
+        String roleCode = currentUser.getRole() == null ? null : currentUser.getRole().getCode();
+        Page<Report> reportPage;
+
+        if ("DOCTOR".equalsIgnoreCase(roleCode)) {
+            reportPage = reportRepository.findByExamination_Doctor_Id(currentUser.getId(), pageable);
+        } else if (isDepartmentHead(currentUser)) {
+            reportPage = reportRepository.findAll(pageable);
+        } else {
+            throw new AccessDeniedException("Only doctors and department heads can view generated reports");
+        }
+
+        return PageResponse.of(reportPage.map(this::toListItemResponse));
     }
 
     @Transactional(readOnly = true)
@@ -293,6 +314,30 @@ public class PdfExportService {
         return new ReportResponse(
                 report.getId(),
                 report.getExamination().getId(),
+                report.getFileName(),
+                report.getFileSize(),
+                report.getContentType(),
+                report.getCreatedAt(),
+                previewUrl,
+                downloadUrl);
+    }
+
+    private ReportListItemResponse toListItemResponse(Report report) {
+        Examination examination = report.getExamination();
+        Patient patient = examination.getPatient();
+        User assignedDoctor = examination.getDoctor();
+        Long examinationId = examination.getId();
+        String previewUrl = "/api/v1/reports/" + examinationId + "/preview";
+        String downloadUrl = "/api/v1/reports/" + examinationId + "/download";
+        return new ReportListItemResponse(
+                report.getId(),
+                examinationId,
+                examination.getEncounterCode(),
+                examination.getVisitTime(),
+                patient == null ? null : patient.getPatientCode(),
+                patient == null ? null : patient.getFullName(),
+                assignedDoctor == null ? null : assignedDoctor.getId(),
+                assignedDoctor == null ? null : assignedDoctor.getFullName(),
                 report.getFileName(),
                 report.getFileSize(),
                 report.getContentType(),

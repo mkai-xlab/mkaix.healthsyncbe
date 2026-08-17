@@ -290,6 +290,9 @@ final class ApiDocumentationRegistry {
         }
 
         private void registerReports() {
+                add("ReportController", "getGeneratedReports", "Báo cáo PDF", "Danh sách báo cáo đã tạo",
+                                "Bác sĩ chỉ xem report của các ca được gán cho mình; trưởng khoa xem toàn bộ report trong khoa.",
+                                "200", "Trang danh sách report", "REPORT_PAGE", null, ResponseKind.JSON);
                 add("ReportController", "generatePdfReport", "Báo cáo PDF", "Tạo báo cáo PDF",
                                 "Tạo và lưu PDF từ kết quả cuối cùng của ca đã VERIFIED.", "200",
                                 "Metadata và URL báo cáo", "REPORT", null, ResponseKind.JSON);

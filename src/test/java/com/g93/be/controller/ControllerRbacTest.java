@@ -7,6 +7,7 @@ import com.g93.be.dto.FeatureResponse;
 import com.g93.be.dto.PageResponse;
 import com.g93.be.dto.PermissionResponse;
 import com.g93.be.dto.ReportResponse;
+import com.g93.be.dto.ReportListItemResponse;
 import com.g93.be.dto.UpdateFeatureRequest;
 import com.g93.be.dto.UpdatePermissionRequest;
 import com.g93.be.dto.UpdateRolePermissionsRequest;
@@ -260,6 +261,24 @@ class ControllerRbacTest {
 
         assertEquals(response,
                 reportController.generatePdfReport(42L, () -> "doctor").getBody());
+    }
+
+    @Test
+    @WithMockUser(roles = "DOCTOR")
+    void doctorCanListGeneratedReports() {
+        PageRequest pageable = PageRequest.of(0, 10);
+        PageResponse<ReportListItemResponse> response = new PageResponse<>(List.of(), 0, 10, 0, 0, true);
+        when(pdfExportService.getGeneratedReports(pageable, "doctor")).thenReturn(response);
+
+        assertEquals(response, reportController.getGeneratedReports(() -> "doctor", pageable).getBody());
+        verify(pdfExportService).getGeneratedReports(pageable, "doctor");
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void adminCannotListGeneratedReports() {
+        assertThrows(AccessDeniedException.class,
+                () -> reportController.getGeneratedReports(() -> "admin", PageRequest.of(0, 10)));
     }
 
     @Test
