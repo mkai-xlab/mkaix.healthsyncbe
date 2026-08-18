@@ -20,12 +20,13 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 40
 
     steps:
       - name: Deliver backend via SSH
         uses: appleboy/ssh-action@v1.2.0
         with:
+          command_timeout: 30m
           host: ${{ secrets.EC2_PUBLIC_IP }}
           username: ubuntu
           key: ${{ secrets.SSH_PRIVATE_KEY }}
@@ -36,3 +37,4 @@ jobs:
             git pull --ff-only origin dev
             docker compose config --quiet
             docker compose up -d --build be
+            docker image prune -f

@@ -10,7 +10,14 @@ get {
   auth: bearer
 }
 
+query {
+  isPersonal: true
+}
+
 auth:bearer {
   token: {{accessToken}}
 }
-​
+Ã¢â‚¬â€¹
+vars:pre-request {
+  accessToken: ""
+}

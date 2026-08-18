@@ -11,6 +11,7 @@ import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.ChannelInterceptor;
 import org.springframework.messaging.support.MessageHeaderAccessor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Component;
@@ -47,6 +48,7 @@ public class WebSocketChannelInterceptor implements ChannelInterceptor {
                                         userDetails, null, userDetails.getAuthorities());
                                 accessor.setUser(auth);
                                 log.debug("Successfully authenticated STOMP connection for user: {}", username);
+                                return message;
                             } else {
                                 log.warn("Invalid JWT token provided in STOMP CONNECT");
                             }
@@ -58,6 +60,7 @@ public class WebSocketChannelInterceptor implements ChannelInterceptor {
             } else {
                 log.warn("No Authorization header provided in STOMP CONNECT");
             }
+            throw new AccessDeniedException("A valid Bearer token is required for WebSocket connections");
         }
         return message;
     }

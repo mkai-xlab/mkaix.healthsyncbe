@@ -1,6 +1,8 @@
 package com.g93.be.service.impl;
-import com.g93.be.dto.ExaminationImageDto;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.g93.be.dto.ExaminationImageDto;
 
 import com.g93.be.entity.DicomInstanceStatus;
 import com.g93.be.dto.AiPredictionRequest;
@@ -23,9 +25,12 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
-
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
+import org.springframework.web.client.HttpStatusCodeException;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
@@ -54,11 +59,16 @@ public class AiServiceImpl implements AiService {
     @Override
     @Transactional
     public List<ExaminationDto> predictBatch(AiPredictionRequest request) {
+        // Cấu hình RestTemplate để giao tiếp HTTP với AI Server (Python/FastAPI)
         RestTemplate restTemplate = new RestTemplate();
+        // Bản đồ lưu kết quả dự đoán của AI tương ứng với từng ID ảnh DICOM
         Map<Long, List<AiPredictionResultDto>> aiResultMap = new HashMap<>();
+        // Cache danh sách các Ca Khám (Examination) để tổng hợp trạng thái chung sau
+        // cùng
         Map<Long, Examination> uniqueExams = new HashMap<>();
         Map<Long, List<DicomInstance>> instancesByExam = new HashMap<>();
 
+        // Bước 1: Duyệt qua từng ảnh DICOM cần gửi đi phân tích
         for (Long instanceId : request.getDicomInstanceIds()) {
             Optional<DicomInstance> instanceOpt = dicomInstanceRepository.findById(instanceId);
             if (instanceOpt.isEmpty()) {
@@ -88,7 +98,7 @@ public class AiServiceImpl implements AiService {
             }
 
             try {
-                // Call external API
+                // Bước 2: Đóng gói file ảnh PNG vào form 'multipart/form-data' để gửi cho AI
                 HttpHeaders headers = new HttpHeaders();
                 headers.setContentType(MediaType.MULTIPART_FORM_DATA);
 
@@ -97,6 +107,7 @@ public class AiServiceImpl implements AiService {
 
                 HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
 
+                // Bắt đầu bấm giờ đo lường thời gian phản hồi của AI
                 long startTime = System.currentTimeMillis();
                 ResponseEntity<FastApiPredictionResponse> response = restTemplate.postForEntity(aiApiUrl, requestEntity,
                         FastApiPredictionResponse.class);
@@ -105,10 +116,14 @@ public class AiServiceImpl implements AiService {
                 if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
                     FastApiPredictionResponse aiData = response.getBody();
 
-                    // Decode base64 Annotated Image
+                    // Bước 3: Phân rã dữ liệu từ AI gửi về
+                    // 3.1 - Xử lý ảnh Annotated (Ảnh phác thảo có khoanh vùng bệnh - dạng chuỗi
+                    // Base64)
                     String annotatedBase64 = aiData.getAnnotatedImage();
                     Image annotatedImageEntity = null;
                     if (annotatedBase64 != null) {
+                        // Decode chuỗi Base64 thành file vật lý, lưu lên đĩa cứng và lưu Path vào
+                        // Database
                         String annotatedPath = saveBase64ToDisk(annotatedBase64, "anno",
                                 UUID.randomUUID().toString() + "_annotated.png");
                         if (annotatedPath != null) {
@@ -119,26 +134,27 @@ public class AiServiceImpl implements AiService {
                         }
                     }
 
-                    // Save AiAnalysis
+                    // 3.2 - Tạo mới hoặc ghi đè lịch sử phân tích (AiAnalysis)
                     AiAnalysis analysis = instance.getAiAnalysis();
                     if (analysis == null) {
                         analysis = new AiAnalysis();
                         analysis.setDicomInstance(instance);
                     } else {
+                        // Nếu ảnh này đã được phân tích trước đó, xóa bỏ kết quả cũ để lưu kết quả mới
                         if (analysis.getAiResults() != null) {
                             aiResultRepository.deleteAll(analysis.getAiResults());
                             analysis.getAiResults().clear();
                         }
                     }
                     analysis.setStartTime(LocalDateTime.now());
-                    analysis.setDuration(duration);
+                    analysis.setDuration(duration); // Ghi nhận AI mất bao nhiêu mili-giây để xử lý
                     analysis.setStatus("SUCCESS");
                     analysis = aiAnalysisRepository.save(analysis);
 
                     List<FastApiPredictionResponse.AiPredictionData> preds = aiData.getPredictions();
                     if (preds != null) {
                         for (FastApiPredictionResponse.AiPredictionData p : preds) {
-                            // Decode ROI
+                            // 3.3 - Giải mã và lưu file ảnh ROI (Vùng đầu gối cắt cúp)
                             Image roiImageEntity = null;
                             if (p.getRoiImage() != null) {
                                 String roiPath = saveBase64ToDisk(p.getRoiImage(), "roi",
@@ -150,7 +166,8 @@ public class AiServiceImpl implements AiService {
                                 }
                             }
 
-                            // Decode GradCAM
+                            // 3.4 - Giải mã và lưu file ảnh GradCAM (Bản đồ nhiệt độ mô phỏng lý do chẩn
+                            // đoán)
                             Image gradcamImageEntity = null;
                             if (p.getGradcamImage() != null) {
                                 String gradcamPath = saveBase64ToDisk(p.getGradcamImage(), "gradcam",
@@ -162,10 +179,23 @@ public class AiServiceImpl implements AiService {
                                 }
                             }
 
-                            // Save AiResult
                             AiResult aiResult = new AiResult();
                             aiResult.setAiAnalysis(analysis);
-                            aiResult.setPredictedGrade(p.getPredictedClass());
+
+                            Integer pGrade = p.getPredictedClass();
+                            if (pGrade == null && p.getPredictedGrade() != null) {
+                                try {
+                                    String gradeStr = p.getPredictedGrade().replaceAll("[^0-9]", "");
+                                    if (!gradeStr.isEmpty()) {
+                                        pGrade = Integer.parseInt(gradeStr.substring(0, 1));
+                                    }
+                                } catch (Exception ignored) {
+                                }
+                            }
+                            if (pGrade == null)
+                                pGrade = 0; // ultimate fallback
+
+                            aiResult.setPredictedGrade(pGrade);
                             aiResult.setConfidence(p.getConfidence());
                             aiResult.setDescription(p.getDescription());
                             aiResult.setKneeSide(p.getKneeSide());
@@ -177,7 +207,7 @@ public class AiServiceImpl implements AiService {
                             }
                             aiResult = aiResultRepository.save(aiResult);
 
-                            // Save Confidence Scores
+                            // 3.5 - Lưu chi tiết tỷ lệ % (Confidence Scores) cho từng mức độ bệnh
                             if (p.getDetails() != null) {
                                 AiResultConfidenceScore score = new AiResultConfidenceScore();
                                 score.setAiResult(aiResult);
@@ -212,15 +242,11 @@ public class AiServiceImpl implements AiService {
                         }
                     }
 
-                    // Update Examination Status and DicomInstance Status
+                    // Bước 4: Đánh dấu file ảnh này đã có kết quả (GET_RESULTED)
                     instance.setStatus(DicomInstanceStatus.GET_RESULTED);
                     dicomInstanceRepository.save(instance);
 
                     Examination exam = instance.getExamination();
-                    if (exam != null) {
-                        exam.setStatus(ExaminationStatus.NEED_VERIFY);
-                        examinationRepository.save(exam);
-                    }
 
                     if (exam != null) {
                         uniqueExams.putIfAbsent(exam.getId(), exam);
@@ -231,15 +257,86 @@ public class AiServiceImpl implements AiService {
                     throw new RuntimeException("AI API call failed with status: " + response.getStatusCode());
                 }
 
+            } catch (HttpStatusCodeException e) {
+                log.error("HTTP error during AI prediction for instance {}", instanceId, e);
+                String errorMessage = e.getResponseBodyAsString();
+                try {
+                    JsonNode rootNode = new ObjectMapper().readTree(errorMessage);
+                    if (rootNode.has("detail")) {
+                        errorMessage = rootNode.get("detail").asText();
+                    }
+                } catch (Exception parseEx) {
+                    // Ignore parse error, keep the original string
+                }
+
+                AiAnalysis analysis = instance.getAiAnalysis();
+                if (analysis == null) {
+                    analysis = new AiAnalysis();
+                    analysis.setDicomInstance(instance);
+                }
+                analysis.setStartTime(LocalDateTime.now());
+                analysis.setStatus("FAILED");
+                if (errorMessage != null && errorMessage.length() > 500) {
+                    errorMessage = errorMessage.substring(0, 497) + "...";
+                }
+                analysis.setErrorMessage(errorMessage);
+                aiAnalysisRepository.save(analysis);
+
+                instance.setStatus(DicomInstanceStatus.AI_FAILED);
+                dicomInstanceRepository.save(instance);
+
+                Examination exam = instance.getExamination();
+                if (exam != null) {
+                    uniqueExams.putIfAbsent(exam.getId(), exam);
+                    instancesByExam.computeIfAbsent(exam.getId(), k -> new ArrayList<>()).add(instance);
+                }
             } catch (Exception e) {
                 log.error("Error during AI prediction for instance {}", instanceId, e);
-                throw new RuntimeException("Không thể kết nối đến Server AI: " + e.getMessage(), e);
+
+                AiAnalysis analysis = instance.getAiAnalysis();
+                if (analysis == null) {
+                    analysis = new AiAnalysis();
+                    analysis.setDicomInstance(instance);
+                }
+                analysis.setStartTime(LocalDateTime.now());
+                analysis.setStatus("FAILED");
+                String errorMsg = e.getMessage();
+                if (errorMsg != null && errorMsg.length() > 500) {
+                    errorMsg = errorMsg.substring(0, 497) + "...";
+                }
+                analysis.setErrorMessage(errorMsg);
+                aiAnalysisRepository.save(analysis);
+
+                instance.setStatus(DicomInstanceStatus.AI_FAILED);
+                dicomInstanceRepository.save(instance);
+
+                Examination exam = instance.getExamination();
+                if (exam != null) {
+                    uniqueExams.putIfAbsent(exam.getId(), exam);
+                    instancesByExam.computeIfAbsent(exam.getId(), k -> new ArrayList<>()).add(instance);
+                }
             }
         }
 
         List<ExaminationDto> finalResults = new ArrayList<>();
         for (Examination exam : uniqueExams.values()) {
             List<DicomInstance> examInstances = instancesByExam.getOrDefault(exam.getId(), new ArrayList<>());
+
+            boolean allFailed = true;
+            for (DicomInstance inst : examInstances) {
+                if (inst.getStatus() == DicomInstanceStatus.GET_RESULTED) {
+                    allFailed = false;
+                    break;
+                }
+            }
+
+            if (allFailed && !examInstances.isEmpty()) {
+                exam.setStatus(ExaminationStatus.AI_FAILED);
+            } else {
+                exam.setStatus(ExaminationStatus.NEED_VERIFY);
+            }
+            examinationRepository.save(exam);
+
             ExaminationDto examDto = examinationMapper.toDto(exam, examInstances);
             int maxGrade = -1;
 
@@ -264,19 +361,33 @@ public class AiServiceImpl implements AiService {
             }
         }
 
-        // --- WebSocket Notification Logic ---
+        // --- Bước 5: Bắn thông báo qua Web Socket cho Bác sĩ ---
+        // Biến gộp thông tin: Bác sĩ -> Bệnh nhân -> Cấp độ bệnh nghiêm trọng nhất
         Map<Long, Map<Long, Integer>> maxGradeByPatientByDoctor = new HashMap<>();
 
         for (Examination exam : uniqueExams.values()) {
             if (exam.getDoctor() == null || exam.getPatient() == null)
                 continue;
-            Long doctorId = exam.getDoctor().getId();
-            Long patientId = exam.getPatient().getId();
-            int currentMax = exam.getMaxPredictedGrade() != null ? exam.getMaxPredictedGrade() : -1;
 
-            maxGradeByPatientByDoctor
-                    .computeIfAbsent(doctorId, k -> new HashMap<>())
-                    .merge(patientId, currentMax, (a, b) -> Math.max(a, b));
+            if (exam.getStatus() == ExaminationStatus.AI_FAILED) {
+                // Phân tích bị lỗi -> Bắn thông báo thất bại
+                SendNotificationRequest req = new SendNotificationRequest(
+                        exam.getDoctor().getId(),
+                        "Lỗi phân tích AI",
+                        "Ca khám " + exam.getPatient().getPatientCode()
+                                + " có lỗi khi phân tích AI. Vui lòng kiểm tra lại ảnh chụp.",
+                        "ERROR",
+                        null);
+                notificationService.sendNotification(req);
+            } else {
+                Long doctorId = exam.getDoctor().getId();
+                Long patientId = exam.getPatient().getId();
+                int currentMax = exam.getMaxPredictedGrade() != null ? exam.getMaxPredictedGrade() : -1;
+
+                maxGradeByPatientByDoctor
+                        .computeIfAbsent(doctorId, k -> new HashMap<>())
+                        .merge(patientId, currentMax, (a, b) -> Math.max(a, b));
+            }
         }
 
         for (Map.Entry<Long, Map<Long, Integer>> entry : maxGradeByPatientByDoctor.entrySet()) {
@@ -314,18 +425,29 @@ public class AiServiceImpl implements AiService {
         return finalResults;
     }
 
+    /**
+     * Hàm Utility: Dùng để chuyển đổi ảnh dạng Base64 (Chuỗi mã hóa) thành file
+     * tĩnh PNG
+     */
     private String saveBase64ToDisk(String base64String, String subDir, String fileName) {
         if (base64String == null || !base64String.startsWith("data:image"))
             return null;
+
+        // Loại bỏ tiền tố (VD: 'data:image/png;base64,') để lấy data nhị phân thực sự
         String[] parts = base64String.split(",");
         if (parts.length != 2)
             return null;
 
         try {
+            // Giải mã ngược từ Base64 về dạng byte[]
             byte[] decodedImg = Base64.getDecoder().decode(parts[1]);
             String filePath = "/images/" + subDir + "/" + fileName;
+
+            // Tìm ổ đĩa thực tế để lưu (VD: D:/Capstone/data/images/roi/abc.png)
             Path targetPath = Paths.get(storageBaseDir, "images", subDir, fileName);
-            targetPath.getParent().toFile().mkdirs();
+            targetPath.getParent().toFile().mkdirs(); // Đảm bảo thư mục đã tồn tại
+
+            // Tiến hành ghi data ra file
             try (FileOutputStream fos = new FileOutputStream(targetPath.toFile())) {
                 fos.write(decodedImg);
             }
@@ -335,5 +457,25 @@ public class AiServiceImpl implements AiService {
             return null;
         }
     }
-}
 
+    @Override
+    public Resource getHeatmapImageResource(Long aiResultId) {
+        AiResult result = aiResultRepository.findById(aiResultId).orElse(null);
+        if (result != null
+                && result.getStorageHeatmapFilePath() != null
+                && !result.getStorageHeatmapFilePath().isBlank()) {
+            String imagePath = result.getStorageHeatmapFilePath();
+            try {
+                String relPath = imagePath.startsWith("/") ? imagePath.substring(1) : imagePath;
+                Path path = Paths.get(storageBaseDir, relPath);
+                Resource resource = new UrlResource(path.toUri());
+                if (resource.exists() && resource.isReadable() && !Files.isDirectory(path)) {
+                    return resource;
+                }
+            } catch (Exception e) {
+                log.error("Failed to read heatmap image for result id: {}", aiResultId, e);
+            }
+        }
+        return null;
+    }
+}

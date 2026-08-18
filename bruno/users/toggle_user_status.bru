@@ -1,0 +1,21 @@
+meta {
+  name: Toggle User Status
+  type: http
+  seq: 11
+}
+
+patch {
+  url: {{baseUrl}}/users/{{targetUserId}}/status/toggle
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "inactiveReason": "Violation of hospital policies"
+  }
+}

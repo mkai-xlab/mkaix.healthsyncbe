@@ -158,14 +158,14 @@
     <div class="container">
         <!-- Header -->
 <div class="header">
-<img src="images/logo.png" alt="Logo" class="logo" style="max-height:60px; margin-right:10px;" />
+<!-- <img src="images/logo.png" alt="Logo" class="logo" style="max-height:60px; margin-right:10px;" /> -->
     <h1>VIỆN Y HỌC CỔ TRUYỀN QUÂN ĐỘI AI hỗ trợ chẩn đoán X-quang khớp gối</h1>
     <p>Thiết lập tài khoản bác sĩ lâm sàng</p>
 </div>
 
         <!-- Content -->
         <div class="content">
-            <p class="greeting" th:text="'Hello ' + ${fullName} + '!'">Hello Dr. John Doe!</p>
+            <p class="greeting" th:text="'Xin chào Bác sĩ ' + ${fullName} + '!'">Xin chào Bác sĩ John Doe!</p>
             <p class="intro">
     Tài khoản bác sĩ của bạn đã được tạo thành công trên nền tảng HealthSync. Dưới đây là thông tin đăng nhập tạm thời do hệ thống tạo ra.
             </p>
@@ -173,42 +173,41 @@
             <!-- Credentials Box -->
             <div class="credentials-card">
                 <div class="credential-row">
-                    <div class="label">Username / Registered Email</div>
-                    <div class="value" id="username" th:text="${username}">dr.johndoe</div>
-        <span class="icon-copy" title="Sao chép" onclick="copyToClipboard('username')" style="cursor:pointer; margin-left:8px;">📋</span>
+                    <div class="label">Tên đăng nhập / Email</div>
+                    <div class="value" id="username" style="user-select: all; -webkit-user-select: all; cursor: copy;" th:text="${username}">dr.johndoe</div>
+                    <span class="icon-copy" title="Sao chép" onclick="copyToClipboard('username')" style="cursor:pointer; margin-left:8px;">📋</span>
                 </div>
                 <div class="credential-row">
-                    <div class="label">Temporary Password</div>
-                    <div class="value" id="password" style="color: #4f46e5;" th:text="${password}">TempP@ss123</div>
-        <span class="icon-copy" title="Sao chép" onclick="copyToClipboard('password')" style="cursor:pointer; margin-left:8px;">📋</span>
+                    <div class="label">Mật khẩu tạm thời</div>
+                    <div class="value" id="password" style="color: #4f46e5; user-select: all; -webkit-user-select: all; cursor: copy;" th:text="${password}">TempP@ss123</div>
+                    <span class="icon-copy" title="Sao chép" onclick="copyToClipboard('password')" style="cursor:pointer; margin-left:8px;">📋</span>
                 </div>
                 <script>
                     function copyToClipboard(elementId) {
-                        const el = document.getElementById(elementId);
+                        var el = document.getElementById(elementId);
                         if (!el) return;
-                        const text = el.innerText || el.textContent;
-                        if (navigator.clipboard && window.isSecureContext) {
-                            navigator.clipboard.writeText(text).then(() => {
-                                alert('Copied to clipboard');
-                            }).catch(err => {
-                                console.error('Clipboard write failed', err);
-                            });
-                        } else {
-                            // Fallback for older browsers
-                            const textarea = document.createElement('textarea');
-                            textarea.value = text;
-                            textarea.style.position = 'fixed';
-                            document.body.appendChild(textarea);
-                            textarea.focus();
-                            textarea.select();
-                            try {
-                                document.execCommand('copy');
-                                alert('Copied to clipboard');
-                            } catch (err) {
-                                console.error('Copy fallback failed', err);
+                        var text = el.innerText || el.textContent;
+                        
+                        // Fallback method that works in more iframes/environments
+                        var textarea = document.createElement('textarea');
+                        textarea.value = text;
+                        textarea.style.top = '0';
+                        textarea.style.left = '0';
+                        textarea.style.position = 'fixed';
+                        document.body.appendChild(textarea);
+                        textarea.focus();
+                        textarea.select();
+                        try {
+                            var successful = document.execCommand('copy');
+                            if(successful) {
+                                alert('Đã sao chép: ' + text);
+                            } else {
+                                alert('Không thể tự động sao chép. Vui lòng bôi đen để copy.');
                             }
-                            document.body.removeChild(textarea);
+                        } catch (err) {
+                            alert('Không thể tự động sao chép. Vui lòng bôi đen để copy.');
                         }
+                        document.body.removeChild(textarea);
                     }
                 </script>
             </div>
@@ -226,8 +225,8 @@
 
         <!-- Footer -->
         <div class="footer">
-            <p>&copy; 2026 VIỆN Y HỌC CỔ TRUYỀN QUÂN ĐỘI AI hỗ trợ chẩn đoán X-quang khớp gối. All rights reserved.</p>
-            <p>This is an automated security notification. Please do not reply directly to this email.</p>
+            <p>&copy; 2026 VIỆN Y HỌC CỔ TRUYỀN QUÂN ĐỘI. Bảo lưu mọi quyền.</p>
+            <p>Đây là email thông báo tự động. Vui lòng không trả lời trực tiếp email này.</p>
         </div>
     </div>
 </body>

@@ -5,6 +5,7 @@ package com.g93.be.entity;
  */
 public enum ExaminationStatus {
     AI_PROCESSING,
+    AI_FAILED,
     NEED_VERIFY,
     VERIFIED,
     REPORT_GENERATED

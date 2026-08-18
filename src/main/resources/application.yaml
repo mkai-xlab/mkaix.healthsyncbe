@@ -12,7 +12,7 @@ spring:
       max-file-size: 100MB
       max-request-size: 500MB
   datasource:
-    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:capstone}?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:capstone}?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&nullCatalogMeansCurrent=true
     username: ${DB_USERNAME:root}
     password: ${DB_PASSWORD:capstone_root_password}
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -22,6 +22,9 @@ spring:
     open-in-view: false
     properties:
       hibernate:
+        default_catalog: ${DB_NAME:capstone}
+        default_schema: ${DB_NAME:capstone}
+        format_sql: true
 
   data:
     redis:
@@ -40,12 +43,44 @@ spring:
           starttls:
             enable: false
 
+  ai:
+    retry:
+      max-attempts: 2
+      exclude-on-http-codes:
+        - 429
+    model:
+      chat: ${CHAT_MODEL_PROVIDER:none}
+      embedding: ${CHAT_EMBEDDING_PROVIDER:none}
+    vectorstore:
+      type: ${CHAT_VECTOR_STORE:none}
+      qdrant:
+        host: ${QDRANT_HOST:localhost}
+        port: ${QDRANT_GRPC_PORT:6334}
+        api-key: ${QDRANT_API_KEY:}
+        collection-name: ${QDRANT_COLLECTION:healthsync_medical_knowledge}
+        use-tls: ${QDRANT_USE_TLS:false}
+        initialize-schema: true
+    google:
+      genai:
+        api-key: ${GEMINI_API_KEY:}
+        chat:
+          model: ${GEMINI_CHAT_MODEL:gemini-3.5-flash}
+          temperature: 0.2
+          max-output-tokens: 2048
+    ollama:
+      base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
+      embedding:
+        model: bge-m3
+      init:
+        pull-model-strategy: ${OLLAMA_PULL_MODEL_STRATEGY:never}
+        timeout: 10m
+        max-retries: 1
 app:
   jwt:
     issuer: capstone-ai-knee-diagnosis
     access-secret: ${JWT_ACCESS_SECRET:dGVzdC1hY2Nlc3Mtc2VjcmV0LWtleS1tdXN0LWJlLWF0LWxlYXN0LTI1Ni1iaXRzLWxvbmc=}
     refresh-secret: ${JWT_REFRESH_SECRET:dGVzdC1yZWZyZXNoLXNlY3JldC1rZXktbXVzdC1iZS1hdC1sZWFzdC0yNTYtYml0cy1sb25n}
-    access-expiration-ms: 900000 # 15 minutes
+    access-expiration-ms: 7200000 # 2 hours
     refresh-expiration-ms: 604800000 # 7 days
   aws:
     region: ${AWS_REGION:ap-southeast-1}
@@ -59,6 +94,16 @@ app:
     export-dir: ${APP_PDF_EXPORT_DIR:${app.storage.base-dir}/reports}
   ai:
     api-url: ${APP_AI_API_URL:http://localhost:8005/api/v1/predict}
+  chat:
+    enabled: ${CHAT_AI_ENABLED:false}
+    knowledge-dir: ${CHAT_KNOWLEDGE_DIR:${app.storage.base-dir}/knowledge}
+    max-document-bytes: ${CHAT_MAX_DOCUMENT_BYTES:52428800}
+    max-url-bytes: ${CHAT_MAX_URL_BYTES:5242880}
+    retrieval-top-k: ${CHAT_RETRIEVAL_TOP_K:12}
+    similarity-threshold: ${CHAT_SIMILARITY_THRESHOLD:0.4}
+    medical-validation-sample-chars: ${CHAT_MEDICAL_VALIDATION_SAMPLE_CHARS:6000}
+    medical-validation-min-confidence: ${CHAT_MEDICAL_VALIDATION_MIN_CONFIDENCE:0.7}
+    report-sync-delay-ms: ${CHAT_REPORT_SYNC_DELAY_MS:300000}
 
 logging:
   level:

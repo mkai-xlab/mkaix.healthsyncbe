@@ -30,6 +30,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @Transactional
 public class PermissionAndFeatureIntegrationTest {
+    @org.springframework.beans.factory.annotation.Autowired
+    private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
+
 
     private MockMvc mockMvc;
 
@@ -38,6 +41,14 @@ public class PermissionAndFeatureIntegrationTest {
 
     @Autowired
     private UserRepository userRepository;
+    @Autowired
+    private ExaminationRepository examinationRepository;
+    @Autowired
+    private DicomInstanceRepository dicomInstanceRepository;
+    @Autowired
+    private DoctorRepository doctorRepository;
+    @Autowired
+    private AuditLogRepository auditLogRepository;
 
     @Autowired
     private RoleRepository roleRepository;
@@ -70,12 +81,25 @@ public class PermissionAndFeatureIntegrationTest {
 
     @BeforeEach
     void setUp() {
+        try {
+            jdbcTemplate.execute("SET FOREIGN_KEY_CHECKS = 0;");
+            java.util.List<String> tables = jdbcTemplate.queryForList("SHOW TABLES", String.class);
+            for (String table : tables) {
+                if (!table.equalsIgnoreCase("roles") && !table.equalsIgnoreCase("permissions") && !table.equalsIgnoreCase("role_permissions") && !table.equalsIgnoreCase("features")) {
+                    jdbcTemplate.execute("TRUNCATE TABLE " + table + ";");
+                }
+            }
+            jdbcTemplate.execute("SET FOREIGN_KEY_CHECKS = 1;");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
                 .apply(springSecurity())
                 .build();
 
         // Clear repositories to ensure isolation (Users only, lookup tables will be handled inside transactional rollback)
-        userRepository.deleteAll();
+        
 
         // Fetch existing Roles from database
         adminRole = roleRepository.findByCode("ADMIN")

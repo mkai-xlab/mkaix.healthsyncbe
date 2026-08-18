@@ -290,38 +290,6 @@ Represents metadata for image attachments, such as user avatars.
 | 01 | onCreate | Visibility: protected <br> Return: void <br> Purpose: Lifecycle callback executed before saving the entity to initialize creation timestamp/defaults <br> Parameters: None |
 
 
-### 3.1.17 KneePathologyDetail
-Stores specific statistical metrics and KL-grade compartment ratios for knee-related AI analyses.
-
-[Provide the class attributes and operations using below table format]
-
-| No | Name | Description |
-|---|---|---|
-| **Attributes** | | |
-| 01 | id | Visibility: private <br> Type: Long <br> Purpose: Unique identifier of the cartilage pathology metrics. |
-| 02 | report | Visibility: private <br> Type: Report <br> Purpose: Reference to the parent clinical report. |
-| 03 | result | Visibility: private <br> Type: AiResult <br> Purpose: Reference to the associated AI result. |
-| 04 | c0NormalRatio | Visibility: private <br> Type: Double <br> Purpose: Normal cartilage ratio for Grade 0. |
-| 05 | c1NormalRatio | Visibility: private <br> Type: Double <br> Purpose: Normal cartilage ratio for Grade 1. |
-| 06 | c2NormalRatio | Visibility: private <br> Type: Double <br> Purpose: Normal cartilage ratio for Grade 2. |
-| 07 | c3NormalRatio | Visibility: private <br> Type: Double <br> Purpose: Normal cartilage ratio for Grade 3. |
-| 08 | c4NormalRatio | Visibility: private <br> Type: Double <br> Purpose: Normal cartilage ratio for Grade 4. |
-| 09 | c0NormalCompartment | Visibility: private <br> Type: Double <br> Purpose: Lateral normal compartment health ratio. |
-| 10 | c1NormalCompartment | Visibility: private <br> Type: Double <br> Purpose: Medial normal compartment health ratio. |
-| 11 | c2NormalCompartment | Visibility: private <br> Type: Double <br> Purpose: Patellofemoral normal compartment health ratio. |
-| 12 | c3NormalCompartment | Visibility: private <br> Type: Double <br> Purpose: Lateral cartilage volume score. |
-| 13 | c4NormalCompartment | Visibility: private <br> Type: Double <br> Purpose: Medial cartilage volume score. |
-| 14 | c0Count | Visibility: private <br> Type: Integer <br> Purpose: Voxel count classified as Grade 0. |
-| 15 | c1Count | Visibility: private <br> Type: Integer <br> Purpose: Voxel count classified as Grade 1. |
-| 16 | c2Count | Visibility: private <br> Type: Integer <br> Purpose: Voxel count classified as Grade 2. |
-| 17 | c3Count | Visibility: private <br> Type: Integer <br> Purpose: Voxel count classified as Grade 3. |
-| 18 | c4Count | Visibility: private <br> Type: Integer <br> Purpose: Voxel count classified as Grade 4. |
-| 19 | clinicalSummary | Visibility: private <br> Type: String <br> Purpose: Diagnostic summary written by the analyzing system. |
-| 20 | createdAt | Visibility: private <br> Type: LocalDateTime <br> Purpose: Timestamp when pathology metrics were processed. |
-| **Methods/Operations** | | |
-| 01 | onCreate | Visibility: protected <br> Return: void <br> Purpose: Lifecycle callback executed before saving the entity to initialize creation timestamp/defaults <br> Parameters: None |
-
-
 ### 3.1.18 Notification
 Represents a system message/notification delivered to a user.
 
@@ -421,23 +389,6 @@ Represents the finalized diagnostic report compiled by a doctor for an examinati
 | 09 | createdAt | Visibility: private <br> Type: LocalDateTime <br> Purpose: Timestamp when the report was finalized. |
 | **Methods/Operations** | | |
 | 01 | onCreate | Visibility: protected <br> Return: void <br> Purpose: Lifecycle callback executed before saving the entity to initialize creation timestamp/defaults <br> Parameters: None |
-
-
-### 3.1.23 ResultAttachment
-Stores result attachments, such as diagnosis strings and accuracy rates, mapped to DICOM instances.
-
-[Provide the class attributes and operations using below table format]
-
-| No | Name | Description |
-|---|---|---|
-| **Attributes** | | |
-| 01 | id | Visibility: private <br> Type: Long <br> Purpose: Unique identifier of the result attachment. |
-| 02 | dicomInstance | Visibility: private <br> Type: DicomInstance <br> Purpose: Reference to the associated DICOM image. |
-| 03 | klLevel | Visibility: private <br> Type: String <br> Purpose: Confirmed Kellgren-Lawrence grade classification. |
-| 04 | diagnosis | Visibility: private <br> Type: String <br> Purpose: Summary text of confirmed diagnostic findings. |
-| 05 | accuracyRate | Visibility: private <br> Type: Double <br> Purpose: Model confidence accuracy rate matching findings. |
-| **Methods/Operations** | | |
-| None | | |
 
 
 ### 3.1.24 Role
