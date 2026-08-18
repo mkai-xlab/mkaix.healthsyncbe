@@ -10,6 +10,7 @@ import com.g93.be.entity.AiAnalysis;
 import com.g93.be.entity.AiResult;
 import com.g93.be.entity.DiagnosisReview;
 import com.g93.be.entity.DicomInstance;
+import com.g93.be.entity.DicomInstanceStatus;
 import com.g93.be.entity.Examination;
 import com.g93.be.entity.ExaminationStatus;
 import com.g93.be.entity.Patient;
@@ -356,6 +357,9 @@ public class PdfExportService {
             throw new IllegalArgumentException("Examination has no AI results to export");
         }
         for (DicomInstance instance : instances) {
+            if (instance.getStatus() == DicomInstanceStatus.AI_FAILED) {
+                continue;
+            }
             AiAnalysis latestAnalysis = instance.getAiAnalysis();
             if (latestAnalysis == null
                     || latestAnalysis.getAiResults() == null
@@ -415,6 +419,9 @@ public class PdfExportService {
                                                 : null))
                         .build());
             }
+        }
+        if (results.isEmpty()) {
+            throw new IllegalArgumentException("Examination has no successful AI results to export");
         }
         return new FinalAiResults(results, hasDuration ? totalDurationMillis : null);
     }

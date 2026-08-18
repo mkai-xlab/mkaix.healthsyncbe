@@ -8,6 +8,7 @@ import com.g93.be.entity.AiResult;
 import com.g93.be.entity.DiagnosisReview;
 import com.g93.be.entity.DiagnosisReviewDecision;
 import com.g93.be.entity.DicomInstance;
+import com.g93.be.entity.DicomInstanceStatus;
 import com.g93.be.entity.Doctor;
 import com.g93.be.entity.Examination;
 import com.g93.be.entity.ExaminationStatus;
@@ -118,7 +119,15 @@ public class DiagnosisReviewServiceImpl implements DiagnosisReviewService {
             return;
         }
 
+        boolean hasSuccessfulAiResult = false;
         for (DicomInstance instance : instances) {
+            if (instance.getStatus() == DicomInstanceStatus.AI_FAILED) {
+                continue;
+            }
+            if (instance.getStatus() != DicomInstanceStatus.GET_RESULTED) {
+                return;
+            }
+
             AiAnalysis latestAnalysis = instance.getAiAnalysis();
             if (latestAnalysis == null
                     || latestAnalysis.getAiResults() == null
@@ -129,6 +138,11 @@ public class DiagnosisReviewServiceImpl implements DiagnosisReviewService {
                     .anyMatch(result -> result.getDiagnosisReview() == null)) {
                 return;
             }
+            hasSuccessfulAiResult = true;
+        }
+
+        if (!hasSuccessfulAiResult) {
+            return;
         }
 
         examination.setStatus(ExaminationStatus.VERIFIED);
