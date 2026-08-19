@@ -28,6 +28,7 @@ import java.util.List;
 
 import static org.hamcrest.Matchers.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -270,7 +271,8 @@ public class AdminDashboardIntegrationTest {
         DicomVerifyRequest verifyRequest = new DicomVerifyRequest("session_123", List.of("PAT-OP-01"));
 
         // Setup mock return values for verify session
-        when(dicomVerifyService.verifySession(any(DicomVerifyRequest.class))).thenReturn(List.of(101L, 102L));
+        when(dicomVerifyService.verifySession(any(DicomVerifyRequest.class), any(Long.class), anyBoolean()))
+                .thenReturn(new VerifySessionResultDto(List.of(101L, 102L), List.of()));
 
         // Setup mock response from AI prediction batch
         PatientResponse patResponse = new PatientResponse();
