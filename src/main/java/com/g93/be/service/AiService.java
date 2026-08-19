@@ -7,6 +7,7 @@ import org.springframework.core.io.Resource;
 import java.util.List;
 
 public interface AiService {
+    // Gửi ảnh đã xác nhận DICOM sang AI để dự đoán
     List<ExaminationDto> predictBatch(AiPredictionRequest request);
 
     Resource getHeatmapImageResource(Long aiResultId);

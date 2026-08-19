@@ -8,6 +8,7 @@ import com.g93.be.entity.AiResult;
 import com.g93.be.entity.DiagnosisReview;
 import com.g93.be.entity.DiagnosisReviewDecision;
 import com.g93.be.entity.DicomInstance;
+import com.g93.be.entity.DicomInstanceStatus;
 import com.g93.be.entity.Patient;
 import com.g93.be.entity.Doctor;
 import com.g93.be.dto.PdfReportDataDto;
@@ -147,6 +148,49 @@ class PdfExportServiceTest {
         verify(reportRepository).save(any(Report.class));
         assertEquals(ExaminationStatus.REPORT_GENERATED, mockExamination.getStatus());
         verify(templateEngine).process(eq("pdf/report-template"), any(IContext.class));
+    }
+
+    @Test
+    void generateAndSavePdfReport_SucceedsWhenOtherKneeAiFailed() {
+        DicomInstance successfulInstance = instance(
+                aiResult(2, DiagnosisReviewDecision.AI_CONFIRMED, 2));
+        successfulInstance.setStatus(DicomInstanceStatus.GET_RESULTED);
+        DicomInstance failedInstance = new DicomInstance();
+        failedInstance.setId(45L);
+        failedInstance.setStatus(DicomInstanceStatus.AI_FAILED);
+        when(examinationRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(mockExamination));
+        when(dicomInstanceRepository.findByExaminationId(1L))
+                .thenReturn(List.of(successfulInstance, failedInstance));
+        when(templateEngine.process(eq("pdf/report-template"), any(IContext.class)))
+                .thenReturn("<html><body>Partial AI result</body></html>");
+
+        ReportResponse response = pdfExportService.generateAndSavePdfReport(1L, "doctor");
+
+        assertEquals(31L, response.reportId());
+        assertEquals(ExaminationStatus.REPORT_GENERATED, mockExamination.getStatus());
+        PdfReportDataDto data = capturedReportData();
+        assertEquals(1, data.getAiResults().size());
+        assertEquals("2", data.getAiResults().getFirst().getKlGrade());
+    }
+
+    @Test
+    void generateAndSavePdfReport_RejectsWhenAllKneesAiFailed() {
+        DicomInstance failedRight = new DicomInstance();
+        failedRight.setId(44L);
+        failedRight.setStatus(DicomInstanceStatus.AI_FAILED);
+        DicomInstance failedLeft = new DicomInstance();
+        failedLeft.setId(45L);
+        failedLeft.setStatus(DicomInstanceStatus.AI_FAILED);
+        when(examinationRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(mockExamination));
+        when(dicomInstanceRepository.findByExaminationId(1L))
+                .thenReturn(List.of(failedRight, failedLeft));
+
+        IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
+                () -> pdfExportService.generateAndSavePdfReport(1L, "doctor"));
+
+        assertEquals("Examination has no successful AI results to export", error.getMessage());
+        verify(templateEngine, never()).process(anyString(), any(IContext.class));
+        verify(reportRepository, never()).save(any());
     }
 
     @Test

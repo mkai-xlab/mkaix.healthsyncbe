@@ -21,6 +21,9 @@ public interface PatientRepository extends JpaRepository<Patient, Long>, JpaSpec
 
         Optional<Patient> findByPatientCode(String patientCode);
 
+        /**
+         * Lấy danh sách bệnh nhân được upload trong ngày
+         */
         @Query("SELECT DISTINCT e.patient FROM Examination e " +
                         "WHERE e.createdAt >= :startOfDay AND e.createdAt < :startOfNextDay " +
                         "AND (:doctorId IS NULL OR e.doctor.id = :doctorId)")
@@ -30,6 +33,9 @@ public interface PatientRepository extends JpaRepository<Patient, Long>, JpaSpec
                         @Param("doctorId") Long doctorId,
                         Pageable pageable);
 
+        /**
+         * Lấy danh sách bệnh nhân với các bộ lọc
+         */
         @Query(value = "SELECT p FROM Patient p " +
                         "LEFT JOIN Examination e1 ON e1.patient = p AND e1.id = (SELECT MAX(e2.id) FROM Examination e2 WHERE e2.patient = p) "
                         +

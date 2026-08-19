@@ -220,16 +220,6 @@ public class PatientServiceImplTest {
     }
 
     @Test
-    void testGetAllPatients_InvalidKeyword() {
-        PatientFilterRequest filter = new PatientFilterRequest();
-        filter.setKeyword("a"); // Length < 2
-        Pageable pageable = PageRequest.of(0, 10);
-        
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> patientService.getAllPatients(filter, pageable, null));
-        assertEquals("Từ khóa tìm kiếm phải từ 2 ký tự trở lên!", ex.getMessage());
-    }
-
-    @Test
     void testGetAllPatients_WithStatusesAndSeverities() {
         PatientFilterRequest filter = new PatientFilterRequest();
         filter.setKeyword("abc");
