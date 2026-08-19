@@ -19,8 +19,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.security.access.AccessDeniedException;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -153,6 +156,68 @@ class ChatSessionServiceTest {
 
         assertThrows(ResourceNotFoundException.class,
                 () -> service.prepare(99L, "Question", "doctor"));
+    }
+
+    @Test
+    void getSessionsReturnsOnlyTheAuthenticatedUsersPaginatedHistory() {
+        ChatSession first = session(doctor, true);
+        first.setId(21L);
+        first.setTitle("Recent knee discussion");
+        first.setCreatedAt(LocalDateTime.of(2026, 8, 18, 9, 0));
+        first.setUpdatedAt(LocalDateTime.of(2026, 8, 18, 10, 0));
+        PageRequest pageable = PageRequest.of(1, 10);
+        when(userRepository.findByUsername("doctor")).thenReturn(Optional.of(doctor));
+        when(chatSessionRepository.findByUserIdOrderByUpdatedAtDescIdDesc(7L, pageable))
+                .thenReturn(new PageImpl<>(List.of(first), pageable, 11));
+
+        var response = service.getSessions("doctor", pageable);
+
+        assertEquals(1, response.content().size());
+        assertEquals(21L, response.content().getFirst().id());
+        assertEquals("Recent knee discussion", response.content().getFirst().title());
+        assertEquals(1, response.pageNumber());
+        assertEquals(11, response.totalElements());
+        verify(chatSessionRepository).findByUserIdOrderByUpdatedAtDescIdDesc(7L, pageable);
+    }
+
+    @Test
+    void getMessagesReturnsOrderedPaginatedMessageDetailsForOwnedSession() {
+        ChatSession ownedSession = session(doctor, true);
+        ChatMessage question = message(ownedSession, ChatMessageRole.USER, "What does KL grade 3 mean?");
+        question.setId(31L);
+        question.setCreatedAt(LocalDateTime.of(2026, 8, 18, 10, 1));
+        ChatMessage answer = message(ownedSession, ChatMessageRole.ASSISTANT, "It indicates definite narrowing.");
+        answer.setId(32L);
+        answer.setRoute("MEDICAL_RAG");
+        answer.setTokensUsed(28);
+        answer.setCreatedAt(LocalDateTime.of(2026, 8, 18, 10, 2));
+        PageRequest pageable = PageRequest.of(0, 50);
+        when(userRepository.findByUsername("doctor")).thenReturn(Optional.of(doctor));
+        when(chatSessionRepository.findByIdAndUserId(12L, 7L)).thenReturn(Optional.of(ownedSession));
+        when(chatMessageRepository.findBySessionIdOrderByCreatedAtAscIdAsc(12L, pageable))
+                .thenReturn(new PageImpl<>(List.of(question, answer), pageable, 2));
+
+        var response = service.getMessages(12L, "doctor", pageable);
+
+        assertEquals(2, response.content().size());
+        assertEquals("USER", response.content().get(0).role());
+        assertEquals("ASSISTANT", response.content().get(1).role());
+        assertEquals("MEDICAL_RAG", response.content().get(1).route());
+        assertEquals(28, response.content().get(1).tokensUsed());
+        assertTrue(response.isLast());
+    }
+
+    @Test
+    void getMessagesDoesNotRevealAnotherUsersSession() {
+        PageRequest pageable = PageRequest.of(0, 50);
+        when(userRepository.findByUsername("doctor")).thenReturn(Optional.of(doctor));
+        when(chatSessionRepository.findByIdAndUserId(99L, 7L)).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class,
+                () -> service.getMessages(99L, "doctor", pageable));
+
+        verify(chatMessageRepository, never())
+                .findBySessionIdOrderByCreatedAtAscIdAsc(any(), any());
     }
 
     private User user(Long id, String roleCode) {

@@ -15,6 +15,8 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -57,6 +59,42 @@ class KnowledgeBatchIngestionServiceTest {
                 () -> service.upload(files, KnowledgeAccessScope.ALL, "doctor"));
 
         assertEquals("A batch can contain at most 10 documents", exception.getMessage());
+    }
+
+    @Test
+    void uploadRejectsEmptyBatchBeforeCallingSingleFileService() {
+        KnowledgeBatchIngestionService service = new KnowledgeBatchIngestionService(ingestionService);
+
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> service.upload(List.of(), KnowledgeAccessScope.ALL, "doctor"));
+
+        assertEquals("At least one document file is required", exception.getMessage());
+        verify(ingestionService, never()).upload(
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
+    void uploadSanitizesUnexpectedPerFileFailureAndContinuesBatch() {
+        KnowledgeBatchIngestionService service = new KnowledgeBatchIngestionService(ingestionService);
+        MultipartFile failed = file("failed.pdf");
+        MultipartFile accepted = file("accepted.pdf");
+        KnowledgeDocumentResponse document = document(8L, "accepted.pdf");
+        when(ingestionService.upload(failed, null, KnowledgeAccessScope.ALL, "doctor"))
+                .thenThrow(new IllegalStateException("internal storage path"));
+        when(ingestionService.upload(accepted, null, KnowledgeAccessScope.ALL, "doctor"))
+                .thenReturn(document);
+
+        KnowledgeBatchUploadResponse response = service.upload(
+                List.of(failed, accepted), KnowledgeAccessScope.ALL, "doctor");
+
+        assertEquals(1, response.acceptedCount());
+        assertEquals(1, response.rejectedCount());
+        assertEquals("Could not accept document", response.items().getFirst().error());
+        assertEquals(document, response.items().get(1).document());
     }
 
     private MockMultipartFile file(String name) {

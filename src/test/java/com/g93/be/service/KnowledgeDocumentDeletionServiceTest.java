@@ -2,6 +2,8 @@ package com.g93.be.service;
 
 import com.g93.be.config.ChatProperties;
 import com.g93.be.entity.KnowledgeDocument;
+import com.g93.be.entity.KnowledgeDocumentStatus;
+import com.g93.be.exception.ResourceNotFoundException;
 import com.g93.be.repository.KnowledgeDocumentRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -16,8 +18,11 @@ import java.nio.file.Path;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -39,6 +44,7 @@ class KnowledgeDocumentDeletionServiceTest {
         document.setId(7L);
         document.setSourceKey("file:checksum");
         document.setStoragePath(storedFile.toString());
+        document.setStatus(KnowledgeDocumentStatus.PENDING);
         when(repository.findById(7L)).thenReturn(Optional.of(document));
         KnowledgeDocumentDeletionService service = new KnowledgeDocumentDeletionService(
                 repository, vectorStore, properties());
@@ -48,6 +54,35 @@ class KnowledgeDocumentDeletionServiceTest {
         verify(vectorStore).delete(any(Filter.Expression.class));
         verify(repository).delete(document);
         assertFalse(Files.exists(storedFile));
+    }
+
+    @Test
+    void deleteUrlDocumentRemovesPendingVectorsAndMetadataWithoutLocalFile() {
+        KnowledgeDocument document = new KnowledgeDocument();
+        document.setId(8L);
+        document.setSourceKey("url:checksum");
+        document.setStatus(KnowledgeDocumentStatus.PROCESSING);
+        document.setStoragePath(null);
+        when(repository.findById(8L)).thenReturn(Optional.of(document));
+        KnowledgeDocumentDeletionService service = new KnowledgeDocumentDeletionService(
+                repository, vectorStore, properties());
+
+        service.delete(8L);
+
+        verify(vectorStore).delete(any(Filter.Expression.class));
+        verify(repository).delete(document);
+    }
+
+    @Test
+    void deleteMissingDocumentDoesNotTouchVectorStoreOrRepositoryDelete() {
+        when(repository.findById(999L)).thenReturn(Optional.empty());
+        KnowledgeDocumentDeletionService service = new KnowledgeDocumentDeletionService(
+                repository, vectorStore, properties());
+
+        assertThrows(ResourceNotFoundException.class, () -> service.delete(999L));
+
+        verifyNoInteractions(vectorStore);
+        verify(repository, never()).delete(any());
     }
 
     private ChatProperties properties() {

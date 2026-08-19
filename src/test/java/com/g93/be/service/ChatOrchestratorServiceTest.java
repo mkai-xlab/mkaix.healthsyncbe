@@ -25,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -146,6 +147,51 @@ class ChatOrchestratorServiceTest {
         assertEquals("HYBRID", response.route());
         verify(medicalRagService).retrieve(
                 "Interpret report 31\nHEALTHSYNC DATA:\n" + business.context(), "DOCTOR", 7L);
+    }
+
+    @Test
+    void unclearQuestionReturnsClarificationWithoutQueryingClinicalSources() {
+        User doctor = user(7L, "DOCTOR");
+        prepareConversation(doctor, "");
+        when(aiGateway.route("Tell me more", "DOCTOR", "")).thenReturn(null);
+
+        ChatAnswerResponse response = service.ask(null, "Tell me more", "doctor");
+
+        assertEquals("CLARIFICATION", response.route());
+        assertEquals("Could you clarify whether you need HealthSync data or medical information?",
+                response.answer());
+        verifyNoInteractions(businessDataQueryService, medicalRagService);
+        verify(chatSessionService).saveAssistantMessage(
+                org.mockito.ArgumentMatchers.any(ChatSession.class),
+                org.mockito.ArgumentMatchers.eq("CLARIFICATION"),
+                org.mockito.ArgumentMatchers.argThat(answer -> response.answer().equals(answer.content())));
+    }
+
+    @Test
+    void hybridWithoutApprovedMedicalEvidenceFallsBackToPermittedBusinessData() {
+        User doctor = user(7L, "DOCTOR");
+        ChatRoutingDecision decision = new ChatRoutingDecision(
+                ChatRoute.HYBRID, BusinessQueryIntent.REPORT_SUMMARY, 31L, null, null, null);
+        BusinessQueryResult business = new BusinessQueryResult("final_diagnosis=Knee osteoarthritis", List.of());
+        prepareConversation(doctor, "");
+        when(aiGateway.route("Interpret report 31", "DOCTOR", "")).thenReturn(decision);
+        when(businessDataQueryService.execute(decision, "doctor")).thenReturn(business);
+        when(medicalRagService.retrieve(
+                "Interpret report 31\nHEALTHSYNC DATA:\n" + business.context(), "DOCTOR", 7L))
+                .thenReturn(new MedicalRetrievalResult("", List.of()));
+        when(aiGateway.answerBusiness("Interpret report 31", business.context(), ""))
+                .thenReturn(new GeneratedChatAnswer("The accessible report records knee osteoarthritis.", 18));
+
+        ChatAnswerResponse response = service.ask(null, "Interpret report 31", "doctor");
+
+        assertEquals("HYBRID", response.route());
+        assertEquals("The accessible report records knee osteoarthritis.", response.answer());
+        assertNotNull(response.warning());
+        verify(aiGateway, never()).answerHybrid(
+                org.mockito.ArgumentMatchers.anyString(),
+                org.mockito.ArgumentMatchers.anyString(),
+                org.mockito.ArgumentMatchers.anyString(),
+                org.mockito.ArgumentMatchers.anyString());
     }
 
     private User user(Long id, String roleCode) {
