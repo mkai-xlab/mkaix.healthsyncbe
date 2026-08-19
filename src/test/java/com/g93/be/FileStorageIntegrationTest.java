@@ -112,8 +112,6 @@ public class FileStorageIntegrationTest {
         assertEquals("dicom/scans/scan_001.dcm", capturedRequest.key());
         assertEquals("application/dicom", capturedRequest.contentType());
     }
-)
-
 
     private RestoreObjectResponse initiateS3ObjectRestoration(String bucket, String key, int days, Tier tier) {
         RestoreRequest restoreRequest = RestoreRequest.builder()
