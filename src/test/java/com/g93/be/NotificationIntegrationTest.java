@@ -251,7 +251,7 @@ public class NotificationIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", is("Notification sent successfully")));
 
-        List<Notification> alerts = notificationRepository.findByUserIdAndIsReadFalse(doctorUser1.getId());
+        List<Notification> alerts = notificationRepository.findByUserIdAndIsReadFalseOrderByCreatedAtDesc(doctorUser1.getId());
         assertEquals(2, alerts.size());
         boolean hasUrgent = alerts.stream().anyMatch(a -> "URGENT".equals(a.getType()) && "Critical Diagnostic Alert".equals(a.getTitle()));
         assertTrue(hasUrgent);

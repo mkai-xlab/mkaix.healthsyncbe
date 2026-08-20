@@ -1,6 +1,8 @@
 package com.g93.be;
 
 import com.g93.be.entity.*;
+import java.util.List;
+import com.g93.be.dto.PermissionResponse;
 import com.g93.be.repository.*;
 import com.g93.be.security.CustomUserDetails;
 import com.g93.be.security.JwtTokenProvider;
@@ -143,11 +145,14 @@ public class DashboardAnalyticsIntegrationTest {
         hodDoctor.setYearsOfExperience(15);
         hodDoctor = userRepository.save(hodDoctor);
 
+        PermissionResponse viewPendingPerm = new com.g93.be.dto.PermissionResponse(1L, "VIEW_PENDING_DIAGNOSIS", "View Pending", 1, "VIEW_PENDING_DIAGNOSIS", null);
+        PermissionResponse viewAnalyticPerm = new com.g93.be.dto.PermissionResponse(2L, "VIEW_ANALYTIC_HISTORY", "View Analytic", 1, "VIEW_ANALYTIC_HISTORY", null);
+
         // Generate tokens
         doctor1Token = jwtTokenProvider.generateAccessToken(
-                new CustomUserDetails(doctorUser1, Collections.emptyList()));
+                new CustomUserDetails(doctorUser1, List.of(viewPendingPerm, viewAnalyticPerm)));
         doctor2Token = jwtTokenProvider.generateAccessToken(
-                new CustomUserDetails(doctorUser2, Collections.emptyList()));
+                new CustomUserDetails(doctorUser2, List.of(viewPendingPerm, viewAnalyticPerm)));
         hodToken = jwtTokenProvider.generateAccessToken(
                 new CustomUserDetails(hodDoctor, Collections.emptyList()));
 

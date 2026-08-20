@@ -3,6 +3,7 @@ package com.g93.be;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.g93.be.dto.*;
 import com.g93.be.entity.*;
+import com.g93.be.dto.PermissionResponse;
 import com.g93.be.repository.*;
 import com.g93.be.security.CustomUserDetails;
 import com.g93.be.security.JwtTokenProvider;
@@ -28,6 +29,7 @@ import java.util.List;
 
 import static org.hamcrest.Matchers.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -143,11 +145,14 @@ public class AdminDashboardIntegrationTest {
         doctorUser.setYearsOfExperience(4);
         doctorUser = userRepository.save(doctorUser);
 
+        PermissionResponse uploadDicomPerm = new com.g93.be.dto.PermissionResponse(1L, "UPLOAD_DICOM_IMAGE", "Upload DICOM", 1, "UPLOAD_DICOM_IMAGE", null);
+        PermissionResponse triggerAiPerm = new com.g93.be.dto.PermissionResponse(2L, "TRIGGER_AI_ANALYSIS", "Trigger AI", 1, "TRIGGER_AI_ANALYSIS", null);
+
         // 3. Generate tokens
         adminToken = jwtTokenProvider.generateAccessToken(
                 new CustomUserDetails(adminUser, Collections.emptyList()));
         doctorToken = jwtTokenProvider.generateAccessToken(
-                new CustomUserDetails(doctorUser, Collections.emptyList()));
+                new CustomUserDetails(doctorUser, java.util.List.of(uploadDicomPerm, triggerAiPerm)));
 
         entityManager.flush();
         entityManager.clear();
@@ -270,7 +275,8 @@ public class AdminDashboardIntegrationTest {
         DicomVerifyRequest verifyRequest = new DicomVerifyRequest("session_123", List.of("PAT-OP-01"));
 
         // Setup mock return values for verify session
-        when(dicomVerifyService.verifySession(any(DicomVerifyRequest.class))).thenReturn(List.of(101L, 102L));
+        when(dicomVerifyService.verifySession(any(DicomVerifyRequest.class), any(Long.class), anyBoolean()))
+                .thenReturn(new VerifySessionResultDto(List.of(101L, 102L), List.of()));
 
         // Setup mock response from AI prediction batch
         PatientResponse patResponse = new PatientResponse();
@@ -289,13 +295,13 @@ public class AdminDashboardIntegrationTest {
 
         // Execute post request to verify session
         mockMvc.perform(post("/dicom/verify")
-                        .header("Authorization", "Bearer " + adminToken)
+                        .header("Authorization", "Bearer " + doctorToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(verifyRequest)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(1)))
-                .andExpect(jsonPath("$[0].grade", is(3)))
-                .andExpect(jsonPath("$[0].patientCount", is(1)));
+                .andExpect(jsonPath("$.savedInstanceIds", hasSize(2)))
+                .andExpect(jsonPath("$.savedInstanceIds[0]", is(101)))
+                .andExpect(jsonPath("$.failedPatients", hasSize(0)));
     }
 
     // View system performance
