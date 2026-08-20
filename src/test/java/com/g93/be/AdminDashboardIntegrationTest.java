@@ -299,9 +299,9 @@ public class AdminDashboardIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(verifyRequest)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(1)))
-                .andExpect(jsonPath("$[0].grade", is(3)))
-                .andExpect(jsonPath("$[0].patientCount", is(1)));
+                .andExpect(jsonPath("$.savedInstanceIds", hasSize(2)))
+                .andExpect(jsonPath("$.savedInstanceIds[0]", is(101)))
+                .andExpect(jsonPath("$.failedPatients", hasSize(0)));
     }
 
     // View system performance
