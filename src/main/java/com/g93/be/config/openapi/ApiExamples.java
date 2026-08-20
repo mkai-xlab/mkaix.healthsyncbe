@@ -179,6 +179,9 @@ final class ApiExamples {
             Map.entry("REPORT", json("""
                     {"reportId":9,"examinationId":42,"fileName":"report_ENC-2026-0042_a1b2c3d4.pdf","fileSize":38832,"contentType":"application/pdf","generatedAt":"2026-08-02T10:30:00","previewUrl":"/api/v1/reports/42/preview","downloadUrl":"/api/v1/reports/42/download"}
                     """)),
+            Map.entry("REPORT_PAGE", json("""
+                    {"content":[{"reportId":9,"examinationId":42,"encounterCode":"ENC-2026-0042","visitTime":"2026-08-02T09:30:00","patientCode":"PAT_A12B34CD","patientName":"Nguyễn Văn A","doctorId":7,"doctorName":"BS. Nguyễn Minh An","fileName":"report_ENC-2026-0042_a1b2c3d4.pdf","fileSize":38832,"contentType":"application/pdf","generatedAt":"2026-08-02T10:30:00","previewUrl":"/api/v1/reports/42/preview","downloadUrl":"/api/v1/reports/42/download"}],"pageNumber":0,"pageSize":10,"totalElements":1,"totalPages":1,"isLast":true}
+                    """)),
             Map.entry("NOTIFICATION_LIST", json("""
                     [{"id":31,"title":"Kết quả AI đã sẵn sàng","message":"Ca khám ENC-2026-0042 cần được xác nhận","type":"AI_RESULT","isRead":false,"createdAt":"2026-08-02T10:00:00","data":{"examinationId":42}}]
                     """)),

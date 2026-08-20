@@ -8,6 +8,7 @@ import com.g93.be.entity.AiResult;
 import com.g93.be.entity.DiagnosisReview;
 import com.g93.be.entity.DiagnosisReviewDecision;
 import com.g93.be.entity.DicomInstance;
+import com.g93.be.entity.DicomInstanceStatus;
 import com.g93.be.entity.Doctor;
 import com.g93.be.entity.Examination;
 import com.g93.be.entity.ExaminationStatus;
@@ -71,10 +72,12 @@ class DiagnosisReviewServiceTest {
         examination = new Examination();
         examination.setId(11L);
         examination.setDoctor(assignedDoctor);
+        examination.setStatus(ExaminationStatus.NEED_VERIFY);
 
         instance = new DicomInstance();
         instance.setId(13L);
         instance.setExamination(examination);
+        instance.setStatus(DicomInstanceStatus.GET_RESULTED);
 
         analysis = new AiAnalysis();
         analysis.setId(17L);
@@ -173,6 +176,76 @@ class DiagnosisReviewServiceTest {
 
         assertEquals(ExaminationStatus.VERIFIED, examination.getStatus());
         verify(examinationRepository).save(examination);
+    }
+
+    @Test
+    void finalReviewMarksExaminationVerifiedWhenOtherKneeAiFailed() {
+        DicomInstance failedInstance = new DicomInstance();
+        failedInstance.setId(14L);
+        failedInstance.setExamination(examination);
+        failedInstance.setStatus(DicomInstanceStatus.AI_FAILED);
+
+        when(aiResultRepository.findById(19L)).thenReturn(Optional.of(aiResult));
+        when(doctorRepository.findByUsername("doctor.b")).thenReturn(Optional.of(assignedDoctor));
+        when(diagnosisReviewRepository.findByAiResultId(19L)).thenReturn(Optional.empty());
+        when(diagnosisReviewRepository.save(any(DiagnosisReview.class))).thenAnswer(invocation -> {
+            DiagnosisReview review = invocation.getArgument(0);
+            review.setId(23L);
+            return review;
+        });
+        when(dicomInstanceRepository.findByExaminationId(11L))
+                .thenReturn(List.of(instance, failedInstance));
+
+        diagnosisReviewService.confirmAiGrade(19L, "doctor.b");
+
+        assertEquals(ExaminationStatus.VERIFIED, examination.getStatus());
+        verify(examinationRepository).save(examination);
+    }
+
+    @Test
+    void reviewedKneeDoesNotVerifyWhileOtherSuccessfulKneeIsUnreviewed() {
+        AiResult unreviewedResult = new AiResult();
+        unreviewedResult.setId(20L);
+        unreviewedResult.setPredictedGrade(3);
+        DicomInstance otherSuccessfulInstance = instance(14L, DicomInstanceStatus.GET_RESULTED, unreviewedResult);
+
+        stubReviewSave();
+        when(dicomInstanceRepository.findByExaminationId(11L))
+                .thenReturn(List.of(instance, otherSuccessfulInstance));
+
+        diagnosisReviewService.confirmAiGrade(19L, "doctor.b");
+
+        assertEquals(ExaminationStatus.NEED_VERIFY, examination.getStatus());
+        verify(examinationRepository, never()).save(examination);
+    }
+
+    @Test
+    void reviewedKneeDoesNotVerifyWhileOtherKneeIsStillProcessing() {
+        DicomInstance processingInstance = new DicomInstance();
+        processingInstance.setId(14L);
+        processingInstance.setExamination(examination);
+        processingInstance.setStatus(DicomInstanceStatus.AI_SENDING);
+
+        stubReviewSave();
+        when(dicomInstanceRepository.findByExaminationId(11L))
+                .thenReturn(List.of(instance, processingInstance));
+
+        diagnosisReviewService.confirmAiGrade(19L, "doctor.b");
+
+        assertEquals(ExaminationStatus.NEED_VERIFY, examination.getStatus());
+        verify(examinationRepository, never()).save(examination);
+    }
+
+    @Test
+    void reviewDoesNotVerifyWhenRepositoryContainsOnlyFailedInstances() {
+        instance.setStatus(DicomInstanceStatus.AI_FAILED);
+        stubReviewSave();
+        when(dicomInstanceRepository.findByExaminationId(11L)).thenReturn(List.of(instance));
+
+        diagnosisReviewService.confirmAiGrade(19L, "doctor.b");
+
+        assertEquals(ExaminationStatus.NEED_VERIFY, examination.getStatus());
+        verify(examinationRepository, never()).save(examination);
     }
 
     @Test
@@ -301,5 +374,30 @@ class DiagnosisReviewServiceTest {
 
         assertEquals("Doctor is not assigned to this examination", error.getMessage());
         verify(diagnosisReviewRepository, never()).save(any());
+    }
+
+    private void stubReviewSave() {
+        when(aiResultRepository.findById(19L)).thenReturn(Optional.of(aiResult));
+        when(doctorRepository.findByUsername("doctor.b")).thenReturn(Optional.of(assignedDoctor));
+        when(diagnosisReviewRepository.findByAiResultId(19L)).thenReturn(Optional.empty());
+        when(diagnosisReviewRepository.save(any(DiagnosisReview.class))).thenAnswer(invocation -> {
+            DiagnosisReview review = invocation.getArgument(0);
+            review.setId(23L);
+            return review;
+        });
+    }
+
+    private DicomInstance instance(Long id, DicomInstanceStatus status, AiResult result) {
+        DicomInstance dicomInstance = new DicomInstance();
+        dicomInstance.setId(id);
+        dicomInstance.setExamination(examination);
+        dicomInstance.setStatus(status);
+        AiAnalysis aiAnalysis = new AiAnalysis();
+        aiAnalysis.setId(id + 10);
+        aiAnalysis.setDicomInstance(dicomInstance);
+        aiAnalysis.setAiResults(List.of(result));
+        result.setAiAnalysis(aiAnalysis);
+        dicomInstance.setAiAnalysis(aiAnalysis);
+        return dicomInstance;
     }
 }
