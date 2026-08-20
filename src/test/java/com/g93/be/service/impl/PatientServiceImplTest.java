@@ -50,6 +50,13 @@ public class PatientServiceImplTest {
     // ==========================================
     // 1. createPatient
     // ==========================================
+    /**
+     * Mục đích: Kiểm tra chức năng tạo mới.
+     * Đầu vào: Kịch bản: Luồng chuẩn (dữ liệu hợp lệ).
+     * Hành động: Gọi phương thức CreatePatient().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     
+     * Kịch bản Test Design: UTCID01 (Dự kiến) */
     @Test
     void testCreatePatient_Normal() {
         CreatePatientRequest req = new CreatePatientRequest();
@@ -75,6 +82,13 @@ public class PatientServiceImplTest {
         verify(patientRepository).save(any(Patient.class));
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng tạo mới.
+     * Đầu vào: Kịch bản: Luồng lỗi (Abnormal/Invalid).
+     * Hành động: Gọi phương thức CreatePatient().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     
+     * Kịch bản Test Design: UTCID01 (Dự kiến) */
     @Test
     void testCreatePatient_Abnormal_MissingFullName() {
         CreatePatientRequest req = new CreatePatientRequest();
@@ -84,6 +98,13 @@ public class PatientServiceImplTest {
         assertEquals("Full name is required", ex.getMessage());
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng tạo mới.
+     * Đầu vào: Kịch bản: Luồng lỗi (Abnormal/Invalid).
+     * Hành động: Gọi phương thức CreatePatient().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     
+     * Kịch bản Test Design: UTCID01 (Dự kiến) */
     @Test
     void testCreatePatient_Abnormal_NullFullName() {
         CreatePatientRequest req = new CreatePatientRequest();
@@ -96,6 +117,13 @@ public class PatientServiceImplTest {
     // ==========================================
     // 2. editPatient
     // ==========================================
+    /**
+     * Mục đích: Kiểm tra chức năng cập nhật.
+     * Đầu vào: Kịch bản: Luồng chuẩn (dữ liệu hợp lệ).
+     * Hành động: Gọi phương thức EditPatient().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     
+     * Kịch bản Test Design: UTCID01 (Dự kiến) */
     @Test
     void testEditPatient_Normal() {
         EditPatientRequest req = new EditPatientRequest();
@@ -120,6 +148,13 @@ public class PatientServiceImplTest {
         verify(patientRepository).save(existing);
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng cập nhật.
+     * Đầu vào: Kịch bản: Luồng lỗi (Abnormal/Invalid).
+     * Hành động: Gọi phương thức EditPatient().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     
+     * Kịch bản Test Design: UTCID01 (Dự kiến) */
     @Test
     void testEditPatient_Abnormal_NotFound() {
         EditPatientRequest req = new EditPatientRequest();
@@ -131,6 +166,13 @@ public class PatientServiceImplTest {
         assertEquals("Patient with id 999 not found", ex.getMessage());
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng cập nhật.
+     * Đầu vào: Kịch bản: PartialUpdate.
+     * Hành động: Gọi phương thức EditPatient().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     
+     * Kịch bản Test Design: UTCID03 (Dự kiến) */
     @Test
     void testEditPatient_PartialUpdate() {
         EditPatientRequest req = new EditPatientRequest();
@@ -155,6 +197,13 @@ public class PatientServiceImplTest {
     // ==========================================
     // 3. getAllPatients
     // ==========================================
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Admin Success.
+     * Hành động: Gọi phương thức GetAllPatients().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     
+     * Kịch bản Test Design: N/A (Extra Test Case) */
     @Test
     void testGetAllPatients_Admin_Success() {
         PatientFilterRequest filter = new PatientFilterRequest();
@@ -177,6 +226,13 @@ public class PatientServiceImplTest {
         assertEquals(1, res.content().size());
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: DoctorPersonal Success.
+     * Hành động: Gọi phương thức GetAllPatients().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     
+     * Kịch bản Test Design: N/A (Extra Test Case) */
     @Test
     void testGetAllPatients_DoctorPersonal_Success() {
         PatientFilterRequest filter = new PatientFilterRequest();
@@ -201,6 +257,13 @@ public class PatientServiceImplTest {
         verify(patientRepository).findAllByCustomFilters(null, false, null, false, null, 5L, pageable);
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Ném ngoại lệ (Exception).
+     * Hành động: Gọi phương thức GetAllPatients().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     
+     * Kịch bản Test Design: N/A (Extra Test Case) */
     @Test
     void testGetAllPatients_DoctorNotPersonal_ThrowsException() {
         PatientFilterRequest filter = new PatientFilterRequest();
@@ -219,6 +282,13 @@ public class PatientServiceImplTest {
         assertEquals("Bạn không có quyền xem toàn bộ danh sách bệnh nhân của hệ thống.", ex.getMessage());
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: WithStatusesAndSeverities.
+     * Hành động: Gọi phương thức GetAllPatients().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     
+     * Kịch bản Test Design: N/A (Extra Test Case) */
     @Test
     void testGetAllPatients_WithStatusesAndSeverities() {
         PatientFilterRequest filter = new PatientFilterRequest();
@@ -246,6 +316,13 @@ public class PatientServiceImplTest {
     // ==========================================
     // 4. getPatientsByUploadDate
     // ==========================================
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: WithNullUsername.
+     * Hành động: Gọi phương thức GetPatientsByUploadDate().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     
+     * Kịch bản Test Design: N/A (Extra Test Case) */
     @Test
     void testGetPatientsByUploadDate_WithNullUsername() {
         LocalDate date = LocalDate.of(2023, 5, 15);
@@ -266,6 +343,13 @@ public class PatientServiceImplTest {
         verify(patientRepository).findPatientsByUploadDateAndDoctor(any(), any(), isNull(), any());
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: WithAdminUsername.
+     * Hành động: Gọi phương thức GetPatientsByUploadDate().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     
+     * Kịch bản Test Design: N/A (Extra Test Case) */
     @Test
     void testGetPatientsByUploadDate_WithAdminUsername() {
         LocalDate date = LocalDate.of(2023, 5, 15);
@@ -293,6 +377,13 @@ public class PatientServiceImplTest {
         verify(patientRepository).findPatientsByUploadDateAndDoctor(any(), any(), isNull(), any());
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: WithDoctorUsername.
+     * Hành động: Gọi phương thức GetPatientsByUploadDate().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     
+     * Kịch bản Test Design: N/A (Extra Test Case) */
     @Test
     void testGetPatientsByUploadDate_WithDoctorUsername() {
         LocalDate date = LocalDate.of(2023, 5, 15);

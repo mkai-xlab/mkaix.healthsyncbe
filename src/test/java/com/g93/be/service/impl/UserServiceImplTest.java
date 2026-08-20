@@ -67,6 +67,13 @@ public class UserServiceImplTest {
     // 1. createUser (11 Test Cases)
     // ==========================================
 
+    /**
+     * Mục đích: Kiểm tra chức năng tạo mới.
+     * Đầu vào: Kịch bản: Luồng chuẩn (dữ liệu hợp lệ).
+     * Hành động: Gọi phương thức CreateUser().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     
+     * Kịch bản Test Design: UTCID01 (Dự kiến) */
     @Test
     void testCreateUser_Normal_Doctor() { // UTC01
         CreateUserRequest req = new CreateUserRequest("New Doctor", "doc@gmail.com", "0901234567", 2L);
@@ -103,6 +110,13 @@ public class UserServiceImplTest {
         verify(mailUtil).sendTemplateMail(anyString(), anyString(), anyString(), any());
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng tạo mới.
+     * Đầu vào: Kịch bản: Luồng chuẩn (dữ liệu hợp lệ).
+     * Hành động: Gọi phương thức CreateUser().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     
+     * Kịch bản Test Design: UTCID01 (Dự kiến) */
     @Test
     void testCreateUser_Normal_HeadOfDepartment() { // UTC02
         CreateUserRequest req = new CreateUserRequest("Head Doctor", "head@test.com", "0902223334", 3L);
@@ -142,6 +156,13 @@ public class UserServiceImplTest {
         verify(doctorRepository).save(any(Doctor.class));
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng tạo mới.
+     * Đầu vào: Kịch bản: Luồng lỗi (Abnormal/Invalid).
+     * Hành động: Gọi phương thức CreateUser().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     
+     * Kịch bản Test Design: UTCID01 (Dự kiến) */
     @Test
     void testCreateUser_Abnormal_EmailExists() { // UTC03
         CreateUserRequest req = new CreateUserRequest("New Doctor", "doc@gmail.com", "0901234567", 2L);
@@ -153,6 +174,13 @@ public class UserServiceImplTest {
         verify(userRepository, never()).save(any(User.class));
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng tạo mới.
+     * Đầu vào: Kịch bản: Boundary UsernameDuplicate.
+     * Hành động: Gọi phương thức CreateUser().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     
+     * Kịch bản Test Design: UTCID04 (Dự kiến) */
     @Test
     void testCreateUser_Boundary_UsernameDuplicate() { // UTC04
         CreateUserRequest req = new CreateUserRequest("New Doctor", "abc@gmail.com", "0901234567", 2L);
@@ -185,6 +213,13 @@ public class UserServiceImplTest {
         assertEquals("abc2", res.getUsername()); // Username tự sinh thêm hậu tố
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng tạo mới.
+     * Đầu vào: Kịch bản: Luồng lỗi (Abnormal/Invalid).
+     * Hành động: Gọi phương thức CreateUser().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     
+     * Kịch bản Test Design: UTCID01 (Dự kiến) */
     @Test
     void testCreateUser_Abnormal_PhoneExists() { // UTC05
         CreateUserRequest req = new CreateUserRequest("New Doctor", "new@gmail.com", "0901234567", 2L);
@@ -196,6 +231,13 @@ public class UserServiceImplTest {
         assertEquals("Phone '0901234567' is already registered", ex.getMessage());
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng tạo mới.
+     * Đầu vào: Kịch bản: Luồng lỗi (Abnormal/Invalid).
+     * Hành động: Gọi phương thức CreateUser().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     
+     * Kịch bản Test Design: UTCID01 (Dự kiến) */
     @Test
     void testCreateUser_Abnormal_AdminRole() { // UTC06
         CreateUserRequest req = new CreateUserRequest("New Doctor", "new@gmail.com", "0901234567", 1L);
@@ -211,6 +253,13 @@ public class UserServiceImplTest {
         assertEquals("Cannot create a user with the ADMIN role via this endpoint", ex.getMessage());
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng tạo mới.
+     * Đầu vào: Kịch bản: Luồng lỗi (Abnormal/Invalid).
+     * Hành động: Gọi phương thức CreateUser().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     
+     * Kịch bản Test Design: UTCID01 (Dự kiến) */
     @Test
     void testCreateUser_Abnormal_RoleNotFound() { // UTC07
         CreateUserRequest req = new CreateUserRequest("New Doctor", "new@gmail.com", "0901234567", 99L);
@@ -223,6 +272,13 @@ public class UserServiceImplTest {
         assertEquals("Role not found", ex.getMessage());
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng tạo mới.
+     * Đầu vào: Kịch bản: Luồng lỗi (Abnormal/Invalid).
+     * Hành động: Gọi phương thức CreateUser().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     
+     * Kịch bản Test Design: UTCID01 (Dự kiến) */
     @Test
     void testCreateUser_Abnormal_NameHasNumbers() { // UTC08
         CreateUserRequest req = new CreateUserRequest("John123", "new@gmail.com", "0901234567", 2L);
@@ -232,6 +288,13 @@ public class UserServiceImplTest {
         assertTrue(violations.stream().anyMatch(v -> v.getMessage().contains("Họ và tên chỉ được chứa chữ cái và khoảng trắng")));
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng tạo mới.
+     * Đầu vào: Kịch bản: Luồng lỗi (Abnormal/Invalid).
+     * Hành động: Gọi phương thức CreateUser().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     
+     * Kịch bản Test Design: UTCID01 (Dự kiến) */
     @Test
     void testCreateUser_Abnormal_PhoneTooShort() { // UTC09
         CreateUserRequest req = new CreateUserRequest("John Doe", "new@gmail.com", "0901", 2L);
@@ -241,6 +304,13 @@ public class UserServiceImplTest {
         assertTrue(violations.stream().anyMatch(v -> v.getMessage().contains("Phone must be exactly 10 digits")));
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng tạo mới.
+     * Đầu vào: Kịch bản: Luồng lỗi (Abnormal/Invalid).
+     * Hành động: Gọi phương thức CreateUser().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     
+     * Kịch bản Test Design: UTCID01 (Dự kiến) */
     @Test
     void testCreateUser_Abnormal_PhoneBlank() { // UTC10
         CreateUserRequest req = new CreateUserRequest("John Doe", "new@gmail.com", "", 2L);
@@ -250,6 +320,13 @@ public class UserServiceImplTest {
         assertTrue(violations.stream().anyMatch(v -> v.getMessage().contains("Phone number cannot be blank") || v.getMessage().contains("Phone must be exactly 10 digits")));
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng tạo mới.
+     * Đầu vào: Kịch bản: Luồng lỗi (Abnormal/Invalid).
+     * Hành động: Gọi phương thức CreateUser().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     
+     * Kịch bản Test Design: UTCID01 (Dự kiến) */
     @Test
     void testCreateUser_Abnormal_NameBlank() { // UTC11
         CreateUserRequest req = new CreateUserRequest("", "new@gmail.com", "0901234567", 2L);
@@ -259,6 +336,13 @@ public class UserServiceImplTest {
         assertTrue(violations.stream().anyMatch(v -> v.getMessage().contains("Full name cannot be blank")));
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng tạo mới.
+     * Đầu vào: Kịch bản: Luồng lỗi (Abnormal/Invalid).
+     * Hành động: Gọi phương thức CreateUser().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     
+     * Kịch bản Test Design: UTCID01 (Dự kiến) */
     @Test
     void testCreateUser_Abnormal_DbConnectionFailure() { // UTC11_DB
         CreateUserRequest req = new CreateUserRequest("New Doctor", "new@gmail.com", "0901234567", 2L);
@@ -283,6 +367,13 @@ public class UserServiceImplTest {
     // 2. countDoctors (5 Test Cases)
     // ==========================================
 
+    /**
+     * Mục đích: Kiểm tra chức năng CountDoctors.
+     * Đầu vào: Kịch bản: Luồng chuẩn (dữ liệu hợp lệ).
+     * Hành động: Gọi phương thức CountDoctors().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     
+     * Kịch bản Test Design: UTCID01 (Dự kiến) */
     @Test
     void testCountDoctors_Normal_Admin() { // UTC12
         User admin = new User();
@@ -297,6 +388,13 @@ public class UserServiceImplTest {
         assertEquals(15L, count);
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng CountDoctors.
+     * Đầu vào: Kịch bản: Luồng chuẩn (dữ liệu hợp lệ).
+     * Hành động: Gọi phương thức CountDoctors().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     
+     * Kịch bản Test Design: UTCID01 (Dự kiến) */
     @Test
     void testCountDoctors_Normal_HeadOfDepartment() { // UTC13
         User head = new User();
@@ -311,6 +409,13 @@ public class UserServiceImplTest {
         assertEquals(10L, count);
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng CountDoctors.
+     * Đầu vào: Kịch bản: Luồng lỗi (Abnormal/Invalid).
+     * Hành động: Gọi phương thức CountDoctors().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     
+     * Kịch bản Test Design: UTCID01 (Dự kiến) */
     @Test
     void testCountDoctors_Abnormal_DoctorRole() { // UTC14
         User doc = new User();
@@ -324,6 +429,13 @@ public class UserServiceImplTest {
         assertEquals("Only Admin or Head of Department can view the total number of doctors.", ex.getMessage());
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng CountDoctors.
+     * Đầu vào: Kịch bản: Luồng lỗi (Abnormal/Invalid).
+     * Hành động: Gọi phương thức CountDoctors().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     
+     * Kịch bản Test Design: UTCID01 (Dự kiến) */
     @Test
     void testCountDoctors_Abnormal_UserNotFound() { // UTC15
         when(userRepository.findByUsername("ghost")).thenReturn(Optional.empty());
@@ -332,6 +444,13 @@ public class UserServiceImplTest {
         assertEquals("User not found", ex.getMessage());
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng CountDoctors.
+     * Đầu vào: Kịch bản: Dữ liệu rỗng (Empty).
+     * Hành động: Gọi phương thức CountDoctors().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     
+     * Kịch bản Test Design: N/A (Extra Test Case) */
     @Test
     void testCountDoctors_Boundary_EmptyDB() { // UTC16
         User admin = new User();
@@ -346,6 +465,13 @@ public class UserServiceImplTest {
         assertEquals(0L, count);
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng CountDoctors.
+     * Đầu vào: Kịch bản: Luồng lỗi (Abnormal/Invalid).
+     * Hành động: Gọi phương thức CountDoctors().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     
+     * Kịch bản Test Design: UTCID01 (Dự kiến) */
     @Test
     void testCountDoctors_Abnormal_DbConnectionFailure() { // UTC16_DB
         User admin = new User();
@@ -364,6 +490,13 @@ public class UserServiceImplTest {
     // 3. countHeads (4 Test Cases)
     // ==========================================
 
+    /**
+     * Mục đích: Kiểm tra chức năng CountHeads.
+     * Đầu vào: Kịch bản: Luồng chuẩn (dữ liệu hợp lệ).
+     * Hành động: Gọi phương thức CountHeads().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     
+     * Kịch bản Test Design: UTCID01 (Dự kiến) */
     @Test
     void testCountHeads_Normal_Admin() { // UTC17
         User admin = new User();
@@ -378,6 +511,13 @@ public class UserServiceImplTest {
         assertEquals(5L, count);
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng CountHeads.
+     * Đầu vào: Kịch bản: Luồng lỗi (Abnormal/Invalid).
+     * Hành động: Gọi phương thức CountHeads().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     
+     * Kịch bản Test Design: UTCID01 (Dự kiến) */
     @Test
     void testCountHeads_Abnormal_HeadRole() { // UTC18
         User head = new User();
@@ -391,6 +531,13 @@ public class UserServiceImplTest {
         assertEquals("Only Admin can view the total number of heads of department.", ex.getMessage());
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng CountHeads.
+     * Đầu vào: Kịch bản: Luồng lỗi (Abnormal/Invalid).
+     * Hành động: Gọi phương thức CountHeads().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     
+     * Kịch bản Test Design: UTCID01 (Dự kiến) */
     @Test
     void testCountHeads_Abnormal_DoctorRole() { // UTC19
         User doc = new User();
@@ -404,6 +551,13 @@ public class UserServiceImplTest {
         assertEquals("Only Admin can view the total number of heads of department.", ex.getMessage());
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng CountHeads.
+     * Đầu vào: Kịch bản: Dữ liệu rỗng (Empty).
+     * Hành động: Gọi phương thức CountHeads().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     
+     * Kịch bản Test Design: N/A (Extra Test Case) */
     @Test
     void testCountHeads_Boundary_EmptyDB() { // UTC20
         User admin = new User();
@@ -418,6 +572,13 @@ public class UserServiceImplTest {
         assertEquals(0L, count);
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng CountHeads.
+     * Đầu vào: Kịch bản: Luồng lỗi (Abnormal/Invalid).
+     * Hành động: Gọi phương thức CountHeads().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     
+     * Kịch bản Test Design: UTCID01 (Dự kiến) */
     @Test
     void testCountHeads_Abnormal_DbConnectionFailure() { // UTC20_DB
         User admin = new User();
@@ -534,6 +695,13 @@ public class UserServiceImplTest {
     // 5. searchStaff (1 Test Case)
     // ==========================================
 
+    /**
+     * Mục đích: Kiểm tra chức năng SearchStaff.
+     * Đầu vào: Kịch bản: Luồng chuẩn (dữ liệu hợp lệ).
+     * Hành động: Gọi phương thức SearchStaff().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     
+     * Kịch bản Test Design: UTCID01 (Dự kiến) */
     @Test
     void testSearchStaff_Normal() {
         org.springframework.data.domain.Page<User> mockPage = new org.springframework.data.domain.PageImpl<>(
@@ -557,6 +725,13 @@ public class UserServiceImplTest {
     // 6. toggleUserStatus (5 Test Cases)
     // ==========================================
 
+    /**
+     * Mục đích: Kiểm tra chức năng ToggleUserStatus.
+     * Đầu vào: Kịch bản: Luồng chuẩn (dữ liệu hợp lệ).
+     * Hành động: Gọi phương thức ToggleUserStatus().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     
+     * Kịch bản Test Design: UTCID01 (Dự kiến) */
     @Test
     void testToggleUserStatus_Deactivate_Normal() {
         User admin = userWithRole(1L, "ADMIN");
@@ -577,6 +752,13 @@ public class UserServiceImplTest {
         verify(mailUtil).sendPlainTextMail(eq("doctor@test.com"), anyString(), anyString());
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng ToggleUserStatus.
+     * Đầu vào: Kịch bản: Luồng chuẩn (dữ liệu hợp lệ).
+     * Hành động: Gọi phương thức ToggleUserStatus().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     
+     * Kịch bản Test Design: UTCID01 (Dự kiến) */
     @Test
     void testToggleUserStatus_Activate_Normal() {
         User admin = userWithRole(1L, "ADMIN");
@@ -597,6 +779,13 @@ public class UserServiceImplTest {
         verify(mailUtil).sendPlainTextMail(eq("doctor@test.com"), anyString(), anyString());
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng ToggleUserStatus.
+     * Đầu vào: Kịch bản: Ném ngoại lệ (Exception).
+     * Hành động: Gọi phương thức ToggleUserStatus().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     
+     * Kịch bản Test Design: UTCID03 (Dự kiến) */
     @Test
     void testToggleUserStatus_Deactivate_MissingReason_ThrowsException() {
         User admin = userWithRole(1L, "ADMIN");
@@ -616,6 +805,13 @@ public class UserServiceImplTest {
         verify(userRepository, never()).save(any(User.class));
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng ToggleUserStatus.
+     * Đầu vào: Kịch bản: Ném ngoại lệ (Exception).
+     * Hành động: Gọi phương thức ToggleUserStatus().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     
+     * Kịch bản Test Design: N/A (Extra Test Case) */
     @Test
     void testToggleUserStatus_TargetIsAdmin_ThrowsException() {
         User admin = userWithRole(1L, "ADMIN");
@@ -631,6 +827,13 @@ public class UserServiceImplTest {
         verify(userRepository, never()).save(any(User.class));
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng ToggleUserStatus.
+     * Đầu vào: Kịch bản: Ném ngoại lệ (Exception).
+     * Hành động: Gọi phương thức ToggleUserStatus().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     
+     * Kịch bản Test Design: UTCID02 (Dự kiến) */
     @Test
     void testToggleUserStatus_UserNotFound_ThrowsException() {
         User admin = userWithRole(1L, "ADMIN");

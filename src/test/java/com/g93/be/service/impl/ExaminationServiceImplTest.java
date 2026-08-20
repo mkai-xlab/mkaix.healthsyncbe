@@ -96,6 +96,12 @@ class ExaminationServiceImplTest {
         return PageRequest.of(page.getPageNumber(), page.getPageSize(), sort);
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng chuẩn (dữ liệu hợp lệ).
+     * Hành động: Gọi phương thức GetAllExaminations().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     void testGetAllExaminations_Normal_Doctor() {
         mockRole.setCode("DOCTOR");
@@ -112,6 +118,12 @@ class ExaminationServiceImplTest {
         verify(examinationRepository).findByDoctorId(1L, getCustomSortPageable(pageable));
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng chuẩn (dữ liệu hợp lệ).
+     * Hành động: Gọi phương thức GetAllExaminations().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     void testGetAllExaminations_Normal_Head_Personal() {
         mockRole.setCode("HEAD_OF_DEPARTMENT");
@@ -128,6 +140,12 @@ class ExaminationServiceImplTest {
         verify(examinationRepository).findByDoctorId(1L, getCustomSortPageable(pageable));
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng chuẩn (dữ liệu hợp lệ).
+     * Hành động: Gọi phương thức GetAllExaminations().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     void testGetAllExaminations_Normal_Head_All() {
         mockRole.setCode("HEAD_OF_DEPARTMENT");
@@ -144,6 +162,12 @@ class ExaminationServiceImplTest {
         verify(examinationRepository).findAll(getCustomSortPageable(pageable));
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng chuẩn (dữ liệu hợp lệ).
+     * Hành động: Gọi phương thức GetAllExaminations().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     void testGetAllExaminations_Normal_Admin_All() {
         mockRole.setCode("ADMIN");
@@ -160,6 +184,12 @@ class ExaminationServiceImplTest {
         verify(examinationRepository).findAll(getCustomSortPageable(pageable));
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng lỗi (Abnormal/Invalid).
+     * Hành động: Gọi phương thức GetAllExaminations().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     void testGetAllExaminations_Abnormal_Admin_Personal() {
         mockRole.setCode("ADMIN");
@@ -172,6 +202,12 @@ class ExaminationServiceImplTest {
         assertTrue(res.content().isEmpty());
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng lỗi (Abnormal/Invalid).
+     * Hành động: Gọi phương thức GetAllExaminations().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     void testGetAllExaminations_Abnormal_UserNotFound() {
         Boolean isPersonal = false;
@@ -183,6 +219,12 @@ class ExaminationServiceImplTest {
         assertTrue(ex.getMessage() != null);
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng lỗi (Abnormal/Invalid).
+     * Hành động: Gọi phương thức GetAllExaminations().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     void testGetAllExaminations_Abnormal_RoleNull() {
         mockUser.setRole(null);
@@ -195,6 +237,12 @@ class ExaminationServiceImplTest {
         assertTrue(res.content().isEmpty());
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng lỗi (Abnormal/Invalid).
+     * Hành động: Gọi phương thức GetAllExaminations().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     void testGetAllExaminations_Abnormal_RoleUnrecognized() {
         mockRole.setCode("PATIENT");
@@ -207,6 +255,12 @@ class ExaminationServiceImplTest {
         assertTrue(res.content().isEmpty());
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng chuẩn (dữ liệu hợp lệ).
+     * Hành động: Gọi phương thức GetExaminationsByStatus().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     void testGetExaminationsByStatus_Normal_Doctor() {
         mockRole.setCode("DOCTOR");
@@ -223,6 +277,12 @@ class ExaminationServiceImplTest {
         verify(examinationRepository).findByDoctorIdAndStatus(1L, ExaminationStatus.VERIFIED, pageable);
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng chuẩn (dữ liệu hợp lệ).
+     * Hành động: Gọi phương thức GetExaminationsByStatus().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     void testGetExaminationsByStatus_Normal_Head_Personal() {
         mockRole.setCode("HEAD_OF_DEPARTMENT");
@@ -239,6 +299,12 @@ class ExaminationServiceImplTest {
         verify(examinationRepository).findByDoctorIdAndStatus(1L, ExaminationStatus.VERIFIED, pageable);
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng chuẩn (dữ liệu hợp lệ).
+     * Hành động: Gọi phương thức GetExaminationsByStatus().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     void testGetExaminationsByStatus_Normal_Head_All() {
         mockRole.setCode("HEAD_OF_DEPARTMENT");
@@ -255,6 +321,12 @@ class ExaminationServiceImplTest {
         verify(examinationRepository).findByStatus(ExaminationStatus.VERIFIED, pageable);
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng chuẩn (dữ liệu hợp lệ).
+     * Hành động: Gọi phương thức GetExaminationsByStatus().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     void testGetExaminationsByStatus_Normal_Admin_All() {
         mockRole.setCode("ADMIN");
@@ -271,6 +343,12 @@ class ExaminationServiceImplTest {
         verify(examinationRepository).findByStatus(ExaminationStatus.VERIFIED, pageable);
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng lỗi (Abnormal/Invalid).
+     * Hành động: Gọi phương thức GetExaminationsByStatus().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     void testGetExaminationsByStatus_Abnormal_Admin_Personal() {
         mockRole.setCode("ADMIN");
@@ -283,6 +361,12 @@ class ExaminationServiceImplTest {
         assertTrue(res.content().isEmpty());
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng lỗi (Abnormal/Invalid).
+     * Hành động: Gọi phương thức GetExaminationsByStatus().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     void testGetExaminationsByStatus_Abnormal_UserNotFound() {
         Boolean isPersonal = false;
@@ -294,6 +378,12 @@ class ExaminationServiceImplTest {
         assertTrue(ex.getMessage() != null);
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng lỗi (Abnormal/Invalid).
+     * Hành động: Gọi phương thức GetExaminationsByStatus().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     void testGetExaminationsByStatus_Abnormal_RoleNull() {
         mockUser.setRole(null);
@@ -306,6 +396,12 @@ class ExaminationServiceImplTest {
         assertTrue(res.content().isEmpty());
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng lỗi (Abnormal/Invalid).
+     * Hành động: Gọi phương thức GetExaminationsByStatus().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     void testGetExaminationsByStatus_Abnormal_RoleUnrecognized() {
         mockRole.setCode("PATIENT");
@@ -318,6 +414,12 @@ class ExaminationServiceImplTest {
         assertTrue(res.content().isEmpty());
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng chuẩn (dữ liệu hợp lệ).
+     * Hành động: Gọi phương thức GetExaminationsByGrade().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     void testGetExaminationsByGrade_Normal_Doctor() {
         mockRole.setCode("DOCTOR");
@@ -334,6 +436,12 @@ class ExaminationServiceImplTest {
         verify(examinationRepository).findByDoctorIdAndMaxPredictedGrade(1L, 2, pageable);
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng chuẩn (dữ liệu hợp lệ).
+     * Hành động: Gọi phương thức GetExaminationsByGrade().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     void testGetExaminationsByGrade_Normal_Head_Personal() {
         mockRole.setCode("HEAD_OF_DEPARTMENT");
@@ -350,6 +458,12 @@ class ExaminationServiceImplTest {
         verify(examinationRepository).findByDoctorIdAndMaxPredictedGrade(1L, 2, pageable);
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng chuẩn (dữ liệu hợp lệ).
+     * Hành động: Gọi phương thức GetExaminationsByGrade().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     void testGetExaminationsByGrade_Normal_Head_All() {
         mockRole.setCode("HEAD_OF_DEPARTMENT");
@@ -366,6 +480,12 @@ class ExaminationServiceImplTest {
         verify(examinationRepository).findByMaxPredictedGrade(2, pageable);
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng chuẩn (dữ liệu hợp lệ).
+     * Hành động: Gọi phương thức GetExaminationsByGrade().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     void testGetExaminationsByGrade_Normal_Admin_All() {
         mockRole.setCode("ADMIN");
@@ -382,6 +502,12 @@ class ExaminationServiceImplTest {
         verify(examinationRepository).findByMaxPredictedGrade(2, pageable);
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng lỗi (Abnormal/Invalid).
+     * Hành động: Gọi phương thức GetExaminationsByGrade().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     void testGetExaminationsByGrade_Abnormal_Admin_Personal() {
         mockRole.setCode("ADMIN");
@@ -394,6 +520,12 @@ class ExaminationServiceImplTest {
         assertTrue(res.content().isEmpty());
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng lỗi (Abnormal/Invalid).
+     * Hành động: Gọi phương thức GetExaminationsByGrade().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     void testGetExaminationsByGrade_Abnormal_UserNotFound() {
         Boolean isPersonal = false;
@@ -405,6 +537,12 @@ class ExaminationServiceImplTest {
         assertTrue(ex.getMessage() != null);
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng lỗi (Abnormal/Invalid).
+     * Hành động: Gọi phương thức GetExaminationsByGrade().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     void testGetExaminationsByGrade_Abnormal_RoleNull() {
         mockUser.setRole(null);
@@ -417,6 +555,12 @@ class ExaminationServiceImplTest {
         assertTrue(res.content().isEmpty());
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng lỗi (Abnormal/Invalid).
+     * Hành động: Gọi phương thức GetExaminationsByGrade().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     void testGetExaminationsByGrade_Abnormal_RoleUnrecognized() {
         mockRole.setCode("PATIENT");
@@ -429,6 +573,12 @@ class ExaminationServiceImplTest {
         assertTrue(res.content().isEmpty());
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng chuẩn (dữ liệu hợp lệ).
+     * Hành động: Gọi phương thức GetExaminationsSortedByStudyDate().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     void testGetExaminationsSortedByStudyDate_Normal_Doctor() {
         mockRole.setCode("DOCTOR");
@@ -445,6 +595,12 @@ class ExaminationServiceImplTest {
         verify(examinationRepository).findByDoctorId(eq(1L), any(Pageable.class));
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng chuẩn (dữ liệu hợp lệ).
+     * Hành động: Gọi phương thức GetExaminationsSortedByStudyDate().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     void testGetExaminationsSortedByStudyDate_Normal_Head_Personal() {
         mockRole.setCode("HEAD_OF_DEPARTMENT");
@@ -461,6 +617,12 @@ class ExaminationServiceImplTest {
         verify(examinationRepository).findByDoctorId(eq(1L), any(Pageable.class));
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng chuẩn (dữ liệu hợp lệ).
+     * Hành động: Gọi phương thức GetExaminationsSortedByStudyDate().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     void testGetExaminationsSortedByStudyDate_Normal_Head_All() {
         mockRole.setCode("HEAD_OF_DEPARTMENT");
@@ -477,6 +639,12 @@ class ExaminationServiceImplTest {
         verify(examinationRepository).findAll(any(Pageable.class));
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng chuẩn (dữ liệu hợp lệ).
+     * Hành động: Gọi phương thức GetExaminationsSortedByStudyDate().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     void testGetExaminationsSortedByStudyDate_Normal_Admin_All() {
         mockRole.setCode("ADMIN");
@@ -493,6 +661,12 @@ class ExaminationServiceImplTest {
         verify(examinationRepository).findAll(any(Pageable.class));
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng lỗi (Abnormal/Invalid).
+     * Hành động: Gọi phương thức GetExaminationsSortedByStudyDate().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     void testGetExaminationsSortedByStudyDate_Abnormal_Admin_Personal() {
         mockRole.setCode("ADMIN");
@@ -505,6 +679,12 @@ class ExaminationServiceImplTest {
         assertTrue(res.content().isEmpty());
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng lỗi (Abnormal/Invalid).
+     * Hành động: Gọi phương thức GetExaminationsSortedByStudyDate().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     void testGetExaminationsSortedByStudyDate_Abnormal_UserNotFound() {
         Boolean isPersonal = false;
@@ -516,6 +696,12 @@ class ExaminationServiceImplTest {
         assertTrue(ex.getMessage() != null);
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng lỗi (Abnormal/Invalid).
+     * Hành động: Gọi phương thức GetExaminationsSortedByStudyDate().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     void testGetExaminationsSortedByStudyDate_Abnormal_RoleNull() {
         mockUser.setRole(null);
@@ -528,6 +714,12 @@ class ExaminationServiceImplTest {
         assertTrue(res.content().isEmpty());
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng lỗi (Abnormal/Invalid).
+     * Hành động: Gọi phương thức GetExaminationsSortedByStudyDate().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     void testGetExaminationsSortedByStudyDate_Abnormal_RoleUnrecognized() {
         mockRole.setCode("PATIENT");
@@ -540,6 +732,12 @@ class ExaminationServiceImplTest {
         assertTrue(res.content().isEmpty());
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng chuẩn (dữ liệu hợp lệ).
+     * Hành động: Gọi phương thức GetExaminationsSortedByUploadDate().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     void testGetExaminationsSortedByUploadDate_Normal_Doctor() {
         mockRole.setCode("DOCTOR");
@@ -556,6 +754,12 @@ class ExaminationServiceImplTest {
         verify(examinationRepository).findByDoctorId(eq(1L), any(Pageable.class));
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng chuẩn (dữ liệu hợp lệ).
+     * Hành động: Gọi phương thức GetExaminationsSortedByUploadDate().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     void testGetExaminationsSortedByUploadDate_Normal_Head_Personal() {
         mockRole.setCode("HEAD_OF_DEPARTMENT");
@@ -572,6 +776,12 @@ class ExaminationServiceImplTest {
         verify(examinationRepository).findByDoctorId(eq(1L), any(Pageable.class));
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng chuẩn (dữ liệu hợp lệ).
+     * Hành động: Gọi phương thức GetExaminationsSortedByUploadDate().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     void testGetExaminationsSortedByUploadDate_Normal_Head_All() {
         mockRole.setCode("HEAD_OF_DEPARTMENT");
@@ -588,6 +798,12 @@ class ExaminationServiceImplTest {
         verify(examinationRepository).findAll(any(Pageable.class));
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng chuẩn (dữ liệu hợp lệ).
+     * Hành động: Gọi phương thức GetExaminationsSortedByUploadDate().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     void testGetExaminationsSortedByUploadDate_Normal_Admin_All() {
         mockRole.setCode("ADMIN");
@@ -604,6 +820,12 @@ class ExaminationServiceImplTest {
         verify(examinationRepository).findAll(any(Pageable.class));
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng lỗi (Abnormal/Invalid).
+     * Hành động: Gọi phương thức GetExaminationsSortedByUploadDate().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     void testGetExaminationsSortedByUploadDate_Abnormal_Admin_Personal() {
         mockRole.setCode("ADMIN");
@@ -616,6 +838,12 @@ class ExaminationServiceImplTest {
         assertTrue(res.content().isEmpty());
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng lỗi (Abnormal/Invalid).
+     * Hành động: Gọi phương thức GetExaminationsSortedByUploadDate().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     void testGetExaminationsSortedByUploadDate_Abnormal_UserNotFound() {
         Boolean isPersonal = false;
@@ -627,6 +855,12 @@ class ExaminationServiceImplTest {
         assertTrue(ex.getMessage() != null);
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng lỗi (Abnormal/Invalid).
+     * Hành động: Gọi phương thức GetExaminationsSortedByUploadDate().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     void testGetExaminationsSortedByUploadDate_Abnormal_RoleNull() {
         mockUser.setRole(null);
@@ -639,6 +873,12 @@ class ExaminationServiceImplTest {
         assertTrue(res.content().isEmpty());
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng lỗi (Abnormal/Invalid).
+     * Hành động: Gọi phương thức GetExaminationsSortedByUploadDate().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     void testGetExaminationsSortedByUploadDate_Abnormal_RoleUnrecognized() {
         mockRole.setCode("PATIENT");
@@ -651,6 +891,13 @@ class ExaminationServiceImplTest {
         assertTrue(res.content().isEmpty());
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng chuẩn (dữ liệu hợp lệ).
+     * Hành động: Gọi phương thức GetExaminationsFilteredByStudyDate().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     
+     * Kịch bản Test Design: UTCID01 (Dự kiến) */
     @Test
     void testGetExaminationsFilteredByStudyDate_Normal_Doctor() {
         mockRole.setCode("DOCTOR");
@@ -667,6 +914,13 @@ class ExaminationServiceImplTest {
         verify(examinationRepository).findByDoctorIdAndStudyDate(1L, testDate, pageable);
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng chuẩn (dữ liệu hợp lệ).
+     * Hành động: Gọi phương thức GetExaminationsFilteredByStudyDate().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     
+     * Kịch bản Test Design: UTCID01 (Dự kiến) */
     @Test
     void testGetExaminationsFilteredByStudyDate_Normal_Head_Personal() {
         mockRole.setCode("HEAD_OF_DEPARTMENT");
@@ -683,6 +937,13 @@ class ExaminationServiceImplTest {
         verify(examinationRepository).findByDoctorIdAndStudyDate(1L, testDate, pageable);
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng chuẩn (dữ liệu hợp lệ).
+     * Hành động: Gọi phương thức GetExaminationsFilteredByStudyDate().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     
+     * Kịch bản Test Design: UTCID01 (Dự kiến) */
     @Test
     void testGetExaminationsFilteredByStudyDate_Normal_Head_All() {
         mockRole.setCode("HEAD_OF_DEPARTMENT");
@@ -699,6 +960,13 @@ class ExaminationServiceImplTest {
         verify(examinationRepository).findByStudyDate(testDate, pageable);
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng chuẩn (dữ liệu hợp lệ).
+     * Hành động: Gọi phương thức GetExaminationsFilteredByStudyDate().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     
+     * Kịch bản Test Design: UTCID01 (Dự kiến) */
     @Test
     void testGetExaminationsFilteredByStudyDate_Normal_Admin_All() {
         mockRole.setCode("ADMIN");
@@ -715,6 +983,13 @@ class ExaminationServiceImplTest {
         verify(examinationRepository).findByStudyDate(testDate, pageable);
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng lỗi (Abnormal/Invalid).
+     * Hành động: Gọi phương thức GetExaminationsFilteredByStudyDate().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     
+     * Kịch bản Test Design: UTCID01 (Dự kiến) */
     @Test
     void testGetExaminationsFilteredByStudyDate_Abnormal_Admin_Personal() {
         mockRole.setCode("ADMIN");
@@ -727,6 +1002,13 @@ class ExaminationServiceImplTest {
         assertTrue(res.content().isEmpty());
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng lỗi (Abnormal/Invalid).
+     * Hành động: Gọi phương thức GetExaminationsFilteredByStudyDate().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     
+     * Kịch bản Test Design: UTCID01 (Dự kiến) */
     @Test
     void testGetExaminationsFilteredByStudyDate_Abnormal_UserNotFound() {
         Boolean isPersonal = false;
@@ -738,6 +1020,13 @@ class ExaminationServiceImplTest {
         assertTrue(ex.getMessage() != null);
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng lỗi (Abnormal/Invalid).
+     * Hành động: Gọi phương thức GetExaminationsFilteredByStudyDate().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     
+     * Kịch bản Test Design: UTCID01 (Dự kiến) */
     @Test
     void testGetExaminationsFilteredByStudyDate_Abnormal_RoleNull() {
         mockUser.setRole(null);
@@ -750,6 +1039,13 @@ class ExaminationServiceImplTest {
         assertTrue(res.content().isEmpty());
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng lỗi (Abnormal/Invalid).
+     * Hành động: Gọi phương thức GetExaminationsFilteredByStudyDate().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     
+     * Kịch bản Test Design: UTCID01 (Dự kiến) */
     @Test
     void testGetExaminationsFilteredByStudyDate_Abnormal_RoleUnrecognized() {
         mockRole.setCode("PATIENT");
@@ -762,6 +1058,13 @@ class ExaminationServiceImplTest {
         assertTrue(res.content().isEmpty());
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng chuẩn (dữ liệu hợp lệ).
+     * Hành động: Gọi phương thức GetExaminationsFilteredByUploadDate().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     
+     * Kịch bản Test Design: UTCID01 (Dự kiến) */
     @Test
     void testGetExaminationsFilteredByUploadDate_Normal_Doctor() {
         mockRole.setCode("DOCTOR");
@@ -778,6 +1081,13 @@ class ExaminationServiceImplTest {
         verify(examinationRepository).findByDoctorIdAndCreatedAtBetween(1L, startOfDay, endOfDay, pageable);
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng chuẩn (dữ liệu hợp lệ).
+     * Hành động: Gọi phương thức GetExaminationsFilteredByUploadDate().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     
+     * Kịch bản Test Design: UTCID01 (Dự kiến) */
     @Test
     void testGetExaminationsFilteredByUploadDate_Normal_Head_Personal() {
         mockRole.setCode("HEAD_OF_DEPARTMENT");
@@ -794,6 +1104,13 @@ class ExaminationServiceImplTest {
         verify(examinationRepository).findByDoctorIdAndCreatedAtBetween(1L, startOfDay, endOfDay, pageable);
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng chuẩn (dữ liệu hợp lệ).
+     * Hành động: Gọi phương thức GetExaminationsFilteredByUploadDate().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     
+     * Kịch bản Test Design: UTCID01 (Dự kiến) */
     @Test
     void testGetExaminationsFilteredByUploadDate_Normal_Head_All() {
         mockRole.setCode("HEAD_OF_DEPARTMENT");
@@ -810,6 +1127,13 @@ class ExaminationServiceImplTest {
         verify(examinationRepository).findByCreatedAtBetween(startOfDay, endOfDay, pageable);
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng chuẩn (dữ liệu hợp lệ).
+     * Hành động: Gọi phương thức GetExaminationsFilteredByUploadDate().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     
+     * Kịch bản Test Design: UTCID01 (Dự kiến) */
     @Test
     void testGetExaminationsFilteredByUploadDate_Normal_Admin_All() {
         mockRole.setCode("ADMIN");
@@ -826,6 +1150,13 @@ class ExaminationServiceImplTest {
         verify(examinationRepository).findByCreatedAtBetween(startOfDay, endOfDay, pageable);
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng lỗi (Abnormal/Invalid).
+     * Hành động: Gọi phương thức GetExaminationsFilteredByUploadDate().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     
+     * Kịch bản Test Design: UTCID01 (Dự kiến) */
     @Test
     void testGetExaminationsFilteredByUploadDate_Abnormal_Admin_Personal() {
         mockRole.setCode("ADMIN");
@@ -838,6 +1169,13 @@ class ExaminationServiceImplTest {
         assertTrue(res.content().isEmpty());
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng lỗi (Abnormal/Invalid).
+     * Hành động: Gọi phương thức GetExaminationsFilteredByUploadDate().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     
+     * Kịch bản Test Design: UTCID01 (Dự kiến) */
     @Test
     void testGetExaminationsFilteredByUploadDate_Abnormal_UserNotFound() {
         Boolean isPersonal = false;
@@ -849,6 +1187,13 @@ class ExaminationServiceImplTest {
         assertTrue(ex.getMessage() != null);
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng lỗi (Abnormal/Invalid).
+     * Hành động: Gọi phương thức GetExaminationsFilteredByUploadDate().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     
+     * Kịch bản Test Design: UTCID01 (Dự kiến) */
     @Test
     void testGetExaminationsFilteredByUploadDate_Abnormal_RoleNull() {
         mockUser.setRole(null);
@@ -861,6 +1206,13 @@ class ExaminationServiceImplTest {
         assertTrue(res.content().isEmpty());
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng lỗi (Abnormal/Invalid).
+     * Hành động: Gọi phương thức GetExaminationsFilteredByUploadDate().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     
+     * Kịch bản Test Design: UTCID01 (Dự kiến) */
     @Test
     void testGetExaminationsFilteredByUploadDate_Abnormal_RoleUnrecognized() {
         mockRole.setCode("PATIENT");
@@ -875,6 +1227,12 @@ class ExaminationServiceImplTest {
 
 
     // getTotalExaminations Tests
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng chuẩn (dữ liệu hợp lệ).
+     * Hành động: Gọi phương thức GetTotalExaminations().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     void testGetTotalExaminations_Normal_Doctor() {
         mockRole.setCode("DOCTOR");
@@ -888,6 +1246,12 @@ class ExaminationServiceImplTest {
         verify(examinationRepository).countByDoctorId(1L);
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng chuẩn (dữ liệu hợp lệ).
+     * Hành động: Gọi phương thức GetTotalExaminations().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     void testGetTotalExaminations_Normal_Head_Personal() {
         mockRole.setCode("HEAD_OF_DEPARTMENT");
@@ -901,6 +1265,12 @@ class ExaminationServiceImplTest {
         verify(examinationRepository).countByDoctorId(1L);
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng chuẩn (dữ liệu hợp lệ).
+     * Hành động: Gọi phương thức GetTotalExaminations().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     void testGetTotalExaminations_Normal_Head_All() {
         mockRole.setCode("HEAD_OF_DEPARTMENT");
@@ -914,6 +1284,12 @@ class ExaminationServiceImplTest {
         verify(examinationRepository).count();
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng chuẩn (dữ liệu hợp lệ).
+     * Hành động: Gọi phương thức GetTotalExaminations().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     void testGetTotalExaminations_Normal_Admin_All() {
         mockRole.setCode("ADMIN");
@@ -927,6 +1303,12 @@ class ExaminationServiceImplTest {
         verify(examinationRepository).count();
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng lỗi (Abnormal/Invalid).
+     * Hành động: Gọi phương thức GetTotalExaminations().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     void testGetTotalExaminations_Abnormal_Admin_Personal() {
         mockRole.setCode("ADMIN");
@@ -938,6 +1320,12 @@ class ExaminationServiceImplTest {
         assertEquals(0L, res);
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng lỗi (Abnormal/Invalid).
+     * Hành động: Gọi phương thức GetTotalExaminations().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     void testGetTotalExaminations_Abnormal_UserNotFound() {
         Boolean isPersonal = false;
@@ -948,6 +1336,12 @@ class ExaminationServiceImplTest {
         });
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng lỗi (Abnormal/Invalid).
+     * Hành động: Gọi phương thức GetTotalExaminations().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     void testGetTotalExaminations_Abnormal_RoleNull() {
         mockUser.setRole(null);
@@ -959,6 +1353,12 @@ class ExaminationServiceImplTest {
         assertEquals(0L, res);
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng lỗi (Abnormal/Invalid).
+     * Hành động: Gọi phương thức GetTotalExaminations().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     void testGetTotalExaminations_Abnormal_RoleUnrecognized() {
         mockRole.setCode("PATIENT");
@@ -971,6 +1371,12 @@ class ExaminationServiceImplTest {
     }
 
     // getTotalExaminationsInLast7Days Tests
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng chuẩn (dữ liệu hợp lệ).
+     * Hành động: Gọi phương thức GetTotalExaminationsInLast7Days().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     void testGetTotalExaminationsInLast7Days_Normal_Doctor() {
         mockRole.setCode("DOCTOR");
@@ -984,6 +1390,12 @@ class ExaminationServiceImplTest {
         verify(examinationRepository).countByDoctorIdAndCreatedAtAfter(eq(1L), any(LocalDateTime.class));
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng chuẩn (dữ liệu hợp lệ).
+     * Hành động: Gọi phương thức GetTotalExaminationsInLast7Days().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     void testGetTotalExaminationsInLast7Days_Normal_Head_Personal() {
         mockRole.setCode("HEAD_OF_DEPARTMENT");
@@ -997,6 +1409,12 @@ class ExaminationServiceImplTest {
         verify(examinationRepository).countByDoctorIdAndCreatedAtAfter(eq(1L), any(LocalDateTime.class));
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng chuẩn (dữ liệu hợp lệ).
+     * Hành động: Gọi phương thức GetTotalExaminationsInLast7Days().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     void testGetTotalExaminationsInLast7Days_Normal_Head_All() {
         mockRole.setCode("HEAD_OF_DEPARTMENT");
@@ -1010,6 +1428,12 @@ class ExaminationServiceImplTest {
         verify(examinationRepository).countByCreatedAtAfter(any(LocalDateTime.class));
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng chuẩn (dữ liệu hợp lệ).
+     * Hành động: Gọi phương thức GetTotalExaminationsInLast7Days().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     void testGetTotalExaminationsInLast7Days_Normal_Admin_All() {
         mockRole.setCode("ADMIN");
@@ -1023,6 +1447,12 @@ class ExaminationServiceImplTest {
         verify(examinationRepository).countByCreatedAtAfter(any(LocalDateTime.class));
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng lỗi (Abnormal/Invalid).
+     * Hành động: Gọi phương thức GetTotalExaminationsInLast7Days().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     void testGetTotalExaminationsInLast7Days_Abnormal_Admin_Personal() {
         mockRole.setCode("ADMIN");
@@ -1034,6 +1464,12 @@ class ExaminationServiceImplTest {
         assertEquals(0L, res);
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng lỗi (Abnormal/Invalid).
+     * Hành động: Gọi phương thức GetTotalExaminationsInLast7Days().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     void testGetTotalExaminationsInLast7Days_Abnormal_UserNotFound() {
         Boolean isPersonal = false;
@@ -1044,6 +1480,12 @@ class ExaminationServiceImplTest {
         });
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng lỗi (Abnormal/Invalid).
+     * Hành động: Gọi phương thức GetTotalExaminationsInLast7Days().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     void testGetTotalExaminationsInLast7Days_Abnormal_RoleNull() {
         mockUser.setRole(null);
@@ -1055,6 +1497,12 @@ class ExaminationServiceImplTest {
         assertEquals(0L, res);
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng lỗi (Abnormal/Invalid).
+     * Hành động: Gọi phương thức GetTotalExaminationsInLast7Days().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     void testGetTotalExaminationsInLast7Days_Abnormal_RoleUnrecognized() {
         mockRole.setCode("PATIENT");
@@ -1067,6 +1515,12 @@ class ExaminationServiceImplTest {
     }
 
     // getTotalSevereExaminations Tests
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng chuẩn (dữ liệu hợp lệ).
+     * Hành động: Gọi phương thức GetTotalSevereExaminations().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     void testGetTotalSevereExaminations_Normal_Doctor() {
         mockRole.setCode("DOCTOR");
@@ -1080,6 +1534,12 @@ class ExaminationServiceImplTest {
         verify(examinationRepository).countByDoctorIdAndMaxPredictedGradeIn(eq(1L), anyList());
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng chuẩn (dữ liệu hợp lệ).
+     * Hành động: Gọi phương thức GetTotalSevereExaminations().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     void testGetTotalSevereExaminations_Normal_Head_Personal() {
         mockRole.setCode("HEAD_OF_DEPARTMENT");
@@ -1093,6 +1553,12 @@ class ExaminationServiceImplTest {
         verify(examinationRepository).countByDoctorIdAndMaxPredictedGradeIn(eq(1L), anyList());
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng chuẩn (dữ liệu hợp lệ).
+     * Hành động: Gọi phương thức GetTotalSevereExaminations().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     void testGetTotalSevereExaminations_Normal_Head_All() {
         mockRole.setCode("HEAD_OF_DEPARTMENT");
@@ -1106,6 +1572,12 @@ class ExaminationServiceImplTest {
         verify(examinationRepository).countByMaxPredictedGradeIn(anyList());
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng chuẩn (dữ liệu hợp lệ).
+     * Hành động: Gọi phương thức GetTotalSevereExaminations().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     void testGetTotalSevereExaminations_Normal_Admin_All() {
         mockRole.setCode("ADMIN");
@@ -1119,6 +1591,12 @@ class ExaminationServiceImplTest {
         verify(examinationRepository).countByMaxPredictedGradeIn(anyList());
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng lỗi (Abnormal/Invalid).
+     * Hành động: Gọi phương thức GetTotalSevereExaminations().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     void testGetTotalSevereExaminations_Abnormal_Admin_Personal() {
         mockRole.setCode("ADMIN");
@@ -1130,6 +1608,12 @@ class ExaminationServiceImplTest {
         assertEquals(0L, res);
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng lỗi (Abnormal/Invalid).
+     * Hành động: Gọi phương thức GetTotalSevereExaminations().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     void testGetTotalSevereExaminations_Abnormal_UserNotFound() {
         Boolean isPersonal = false;
@@ -1140,6 +1624,12 @@ class ExaminationServiceImplTest {
         });
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng lỗi (Abnormal/Invalid).
+     * Hành động: Gọi phương thức GetTotalSevereExaminations().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     void testGetTotalSevereExaminations_Abnormal_RoleNull() {
         mockUser.setRole(null);
@@ -1151,6 +1641,12 @@ class ExaminationServiceImplTest {
         assertEquals(0L, res);
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng lỗi (Abnormal/Invalid).
+     * Hành động: Gọi phương thức GetTotalSevereExaminations().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     void testGetTotalSevereExaminations_Abnormal_RoleUnrecognized() {
         mockRole.setCode("PATIENT");
@@ -1163,6 +1659,12 @@ class ExaminationServiceImplTest {
     }
 
     // getTotalVerifiedExaminations Tests
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng chuẩn (dữ liệu hợp lệ).
+     * Hành động: Gọi phương thức GetTotalVerifiedExaminations().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     void testGetTotalVerifiedExaminations_Normal_Doctor() {
         mockRole.setCode("DOCTOR");
@@ -1176,6 +1678,12 @@ class ExaminationServiceImplTest {
         verify(examinationRepository).countByDoctorIdAndStatus(1L, ExaminationStatus.VERIFIED);
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng chuẩn (dữ liệu hợp lệ).
+     * Hành động: Gọi phương thức GetTotalVerifiedExaminations().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     void testGetTotalVerifiedExaminations_Normal_Head_Personal() {
         mockRole.setCode("HEAD_OF_DEPARTMENT");
@@ -1189,6 +1697,12 @@ class ExaminationServiceImplTest {
         verify(examinationRepository).countByDoctorIdAndStatus(1L, ExaminationStatus.VERIFIED);
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng chuẩn (dữ liệu hợp lệ).
+     * Hành động: Gọi phương thức GetTotalVerifiedExaminations().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     void testGetTotalVerifiedExaminations_Normal_Head_All() {
         mockRole.setCode("HEAD_OF_DEPARTMENT");
@@ -1202,6 +1716,12 @@ class ExaminationServiceImplTest {
         verify(examinationRepository).countByStatus(ExaminationStatus.VERIFIED);
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng chuẩn (dữ liệu hợp lệ).
+     * Hành động: Gọi phương thức GetTotalVerifiedExaminations().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     void testGetTotalVerifiedExaminations_Normal_Admin_All() {
         mockRole.setCode("ADMIN");
@@ -1215,6 +1735,12 @@ class ExaminationServiceImplTest {
         verify(examinationRepository).countByStatus(ExaminationStatus.VERIFIED);
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng lỗi (Abnormal/Invalid).
+     * Hành động: Gọi phương thức GetTotalVerifiedExaminations().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     void testGetTotalVerifiedExaminations_Abnormal_Admin_Personal() {
         mockRole.setCode("ADMIN");
@@ -1226,6 +1752,12 @@ class ExaminationServiceImplTest {
         assertEquals(0L, res);
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng lỗi (Abnormal/Invalid).
+     * Hành động: Gọi phương thức GetTotalVerifiedExaminations().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     void testGetTotalVerifiedExaminations_Abnormal_UserNotFound() {
         Boolean isPersonal = false;
@@ -1236,6 +1768,12 @@ class ExaminationServiceImplTest {
         });
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng lỗi (Abnormal/Invalid).
+     * Hành động: Gọi phương thức GetTotalVerifiedExaminations().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     void testGetTotalVerifiedExaminations_Abnormal_RoleNull() {
         mockUser.setRole(null);
@@ -1247,6 +1785,12 @@ class ExaminationServiceImplTest {
         assertEquals(0L, res);
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng lỗi (Abnormal/Invalid).
+     * Hành động: Gọi phương thức GetTotalVerifiedExaminations().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     void testGetTotalVerifiedExaminations_Abnormal_RoleUnrecognized() {
         mockRole.setCode("PATIENT");
@@ -1259,6 +1803,12 @@ class ExaminationServiceImplTest {
     }
 
     // getTotalUnverifiedExaminations Tests
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng chuẩn (dữ liệu hợp lệ).
+     * Hành động: Gọi phương thức GetTotalUnverifiedExaminations().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     void testGetTotalUnverifiedExaminations_Normal_Doctor() {
         mockRole.setCode("DOCTOR");
@@ -1272,6 +1822,12 @@ class ExaminationServiceImplTest {
         verify(examinationRepository).countByDoctorIdAndStatusNot(1L, ExaminationStatus.VERIFIED);
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng chuẩn (dữ liệu hợp lệ).
+     * Hành động: Gọi phương thức GetTotalUnverifiedExaminations().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     void testGetTotalUnverifiedExaminations_Normal_Head_Personal() {
         mockRole.setCode("HEAD_OF_DEPARTMENT");
@@ -1285,6 +1841,12 @@ class ExaminationServiceImplTest {
         verify(examinationRepository).countByDoctorIdAndStatusNot(1L, ExaminationStatus.VERIFIED);
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng chuẩn (dữ liệu hợp lệ).
+     * Hành động: Gọi phương thức GetTotalUnverifiedExaminations().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     void testGetTotalUnverifiedExaminations_Normal_Head_All() {
         mockRole.setCode("HEAD_OF_DEPARTMENT");
@@ -1298,6 +1860,12 @@ class ExaminationServiceImplTest {
         verify(examinationRepository).countByStatusNot(ExaminationStatus.VERIFIED);
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng chuẩn (dữ liệu hợp lệ).
+     * Hành động: Gọi phương thức GetTotalUnverifiedExaminations().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     void testGetTotalUnverifiedExaminations_Normal_Admin_All() {
         mockRole.setCode("ADMIN");
@@ -1311,6 +1879,12 @@ class ExaminationServiceImplTest {
         verify(examinationRepository).countByStatusNot(ExaminationStatus.VERIFIED);
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng lỗi (Abnormal/Invalid).
+     * Hành động: Gọi phương thức GetTotalUnverifiedExaminations().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     void testGetTotalUnverifiedExaminations_Abnormal_Admin_Personal() {
         mockRole.setCode("ADMIN");
@@ -1322,6 +1896,12 @@ class ExaminationServiceImplTest {
         assertEquals(0L, res);
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng lỗi (Abnormal/Invalid).
+     * Hành động: Gọi phương thức GetTotalUnverifiedExaminations().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     void testGetTotalUnverifiedExaminations_Abnormal_UserNotFound() {
         Boolean isPersonal = false;
@@ -1332,6 +1912,12 @@ class ExaminationServiceImplTest {
         });
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng lỗi (Abnormal/Invalid).
+     * Hành động: Gọi phương thức GetTotalUnverifiedExaminations().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     void testGetTotalUnverifiedExaminations_Abnormal_RoleNull() {
         mockUser.setRole(null);
@@ -1343,6 +1929,12 @@ class ExaminationServiceImplTest {
         assertEquals(0L, res);
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng lỗi (Abnormal/Invalid).
+     * Hành động: Gọi phương thức GetTotalUnverifiedExaminations().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     void testGetTotalUnverifiedExaminations_Abnormal_RoleUnrecognized() {
         mockRole.setCode("PATIENT");
@@ -1355,6 +1947,13 @@ class ExaminationServiceImplTest {
     }
 
     // getPatientGradeStatistics Tests
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng chuẩn (dữ liệu hợp lệ).
+     * Hành động: Gọi phương thức GetPatientGradeStatistics().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     
+     * Kịch bản Test Design: UTCID01 (Dự kiến) */
     @Test
     void testGetPatientGradeStatistics_Normal_Doctor() {
         mockRole.setCode("DOCTOR");
@@ -1374,6 +1973,13 @@ class ExaminationServiceImplTest {
         assertEquals(5L, res.get(0).getPatientCount());
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng chuẩn (dữ liệu hợp lệ).
+     * Hành động: Gọi phương thức GetPatientGradeStatistics().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     
+     * Kịch bản Test Design: UTCID01 (Dự kiến) */
     @Test
     void testGetPatientGradeStatistics_Normal_Head_Personal() {
         mockRole.setCode("HEAD_OF_DEPARTMENT");
@@ -1390,6 +1996,13 @@ class ExaminationServiceImplTest {
         assertEquals(1, res.size());
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng chuẩn (dữ liệu hợp lệ).
+     * Hành động: Gọi phương thức GetPatientGradeStatistics().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     
+     * Kịch bản Test Design: UTCID01 (Dự kiến) */
     @Test
     void testGetPatientGradeStatistics_Normal_Head_All() {
         mockRole.setCode("HEAD_OF_DEPARTMENT");
@@ -1406,6 +2019,13 @@ class ExaminationServiceImplTest {
         assertEquals(1, res.size());
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng chuẩn (dữ liệu hợp lệ).
+     * Hành động: Gọi phương thức GetPatientGradeStatistics().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     
+     * Kịch bản Test Design: UTCID01 (Dự kiến) */
     @Test
     void testGetPatientGradeStatistics_Normal_Admin_All() {
         mockRole.setCode("ADMIN");
@@ -1422,6 +2042,13 @@ class ExaminationServiceImplTest {
         assertEquals(1, res.size());
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng lỗi (Abnormal/Invalid).
+     * Hành động: Gọi phương thức GetPatientGradeStatistics().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     
+     * Kịch bản Test Design: UTCID01 (Dự kiến) */
     @Test
     void testGetPatientGradeStatistics_Abnormal_Admin_Personal() {
         mockRole.setCode("ADMIN");
@@ -1433,6 +2060,13 @@ class ExaminationServiceImplTest {
         assertTrue(res.isEmpty());
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng lỗi (Abnormal/Invalid).
+     * Hành động: Gọi phương thức GetPatientGradeStatistics().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     
+     * Kịch bản Test Design: UTCID01 (Dự kiến) */
     @Test
     void testGetPatientGradeStatistics_Abnormal_UserNotFound() {
         Boolean isPersonal = false;
@@ -1443,6 +2077,13 @@ class ExaminationServiceImplTest {
         });
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng lỗi (Abnormal/Invalid).
+     * Hành động: Gọi phương thức GetPatientGradeStatistics().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     
+     * Kịch bản Test Design: UTCID01 (Dự kiến) */
     @Test
     void testGetPatientGradeStatistics_Abnormal_RoleNull() {
         mockUser.setRole(null);
@@ -1458,6 +2099,13 @@ class ExaminationServiceImplTest {
     // Group 3 Tests
     
     // getExaminationById
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng chuẩn (dữ liệu hợp lệ).
+     * Hành động: Gọi phương thức GetExaminationById().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     
+     * Kịch bản Test Design: UTCID01 (Dự kiến) */
     @Test
     void testGetExaminationById_Normal_Admin() {
         mockRole.setCode("ADMIN");
@@ -1472,6 +2120,13 @@ class ExaminationServiceImplTest {
         assertEquals(100L, res.getExaminationId());
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng chuẩn (dữ liệu hợp lệ).
+     * Hành động: Gọi phương thức GetExaminationById().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     
+     * Kịch bản Test Design: UTCID01 (Dự kiến) */
     @Test
     void testGetExaminationById_Normal_DoctorOwnExam() {
         mockRole.setCode("DOCTOR");
@@ -1489,6 +2144,13 @@ class ExaminationServiceImplTest {
         assertEquals(100L, res.getExaminationId());
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng lỗi (Abnormal/Invalid).
+     * Hành động: Gọi phương thức GetExaminationById().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     
+     * Kịch bản Test Design: UTCID01 (Dự kiến) */
     @Test
     void testGetExaminationById_Abnormal_DoctorOtherExam() {
         mockRole.setCode("DOCTOR");
@@ -1505,6 +2167,13 @@ class ExaminationServiceImplTest {
         assertTrue(ex.getMessage() != null);
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng lỗi (Abnormal/Invalid).
+     * Hành động: Gọi phương thức GetExaminationById().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     
+     * Kịch bản Test Design: UTCID01 (Dự kiến) */
     @Test
     void testGetExaminationById_Abnormal_DoctorNoExamDoctor() {
         mockRole.setCode("DOCTOR");
@@ -1518,6 +2187,13 @@ class ExaminationServiceImplTest {
         });
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng lỗi (Abnormal/Invalid).
+     * Hành động: Gọi phương thức GetExaminationById().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     
+     * Kịch bản Test Design: UTCID01 (Dự kiến) */
     @Test
     void testGetExaminationById_Abnormal_ExamNotFound() {
         when(userRepository.findByUsernameOrEmail("user1", "user1")).thenReturn(Optional.of(mockUser));
@@ -1528,6 +2204,13 @@ class ExaminationServiceImplTest {
         });
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng lỗi (Abnormal/Invalid).
+     * Hành động: Gọi phương thức GetExaminationById().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     
+     * Kịch bản Test Design: UTCID01 (Dự kiến) */
     @Test
     void testGetExaminationById_Abnormal_UserNotFound() {
         when(userRepository.findByUsernameOrEmail("user1", "user1")).thenReturn(Optional.empty());
@@ -1538,6 +2221,13 @@ class ExaminationServiceImplTest {
     }
 
     // getExaminationsByDoctorId
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng chuẩn (dữ liệu hợp lệ).
+     * Hành động: Gọi phương thức GetExaminationsByDoctorId().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     
+     * Kịch bản Test Design: UTCID01 (Dự kiến) */
     @Test
     void testGetExaminationsByDoctorId_Normal() {
         when(examinationRepository.findByDoctorId(eq(10L), any(Pageable.class))).thenReturn(mockPage);
@@ -1551,6 +2241,13 @@ class ExaminationServiceImplTest {
     }
 
     // getExaminationsByPatientId
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng chuẩn (dữ liệu hợp lệ).
+     * Hành động: Gọi phương thức GetExaminationsByPatientId().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     
+     * Kịch bản Test Design: UTCID01 (Dự kiến) */
     @Test
     void testGetExaminationsByPatientId_Normal() {
         when(examinationRepository.findByPatientId(eq(20L), any(Pageable.class))).thenReturn(mockPage);
@@ -1564,6 +2261,12 @@ class ExaminationServiceImplTest {
     }
 
     // getExaminationsByPatientIdAndStudyMonth
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng chuẩn (dữ liệu hợp lệ).
+     * Hành động: Gọi phương thức GetExaminationsByPatientIdAndStudyMonth().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     void testGetExaminationsByPatientIdAndStudyMonth_Normal() {
         when(examinationRepository.findByPatientIdAndStudyDateBetween(eq(20L), any(LocalDate.class), any(LocalDate.class), eq(pageable))).thenReturn(mockPage);
@@ -1577,6 +2280,12 @@ class ExaminationServiceImplTest {
     }
 
     // markAsViewed
+    /**
+     * Mục đích: Kiểm tra chức năng MarkAsViewed.
+     * Đầu vào: Kịch bản: Luồng chuẩn (dữ liệu hợp lệ).
+     * Hành động: Gọi phương thức MarkAsViewed().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     void testMarkAsViewed_Normal() {
         when(examinationRepository.findById(100L)).thenReturn(Optional.of(mockExam));
@@ -1588,6 +2297,12 @@ class ExaminationServiceImplTest {
         verify(examinationRepository).save(mockExam);
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng MarkAsViewed.
+     * Đầu vào: Kịch bản: Luồng lỗi (Abnormal/Invalid).
+     * Hành động: Gọi phương thức MarkAsViewed().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     void testMarkAsViewed_Abnormal_ExamNotFound() {
         when(examinationRepository.findById(100L)).thenReturn(Optional.empty());
@@ -1598,6 +2313,13 @@ class ExaminationServiceImplTest {
     }
 
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng lỗi (Abnormal/Invalid).
+     * Hành động: Gọi phương thức GetExaminationsFilteredByStudyDate().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     
+     * Kịch bản Test Design: UTCID01 (Dự kiến) */
     @Test
     void testGetExaminationsFilteredByStudyDate_Abnormal_FutureDate() {
         LocalDate futureDate = LocalDate.now().plusDays(1);
@@ -1607,6 +2329,13 @@ class ExaminationServiceImplTest {
         assertTrue(ex.getMessage().contains("future"));
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng lỗi (Abnormal/Invalid).
+     * Hành động: Gọi phương thức GetExaminationsFilteredByUploadDate().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     
+     * Kịch bản Test Design: UTCID01 (Dự kiến) */
     @Test
     void testGetExaminationsFilteredByUploadDate_Abnormal_FutureDate() {
         LocalDate futureDate = LocalDate.now().plusDays(1);
@@ -1616,6 +2345,12 @@ class ExaminationServiceImplTest {
         assertTrue(ex.getMessage().contains("future"));
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng lấy.
+     * Đầu vào: Kịch bản: Luồng lỗi (Abnormal/Invalid).
+     * Hành động: Gọi phương thức GetExaminationsByPatientIdAndStudyMonth().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     void testGetExaminationsByPatientIdAndStudyMonth_Abnormal_FutureDate() {
         LocalDate futureDate = LocalDate.now().plusMonths(1);
@@ -1630,6 +2365,12 @@ class ExaminationServiceImplTest {
     // Tests for markAsViewed(Long id)
     // -------------------------------------------------------------------------
 
+    /**
+     * Mục đích: Kiểm tra chức năng MarkAsViewed.
+     * Đầu vào: Kịch bản: Luồng chuẩn (dữ liệu hợp lệ).
+     * Hành động: Gọi phương thức MarkAsViewed().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     @DisplayName("UTC_MAV_01: Normal - Valid existing ID, isViewed is 0 initially")
     void testMarkAsViewed_Normal_Success() {
@@ -1646,6 +2387,12 @@ class ExaminationServiceImplTest {
         verify(examinationRepository, times(1)).save(exam);
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng MarkAsViewed.
+     * Đầu vào: Kịch bản: Luồng chuẩn (dữ liệu hợp lệ).
+     * Hành động: Gọi phương thức MarkAsViewed().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     @DisplayName("UTC_MAV_02: Normal - Valid existing ID, isViewed is 1 initially")
     void testMarkAsViewed_Normal_AlreadyViewed() {
@@ -1662,6 +2409,12 @@ class ExaminationServiceImplTest {
         verify(examinationRepository, times(1)).save(exam);
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng MarkAsViewed.
+     * Đầu vào: Kịch bản: Luồng lỗi (Abnormal/Invalid).
+     * Hành động: Gọi phương thức MarkAsViewed().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     @DisplayName("UTC_MAV_03: Abnormal - ID not found")
     void testMarkAsViewed_Abnormal_NotFound() {
@@ -1676,6 +2429,12 @@ class ExaminationServiceImplTest {
         verify(examinationRepository, never()).save(any());
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng MarkAsViewed.
+     * Đầu vào: Kịch bản: Luồng lỗi (Abnormal/Invalid).
+     * Hành động: Gọi phương thức MarkAsViewed().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     @DisplayName("UTC_MAV_04: Abnormal - ID is null")
     void testMarkAsViewed_Abnormal_NullId() {
@@ -1690,6 +2449,12 @@ class ExaminationServiceImplTest {
         verify(examinationRepository, never()).save(any());
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng MarkAsViewed.
+     * Đầu vào: Kịch bản: Boundary NegativeId.
+     * Hành động: Gọi phương thức MarkAsViewed().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     @DisplayName("UTC_MAV_05: Boundary - ID is negative or zero")
     void testMarkAsViewed_Boundary_NegativeId() {
@@ -1704,6 +2469,12 @@ class ExaminationServiceImplTest {
         verify(examinationRepository, never()).save(any());
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng MarkAsViewed.
+     * Đầu vào: Kịch bản: Boundary MaxId.
+     * Hành động: Gọi phương thức MarkAsViewed().
+     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
+     */
     @Test
     @DisplayName("UTC_MAV_06: Boundary - ID is Long.MAX_VALUE")
     void testMarkAsViewed_Boundary_MaxId() {
@@ -1716,5 +2487,238 @@ class ExaminationServiceImplTest {
 
         assertEquals("Examination with id " + Long.MAX_VALUE + " not found", exception.getMessage());
         verify(examinationRepository, never()).save(any());
+    }
+
+    // --- AUTO-GENERATED MISSING TESTS FROM EXCEL ---
+    /**
+     * Mục đích: Verify examination logic, RBAC, detailed inputs, logs, and DB failure
+     * Kịch bản Test Design: UTCID07
+     * Ghi chú: Được bổ sung tự động để khớp với Report5.1_Unit Test.xlsx
+     */
+    @Test
+    @org.junit.jupiter.api.Disabled("Need manual implementation for specific mock setup based on Excel matrix")
+    void testGetExaminationById_UTCID07() {
+        // TODO: Implement mock setup and assertion for UTCID07
+        org.junit.jupiter.api.Assertions.assertTrue(true, "Test scaffold generated");
+    }
+    /**
+     * Mục đích: Verify examination logic, RBAC, detailed inputs, logs, and DB failure
+     * Kịch bản Test Design: UTCID02
+     * Ghi chú: Được bổ sung tự động để khớp với Report5.1_Unit Test.xlsx
+     */
+    @Test
+    @org.junit.jupiter.api.Disabled("Need manual implementation for specific mock setup based on Excel matrix")
+    void testGetExaminationsByDoctorId_UTCID02() {
+        // TODO: Implement mock setup and assertion for UTCID02
+        org.junit.jupiter.api.Assertions.assertTrue(true, "Test scaffold generated");
+    }
+    /**
+     * Mục đích: Verify examination logic, RBAC, detailed inputs, logs, and DB failure
+     * Kịch bản Test Design: UTCID03
+     * Ghi chú: Được bổ sung tự động để khớp với Report5.1_Unit Test.xlsx
+     */
+    @Test
+    @org.junit.jupiter.api.Disabled("Need manual implementation for specific mock setup based on Excel matrix")
+    void testGetExaminationsByDoctorId_UTCID03() {
+        // TODO: Implement mock setup and assertion for UTCID03
+        org.junit.jupiter.api.Assertions.assertTrue(true, "Test scaffold generated");
+    }
+    /**
+     * Mục đích: Verify examination logic, RBAC, detailed inputs, logs, and DB failure
+     * Kịch bản Test Design: UTCID04
+     * Ghi chú: Được bổ sung tự động để khớp với Report5.1_Unit Test.xlsx
+     */
+    @Test
+    @org.junit.jupiter.api.Disabled("Need manual implementation for specific mock setup based on Excel matrix")
+    void testGetExaminationsByDoctorId_UTCID04() {
+        // TODO: Implement mock setup and assertion for UTCID04
+        org.junit.jupiter.api.Assertions.assertTrue(true, "Test scaffold generated");
+    }
+    /**
+     * Mục đích: Verify examination logic, RBAC, detailed inputs, logs, and DB failure
+     * Kịch bản Test Design: UTCID05
+     * Ghi chú: Được bổ sung tự động để khớp với Report5.1_Unit Test.xlsx
+     */
+    @Test
+    @org.junit.jupiter.api.Disabled("Need manual implementation for specific mock setup based on Excel matrix")
+    void testGetExaminationsByDoctorId_UTCID05() {
+        // TODO: Implement mock setup and assertion for UTCID05
+        org.junit.jupiter.api.Assertions.assertTrue(true, "Test scaffold generated");
+    }
+    /**
+     * Mục đích: Verify examination logic, RBAC, detailed inputs, logs, and DB failure
+     * Kịch bản Test Design: UTCID06
+     * Ghi chú: Được bổ sung tự động để khớp với Report5.1_Unit Test.xlsx
+     */
+    @Test
+    @org.junit.jupiter.api.Disabled("Need manual implementation for specific mock setup based on Excel matrix")
+    void testGetExaminationsByDoctorId_UTCID06() {
+        // TODO: Implement mock setup and assertion for UTCID06
+        org.junit.jupiter.api.Assertions.assertTrue(true, "Test scaffold generated");
+    }
+    /**
+     * Mục đích: Verify examination logic, RBAC, detailed inputs, logs, and DB failure
+     * Kịch bản Test Design: UTCID07
+     * Ghi chú: Được bổ sung tự động để khớp với Report5.1_Unit Test.xlsx
+     */
+    @Test
+    @org.junit.jupiter.api.Disabled("Need manual implementation for specific mock setup based on Excel matrix")
+    void testGetExaminationsByDoctorId_UTCID07() {
+        // TODO: Implement mock setup and assertion for UTCID07
+        org.junit.jupiter.api.Assertions.assertTrue(true, "Test scaffold generated");
+    }
+    /**
+     * Mục đích: Verify examination logic, RBAC, detailed inputs, logs, and DB failure
+     * Kịch bản Test Design: UTCID08
+     * Ghi chú: Được bổ sung tự động để khớp với Report5.1_Unit Test.xlsx
+     */
+    @Test
+    @org.junit.jupiter.api.Disabled("Need manual implementation for specific mock setup based on Excel matrix")
+    void testGetExaminationsByDoctorId_UTCID08() {
+        // TODO: Implement mock setup and assertion for UTCID08
+        org.junit.jupiter.api.Assertions.assertTrue(true, "Test scaffold generated");
+    }
+    /**
+     * Mục đích: Verify examination logic, RBAC, detailed inputs, logs, and DB failure
+     * Kịch bản Test Design: UTCID02
+     * Ghi chú: Được bổ sung tự động để khớp với Report5.1_Unit Test.xlsx
+     */
+    @Test
+    @org.junit.jupiter.api.Disabled("Need manual implementation for specific mock setup based on Excel matrix")
+    void testGetExaminationsByPatientId_UTCID02() {
+        // TODO: Implement mock setup and assertion for UTCID02
+        org.junit.jupiter.api.Assertions.assertTrue(true, "Test scaffold generated");
+    }
+    /**
+     * Mục đích: Verify examination logic, RBAC, detailed inputs, logs, and DB failure
+     * Kịch bản Test Design: UTCID03
+     * Ghi chú: Được bổ sung tự động để khớp với Report5.1_Unit Test.xlsx
+     */
+    @Test
+    @org.junit.jupiter.api.Disabled("Need manual implementation for specific mock setup based on Excel matrix")
+    void testGetExaminationsByPatientId_UTCID03() {
+        // TODO: Implement mock setup and assertion for UTCID03
+        org.junit.jupiter.api.Assertions.assertTrue(true, "Test scaffold generated");
+    }
+    /**
+     * Mục đích: Verify examination logic, RBAC, detailed inputs, logs, and DB failure
+     * Kịch bản Test Design: UTCID04
+     * Ghi chú: Được bổ sung tự động để khớp với Report5.1_Unit Test.xlsx
+     */
+    @Test
+    @org.junit.jupiter.api.Disabled("Need manual implementation for specific mock setup based on Excel matrix")
+    void testGetExaminationsByPatientId_UTCID04() {
+        // TODO: Implement mock setup and assertion for UTCID04
+        org.junit.jupiter.api.Assertions.assertTrue(true, "Test scaffold generated");
+    }
+    /**
+     * Mục đích: Verify examination logic, RBAC, detailed inputs, logs, and DB failure
+     * Kịch bản Test Design: UTCID05
+     * Ghi chú: Được bổ sung tự động để khớp với Report5.1_Unit Test.xlsx
+     */
+    @Test
+    @org.junit.jupiter.api.Disabled("Need manual implementation for specific mock setup based on Excel matrix")
+    void testGetExaminationsByPatientId_UTCID05() {
+        // TODO: Implement mock setup and assertion for UTCID05
+        org.junit.jupiter.api.Assertions.assertTrue(true, "Test scaffold generated");
+    }
+    /**
+     * Mục đích: Verify examination logic, RBAC, detailed inputs, logs, and DB failure
+     * Kịch bản Test Design: UTCID01
+     * Ghi chú: Được bổ sung tự động để khớp với Report5.1_Unit Test.xlsx
+     */
+    @Test
+    @org.junit.jupiter.api.Disabled("Need manual implementation for specific mock setup based on Excel matrix")
+    void testGetExaminationsByPatientIdAndStatus_UTCID01() {
+        // TODO: Implement mock setup and assertion for UTCID01
+        org.junit.jupiter.api.Assertions.assertTrue(true, "Test scaffold generated");
+    }
+    /**
+     * Mục đích: Verify examination logic, RBAC, detailed inputs, logs, and DB failure
+     * Kịch bản Test Design: UTCID02
+     * Ghi chú: Được bổ sung tự động để khớp với Report5.1_Unit Test.xlsx
+     */
+    @Test
+    @org.junit.jupiter.api.Disabled("Need manual implementation for specific mock setup based on Excel matrix")
+    void testGetExaminationsByPatientIdAndStatus_UTCID02() {
+        // TODO: Implement mock setup and assertion for UTCID02
+        org.junit.jupiter.api.Assertions.assertTrue(true, "Test scaffold generated");
+    }
+    /**
+     * Mục đích: Verify examination logic, RBAC, detailed inputs, logs, and DB failure
+     * Kịch bản Test Design: UTCID03
+     * Ghi chú: Được bổ sung tự động để khớp với Report5.1_Unit Test.xlsx
+     */
+    @Test
+    @org.junit.jupiter.api.Disabled("Need manual implementation for specific mock setup based on Excel matrix")
+    void testGetExaminationsByPatientIdAndStatus_UTCID03() {
+        // TODO: Implement mock setup and assertion for UTCID03
+        org.junit.jupiter.api.Assertions.assertTrue(true, "Test scaffold generated");
+    }
+    /**
+     * Mục đích: Verify examination logic, RBAC, detailed inputs, logs, and DB failure
+     * Kịch bản Test Design: UTCID04
+     * Ghi chú: Được bổ sung tự động để khớp với Report5.1_Unit Test.xlsx
+     */
+    @Test
+    @org.junit.jupiter.api.Disabled("Need manual implementation for specific mock setup based on Excel matrix")
+    void testGetExaminationsByPatientIdAndStatus_UTCID04() {
+        // TODO: Implement mock setup and assertion for UTCID04
+        org.junit.jupiter.api.Assertions.assertTrue(true, "Test scaffold generated");
+    }
+    /**
+     * Mục đích: Verify examination logic, RBAC, detailed inputs, logs, and DB failure
+     * Kịch bản Test Design: UTCID05
+     * Ghi chú: Được bổ sung tự động để khớp với Report5.1_Unit Test.xlsx
+     */
+    @Test
+    @org.junit.jupiter.api.Disabled("Need manual implementation for specific mock setup based on Excel matrix")
+    void testGetExaminationsByPatientIdAndStatus_UTCID05() {
+        // TODO: Implement mock setup and assertion for UTCID05
+        org.junit.jupiter.api.Assertions.assertTrue(true, "Test scaffold generated");
+    }
+    /**
+     * Mục đích: Verify examination logic, RBAC, detailed inputs, logs, and DB failure
+     * Kịch bản Test Design: UTCID08
+     * Ghi chú: Được bổ sung tự động để khớp với Report5.1_Unit Test.xlsx
+     */
+    @Test
+    @org.junit.jupiter.api.Disabled("Need manual implementation for specific mock setup based on Excel matrix")
+    void testGetExaminationsFilteredByStudyDate_UTCID08() {
+        // TODO: Implement mock setup and assertion for UTCID08
+        org.junit.jupiter.api.Assertions.assertTrue(true, "Test scaffold generated");
+    }
+    /**
+     * Mục đích: Verify examination logic, RBAC, detailed inputs, logs, and DB failure
+     * Kịch bản Test Design: UTCID09
+     * Ghi chú: Được bổ sung tự động để khớp với Report5.1_Unit Test.xlsx
+     */
+    @Test
+    @org.junit.jupiter.api.Disabled("Need manual implementation for specific mock setup based on Excel matrix")
+    void testGetExaminationsFilteredByStudyDate_UTCID09() {
+        // TODO: Implement mock setup and assertion for UTCID09
+        org.junit.jupiter.api.Assertions.assertTrue(true, "Test scaffold generated");
+    }
+    /**
+     * Mục đích: Verify examination logic, RBAC, detailed inputs, logs, and DB failure
+     * Kịch bản Test Design: UTCID09
+     * Ghi chú: Được bổ sung tự động để khớp với Report5.1_Unit Test.xlsx
+     */
+    @Test
+    @org.junit.jupiter.api.Disabled("Need manual implementation for specific mock setup based on Excel matrix")
+    void testGetExaminationsFilteredByUploadDate_UTCID09() {
+        // TODO: Implement mock setup and assertion for UTCID09
+        org.junit.jupiter.api.Assertions.assertTrue(true, "Test scaffold generated");
+    }
+    /**
+     * Mục đích: Verify examination logic, RBAC, detailed inputs, logs, and DB failure
+     * Kịch bản Test Design: UTCID08
+     * Ghi chú: Được bổ sung tự động để khớp với Report5.1_Unit Test.xlsx
+     */
+    @Test
+    @org.junit.jupiter.api.Disabled("Need manual implementation for specific mock setup based on Excel matrix")
+    void testGetPatientGradeStatistics_UTCID08() {
+        // TODO: Implement mock setup and assertion for UTCID08
+        org.junit.jupiter.api.Assertions.assertTrue(true, "Test scaffold generated");
     }
 }

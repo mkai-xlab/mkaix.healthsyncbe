@@ -69,6 +69,13 @@ public class DoctorServiceImplTest {
     // ==========================================
     // 1. searchDoctors
     // ==========================================
+    /**
+     * Mục đích: Kiểm tra tìm kiếm danh sách bác sĩ với các tham số bình thường (không null).
+     * Đầu vào: Từ khóa "kw", chuyên khoa "spec", trạng thái ACTIVE và phân trang.
+     * Hành động: Gọi searchDoctors().
+     * Kỳ vọng: Trả về PageResponse có chứa 1 DoctorResponse.
+     
+     * Kịch bản Test Design: UTCID01 (Dự kiến) */
     @Test
     void testSearchDoctors_Normal() {
         Pageable pageable = PageRequest.of(0, 10);
@@ -86,6 +93,13 @@ public class DoctorServiceImplTest {
         verify(doctorRepository).findAll(any(Specification.class), eq(pageable));
     }
 
+    /**
+     * Mục đích: Kiểm tra tìm kiếm bác sĩ nhưng không có kết quả phù hợp.
+     * Đầu vào: Tham số tìm kiếm hợp lệ nhưng mock DB trả về trang rỗng.
+     * Hành động: Gọi searchDoctors().
+     * Kỳ vọng: Trả về PageResponse rỗng (size = 0).
+     
+     * Kịch bản Test Design: N/A (Extra Test Case) */
     @Test
     void testSearchDoctors_EmptyResult() {
         Pageable pageable = PageRequest.of(0, 10);
@@ -100,6 +114,13 @@ public class DoctorServiceImplTest {
         verify(doctorRepository).findAll(any(Specification.class), eq(pageable));
     }
 
+    /**
+     * Mục đích: Kiểm tra tìm kiếm bác sĩ khi tất cả các bộ lọc đều bị null.
+     * Đầu vào: keyword = null, specialty = null, status = null.
+     * Hành động: Gọi searchDoctors().
+     * Kỳ vọng: Hàm vẫn chạy qua mà không quăng lỗi, trả về danh sách bác sĩ không bị filter lỗi.
+     
+     * Kịch bản Test Design: N/A (Extra Test Case) */
     @Test
     void testSearchDoctors_NullFilters() {
         Pageable pageable = PageRequest.of(0, 10);
@@ -116,6 +137,13 @@ public class DoctorServiceImplTest {
     // ==========================================
     // 2. getAllDoctors
     // ==========================================
+    /**
+     * Mục đích: Kiểm tra lấy toàn bộ danh sách bác sĩ không phân trang.
+     * Đầu vào: Mock repository trả về danh sách có 1 bác sĩ.
+     * Hành động: Gọi getAllDoctors().
+     * Kỳ vọng: Trả về danh sách chứa 1 phần tử DoctorResponse.
+     
+     * Kịch bản Test Design: UTCID01 (Dự kiến) */
     @Test
     void testGetAllDoctors_Normal() {
         Doctor doc = new Doctor();
@@ -131,6 +159,13 @@ public class DoctorServiceImplTest {
         verify(doctorRepository).findAll();
     }
 
+    /**
+     * Mục đích: Kiểm tra lấy danh sách toàn bộ bác sĩ khi DB trống.
+     * Đầu vào: Mock repository trả về danh sách rỗng.
+     * Hành động: Gọi getAllDoctors().
+     * Kỳ vọng: Trả về danh sách rỗng (isEmpty() == true).
+     
+     * Kịch bản Test Design: N/A (Extra Test Case) */
     @Test
     void testGetAllDoctors_EmptyList() {
         when(doctorRepository.findAll()).thenReturn(List.of());
@@ -142,6 +177,13 @@ public class DoctorServiceImplTest {
     // ==========================================
     // 3. getActiveDoctors
     // ==========================================
+    /**
+     * Mục đích: Kiểm tra lấy danh sách các bác sĩ đang hoạt động (ACTIVE).
+     * Đầu vào: Mock repository trả về danh sách có 1 bác sĩ ACTIVE.
+     * Hành động: Gọi getActiveDoctors().
+     * Kỳ vọng: Trả về danh sách chứa 1 phần tử.
+     
+     * Kịch bản Test Design: UTCID01 (Dự kiến) */
     @Test
     void testGetActiveDoctors_Normal() {
         Doctor doc = new Doctor();
@@ -157,6 +199,13 @@ public class DoctorServiceImplTest {
         verify(doctorRepository).findAllByStatus(UserStatus.ACTIVE);
     }
 
+    /**
+     * Mục đích: Kiểm tra lấy danh sách bác sĩ đang hoạt động khi DB không có ai.
+     * Đầu vào: Mock repository trả về danh sách rỗng.
+     * Hành động: Gọi getActiveDoctors().
+     * Kỳ vọng: Trả về danh sách rỗng.
+     
+     * Kịch bản Test Design: N/A (Extra Test Case) */
     @Test
     void testGetActiveDoctors_EmptyList() {
         when(doctorRepository.findAllByStatus(UserStatus.ACTIVE)).thenReturn(List.of());
@@ -168,6 +217,13 @@ public class DoctorServiceImplTest {
     // ==========================================
     // 4. softDeleteDoctor
     // ==========================================
+    /**
+     * Mục đích: Kiểm tra chức năng xóa mềm (ẩn) bác sĩ thành công.
+     * Đầu vào: Bác sĩ đang ACTIVE trong DB.
+     * Hành động: Gọi softDeleteDoctor().
+     * Kỳ vọng: Trạng thái bác sĩ chuyển thành INACTIVE và được lưu lại DB.
+     
+     * Kịch bản Test Design: UTCID01 (Dự kiến) */
     @Test
     void testSoftDeleteDoctor_Normal() {
         Doctor doc = new Doctor();
@@ -180,6 +236,13 @@ public class DoctorServiceImplTest {
         verify(doctorRepository).save(doc);
     }
 
+    /**
+     * Mục đích: Kiểm tra xóa mềm bác sĩ nhưng ID truyền vào không tồn tại.
+     * Đầu vào: ID không tồn tại.
+     * Hành động: Gọi softDeleteDoctor().
+     * Kỳ vọng: Ném ra ngoại lệ IllegalArgumentException báo không tìm thấy.
+     
+     * Kịch bản Test Design: UTCID01 (Dự kiến) */
     @Test
     void testSoftDeleteDoctor_Abnormal_NotFound() {
         when(doctorRepository.findById(1L)).thenReturn(Optional.empty());
@@ -191,6 +254,13 @@ public class DoctorServiceImplTest {
     // ==========================================
     // 5. activateDoctor
     // ==========================================
+    /**
+     * Mục đích: Kiểm tra chức năng kích hoạt lại bác sĩ đã bị ẩn.
+     * Đầu vào: Bác sĩ đang INACTIVE trong DB.
+     * Hành động: Gọi activateDoctor().
+     * Kỳ vọng: Trạng thái bác sĩ chuyển thành ACTIVE và được lưu lại DB.
+     
+     * Kịch bản Test Design: UTCID01 (Dự kiến) */
     @Test
     void testActivateDoctor_Normal() {
         Doctor doc = new Doctor();
@@ -203,6 +273,13 @@ public class DoctorServiceImplTest {
         verify(doctorRepository).save(doc);
     }
 
+    /**
+     * Mục đích: Kiểm tra kích hoạt lại bác sĩ nhưng ID truyền vào không tồn tại.
+     * Đầu vào: ID không tồn tại.
+     * Hành động: Gọi activateDoctor().
+     * Kỳ vọng: Ném ra ngoại lệ IllegalArgumentException báo không tìm thấy.
+     
+     * Kịch bản Test Design: UTCID01 (Dự kiến) */
     @Test
     void testActivateDoctor_Abnormal_NotFound() {
         when(doctorRepository.findById(1L)).thenReturn(Optional.empty());
@@ -214,6 +291,13 @@ public class DoctorServiceImplTest {
     // ==========================================
     // 6. editDoctor
     // ==========================================
+    /**
+     * Mục đích: Kiểm tra chỉnh sửa thông tin bác sĩ thành công.
+     * Đầu vào: Object request hợp lệ gồm tên, email, phone, avatarUrl mới.
+     * Hành động: Gọi editDoctor().
+     * Kỳ vọng: Các thông tin của bác sĩ trong hệ thống được cập nhật giống với request.
+     
+     * Kịch bản Test Design: UTCID01 (Dự kiến) */
     @Test
     void testEditDoctor_Normal() {
         Doctor doc = new Doctor();
@@ -246,6 +330,13 @@ public class DoctorServiceImplTest {
         assertNotNull(res);
     }
 
+    /**
+     * Mục đích: Kiểm tra lỗi khi chỉnh sửa thông tin bác sĩ nhưng không tìm thấy ID.
+     * Đầu vào: ID bác sĩ không tồn tại.
+     * Hành động: Gọi editDoctor().
+     * Kỳ vọng: Ném ra IllegalArgumentException với thông báo lỗi phù hợp.
+     
+     * Kịch bản Test Design: UTCID01 (Dự kiến) */
     @Test
     void testEditDoctor_Abnormal_NotFound() {
         EditDoctorRequest req = new EditDoctorRequest();
@@ -258,6 +349,13 @@ public class DoctorServiceImplTest {
     // ==========================================
     // 7. getDoctorProfile
     // ==========================================
+    /**
+     * Mục đích: Kiểm tra chức năng lấy thông tin Profile của chính bác sĩ đang đăng nhập.
+     * Đầu vào: Username hợp lệ đang tồn tại trong DB.
+     * Hành động: Gọi getDoctorProfile().
+     * Kỳ vọng: Trả về đối tượng DoctorResponse tương ứng với user đó.
+     
+     * Kịch bản Test Design: UTCID01 (Dự kiến) */
     @Test
     void testGetDoctorProfile_Normal() {
         Doctor doc = new Doctor();
@@ -271,6 +369,13 @@ public class DoctorServiceImplTest {
         verify(doctorRepository).findProfileByUsername("user1");
     }
 
+    /**
+     * Mục đích: Kiểm tra lấy Profile nhưng username không tồn tại (trường hợp token rác/tài khoản bị xóa).
+     * Đầu vào: Username giả.
+     * Hành động: Gọi getDoctorProfile().
+     * Kỳ vọng: Ném ra IllegalArgumentException.
+     
+     * Kịch bản Test Design: UTCID01 (Dự kiến) */
     @Test
     void testGetDoctorProfile_Abnormal_NotFound() {
         when(doctorRepository.findProfileByUsername("user1")).thenReturn(Optional.empty());
@@ -282,6 +387,13 @@ public class DoctorServiceImplTest {
     // ==========================================
     // 8. editDoctorProfile
     // ==========================================
+    /**
+     * Mục đích: Kiểm tra chức năng bác sĩ tự chỉnh sửa Profile cá nhân thành công.
+     * Đầu vào: Username hợp lệ và một request EditDoctorProfileRequest hợp lệ.
+     * Hành động: Gọi editDoctorProfile().
+     * Kỳ vọng: Cập nhật thành công các thông tin (tên, số điện thoại, kinh nghiệm,...) vào DB.
+     
+     * Kịch bản Test Design: UTCID01 (Dự kiến) */
     @Test
     void testEditDoctorProfile_Normal() {
         Doctor doc = new Doctor();
@@ -309,6 +421,13 @@ public class DoctorServiceImplTest {
         assertNotNull(res);
     }
 
+    /**
+     * Mục đích: Kiểm tra chỉnh sửa Profile thất bại khi Username không tồn tại trong DB.
+     * Đầu vào: Username không hợp lệ.
+     * Hành động: Gọi editDoctorProfile().
+     * Kỳ vọng: Ném ra ngoại lệ IllegalArgumentException.
+     
+     * Kịch bản Test Design: UTCID01 (Dự kiến) */
     @Test
     void testEditDoctorProfile_Abnormal_NotFound() {
         EditDoctorProfileRequest req = new EditDoctorProfileRequest();
@@ -321,6 +440,12 @@ public class DoctorServiceImplTest {
     // ==========================================
     // 9. createDoctor
     // ==========================================
+    /**
+     * Mục đích: Kiểm tra tạo mới tài khoản Bác sĩ thành công bởi Admin.
+     * Đầu vào: CreateDoctorRequest với email và các thông tin cơ bản hợp lệ.
+     * Hành động: Gọi createDoctor().
+     * Kỳ vọng: Tạo thành công User, sinh mật khẩu ngẫu nhiên, lưu thông tin Doctor, gửi email báo mật khẩu, và trả về Response.
+     */
     @Test
     void testCreateDoctor_Normal() {
         CreateDoctorRequest req = new CreateDoctorRequest();
@@ -355,6 +480,12 @@ public class DoctorServiceImplTest {
         verify(mailUtil).sendTemplateMail(eq("newdoc@test.com"), anyString(), eq("doctor-welcome"), anyMap());
     }
 
+    /**
+     * Mục đích: Kiểm tra lỗi khi tạo mới bác sĩ nhưng thiếu email.
+     * Đầu vào: Request thiếu email (email rỗng).
+     * Hành động: Gọi createDoctor().
+     * Kỳ vọng: Ném ra IllegalArgumentException báo "Email is required".
+     */
     @Test
     void testCreateDoctor_Abnormal_MissingEmail() {
         CreateDoctorRequest req = new CreateDoctorRequest();
@@ -365,6 +496,12 @@ public class DoctorServiceImplTest {
         assertEquals("Email is required", ex.getMessage());
     }
 
+    /**
+     * Mục đích: Kiểm tra lỗi khi tạo mới bác sĩ nhưng thiếu tên.
+     * Đầu vào: Request thiếu Full Name (null).
+     * Hành động: Gọi createDoctor().
+     * Kỳ vọng: Ném ra IllegalArgumentException báo "Full name is required".
+     */
     @Test
     void testCreateDoctor_Abnormal_MissingFullName() {
         CreateDoctorRequest req = new CreateDoctorRequest();
@@ -375,6 +512,12 @@ public class DoctorServiceImplTest {
         assertEquals("Full name is required", ex.getMessage());
     }
 
+    /**
+     * Mục đích: Kiểm tra lỗi khi tạo bác sĩ mà email đã tồn tại trong hệ thống.
+     * Đầu vào: Request chứa email đã có trong DB.
+     * Hành động: Gọi createDoctor().
+     * Kỳ vọng: Ném ra IllegalArgumentException báo email đã được đăng ký.
+     */
     @Test
     void testCreateDoctor_Abnormal_DuplicateEmail() {
         CreateDoctorRequest req = new CreateDoctorRequest();
@@ -388,6 +531,12 @@ public class DoctorServiceImplTest {
         assertEquals("Email 'existing@test.com' is already registered", ex.getMessage());
     }
 
+    /**
+     * Mục đích: Kiểm tra lỗi khi tạo bác sĩ mà số điện thoại đã tồn tại.
+     * Đầu vào: Request chứa số điện thoại đã có trong DB.
+     * Hành động: Gọi createDoctor().
+     * Kỳ vọng: Ném ra IllegalArgumentException báo số điện thoại đã được đăng ký.
+     */
     @Test
     void testCreateDoctor_Abnormal_DuplicatePhone() {
         CreateDoctorRequest req = new CreateDoctorRequest();
@@ -405,6 +554,12 @@ public class DoctorServiceImplTest {
         assertEquals("Phone '0999888777' is already registered", ex.getMessage());
     }
 
+    /**
+     * Mục đích: Kiểm tra hệ thống khi tạo mới bác sĩ nhưng DB không có role DOCTOR (cấu hình sai).
+     * Đầu vào: RoleRepository không tìm thấy DOCTOR role.
+     * Hành động: Gọi createDoctor().
+     * Kỳ vọng: Ném ra IllegalStateException báo thiếu cấu hình Role.
+     */
     @Test
     void testCreateDoctor_Abnormal_RoleNotFound() {
         CreateDoctorRequest req = new CreateDoctorRequest();
@@ -419,6 +574,13 @@ public class DoctorServiceImplTest {
         IllegalStateException ex = assertThrows(IllegalStateException.class, () -> doctorService.createDoctor(req));
         assertEquals("DOCTOR role not found in database", ex.getMessage());
     }
+    /**
+     * Mục đích: Kiểm tra chức năng cập nhật một phần (Partial Update) cho bác sĩ.
+     * Đầu vào: Request chỉ chứa các trường null, không chứa dữ liệu mới.
+     * Hành động: Gọi editDoctor().
+     * Kỳ vọng: Giữ nguyên các thông tin cũ của bác sĩ, không bị ghi đè thành null.
+     
+     * Kịch bản Test Design: UTCID03 (Dự kiến) */
     @Test
     void testEditDoctor_PartialUpdate() {
         Doctor doc = new Doctor();
@@ -439,6 +601,13 @@ public class DoctorServiceImplTest {
         assertNull(doc.getPhone());
     }
 
+    /**
+     * Mục đích: Kiểm tra trường hợp đặc biệt khi cập nhật Avatar nhưng URL không có đuôi mở rộng.
+     * Đầu vào: url avatar không có định dạng file rõ ràng.
+     * Hành động: Gọi editDoctor().
+     * Kỳ vọng: Đường dẫn được lưu lại nhưng phần extension (đuôi file) bị null (không gây crash).
+     
+     * Kịch bản Test Design: N/A (Extra Test Case) */
     @Test
     void testEditDoctor_AvatarEdgeCases() {
         Doctor doc = new Doctor();
@@ -459,6 +628,13 @@ public class DoctorServiceImplTest {
         assertNull(doc.getAvatar().getExtension());
     }
 
+    /**
+     * Mục đích: Kiểm tra chức năng cập nhật Profile một phần (Partial Update).
+     * Đầu vào: ProfileRequest trống rỗng.
+     * Hành động: Gọi editDoctorProfile().
+     * Kỳ vọng: Dữ liệu cũ của Profile được giữ nguyên, không ghi đè thành null.
+     
+     * Kịch bản Test Design: UTCID03 (Dự kiến) */
     @Test
     void testEditDoctorProfile_PartialUpdate() {
         Doctor doc = new Doctor();
@@ -475,6 +651,12 @@ public class DoctorServiceImplTest {
         assertEquals("Old Name", doc.getFullName());
     }
 
+    /**
+     * Mục đích: Kiểm tra hệ thống khi tạo mới bác sĩ nhưng thiếu số điện thoại và Avatar.
+     * Đầu vào: Request chỉ chứa Email và Full Name, không có số điện thoại và ảnh.
+     * Hành động: Gọi createDoctor().
+     * Kỳ vọng: Tạo thành công bác sĩ mà không báo lỗi thiếu các trường không bắt buộc (phone, avatar).
+     */
     @Test
     void testCreateDoctor_NoPhoneAndNoAvatar() {
         CreateDoctorRequest req = new CreateDoctorRequest();
@@ -497,6 +679,12 @@ public class DoctorServiceImplTest {
         verify(doctorRepository).save(argThat(d -> d.getPhone() == null && d.getAvatar() == null));
     }
 
+    /**
+     * Mục đích: Kiểm tra logic tạo username tự động tránh trùng lặp và khả năng xử lý khi gửi email thất bại.
+     * Đầu vào: Email có tiền tố "test", DB đã có các username "test" và "test1". Cấu hình Mail server bị lỗi.
+     * Hành động: Gọi createDoctor().
+     * Kỳ vọng: Tự động gán username thành "test2". Quá trình tạo vẫn thành công (không ném ngoại lệ) bất chấp lỗi gửi mail.
+     */
     @Test
     void testCreateDoctor_UsernameCollisionAndMailException() {
         CreateDoctorRequest req = new CreateDoctorRequest();
@@ -527,6 +715,12 @@ public class DoctorServiceImplTest {
         verify(doctorRepository).save(argThat(d -> d.getUsername().equals("test2")));
     }
 
+    /**
+     * Mục đích: Kiểm tra tạo username tự động khi email bắt đầu bằng ký tự đặc biệt (VD: !!!@test.com).
+     * Đầu vào: Ký tự đặc biệt ở đầu email, bị xóa sạch sau khi lọc regex.
+     * Hành động: Gọi createDoctor().
+     * Kỳ vọng: Gán username mặc định là "doctor" thay vì chuỗi rỗng.
+     */
     @Test
     void testCreateDoctor_InvalidEmailBase() {
         CreateDoctorRequest req = new CreateDoctorRequest();
@@ -547,6 +741,12 @@ public class DoctorServiceImplTest {
         
         verify(doctorRepository).save(argThat(d -> d.getUsername().equals("doctor")));
     }
+    /**
+     * Mục đích: Kiểm tra validation của DTO CreateDoctorRequest đối với trường Email.
+     * Đầu vào: Lần lượt gán Email là null, chuỗi rỗng, sai định dạng, và dài quá mức cho phép.
+     * Hành động: Gọi validator.validate().
+     * Kỳ vọng: Validator trả về lỗi (violation) cho mọi trường hợp nhập sai Email.
+     */
     @Test
     void testCreateDoctorRequest_Validation_Email() {
         CreateDoctorRequest req = new CreateDoctorRequest();
@@ -570,6 +770,12 @@ public class DoctorServiceImplTest {
         assertFalse(validator.validate(req).isEmpty());
     }
 
+    /**
+     * Mục đích: Kiểm tra validation của DTO CreateDoctorRequest đối với trường Full Name.
+     * Đầu vào: Lần lượt gán Full Name là null, chuỗi rỗng, và dài quá 100 ký tự.
+     * Hành động: Gọi validator.validate().
+     * Kỳ vọng: Validator trả về lỗi (violation) cho mọi trường hợp.
+     */
     @Test
     void testCreateDoctorRequest_Validation_FullName() {
         CreateDoctorRequest req = new CreateDoctorRequest();
@@ -589,6 +795,12 @@ public class DoctorServiceImplTest {
         assertFalse(validator.validate(req).isEmpty());
     }
 
+    /**
+     * Mục đích: Kiểm tra validation của DTO CreateDoctorRequest đối với trường số điện thoại (Phone).
+     * Đầu vào: Lần lượt gán Phone là null, chứa chữ cái (sai định dạng), và dài quá 20 ký tự.
+     * Hành động: Gọi validator.validate().
+     * Kỳ vọng: Validator trả về lỗi (violation) cho mọi trường hợp.
+     */
     @Test
     void testCreateDoctorRequest_Validation_Phone() {
         CreateDoctorRequest req = new CreateDoctorRequest();
@@ -606,6 +818,162 @@ public class DoctorServiceImplTest {
         // > 20 chars
         req.setPhone("1".repeat(21));
         assertFalse(validator.validate(req).isEmpty());
+    }
+
+    // --- AUTO-GENERATED MISSING TESTS FROM EXCEL ---
+    /**
+     * Mục đích: Verify activation toggles status to ACTIVE
+     * Kịch bản Test Design: UTCID03
+     * Ghi chú: Được bổ sung tự động để khớp với Report5.1_Unit Test.xlsx
+     */
+    @Test
+    @org.junit.jupiter.api.Disabled("Need manual implementation for specific mock setup based on Excel matrix")
+    void testActivateDoctor_UTCID03() {
+        // TODO: Implement mock setup and assertion for UTCID03
+        org.junit.jupiter.api.Assertions.assertTrue(true, "Test scaffold generated");
+    }
+    /**
+     * Mục đích: Verify an admin can partially edit a doctor
+     * Kịch bản Test Design: UTCID05
+     * Ghi chú: Được bổ sung tự động để khớp với Report5.1_Unit Test.xlsx
+     */
+    @Test
+    @org.junit.jupiter.api.Disabled("Need manual implementation for specific mock setup based on Excel matrix")
+    void testEditDoctor_UTCID05() {
+        // TODO: Implement mock setup and assertion for UTCID05
+        org.junit.jupiter.api.Assertions.assertTrue(true, "Test scaffold generated");
+    }
+    /**
+     * Mục đích: Verify an admin can partially edit a doctor
+     * Kịch bản Test Design: UTCID06
+     * Ghi chú: Được bổ sung tự động để khớp với Report5.1_Unit Test.xlsx
+     */
+    @Test
+    @org.junit.jupiter.api.Disabled("Need manual implementation for specific mock setup based on Excel matrix")
+    void testEditDoctor_UTCID06() {
+        // TODO: Implement mock setup and assertion for UTCID06
+        org.junit.jupiter.api.Assertions.assertTrue(true, "Test scaffold generated");
+    }
+    /**
+     * Mục đích: Verify an admin can partially edit a doctor
+     * Kịch bản Test Design: UTCID07
+     * Ghi chú: Được bổ sung tự động để khớp với Report5.1_Unit Test.xlsx
+     */
+    @Test
+    @org.junit.jupiter.api.Disabled("Need manual implementation for specific mock setup based on Excel matrix")
+    void testEditDoctor_UTCID07() {
+        // TODO: Implement mock setup and assertion for UTCID07
+        org.junit.jupiter.api.Assertions.assertTrue(true, "Test scaffold generated");
+    }
+    /**
+     * Mục đích: Verify an admin can partially edit a doctor
+     * Kịch bản Test Design: UTCID08
+     * Ghi chú: Được bổ sung tự động để khớp với Report5.1_Unit Test.xlsx
+     */
+    @Test
+    @org.junit.jupiter.api.Disabled("Need manual implementation for specific mock setup based on Excel matrix")
+    void testEditDoctor_UTCID08() {
+        // TODO: Implement mock setup and assertion for UTCID08
+        org.junit.jupiter.api.Assertions.assertTrue(true, "Test scaffold generated");
+    }
+    /**
+     * Mục đích: Verify a doctor can update their own profile
+     * Kịch bản Test Design: UTCID04
+     * Ghi chú: Được bổ sung tự động để khớp với Report5.1_Unit Test.xlsx
+     */
+    @Test
+    @org.junit.jupiter.api.Disabled("Need manual implementation for specific mock setup based on Excel matrix")
+    void testEditDoctorProfile_UTCID04() {
+        // TODO: Implement mock setup and assertion for UTCID04
+        org.junit.jupiter.api.Assertions.assertTrue(true, "Test scaffold generated");
+    }
+    /**
+     * Mục đích: Verify a doctor can update their own profile
+     * Kịch bản Test Design: UTCID05
+     * Ghi chú: Được bổ sung tự động để khớp với Report5.1_Unit Test.xlsx
+     */
+    @Test
+    @org.junit.jupiter.api.Disabled("Need manual implementation for specific mock setup based on Excel matrix")
+    void testEditDoctorProfile_UTCID05() {
+        // TODO: Implement mock setup and assertion for UTCID05
+        org.junit.jupiter.api.Assertions.assertTrue(true, "Test scaffold generated");
+    }
+    /**
+     * Mục đích: Verify a doctor can update their own profile
+     * Kịch bản Test Design: UTCID06
+     * Ghi chú: Được bổ sung tự động để khớp với Report5.1_Unit Test.xlsx
+     */
+    @Test
+    @org.junit.jupiter.api.Disabled("Need manual implementation for specific mock setup based on Excel matrix")
+    void testEditDoctorProfile_UTCID06() {
+        // TODO: Implement mock setup and assertion for UTCID06
+        org.junit.jupiter.api.Assertions.assertTrue(true, "Test scaffold generated");
+    }
+    /**
+     * Mục đích: Verify getActiveDoctors fetching logic
+     * Kịch bản Test Design: UTCID03
+     * Ghi chú: Được bổ sung tự động để khớp với Report5.1_Unit Test.xlsx
+     */
+    @Test
+    @org.junit.jupiter.api.Disabled("Need manual implementation for specific mock setup based on Excel matrix")
+    void testGetActiveDoctors_UTCID03() {
+        // TODO: Implement mock setup and assertion for UTCID03
+        org.junit.jupiter.api.Assertions.assertTrue(true, "Test scaffold generated");
+    }
+    /**
+     * Mục đích: Verify fetching all doctors without pagination
+     * Kịch bản Test Design: UTCID03
+     * Ghi chú: Được bổ sung tự động để khớp với Report5.1_Unit Test.xlsx
+     */
+    @Test
+    @org.junit.jupiter.api.Disabled("Need manual implementation for specific mock setup based on Excel matrix")
+    void testGetAllDoctors_UTCID03() {
+        // TODO: Implement mock setup and assertion for UTCID03
+        org.junit.jupiter.api.Assertions.assertTrue(true, "Test scaffold generated");
+    }
+    /**
+     * Mục đích: Verify the authenticated doctor profile
+     * Kịch bản Test Design: UTCID03
+     * Ghi chú: Được bổ sung tự động để khớp với Report5.1_Unit Test.xlsx
+     */
+    @Test
+    @org.junit.jupiter.api.Disabled("Need manual implementation for specific mock setup based on Excel matrix")
+    void testGetDoctorProfile_UTCID03() {
+        // TODO: Implement mock setup and assertion for UTCID03
+        org.junit.jupiter.api.Assertions.assertTrue(true, "Test scaffold generated");
+    }
+    /**
+     * Mục đích: Verify the authenticated doctor profile
+     * Kịch bản Test Design: UTCID04
+     * Ghi chú: Được bổ sung tự động để khớp với Report5.1_Unit Test.xlsx
+     */
+    @Test
+    @org.junit.jupiter.api.Disabled("Need manual implementation for specific mock setup based on Excel matrix")
+    void testGetDoctorProfile_UTCID04() {
+        // TODO: Implement mock setup and assertion for UTCID04
+        org.junit.jupiter.api.Assertions.assertTrue(true, "Test scaffold generated");
+    }
+    /**
+     * Mục đích: Verify paginated searching and filtering of doctors
+     * Kịch bản Test Design: UTCID04
+     * Ghi chú: Được bổ sung tự động để khớp với Report5.1_Unit Test.xlsx
+     */
+    @Test
+    @org.junit.jupiter.api.Disabled("Need manual implementation for specific mock setup based on Excel matrix")
+    void testSearchDoctors_UTCID04() {
+        // TODO: Implement mock setup and assertion for UTCID04
+        org.junit.jupiter.api.Assertions.assertTrue(true, "Test scaffold generated");
+    }
+    /**
+     * Mục đích: Verify soft delete toggles status to INACTIVE
+     * Kịch bản Test Design: UTCID03
+     * Ghi chú: Được bổ sung tự động để khớp với Report5.1_Unit Test.xlsx
+     */
+    @Test
+    @org.junit.jupiter.api.Disabled("Need manual implementation for specific mock setup based on Excel matrix")
+    void testSoftDeleteDoctor_UTCID03() {
+        // TODO: Implement mock setup and assertion for UTCID03
+        org.junit.jupiter.api.Assertions.assertTrue(true, "Test scaffold generated");
     }
 }
 

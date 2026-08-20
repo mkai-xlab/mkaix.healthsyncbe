@@ -137,6 +137,12 @@ class AiServiceImplTest {
         return fakeResponse;
     }
 
+    /**
+     * Mục đích test: Kiểm tra luồng xử lý AI thành công với 1 DicomInstance hợp lệ.
+     * Đầu vào: Danh sách ID chứa 1 ID hợp lệ, DicomInstance có trạng thái AI_SENDING, API AI trả về HTTP 200 OK cùng dữ liệu dự đoán hợp lệ.
+     * Hành động: Gọi hàm predictBatch() của AiService.
+     * Kỳ vọng: Hàm thực thi thành công, trả về danh sách kết quả không rỗng. Trạng thái của DicomInstance chuyển thành GET_RESULTED. Cập nhật thành công điểm mức độ bệnh (maxPredictedGrade). Gửi thông báo Notification thành công.
+     */
     // ==============================================================================
     // UTCID01: 1 Valid ID, DB OK, API 200 OK, Valid Predictions
     // ==============================================================================
@@ -172,6 +178,12 @@ class AiServiceImplTest {
         }
     }
 
+    /**
+     * Mục đích test: Kiểm tra luồng xử lý AI với nhiều DicomInstance hợp lệ cùng lúc (Batch processing).
+     * Đầu vào: Danh sách ID chứa 2 ID hợp lệ thuộc cùng 1 ca khám. API AI trả về kết quả thành công cho cả 2.
+     * Hành động: Gọi hàm predictBatch() của AiService.
+     * Kỳ vọng: Xử lý thành công cả 2 ảnh. Trạng thái của cả 2 DicomInstance chuyển thành GET_RESULTED. Mức độ bệnh lớn nhất (maxPredictedGrade) được lưu đúng.
+     */
     // ==============================================================================
     // UTCID02: Multiple Valid IDs
     // ==============================================================================
@@ -214,6 +226,12 @@ class AiServiceImplTest {
         }
     }
 
+    /**
+     * Mục đích test: Kiểm tra lỗi khi ID DicomInstance truyền vào không tồn tại trong DB.
+     * Đầu vào: ID giả (999L), Mock Repository trả về Optional.empty().
+     * Hành động: Gọi hàm predictBatch().
+     * Kỳ vọng: Bắn ra ngoại lệ RuntimeException với thông báo chứa chuỗi "DicomInstance not found".
+     */
     // ==============================================================================
     // UTCID03: Instance Not Found
     // ==============================================================================
@@ -227,6 +245,12 @@ class AiServiceImplTest {
         assertTrue(exception.getMessage().contains("DicomInstance not found"));
     }
 
+    /**
+     * Mục đích test: Kiểm tra việc bỏ qua các ảnh không nằm trong trạng thái đang gửi AI (AI_SENDING).
+     * Đầu vào: DicomInstance có trạng thái GET_RESULTED (đã có kết quả).
+     * Hành động: Gọi hàm predictBatch().
+     * Kỳ vọng: Hàm trả về danh sách rỗng, không thực hiện gọi API AI, không lưu thay đổi vào DB.
+     */
     // ==============================================================================
     // UTCID04: Status != AI_SENDING
     // ==============================================================================
@@ -242,6 +266,12 @@ class AiServiceImplTest {
         verify(dicomInstanceRepository, never()).save(any());
     }
 
+    /**
+     * Mục đích test: Kiểm tra xử lý lỗi khi DicomInstance không có đường dẫn file ảnh.
+     * Đầu vào: DicomInstance hợp lệ nhưng trường filePath của Image bị null.
+     * Hành động: Gọi hàm predictBatch().
+     * Kỳ vọng: Bắn ra ngoại lệ RuntimeException với thông báo "Image/PNG path is NULL".
+     */
     // ==============================================================================
     // UTCID05: Image Path NULL
     // ==============================================================================
@@ -256,6 +286,12 @@ class AiServiceImplTest {
         assertTrue(exception.getMessage().contains("Image/PNG path is NULL"));
     }
 
+    /**
+     * Mục đích test: Kiểm tra xử lý lỗi khi file ảnh bị xóa hoặc không tồn tại trên ổ cứng.
+     * Đầu vào: DicomInstance có đường dẫn ảnh nhưng file vật lý đã bị xóa khỏi tempDir.
+     * Hành động: Gọi hàm predictBatch().
+     * Kỳ vọng: Bắn ra ngoại lệ RuntimeException với thông báo "Image file does not exist on disk".
+     */
     // ==============================================================================
     // UTCID06: Image File Missing on Disk
     // ==============================================================================
@@ -272,6 +308,12 @@ class AiServiceImplTest {
         assertTrue(exception.getMessage().contains("Image file does not exist on disk"));
     }
 
+    /**
+     * Mục đích test: Kiểm tra xử lý lỗi khi API Server AI trả về mã lỗi HTTP (VD: 400 Bad Request).
+     * Đầu vào: RestTemplate ném ra HttpClientErrorException.
+     * Hành động: Gọi hàm predictBatch().
+     * Kỳ vọng: Trạng thái của DicomInstance và Examination đều bị cập nhật thành AI_FAILED để báo lỗi cho người dùng.
+     */
     // ==============================================================================
     // UTCID07: API HttpStatusCodeException
     // ==============================================================================
@@ -296,6 +338,12 @@ class AiServiceImplTest {
         }
     }
 
+    /**
+     * Mục đích test: Kiểm tra xử lý lỗi khi mất kết nối mạng hoàn toàn tới Server AI (Connection Refused).
+     * Đầu vào: RestTemplate ném ra ResourceAccessException.
+     * Hành động: Gọi hàm predictBatch().
+     * Kỳ vọng: Trạng thái của DicomInstance cập nhật thành AI_FAILED, lưu lại thông báo lỗi "Connection refused" vào bảng AiAnalysis.
+     */
     // ==============================================================================
     // UTCID08: Generic Connection Exception
     // ==============================================================================
@@ -321,6 +369,12 @@ class AiServiceImplTest {
         }
     }
 
+    /**
+     * Mục đích test: Kiểm tra chức năng cắt ngắn (truncate) thông báo lỗi khi thông báo lỗi trả về quá dài vượt quá giới hạn cột của DB.
+     * Đầu vào: Thông báo lỗi dài 600 ký tự.
+     * Hành động: Gọi hàm predictBatch().
+     * Kỳ vọng: Lưu trữ thành công đối tượng AiAnalysis, thông báo lỗi bị cắt ngắn không quá 500 ký tự và kết thúc bằng dâu "...".
+     */
     // ==============================================================================
     // UTCID09: Error msg length > 500
     // ==============================================================================
@@ -347,6 +401,12 @@ class AiServiceImplTest {
         }
     }
 
+    /**
+     * Mục đích test: Kiểm tra hệ thống vẫn hoạt động đúng khi AI Server trả về HTTP 200 OK nhưng không tìm thấy đặc trưng bệnh (danh sách Predictions rỗng).
+     * Đầu vào: Đối tượng FastApiPredictionResponse có predictions = null.
+     * Hành động: Gọi hàm predictBatch().
+     * Kỳ vọng: DicomInstance vẫn được chuyển trạng thái thành GET_RESULTED và trạng thái AiAnalysis báo "SUCCESS".
+     */
     // ==============================================================================
     // UTCID10: Predictions null/empty
     // ==============================================================================
@@ -375,6 +435,12 @@ class AiServiceImplTest {
         }
     }
 
+    /**
+     * Mục đích test: Kiểm tra logic trích xuất cấp độ bệnh (Grade) từ chuỗi văn bản nếu AI không trả về mã số (Integer class).
+     * Đầu vào: predictedClass = null, predictedGrade = "KL3_Moderate".
+     * Hành động: Gọi hàm predictBatch().
+     * Kỳ vọng: Thuật toán fallback vẫn cắt được số "3" từ chuỗi "KL3_Moderate" và cập nhật maxPredictedGrade = 3.
+     */
     // ==============================================================================
     // UTCID11: String Extraction Fallback
     // ==============================================================================
@@ -405,6 +471,12 @@ class AiServiceImplTest {
         }
     }
 
+    /**
+     * Mục đích test: Kiểm tra logic fallback trích xuất cấp độ bệnh từ chuỗi bị sai định dạng.
+     * Đầu vào: predictedClass = null, predictedGrade = "Unknown_Grade".
+     * Hành động: Gọi hàm predictBatch().
+     * Kỳ vọng: Thuật toán không tìm thấy số, gán mặc định maxPredictedGrade = 0.
+     */
     // ==============================================================================
     // UTCID12: String Invalid Fallback (0)
     // ==============================================================================
@@ -435,6 +507,12 @@ class AiServiceImplTest {
         }
     }
 
+    /**
+     * Mục đích test: Kiểm tra khả năng chịu lỗi (fault-tolerance) khi chuỗi ảnh Base64 trả về từ Server AI bị hỏng không thể giải mã.
+     * Đầu vào: Chuỗi Base64 giả và bị hỏng ("iVBO%%%RNOT_BASE64!!!!").
+     * Hành động: Gọi hàm predictBatch().
+     * Kỳ vọng: Hàm bắt lỗi giải mã, không làm sập tiến trình, vẫn cập nhật DicomInstance thành GET_RESULTED.
+     */
     // ==============================================================================
     // UTCID13: Base64 Corrupted
     // ==============================================================================
@@ -465,6 +543,12 @@ class AiServiceImplTest {
         }
     }
 
+    /**
+     * Mục đích test: Kiểm tra xử lý lô (batch) hỗn hợp, một ảnh phân tích thành công, một ảnh phân tích bị lỗi mạng.
+     * Đầu vào: Lô gồm 2 ID. Lần gọi API 1 trả về HTTP 200, lần gọi 2 ném ResourceAccessException.
+     * Hành động: Gọi hàm predictBatch().
+     * Kỳ vọng: Ảnh 1 có trạng thái GET_RESULTED, ảnh 2 có trạng thái AI_FAILED. Trạng thái tổng thể của ca khám lùi về NEED_VERIFY (vì có ít nhất 1 ảnh đã thành công cần bác sĩ duyệt).
+     */
     // ==============================================================================
     // UTCID14: Partial Success
     // ==============================================================================
