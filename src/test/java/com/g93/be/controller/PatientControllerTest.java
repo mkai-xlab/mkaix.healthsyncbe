@@ -6,6 +6,7 @@ import com.g93.be.dto.EditPatientRequest;
 import com.g93.be.dto.PatientDetailsResponse;
 import com.g93.be.dto.PatientResponse;
 import com.g93.be.service.PatientService;
+import com.g93.be.exception.GlobalExceptionHandler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -46,7 +47,7 @@ class PatientControllerTest {
     @BeforeEach
     void setUp() {
         mockMvc = MockMvcBuilders.standaloneSetup(patientController)
-                .setControllerAdvice(new com.g93.be.exception.GlobalExceptionHandler())
+                .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
 
         createPatientRequest = new CreatePatientRequest();
@@ -84,7 +85,7 @@ class PatientControllerTest {
     void testCreatePatient_Abnormal_NoBody() throws Exception {
         mockMvc.perform(post("/patients")
                 .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isInternalServerError()); // GlobalExceptionHandler maps unhandled HttpMessageNotReadableException to 500
+                .andExpect(status().isBadRequest()); // GlobalExceptionHandler maps unhandled HttpMessageNotReadableException to 400
     }
 
     // --- editPatient Tests ---
@@ -104,7 +105,7 @@ class PatientControllerTest {
     void testEditPatient_Abnormal_NoBody() throws Exception {
         mockMvc.perform(put("/patients/1")
                 .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isInternalServerError()); // GlobalExceptionHandler maps unhandled HttpMessageNotReadableException to 500
+                .andExpect(status().isBadRequest()); // GlobalExceptionHandler maps unhandled HttpMessageNotReadableException to 400
     }
 
     @Test
@@ -146,18 +147,18 @@ class PatientControllerTest {
 
     @Test
     void testGetPatientDetailsWithImages_Normal() throws Exception {
-        when(patientService.getPatientDetailsWithImages("PT123")).thenReturn(patientDetailsResponse);
+        when(patientService.getPatientDetailsWithImages(eq("PT123"), any())).thenReturn(patientDetailsResponse);
 
-        mockMvc.perform(get("/patients/PT123/details"))
+        mockMvc.perform(get("/patients/PT123/details").principal(() -> "testuser"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.patient.patientCode").value("PT123"));
     }
 
     @Test
     void testGetPatientDetailsWithImages_Abnormal_PatientNotFound() throws Exception {
-        when(patientService.getPatientDetailsWithImages("PT999")).thenThrow(new IllegalArgumentException("Patient not found"));
+        when(patientService.getPatientDetailsWithImages(eq("PT999"), any())).thenThrow(new IllegalArgumentException("Patient not found"));
 
-        mockMvc.perform(get("/patients/PT999/details"))
+        mockMvc.perform(get("/patients/PT999/details").principal(() -> "testuser"))
                 .andExpect(status().isBadRequest());
     }
 }

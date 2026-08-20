@@ -1,9 +1,14 @@
 package com.g93.be.controller;
 
 import com.g93.be.aspect.LogAction;
+import com.g93.be.dto.PageResponse;
+import com.g93.be.dto.ReportListItemResponse;
 import com.g93.be.dto.ReportResponse;
 import com.g93.be.service.PdfExportService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.core.io.Resource;
 import org.springframework.http.CacheControl;
 import org.springframework.http.ContentDisposition;
@@ -25,8 +30,16 @@ public class ReportController {
 
     private final PdfExportService pdfExportService;
 
+    @GetMapping("/reports")
+    @PreAuthorize("hasAnyRole('DOCTOR', 'DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT')")
+    public ResponseEntity<PageResponse<ReportListItemResponse>> getGeneratedReports(
+            Principal principal,
+            @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        return ResponseEntity.ok(pdfExportService.getGeneratedReports(pageable, principal.getName()));
+    }
+
     @PostMapping("/examinations/{id}/generate-report")
-    @PreAuthorize("hasAnyRole('DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT') or hasAuthority('GENERATE_PDF_REPORT')")
+    @PreAuthorize("hasAnyRole('DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT') or (hasRole('DOCTOR') and hasAuthority('GENERATE_PDF_REPORT'))")
     public ResponseEntity<ReportResponse> generatePdfReport(
             @PathVariable Long id,
             Principal principal) {
@@ -34,23 +47,23 @@ public class ReportController {
                 pdfExportService.generateAndSavePdfReport(id, principal.getName()));
     }
 
-    @GetMapping("/reports/{reportId}/preview")
-    @PreAuthorize("hasAnyRole('DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT') or hasAuthority('GENERATE_PDF_REPORT')")
+    @GetMapping("/reports/{examinationId}/preview")
+    @PreAuthorize("hasAnyRole('DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT') or (hasRole('DOCTOR') and hasAuthority('GENERATE_PDF_REPORT'))")
     public ResponseEntity<Resource> previewReport(
-            @PathVariable Long reportId,
+            @PathVariable Long examinationId,
             Principal principal) {
         return fileResponse(
-                pdfExportService.getReportFile(reportId, principal.getName()), false);
+                pdfExportService.getReportFileByExaminationId(examinationId, principal.getName()), false);
     }
 
-    @GetMapping("/reports/{reportId}/download")
-    @PreAuthorize("hasAnyRole('DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT') or hasAuthority('EXPORT_DOWNLOAD_PDF')")
+    @GetMapping("/reports/{examinationId}/download")
+    @PreAuthorize("hasAnyRole('DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT') or (hasRole('DOCTOR') and hasAuthority('EXPORT_DOWNLOAD_PDF'))")
     @LogAction("DOWNLOAD_PDF_REPORT")
     public ResponseEntity<Resource> downloadReport(
-            @PathVariable Long reportId,
+            @PathVariable Long examinationId,
             Principal principal) {
         return fileResponse(
-                pdfExportService.getReportFile(reportId, principal.getName()), true);
+                pdfExportService.getReportFileByExaminationId(examinationId, principal.getName()), true);
     }
 
     private ResponseEntity<Resource> fileResponse(

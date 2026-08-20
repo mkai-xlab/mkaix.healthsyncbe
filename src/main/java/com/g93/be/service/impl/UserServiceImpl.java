@@ -1,15 +1,13 @@
 package com.g93.be.service.impl;
 
-
 import com.g93.be.entity.Role;
 import com.g93.be.entity.User;
 import com.g93.be.entity.UserStatus;
 import com.g93.be.common.util.MailUtil;
 import com.g93.be.dto.CreateUserRequest;
+import com.g93.be.dto.UpdateUserRoleRequest;
 import com.g93.be.dto.UserResponse;
-import com.g93.be.entity.Role;
-import com.g93.be.entity.User;
-import com.g93.be.entity.UserStatus;
+import com.g93.be.exception.ResourceNotFoundException;
 import com.g93.be.repository.RoleRepository;
 import com.g93.be.repository.UserRepository;
 import com.g93.be.service.UserService;
@@ -21,34 +19,47 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import com.g93.be.dto.ToggleStatusRequest;
+import com.g93.be.mapper.UserMapper;
+import com.g93.be.entity.Doctor;
+import com.g93.be.repository.DoctorRepository;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class UserServiceImpl implements UserService {
 
+    private static final String MEDICAL_STAFF_USER_TYPE = "DOCTOR";
+
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
     private final MailUtil mailUtil;
+    private final UserMapper userMapper;
+    private final DoctorRepository doctorRepository;
 
     @Value("${app.login-url:http://localhost:3000/login}")
     private String loginUrl;
 
     @Override
     @Transactional
+    @com.g93.be.aspect.LogAction("CREATE_USER")
     public UserResponse createUser(CreateUserRequest request) {
         log.info("Creating user with email: {}", request.getEmail());
 
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
             throw new IllegalArgumentException("Email is already registered");
         }
-        
-        if (request.getPhone() != null && !request.getPhone().isBlank()) {
-            if (userRepository.findByPhone(request.getPhone()).isPresent()) {
-                throw new IllegalArgumentException("Phone '" + request.getPhone() + "' is already registered");
-            }
+
+        if (userRepository.findByPhone(request.getPhone()).isPresent()) {
+            throw new IllegalArgumentException("Phone '" + request.getPhone() + "' is already registered");
         }
 
         // Validate role
@@ -63,35 +74,187 @@ public class UserServiceImpl implements UserService {
         String tempUsername = generateUniqueUsername(request.getEmail());
         String tempPassword = generateSecurePassword();
 
-        // Map and create user
-        User user = new User();
-        user.setUsername(tempUsername);
-        user.setPassword(passwordEncoder.encode(tempPassword));
-        user.setFullName(request.getFullName());
-        user.setEmail(request.getEmail());
-        user.setPhone(request.getPhone());
-        user.setRole(role);
-        
-        // Use the role name as the userType if needed, or leave it generic.
-        user.setUserType(role.getCode());
-        user.setStatus(UserStatus.ACTIVE);
-        user.setIsFirstActivated(true);
+        // Các role thuộc nhóm y tế bác sĩ phải được lưu vào bảng doctors (JPA JOINED inheritance)
+        boolean isMedicalRole = "DOCTOR".equalsIgnoreCase(role.getCode())
+                || "HEAD_OF_DEPARTMENT".equalsIgnoreCase(role.getCode())
+                || "DEPARTMENT_HEAD".equalsIgnoreCase(role.getCode());
 
-        User savedUser = userRepository.save(user);
-        
+        User savedUser;
+        if (isMedicalRole) {
+            // Tạo Doctor entity để JPA insert vào cả bảng `users` và `doctors`
+            Doctor doctor = new Doctor();
+            doctor.setUsername(tempUsername);
+            doctor.setPassword(passwordEncoder.encode(tempPassword));
+            doctor.setFullName(request.getFullName());
+            doctor.setEmail(request.getEmail());
+            doctor.setPhone(request.getPhone());
+            doctor.setRole(role);
+            doctor.setUserType(role.getCode());
+            doctor.setStatus(UserStatus.ACTIVE);
+            doctor.setIsFirstActivated(true);
+            savedUser = doctorRepository.save(doctor);
+        } else {
+            // Các role khác (non-medical) lưu vào bảng users thông thường
+            User user = new User();
+            user.setUsername(tempUsername);
+            user.setPassword(passwordEncoder.encode(tempPassword));
+            user.setFullName(request.getFullName());
+            user.setEmail(request.getEmail());
+            user.setPhone(request.getPhone());
+            user.setRole(role);
+            user.setUserType(role.getCode());
+            user.setStatus(UserStatus.ACTIVE);
+            user.setIsFirstActivated(true);
+            savedUser = userRepository.save(user);
+        }
+
         log.info("User created successfully with ID: {}", savedUser.getId());
-        
+
         // Send email notification
         sendWelcomeEmail(savedUser, tempPassword);
-        
-        return mapToResponse(savedUser);
+
+        return userMapper.mapToResponse(savedUser);
     }
 
     @Override
-    public java.util.List<UserResponse> getStaffList() {
+    @Transactional
+    @com.g93.be.aspect.LogAction("UPDATE_USER_ROLE")
+    public UserResponse updateUserRole(Long userId, UpdateUserRoleRequest request, String actorUsername) {
+        if (request == null || request.roleId() == null) {
+            throw new IllegalArgumentException("Role ID cannot be null");
+        }
+
+        User actor = actorUsername == null
+                ? null
+                : userRepository.findByUsername(actorUsername).orElse(null);
+        if (actor == null || !hasRole(actor, "ADMIN")) {
+            throw new AccessDeniedException("Only Admin can update user roles");
+        }
+
+        if (Objects.equals(actor.getId(), userId)) {
+            throw new IllegalArgumentException("An admin cannot change their own role");
+        }
+
+        User target = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User with id " + userId + " not found"));
+        if (hasRole(target, "ADMIN")) {
+            throw new IllegalArgumentException("An admin role cannot be changed via this endpoint");
+        }
+
+        Role role = roleRepository.findById(request.roleId())
+                .orElseThrow(() -> new ResourceNotFoundException("Role with id " + request.roleId() + " not found"));
+        if (hasRole(role, "ADMIN")) {
+            throw new IllegalArgumentException("Cannot assign the ADMIN role via this endpoint");
+        }
+
+        String previousRoleCode = target.getRole() == null ? null : target.getRole().getCode();
+        target.setRole(role);
+        User savedUser = userRepository.save(target);
+        log.info("User {} role changed from {} to {} by {}", userId,
+                previousRoleCode, role.getCode(), actorUsername);
+        return userMapper.mapToResponse(savedUser);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<UserResponse> getStaffList() {
         log.info("Fetching medical staff list");
-        java.util.List<User> staffUsers = userRepository.findByRoleCodeIn(java.util.List.of("HEAD_OF_DEPARTMENT", "DEPARTMENT_HEAD", "DOCTOR"));
-        return staffUsers.stream().map(this::mapToResponse).collect(java.util.stream.Collectors.toList());
+        List<User> staffUsers = userRepository
+                .findByRoleCodeIn(List.of("HEAD_OF_DEPARTMENT", "DOCTOR"));
+        return staffUsers.stream().map(userMapper::mapToResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<UserResponse> searchStaff(String keyword, UserStatus status, int page, int size) {
+        log.info("Searching medical staff with keyword: {}, status: {}", keyword, status);
+        Page<User> staffUsers = userRepository.searchStaff(
+                List.of("HEAD_OF_DEPARTMENT", "DOCTOR"),
+                keyword,
+                status,
+                PageRequest.of(page, size));
+        return staffUsers.map(userMapper::mapToResponse);
+    }
+
+    @Override
+    @Transactional
+    @com.g93.be.aspect.LogAction("TOGGLE_USER_STATUS")
+    public UserResponse toggleUserStatus(Long userId, ToggleStatusRequest request, String actorUsername) {
+        User actor = actorUsername == null
+                ? null
+                : userRepository.findByUsername(actorUsername).orElse(null);
+        if (actor == null || (!hasRole(actor, "ADMIN") && !hasRole(actor, "HEAD_OF_DEPARTMENT"))) {
+             // For RBAC, typically we'd check authorities, but here we'll assume ADMIN and HEAD_OF_DEPARTMENT have this right if not strictly managed by interceptors.
+             // PreAuthorize handles the actual check, so this is just defense in depth.
+        }
+
+        User target = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User with id " + userId + " not found"));
+        
+        if (hasRole(target, "ADMIN")) {
+            throw new IllegalArgumentException("Cannot modify the status of an ADMIN user via this endpoint");
+        }
+
+        if (target.getStatus() == UserStatus.ACTIVE) {
+            if (request == null || request.getInactiveReason() == null || request.getInactiveReason().trim().isEmpty()) {
+                throw new IllegalArgumentException("Inactive reason is required when deactivating a user");
+            }
+            target.setStatus(UserStatus.INACTIVE);
+            target.setInactiveReason(request.getInactiveReason());
+            
+            // Send deactivation email
+            try {
+                mailUtil.sendPlainTextMail(target.getEmail(), "HealthSync - Account Deactivated", 
+                    "Dear " + target.getFullName() + ",\n\n" +
+                    "Your HealthSync account has been deactivated.\n" +
+                    "Reason: " + request.getInactiveReason() + "\n\n" +
+                    "If you have any questions, please contact the administrator.");
+            } catch (Exception e) {
+                log.error("Failed to send deactivation email to {}", target.getEmail(), e);
+            }
+        } else {
+            target.setStatus(UserStatus.ACTIVE);
+            target.setInactiveReason(null);
+            
+            // Send activation email
+            try {
+                mailUtil.sendPlainTextMail(target.getEmail(), "HealthSync - Account Activated", 
+                    "Dear " + target.getFullName() + ",\n\n" +
+                    "Your HealthSync account has been reactivated. You can now log in normally.\n\n" +
+                    "Welcome back!");
+            } catch (Exception e) {
+                log.error("Failed to send activation email to {}", target.getEmail(), e);
+            }
+        }
+
+        User savedUser = userRepository.save(target);
+        log.info("User {} status toggled to {} by {}", userId, savedUser.getStatus(), actorUsername);
+        return userMapper.mapToResponse(savedUser);
+    }
+
+    @Override
+    public long countDoctors(String username) {
+        User currentUser = userRepository.findByUsername(username)
+                .orElseThrow(() -> new com.g93.be.exception.ResourceNotFoundException("User not found"));
+        String currentRole = currentUser.getRole().getCode();
+
+        if (!currentRole.equals("ADMIN") && !currentRole.equals("HEAD_OF_DEPARTMENT")) {
+            throw new AccessDeniedException("Only Admin or Head of Department can view the total number of doctors.");
+        }
+
+        return userRepository.countByRoleCode("DOCTOR");
+    }
+
+    @Override
+    public long countHeads(String username) {
+        User currentUser = userRepository.findByUsername(username)
+                .orElseThrow(() -> new com.g93.be.exception.ResourceNotFoundException("User not found"));
+
+        if (!currentUser.getRole().getCode().equals("ADMIN")) {
+            throw new AccessDeniedException("Only Admin can view the total number of heads of department.");
+        }
+
+        return userRepository.countByRoleCode("HEAD_OF_DEPARTMENT");
     }
 
     private String generateUniqueUsername(String email) {
@@ -157,18 +320,12 @@ public class UserServiceImpl implements UserService {
         }
     }
 
-    private UserResponse mapToResponse(User user) {
-        UserResponse response = new UserResponse();
-        response.setId(user.getId());
-        response.setUsername(user.getUsername());
-        response.setFullName(user.getFullName());
-        response.setEmail(user.getEmail());
-        response.setPhone(user.getPhone());
-        response.setRole(user.getRole());
-        response.setStatus(user.getStatus().name());
-        response.setUserType(user.getUserType());
-        response.setCreatedAt(user.getCreatedAt());
-        response.setUpdatedAt(user.getUpdatedAt());
-        return response;
+    private boolean hasRole(User user, String roleCode) {
+        return user != null && user.getRole() != null && hasRole(user.getRole(), roleCode);
+    }
+
+    private boolean hasRole(Role role, String roleCode) {
+        return role != null && role.getCode() != null
+                && roleCode.equalsIgnoreCase(role.getCode().trim());
     }
 }

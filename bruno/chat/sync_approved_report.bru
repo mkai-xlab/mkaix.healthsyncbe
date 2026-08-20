@@ -1,0 +1,28 @@
+meta {
+  name: Sync Approved Report
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/knowledge-documents/reports/{{reportId}}/sync
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+vars:pre-request {
+  reportId: 1
+}
+
+tests {
+  test("indexes an approved accessible report", function() {
+    expect(res.status).to.equal(202);
+    expect(res.body.sourceType).to.equal("REPORT");
+    expect(res.body.status).to.equal("INDEXED");
+  });
+}
+​

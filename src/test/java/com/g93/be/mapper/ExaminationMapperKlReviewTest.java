@@ -21,7 +21,12 @@ import static org.mockito.Mockito.mock;
 class ExaminationMapperKlReviewTest {
 
     private final ExaminationMapper mapper = new ExaminationMapper(
-            mock(PatientMapper.class), mock(DoctorMapper.class));
+            mock(PatientMapper.class));
+
+    @org.junit.jupiter.api.BeforeEach
+    void setUp() {
+        org.springframework.web.context.request.RequestContextHolder.resetRequestAttributes();
+    }
 
     @Test
     void mapsPredictedConfirmedAndEffectiveKlGrades() {

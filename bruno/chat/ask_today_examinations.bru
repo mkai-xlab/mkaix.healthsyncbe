@@ -1,0 +1,30 @@
+meta {
+  name: List Today's Examinations
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/chat/ask
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "question": "Cho toi xem cac ca kham hom nay."
+  }
+}
+
+tests {
+  test("returns up to ten recent examinations for selection", function() {
+    expect(res.status).to.equal(200);
+    expect(res.body.route).to.be.oneOf(["BUSINESS_DATA", "CLARIFICATION"]);
+    expect(res.body.answer).to.be.a("string");
+    expect(res.body.sources).to.be.an("array");
+  });
+}

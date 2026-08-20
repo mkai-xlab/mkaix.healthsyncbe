@@ -3,10 +3,12 @@ package com.g93.be.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.g93.be.dto.CreateUserRequest;
 import com.g93.be.dto.UserResponse;
+import com.g93.be.dto.UpdateUserRoleRequest;
 import com.g93.be.service.UserService;
 import com.g93.be.exception.GlobalExceptionHandler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -18,6 +20,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -46,7 +49,8 @@ class UserControllerTest {
         createUserRequest = new CreateUserRequest();
         createUserRequest.setEmail("testuser@example.com");
         createUserRequest.setFullName("Test User");
-        createUserRequest.setRoleId(2L); // 2: DOCTOR
+        createUserRequest.setRoleId(2L);
+        createUserRequest.setPhone("0123456789"); // 2: DOCTOR
 
         userResponse = new UserResponse();
         userResponse.setId(1L);
@@ -72,7 +76,7 @@ class UserControllerTest {
     void testCreateUser_Abnormal_NoBody() throws Exception {
         mockMvc.perform(post("/users")
                 .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isInternalServerError()); // GlobalExceptionHandler maps unhandled HttpMessageNotReadableException to 500
+                .andExpect(status().isBadRequest()); // GlobalExceptionHandler maps unhandled HttpMessageNotReadableException to 400
     }
 
     // --- Validation Tests ---
@@ -164,6 +168,30 @@ class UserControllerTest {
         mockMvc.perform(post("/users")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(createUserRequest)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void testUpdateUserRole() throws Exception {
+        userResponse.setUserType("DOCTOR");
+        when(userService.updateUserRole(org.mockito.ArgumentMatchers.eq(7L),
+                any(UpdateUserRoleRequest.class), org.mockito.ArgumentMatchers.eq("admin")))
+                .thenReturn(userResponse);
+
+        mockMvc.perform(put("/users/7/role")
+                .principal(() -> "admin")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"roleId\":3}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.userType").value("DOCTOR"));
+    }
+
+    @Test
+    void testUpdateUserRole_RoleIdNull() throws Exception {
+        mockMvc.perform(put("/users/7/role")
+                .principal(() -> "admin")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{}"))
                 .andExpect(status().isBadRequest());
     }
 }

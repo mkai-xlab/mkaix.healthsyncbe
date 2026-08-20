@@ -13,9 +13,12 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 @Aspect
 @Component
@@ -53,8 +56,16 @@ public class AuditLogAspect {
             List<Object> serializableArgs = new ArrayList<>();
             for (Object arg : args) {
                 // Filter out non-serializable objects like HttpServletRequest, MultipartFile, etc.
-                if (arg instanceof HttpServletRequest || arg instanceof org.springframework.web.multipart.MultipartFile) {
+                if (arg instanceof HttpServletRequest) {
                     serializableArgs.add(arg.getClass().getSimpleName());
+                } else if (arg instanceof MultipartFile file) {
+                    serializableArgs.add(fileMetadata(file));
+                } else if (arg instanceof Collection<?> collection
+                        && collection.stream().allMatch(MultipartFile.class::isInstance)) {
+                    serializableArgs.add(collection.stream()
+                            .map(MultipartFile.class::cast)
+                            .map(this::fileMetadata)
+                            .toList());
                 } else {
                     serializableArgs.add(arg);
                 }
@@ -72,5 +83,12 @@ public class AuditLogAspect {
         } catch (Exception e) {
             log.error("Error in AuditLogAspect", e);
         }
+    }
+
+    private Map<String, Object> fileMetadata(MultipartFile file) {
+        return Map.of(
+                "name", file.getOriginalFilename() == null ? "" : file.getOriginalFilename(),
+                "size", file.getSize(),
+                "contentType", file.getContentType() == null ? "" : file.getContentType());
     }
 }

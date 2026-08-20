@@ -1,0 +1,2 @@
+This document describes software deployment, source control branching, and application release procedures.
+It does not contain clinical, healthcare, biomedical, pharmaceutical, or public-health knowledge.

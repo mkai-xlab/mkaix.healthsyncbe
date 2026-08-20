@@ -37,3 +37,9 @@ mvnw.cmd
 
 # DICOM Files
 *.dcm
+
+# Local medical and generated PDF documents
+*.pdf
+
+# Local runtime data (avatars, reports, and RAG source documents)
+data/

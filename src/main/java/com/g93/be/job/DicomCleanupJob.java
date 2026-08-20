@@ -1,12 +1,14 @@
 package com.g93.be.job;
 
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.fasterxml.jackson.databind.SerializationFeature;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.g93.be.dto.DicomUploadSessionDTO;
 import com.g93.be.dto.PendingDicomUploadDTO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -22,16 +24,16 @@ import java.util.Set;
 public class DicomCleanupJob {
 
     private final StringRedisTemplate stringRedisTemplate;
-    
+
     private static final ObjectMapper objectMapper = new ObjectMapper()
-            .registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule())
-            .disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+            .registerModule(new JavaTimeModule())
+            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
     // Run every minute
     @Scheduled(fixedDelay = 60000)
     public void cleanupExpiredDicomSessions() {
         log.info("Running DicomCleanupJob to find expired upload sessions...");
-        
+
         long now = System.currentTimeMillis();
         // Expire sessions older than 10 minutes (600,000 ms)
         long tenMinutesAgo = now - (10 * 60 * 1000);

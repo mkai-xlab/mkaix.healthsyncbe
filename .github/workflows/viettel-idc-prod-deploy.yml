@@ -21,12 +21,13 @@ jobs:
   deploy:
     if: inputs.confirm_delivery
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 40
 
     steps:
       - name: Deliver backend via SSH
         uses: appleboy/ssh-action@v1.2.0
         with:
+          command_timeout: 30m
           host: ${{ secrets.VIETTEL_PUBLIC_IP }}
           username: root
           password: ${{ secrets.VIETTEL_PASSWORD }}
@@ -37,3 +38,4 @@ jobs:
             git pull --ff-only origin main
             docker compose config --quiet
             docker compose up -d --build be
+            docker image prune -f

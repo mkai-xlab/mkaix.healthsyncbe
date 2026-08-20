@@ -1,7 +1,5 @@
 package com.g93.be.dto;
 
-
-import com.g93.be.entity.Role;
 import com.g93.be.entity.Role;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -23,6 +21,7 @@ public class UserResponse {
     private Role role;
     private String status;
     private String userType;
+    private String avatarUrl;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }
