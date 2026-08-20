@@ -3,6 +3,7 @@ package com.g93.be;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.g93.be.dto.*;
 import com.g93.be.entity.*;
+import com.g93.be.dto.PermissionResponse;
 import com.g93.be.repository.*;
 import com.g93.be.security.CustomUserDetails;
 import com.g93.be.security.JwtTokenProvider;
@@ -144,11 +145,14 @@ public class AdminDashboardIntegrationTest {
         doctorUser.setYearsOfExperience(4);
         doctorUser = userRepository.save(doctorUser);
 
+        PermissionResponse uploadDicomPerm = new com.g93.be.dto.PermissionResponse(1L, "UPLOAD_DICOM_IMAGE", "Upload DICOM", 1, "UPLOAD_DICOM_IMAGE", null);
+        PermissionResponse triggerAiPerm = new com.g93.be.dto.PermissionResponse(2L, "TRIGGER_AI_ANALYSIS", "Trigger AI", 1, "TRIGGER_AI_ANALYSIS", null);
+
         // 3. Generate tokens
         adminToken = jwtTokenProvider.generateAccessToken(
                 new CustomUserDetails(adminUser, Collections.emptyList()));
         doctorToken = jwtTokenProvider.generateAccessToken(
-                new CustomUserDetails(doctorUser, Collections.emptyList()));
+                new CustomUserDetails(doctorUser, java.util.List.of(uploadDicomPerm, triggerAiPerm)));
 
         entityManager.flush();
         entityManager.clear();
@@ -291,7 +295,7 @@ public class AdminDashboardIntegrationTest {
 
         // Execute post request to verify session
         mockMvc.perform(post("/dicom/verify")
-                        .header("Authorization", "Bearer " + adminToken)
+                        .header("Authorization", "Bearer " + doctorToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(verifyRequest)))
                 .andExpect(status().isOk())
