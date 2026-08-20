@@ -42,10 +42,61 @@ still checks the clinical role and the `USE_AI_CHAT` permission.
 | `POST /knowledge-documents/upload` | `MANAGE_MEDICAL_KNOWLEDGE` | Validate and upload a medical PDF, DOC, DOCX, or TXT. |
 | `POST /knowledge-documents/upload/batch` | `MANAGE_MEDICAL_KNOWLEDGE` | Upload up to 10 documents with per-file results. |
 | `POST /knowledge-documents/url` | `MANAGE_MEDICAL_KNOWLEDGE` | Ingest an approved public HTTP(S) URL. |
-| `GET /knowledge-documents` | `MANAGE_MEDICAL_KNOWLEDGE` | Check indexing state and errors. |
+| `GET /knowledge-documents` | `MANAGE_MEDICAL_KNOWLEDGE` | List uploaded documents with metadata, indexing state, and errors. |
+| `GET /knowledge-documents/{id}/preview` | `MANAGE_MEDICAL_KNOWLEDGE` | Read the original stored document inline when the browser supports its media type. |
+| `GET /knowledge-documents/{id}/content` | `MANAGE_MEDICAL_KNOWLEDGE` | Extract readable plain text from the stored PDF, DOC, DOCX, TXT, or URL source. |
+| `GET /knowledge-documents/{id}/download` | `MANAGE_MEDICAL_KNOWLEDGE` | Download the original stored document as an attachment. |
 | `POST /knowledge-documents/{id}/reindex` | `MANAGE_MEDICAL_KNOWLEDGE` | Reindex a stored source. |
 | `DELETE /knowledge-documents/{id}` | `MANAGE_MEDICAL_KNOWLEDGE` | Delete metadata, file, and vectors. |
 | `POST /knowledge-documents/reports/{reportId}/sync` | `USE_AI_CHAT` and clinical role | Index one approved report. |
+
+### Listing and reading uploaded knowledge
+
+`GET /knowledge-documents` supports `keyword`, `sourceType`, `status`,
+`accessScope`, `page`, `size`, and `sort`. The default page size is 20 and the
+default sort is `createdAt,desc`. The response intentionally excludes internal
+`storagePath` and `checksum` values. File and URL sources expose authenticated
+links that the frontend can use without constructing paths itself:
+
+```json
+{
+  "content": [
+    {
+      "id": 8,
+      "title": "Knee osteoarthritis guideline",
+      "sourceType": "FILE",
+      "sourceUrl": null,
+      "originalName": "knee-guideline.pdf",
+      "contentUrl": "/api/v1/knowledge-documents/8/content",
+      "previewUrl": "/api/v1/knowledge-documents/8/preview",
+      "downloadUrl": "/api/v1/knowledge-documents/8/download",
+      "accessScope": "ALL",
+      "status": "INDEXED",
+      "chunkCount": 12,
+      "errorMessage": null,
+      "createdAt": "2026-08-20T09:00:00",
+      "indexedAt": "2026-08-20T09:02:00"
+    }
+  ],
+  "pageNumber": 0,
+  "pageSize": 20,
+  "totalElements": 1,
+  "totalPages": 1,
+  "isLast": true
+}
+```
+
+`contentUrl` extracts plain text through the same PDF/TXT/Tika readers used by
+ingestion. `previewUrl` streams the original file with
+`Content-Disposition: inline`; PDF, text, and HTML normally render in the browser,
+while DOC/DOCX behavior depends on browser support. `downloadUrl` returns the same
+file with `Content-Disposition: attachment`. All three responses use
+`Cache-Control: no-store`. A missing database row, missing stored file, or path
+outside the configured knowledge directory returns `404 Not Found`.
+
+`REPORT` sources are generated from approved relational report data and do not have
+a stored knowledge source file. Their `contentUrl`, `previewUrl`, and `downloadUrl`
+are therefore `null`; use the report preview/download APIs for the generated PDF.
 
 Example question request:
 
@@ -115,6 +166,16 @@ item per submitted file. Non-medical files are rejected independently with a
 Deleting `DELETE /knowledge-documents/{id}` removes the relational metadata, stored
 source file, and every Qdrant chunk matching its `sourceKey`. The indexing worker also
 removes chunks produced by an in-flight job if the document is deleted concurrently.
+
+### Bruno verification flow
+
+1. Run `bruno/auth/login/login_success.bru` and keep the returned `accessToken`.
+2. Run `bruno/chat/upload_medical_document.bru` with a medical PDF, DOC, DOCX, or TXT.
+3. Run `bruno/chat/get_knowledge_documents.bru` and copy the returned document `id`.
+4. Put that ID into `read_knowledge_document_content.bru`,
+   `preview_knowledge_document.bru`, and `download_knowledge_document.bru`.
+5. Use `get_indexed_knowledge_documents.bru` to verify that asynchronous indexing
+   reached `INDEXED` and populated `indexedAt` and `chunkCount`.
 
 ## Database and Report Ingestion
 

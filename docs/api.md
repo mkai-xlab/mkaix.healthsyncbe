@@ -32,7 +32,7 @@ Report indexing now retries unfinished records, resynchronizes when an existing 
 is requested again, and permits both the report creator and assigned doctor to find
 the owner-scoped report vector.
 
-### Medical knowledge validation and deletion
+### Medical knowledge validation, listing, file access, and deletion
 
 `POST /knowledge-documents/upload`, `POST /knowledge-documents/upload/batch`, and
 `POST /knowledge-documents/url` validate source content before storing or indexing it.
@@ -53,6 +53,89 @@ Batch requests still return `202 Accepted`; each non-medical file has
 `accepted: false` and its rejection reason in `error`. Accepted sources return status
 `PENDING` and are indexed asynchronously. Medical retrieval now requests up to 12
 matching chunks by default.
+
+#### `GET /knowledge-documents`
+
+Returns a paginated list of uploaded file, URL, and approved-report knowledge
+sources. Requires a supported management role and the
+`MANAGE_MEDICAL_KNOWLEDGE` authority.
+
+Query parameters:
+
+| Parameter | Required | Description |
+| --- | --- | --- |
+| `keyword` | No | Case-insensitive title or original-file-name search. |
+| `sourceType` | No | `FILE`, `URL`, or `REPORT`. |
+| `status` | No | `PENDING`, `PROCESSING`, `INDEXED`, or `FAILED`. |
+| `accessScope` | No | `ALL`, `DOCTOR`, `ADMIN`, or `OWNER`. |
+| `page` | No | Zero-based page number; default `0`. |
+| `size` | No | Page size; default `20`. |
+| `sort` | No | Spring sort expression; default `createdAt,desc`. |
+
+Example response:
+
+```json
+{
+  "content": [
+    {
+      "id": 8,
+      "title": "Knee osteoarthritis guideline",
+      "sourceType": "FILE",
+      "sourceUrl": null,
+      "originalName": "knee-guideline.pdf",
+      "contentUrl": "/api/v1/knowledge-documents/8/content",
+      "previewUrl": "/api/v1/knowledge-documents/8/preview",
+      "downloadUrl": "/api/v1/knowledge-documents/8/download",
+      "accessScope": "ALL",
+      "status": "INDEXED",
+      "chunkCount": 12,
+      "errorMessage": null,
+      "createdAt": "2026-08-20T09:00:00",
+      "indexedAt": "2026-08-20T09:02:00"
+    }
+  ],
+  "pageNumber": 0,
+  "pageSize": 20,
+  "totalElements": 1,
+  "totalPages": 1,
+  "isLast": true
+}
+```
+
+Internal `storagePath` and `checksum` values are never returned. Knowledge sources
+of type `REPORT` have no locally stored ingestion file, so their `contentUrl`,
+`previewUrl`, and `downloadUrl` are `null`.
+
+Status codes: `200 OK`, `400 Bad Request` for invalid enum/sort input,
+`401 Unauthorized`, and `403 Forbidden`.
+
+#### `GET /knowledge-documents/{id}/content`
+
+Extracts and returns readable source text as `text/plain;charset=UTF-8`. PDF and TXT
+use dedicated readers; DOC/DOCX and stored URL HTML use Tika. The response includes
+`Cache-Control: no-store`.
+
+Status codes: `200 OK`, `401 Unauthorized`, `403 Forbidden`, `404 Not Found` when
+the metadata/file is missing or the resolved path is outside the configured
+knowledge directory, and `500 Internal Server Error` when an otherwise valid source
+cannot be parsed.
+
+#### `GET /knowledge-documents/{id}/preview`
+
+Streams the original source using its stored media type and file name. The response
+sets `Content-Disposition: inline`, `Cache-Control: no-store`, and
+`X-Content-Type-Options: nosniff`. Browser support determines whether DOC/DOCX is
+displayed inline; clients can use `/content` for a browser-independent text view.
+
+Status codes: `200 OK`, `401 Unauthorized`, `403 Forbidden`, and `404 Not Found`.
+
+#### `GET /knowledge-documents/{id}/download`
+
+Streams the original source with `Content-Disposition: attachment`; the original
+safe file name is encoded as UTF-8. The operation is audit logged as
+`DOWNLOAD_MEDICAL_KNOWLEDGE`.
+
+Status codes: `200 OK`, `401 Unauthorized`, `403 Forbidden`, and `404 Not Found`.
 
 #### `DELETE /knowledge-documents/{id}`
 
@@ -121,6 +204,13 @@ Status codes for both review endpoints: `200 OK`, `400 Bad Request` for invalid 
 #### `POST /examinations/{examinationId}/generate-report`
 
 Generates and stores the finalized PDF for a `VERIFIED` examination. The response contains report metadata plus authenticated preview and download URLs. Calling the endpoint again returns the existing report while its stored file is available.
+
+Every newly generated PDF page includes a large pale-blue `HealthSync` watermark
+rotated diagonally behind the content and the disclaimer `đây là sản phẩm AI, chỉ
+là công cụ hỗ trợ, AI có thể sai sót`. The general-information section includes
+the DICOM acquisition date/time from `studyDate` and `studyTime`, formatted as
+`dd/MM/yyyy HH:mm:ss` or as `dd/MM/yyyy` when no time was supplied. Existing stored
+PDFs are reused and are not retroactively regenerated with the new template.
 
 ```json
 {

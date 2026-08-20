@@ -4,6 +4,7 @@ import com.g93.be.config.ChatProperties;
 import com.g93.be.chat.KnowledgeIndexRequestedEvent;
 import com.g93.be.dto.KnowledgeDocumentResponse;
 import com.g93.be.dto.KnowledgeUrlRequest;
+import com.g93.be.dto.PageResponse;
 import com.g93.be.entity.KnowledgeAccessScope;
 import com.g93.be.entity.KnowledgeDocument;
 import com.g93.be.entity.KnowledgeDocumentStatus;
@@ -13,8 +14,13 @@ import com.g93.be.exception.ResourceNotFoundException;
 import com.g93.be.repository.KnowledgeDocumentRepository;
 import com.g93.be.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.ai.document.Document;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestClient;
@@ -31,8 +37,10 @@ import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -46,6 +54,7 @@ public class KnowledgeIngestionService {
     private final RestClient knowledgeRestClient;
     private final ChatProperties properties;
     private final MedicalDocumentValidator medicalDocumentValidator;
+    private final KnowledgeDocumentReader documentReader;
     private final KnowledgeDocumentOperationCoordinator operationCoordinator;
     private final KnowledgeDocumentDeletionService deletionService;
     private final ApplicationEventPublisher eventPublisher;
@@ -108,6 +117,63 @@ public class KnowledgeIngestionService {
     @Transactional(readOnly = true)
     public List<KnowledgeDocumentResponse> getAll() {
         return repository.findAllByOrderByCreatedAtDesc().stream().map(this::toResponse).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public PageResponse<KnowledgeDocumentResponse> getAll(
+            String keyword,
+            KnowledgeSourceType sourceType,
+            KnowledgeDocumentStatus status,
+            KnowledgeAccessScope accessScope,
+            Pageable pageable) {
+        String normalizedKeyword = keyword == null || keyword.isBlank() ? null : keyword.trim();
+        Page<KnowledgeDocumentResponse> documents = repository
+                .search(normalizedKeyword, sourceType, status, accessScope, pageable)
+                .map(this::toResponse);
+        return PageResponse.of(documents);
+    }
+
+    @Transactional(readOnly = true)
+    public KnowledgeDocumentFile getFile(Long id) {
+        KnowledgeDocument document = findDocument(id);
+        if (document.getStoragePath() == null || document.getStoragePath().isBlank()) {
+            throw new ResourceNotFoundException("Knowledge document file not found");
+        }
+
+        try {
+            Path root = Path.of(properties.knowledgeDir()).toAbsolutePath().normalize().toRealPath();
+            Path path = Path.of(document.getStoragePath()).toAbsolutePath().normalize().toRealPath();
+            if (!path.startsWith(root) || !Files.isRegularFile(path)) {
+                throw new ResourceNotFoundException("Knowledge document file not found");
+            }
+            String contentType = document.getContentType();
+            if (contentType == null || contentType.isBlank()) {
+                contentType = Files.probeContentType(path);
+            }
+            if (contentType == null || contentType.isBlank()) {
+                contentType = "application/octet-stream";
+            }
+            String fileName = safeFileName(document.getOriginalName());
+            if (fileName == null || fileName.isBlank()) {
+                fileName = path.getFileName().toString();
+            }
+            return new KnowledgeDocumentFile(new FileSystemResource(path), fileName, contentType, Files.size(path));
+        } catch (IOException exception) {
+            throw new ResourceNotFoundException("Knowledge document file not found");
+        }
+    }
+
+    @Transactional(readOnly = true)
+    public String getText(Long id) {
+        KnowledgeDocument document = findDocument(id);
+        getFile(id);
+        return documentReader.read(document).stream()
+                .map(Document::getText)
+                .filter(Objects::nonNull)
+                .collect(Collectors.joining("\n\n"));
+    }
+
+    public record KnowledgeDocumentFile(Resource resource, String fileName, String contentType, long fileSize) {
     }
 
     @Transactional
@@ -220,9 +286,17 @@ public class KnowledgeIngestionService {
 
     private KnowledgeDocumentResponse toResponse(KnowledgeDocument document) {
         return new KnowledgeDocumentResponse(document.getId(), document.getTitle(), document.getSourceType().name(),
-                document.getSourceUrl(), document.getOriginalName(), document.getAccessScope().name(),
+                document.getSourceUrl(), document.getOriginalName(), documentUrl(document, "content"),
+                documentUrl(document, "preview"), documentUrl(document, "download"), document.getAccessScope().name(),
                 document.getStatus().name(), document.getChunkCount(), document.getErrorMessage(),
                 document.getCreatedAt(), document.getIndexedAt());
+    }
+
+    private String documentUrl(KnowledgeDocument document, String action) {
+        if (document.getStoragePath() == null || document.getStoragePath().isBlank()) {
+            return null;
+        }
+        return "/api/v1/knowledge-documents/" + document.getId() + "/" + action;
     }
 
     private String normalizeTitle(String title, String fileName) {

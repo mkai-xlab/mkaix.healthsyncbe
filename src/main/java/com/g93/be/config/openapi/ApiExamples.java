@@ -13,6 +13,7 @@ final class ApiExamples {
             Map.entry("LOGIN_REQUEST", json("""
                     {"username":"doctor01","password":"Doctor@123"}
                     """)),
+            Map.entry("KNOWLEDGE_TEXT", "Kellgren-Lawrence grade 4 indicates severe joint-space narrowing and marked osteophyte formation."),
             Map.entry("LOGIN", json("""
                     {
                       "accessToken":"eyJhbGciOiJIUzI1NiJ9.<access-token>",
@@ -201,13 +202,13 @@ final class ApiExamples {
                     [{"id":7,"name":"Reporting & Export","description":"Lập báo cáo kết quả","permissions":[{"id":12,"code":"GENERATE_PDF_REPORT","name":"Tạo báo cáo PDF","priority":12,"requiresPermissionId":null}]}]
                     """)),
             Map.entry("KNOWLEDGE_DOCUMENT", json("""
-                    {"id":8,"title":"Knee osteoarthritis guideline","sourceType":"FILE","sourceUrl":null,"originalName":"knee-guideline.pdf","accessScope":"ALL","status":"INDEXED","chunkCount":12,"errorMessage":null,"createdAt":"2026-08-08T09:00:00","indexedAt":"2026-08-08T09:02:00"}
+                    {"id":8,"title":"Knee osteoarthritis guideline","sourceType":"FILE","sourceUrl":null,"originalName":"knee-guideline.pdf","contentUrl":"/api/v1/knowledge-documents/8/content","previewUrl":"/api/v1/knowledge-documents/8/preview","downloadUrl":"/api/v1/knowledge-documents/8/download","accessScope":"ALL","status":"INDEXED","chunkCount":12,"errorMessage":null,"createdAt":"2026-08-08T09:00:00","indexedAt":"2026-08-08T09:02:00"}
                     """)),
             Map.entry("KNOWLEDGE_BATCH", json("""
                     {"totalFiles":2,"acceptedCount":2,"rejectedCount":0,"items":[{"originalName":"knee-guideline.pdf","accepted":true,"documentId":8,"message":"Accepted"},{"originalName":"classification.pdf","accepted":true,"documentId":9,"message":"Accepted"}]}
                     """)),
             Map.entry("KNOWLEDGE_LIST", json("""
-                    [{"id":8,"title":"Knee osteoarthritis guideline","sourceType":"FILE","sourceUrl":null,"originalName":"knee-guideline.pdf","accessScope":"ALL","status":"INDEXED","chunkCount":12,"errorMessage":null,"createdAt":"2026-08-08T09:00:00","indexedAt":"2026-08-08T09:02:00"}]
+                    {"content":[{"id":8,"title":"Knee osteoarthritis guideline","sourceType":"FILE","sourceUrl":null,"originalName":"knee-guideline.pdf","contentUrl":"/api/v1/knowledge-documents/8/content","previewUrl":"/api/v1/knowledge-documents/8/preview","downloadUrl":"/api/v1/knowledge-documents/8/download","accessScope":"ALL","status":"INDEXED","chunkCount":12,"errorMessage":null,"createdAt":"2026-08-08T09:00:00","indexedAt":"2026-08-08T09:02:00"}],"pageNumber":0,"pageSize":20,"totalElements":1,"totalPages":1,"isLast":true}
                     """)),
             Map.entry("CHAT_ANSWER", json("""
                     {"sessionId":12,"messageId":84,"route":"MEDICAL_RAG","answer":"The answer is based on the approved knowledge base.","sources":[],"warning":null,"generatedAt":"2026-08-08T09:03:00","tokensUsed":176}

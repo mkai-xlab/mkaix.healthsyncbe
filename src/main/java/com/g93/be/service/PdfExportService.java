@@ -202,6 +202,7 @@ public class PdfExportService {
                 .gender(patient.getGender() != null ? patient.getGender().name() : "")
                 .address(valueOrBlank(patient.getAddress()))
                 .encounterCode(valueOrBlank(examination.getEncounterCode()))
+                .studyDateTime(formatStudyDateTime(examination))
                 .visitTime(examination.getVisitTime() != null
                         ? examination.getVisitTime().format(dateTimeFormatter) : "")
                 .doctorName(examination.getDoctor() != null
@@ -485,6 +486,17 @@ public class PdfExportService {
                 ? examination.getVisitTime().toLocalDate()
                 : java.time.LocalDate.now();
         return String.valueOf(Period.between(patient.getDob(), reference).getYears());
+    }
+
+    private String formatStudyDateTime(Examination examination) {
+        if (examination.getStudyDate() == null) {
+            return "";
+        }
+        if (examination.getStudyTime() == null) {
+            return examination.getStudyDate().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+        }
+        return LocalDateTime.of(examination.getStudyDate(), examination.getStudyTime())
+                .format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss"));
     }
 
     private String formatDuration(Long duration) {
