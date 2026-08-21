@@ -12,6 +12,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import com.g93.be.entity.UserStatus;
+import com.g93.be.service.TokenBlacklistService;
 import java.io.IOException;
 import java.util.List;
 import java.util.ArrayList;
@@ -24,10 +25,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtTokenProvider jwtTokenProvider;
     private final CustomUserDetailsService userDetailsService;
+    private final TokenBlacklistService tokenBlacklistService;
 
-    public JwtAuthenticationFilter(JwtTokenProvider jwtTokenProvider, CustomUserDetailsService userDetailsService) {
+    public JwtAuthenticationFilter(
+            JwtTokenProvider jwtTokenProvider,
+            CustomUserDetailsService userDetailsService,
+            TokenBlacklistService tokenBlacklistService) {
         this.jwtTokenProvider = jwtTokenProvider;
         this.userDetailsService = userDetailsService;
+        this.tokenBlacklistService = tokenBlacklistService;
     }
 
     @Override
@@ -47,6 +53,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         jwt = authHeader.substring(7);
         try {
+            if (tokenBlacklistService.isAccessTokenBlacklisted(jwt)) {
+                filterChain.doFilter(request, response);
+                return;
+            }
             userEmail = jwtTokenProvider.extractUsernameFromAccessToken(jwt);
             if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 if (jwtTokenProvider.isAccessTokenValid(jwt)) {
