@@ -2,6 +2,9 @@ package com.g93.be.service;
 
 import com.g93.be.dto.PdfReportDataDto;
 import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.text.PDFTextStripper;
+import org.apache.pdfbox.rendering.PDFRenderer;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.io.ClassPathResource;
 import org.thymeleaf.context.Context;
@@ -9,6 +12,7 @@ import org.thymeleaf.spring6.SpringTemplateEngine;
 import org.thymeleaf.templateresolver.ClassLoaderTemplateResolver;
 
 import java.io.ByteArrayOutputStream;
+import java.awt.image.BufferedImage;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
@@ -32,6 +36,10 @@ class PdfReportTemplateTest {
         String html = templateEngine.process("pdf/report-template", context);
         assertTrue(html.contains("PAT-001"));
         assertTrue(html.contains("Doctor Test"));
+        assertTrue(html.contains("HealthSync"));
+        assertTrue(html.contains("20/08/2026 22:38:50"));
+        assertTrue(html.contains("rotate(-45deg)"));
+        assertTrue(html.contains("AI c&#243; th&#7875; sai s&#243;t"));
 
         ClassPathResource font = new ClassPathResource("fonts/tahoma.ttf");
         assertTrue(font.exists());
@@ -52,6 +60,31 @@ class PdfReportTemplateTest {
         byte[] pdf = output.toByteArray();
         assertTrue(pdf.length > 1_000);
         assertEquals("%PDF", new String(pdf, 0, 4, StandardCharsets.US_ASCII));
+        try (PDDocument document = PDDocument.load(pdf)) {
+            String text = new PDFTextStripper().getText(document);
+            assertTrue(text.contains("20/08/2026 22:38:50"));
+            assertWatermarkVisibleOnEveryPage(document);
+        }
+    }
+
+    private void assertWatermarkVisibleOnEveryPage(PDDocument document) throws Exception {
+        PDFRenderer renderer = new PDFRenderer(document);
+        for (int pageIndex = 0; pageIndex < document.getNumberOfPages(); pageIndex++) {
+            BufferedImage page = renderer.renderImageWithDPI(pageIndex, 72);
+            int watermarkPixels = 0;
+            for (int y = 0; y < page.getHeight(); y++) {
+                for (int x = 0; x < page.getWidth(); x++) {
+                    int rgb = page.getRGB(x, y);
+                    int red = (rgb >> 16) & 0xff;
+                    int green = (rgb >> 8) & 0xff;
+                    int blue = rgb & 0xff;
+                    if (red > 170 && green - red > 3 && blue - red > 8) {
+                        watermarkPixels++;
+                    }
+                }
+            }
+            assertTrue(watermarkPixels > 500, "Watermark is not visible on PDF page " + (pageIndex + 1));
+        }
     }
 
     private PdfReportDataDto reportData() {
@@ -96,6 +129,7 @@ class PdfReportTemplateTest {
                 .gender("MALE")
                 .address("")
                 .encounterCode("ENC-001")
+                .studyDateTime("20/08/2026 22:38:50")
                 .visitTime("28/07/2026 17:00")
                 .doctorName("Doctor Test")
                 .clinicalNotes("")

@@ -1,5 +1,53 @@
 # UNIT TEST REPORT - HEALTHSYNC BACKEND
 
+## Knowledge document reading and PDF report presentation update (20/08/2026)
+
+| Thuộc tính | Giá trị |
+|---|---|
+| Executed By | Codex |
+| Executed Date | 20/08/2026 |
+| Framework | JUnit Jupiter, Mockito, PDFBox, OpenHTMLToPDF |
+| Java | 21 (cached Maven Docker image) |
+| Phạm vi | Paginated knowledge listing, stored-file/text reading, path security, endpoint authorization/OpenAPI, PDF watermark, AI disclaimer, and DICOM study date/time |
+
+Knowledge/OpenAPI command:
+
+```bash
+docker run --rm -v /Users/duyanh/healthsync/mkaix.healthsyncbe:/build -v /Users/duyanh/.m2:/root/.m2 -w /build --entrypoint mvn dhi.io/maven:3-jdk21-alpine-dev -Dtest=KnowledgeIngestionServiceTest,KnowledgeBatchIngestionServiceTest,KnowledgeControllerAuthorizationTest,OpenApiDocumentationTest surefire:test
+```
+
+PDF command:
+
+```bash
+docker run --rm -v /Users/duyanh/healthsync/mkaix.healthsyncbe:/build -v /Users/duyanh/.m2:/root/.m2 -w /build --entrypoint mvn dhi.io/maven:3-jdk21-alpine-dev -Dtest=PdfExportServiceTest,PdfReportTemplateTest test
+```
+
+| Test Class | Passed | Failed | Errors | Skipped | Covered behavior |
+|---|---:|---:|---:|---:|---|
+| `KnowledgeIngestionServiceTest` | 7 | 0 | 0 | 0 | Filters/page mapping; file metadata; text extraction; missing/unsafe storage path; deletion and rejected content |
+| `KnowledgeBatchIngestionServiceTest` | 2 | 0 | 0 | 0 | Batch response compatibility and maximum file count |
+| `KnowledgeControllerAuthorizationTest` | 2 | 0 | 0 | 0 | Management permission for list/content/preview/download and clinical permission for report sync |
+| `OpenApiDocumentationTest` | 4 | 0 | 0 | 0 | Complete endpoint registry, binary/text success responses, JWT security, standard errors |
+| `PdfExportServiceTest` | 18 | 0 | 0 | 0 | Report generation/access/error paths plus mapping `studyDate` and `studyTime` to `dd/MM/yyyy HH:mm:ss` |
+| `PdfReportTemplateTest` | 1 | 0 | 0 | 0 | Real PDF render, packaged Vietnamese font, timestamp text, diagonal watermark CSS, disclaimer, and watermark-colored pixels on every page |
+| **TOTAL** | **34** | **0** | **0** | **0** | **100% pass** |
+
+Surefire results: knowledge/OpenAPI run `15 tests`, PDF run `19 tests`; combined
+`34 tests`, `0 failures`, `0 errors`, and `0 skipped`.
+
+| UTCID | Classification | Test case | Expected/Actual result | Result |
+|---|:---:|---|---|:---:|
+| UTC-KNOW-LIST-01 | N | Paginated/filterable knowledge list | Returns page metadata and safe document response fields | P |
+| UTC-KNOW-FILE-01 | N | Read a stored knowledge file | Returns resource, original name, media type, and size | P |
+| UTC-KNOW-TEXT-01 | N | Extract readable document content | TXT content is returned; production readers also handle PDF/DOC/DOCX/HTML | P |
+| UTC-KNOW-PATH-01 | A | Stored path is outside knowledge root | Rejects with `ResourceNotFoundException` | P |
+| UTC-KNOW-RBAC-01 | A | Knowledge read endpoints authorization | Every read endpoint requires a supported role and `MANAGE_MEDICAL_KNOWLEDGE` | P |
+| UTC-KNOW-OAS-01 | N | OpenAPI endpoint synchronization | Controller and registry endpoint sets match exactly | P |
+| UTC-PDF-PRES-01 | N | Render diagonal HealthSync watermark and disclaimer | Pale-blue watermark pixels are visible on every rendered page | P |
+| UTC-PDF-DATE-01 | B | DICOM study date and time mapping | Displays `20/08/2026 22:38:50`; date-only fallback is supported | P |
+
+---
+
 ## Report RAG and today's examination list update (13/08/2026)
 
 | Thuộc tính | Giá trị |

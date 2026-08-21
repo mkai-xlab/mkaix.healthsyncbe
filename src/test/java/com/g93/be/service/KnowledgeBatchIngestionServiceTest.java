@@ -65,7 +65,11 @@ class KnowledgeBatchIngestionServiceTest {
 
     private KnowledgeDocumentResponse document(Long id, String name) {
         return new KnowledgeDocumentResponse(
-                id, name, "FILE", null, name, "ALL", "PENDING", null, null,
+                id, name, "FILE", null, name,
+                "/api/v1/knowledge-documents/" + id + "/content",
+                "/api/v1/knowledge-documents/" + id + "/preview",
+                "/api/v1/knowledge-documents/" + id + "/download",
+                "ALL", "PENDING", null, null,
                 LocalDateTime.now(), null);
     }
 }

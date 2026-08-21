@@ -186,6 +186,10 @@ public class OpenApiConfig {
                 mediaTypeName = "application/pdf";
                 schema = new StringSchema().format("binary");
             }
+            case FILE -> {
+                mediaTypeName = "application/octet-stream";
+                schema = new StringSchema().format("binary");
+            }
             case PNG -> {
                 mediaTypeName = "image/png";
                 schema = new StringSchema().format("binary");

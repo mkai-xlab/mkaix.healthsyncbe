@@ -35,6 +35,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import java.io.File;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.nio.file.Path;
 import java.nio.file.Files;
 import java.util.Optional;
@@ -95,6 +96,8 @@ class PdfExportServiceTest {
         mockExamination.setPatient(mockPatient);
         mockExamination.setDoctor(mockDoctor);
         mockExamination.setVisitTime(LocalDateTime.now());
+        mockExamination.setStudyDate(LocalDate.of(2026, 8, 20));
+        mockExamination.setStudyTime(LocalTime.of(22, 38, 50));
         mockExamination.setClinicalNotes("Test notes");
         mockExamination.setFinalDiagnosis("Test diagnosis");
         mockExamination.setStatus(ExaminationStatus.VERIFIED);
@@ -274,6 +277,7 @@ class PdfExportServiceTest {
         PdfReportDataDto data = capturedReportData();
         PdfReportDataDto.AiResultExportDto result = data.getAiResults().getFirst();
         assertEquals("1.2.840.113619.44", result.getDicomInstanceId());
+        assertEquals("20/08/2026 22:38:50", data.getStudyDateTime());
         assertEquals("RIGHT", result.getKneeSide());
         assertEquals("CR", result.getModality());
         assertEquals("DICOM", result.getImageFormat());

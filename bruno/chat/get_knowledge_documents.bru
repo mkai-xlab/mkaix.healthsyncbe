@@ -5,7 +5,7 @@ meta {
 }
 
 get {
-  url: {{baseUrl}}/knowledge-documents
+  url: {{baseUrl}}/knowledge-documents?page=0&size=20&sort=createdAt,desc
   body: none
   auth: bearer
 }
@@ -15,8 +15,51 @@ auth:bearer {
 }
 
 tests {
-  test("returns ingestion states", function() {
+  test("returns paginated knowledge documents", function() {
     expect(res.status).to.equal(200);
-    expect(res.body).to.be.an("array");
+    expect(res.body).to.be.an("object");
+    expect(res.body.content).to.be.an("array");
+    expect(res.body.pageNumber).to.equal(0);
+    expect(res.body.pageSize).to.equal(20);
+    expect(res.body.totalElements).to.be.a("number");
+    expect(res.body.totalPages).to.be.a("number");
+    expect(res.body.isLast).to.be.a("boolean");
   });
-}​
+
+  test("returns public document metadata", function() {
+    if (res.body.content.length === 0) {
+      return;
+    }
+
+    const document = res.body.content[0];
+    expect(document.id).to.be.a("number");
+    expect(document.title).to.be.a("string");
+    expect(document.sourceType).to.be.oneOf(["FILE", "URL", "REPORT"]);
+    expect(document.accessScope).to.be.oneOf(["ALL", "DOCTOR", "ADMIN", "OWNER"]);
+    expect(document.status).to.be.oneOf(["PENDING", "PROCESSING", "INDEXED", "FAILED"]);
+    if (document.sourceType !== "REPORT") {
+      expect(document.contentUrl).to.equal("/api/v1/knowledge-documents/" + document.id + "/content");
+      expect(document.previewUrl).to.equal("/api/v1/knowledge-documents/" + document.id + "/preview");
+      expect(document.downloadUrl).to.equal("/api/v1/knowledge-documents/" + document.id + "/download");
+    }
+    expect(document).to.not.have.property("storagePath");
+    expect(document).to.not.have.property("checksum");
+  });
+
+  test("exposes AI indexing state", function() {
+    res.body.content.forEach(function(document) {
+      expect(document.chunkCount === null || typeof document.chunkCount === "number").to.equal(true);
+      expect(document.errorMessage === null || typeof document.errorMessage === "string").to.equal(true);
+      expect(document.indexedAt === null || typeof document.indexedAt === "string").to.equal(true);
+
+      if (document.status === "INDEXED") {
+        expect(document.indexedAt).to.be.a("string");
+        expect(document.chunkCount).to.be.a("number");
+      }
+
+      if (document.status === "FAILED") {
+        expect(document.errorMessage).to.be.a("string");
+      }
+    });
+  });
+}

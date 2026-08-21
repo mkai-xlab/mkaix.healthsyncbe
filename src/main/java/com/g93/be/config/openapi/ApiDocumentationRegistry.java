@@ -14,6 +14,7 @@ final class ApiDocumentationRegistry {
                 TEXT,
                 VOID,
                 PDF,
+                FILE,
                 PNG,
                 DICOM
         }
@@ -370,8 +371,17 @@ final class ApiDocumentationRegistry {
                                 "Validate a public URL as medical content, then accept it for asynchronous indexing.", "202",
                                 "Knowledge URL accepted for indexing", "KNOWLEDGE_DOCUMENT", null, ResponseKind.JSON);
                 add("KnowledgeController", "getAll", "Medical knowledge", "List knowledge documents",
-                                "List uploaded and registered knowledge documents with their indexing status.", "200",
-                                "Knowledge documents", "KNOWLEDGE_LIST", null, ResponseKind.JSON);
+                                "List uploaded and registered knowledge documents with pagination, search by title or file name, and optional source type, indexing status, and access scope filters.", "200",
+                                "Knowledge document page", "KNOWLEDGE_LIST", null, ResponseKind.JSON);
+                addNotFound("KnowledgeController", "preview", "Medical knowledge", "Preview a knowledge document",
+                                "Read the original stored knowledge file inline in the browser.", "200",
+                                "Knowledge document file preview", null, null, ResponseKind.FILE);
+                addNotFound("KnowledgeController", "content", "Medical knowledge", "Read knowledge document text",
+                                "Extract and return plain text from the stored PDF, DOC, DOCX, TXT, or URL source.", "200",
+                                "Knowledge document text", "KNOWLEDGE_TEXT", null, ResponseKind.TEXT);
+                addNotFound("KnowledgeController", "download", "Medical knowledge", "Download a knowledge document",
+                                "Download the original stored knowledge file.", "200",
+                                "Knowledge document file download", null, null, ResponseKind.FILE);
                 add("KnowledgeController", "reindex", "Medical knowledge", "Reindex a knowledge document",
                                 "Queue an existing knowledge document for indexing again.", "202",
                                 "Knowledge document accepted for reindexing", "KNOWLEDGE_DOCUMENT", null, ResponseKind.JSON);
