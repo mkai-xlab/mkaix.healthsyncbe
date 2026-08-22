@@ -23,6 +23,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.g93.be.exception.UnauthorizedAccessException;
 
 import com.g93.be.mapper.ExaminationMapper;
 
@@ -93,8 +94,17 @@ public class ExaminationServiceImpl implements ExaminationService {
     @Transactional(readOnly = true)
     public ExaminationDto getExaminationById(Long id, String username) {
         log.info("Fetching examination by id: {} for username: {}", id, username);
+        User user = userRepository.findByUsernameOrEmail(username, username)
+                .orElseThrow(() -> new IllegalArgumentException("User with username/email " + username + " not found"));
+
         Examination examination = examinationRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Examination with id " + id + " not found"));
+
+        if (user.getRole() != null && "DOCTOR".equals(user.getRole().getCode())) {
+            if (examination.getDoctor() == null || !examination.getDoctor().getId().equals(user.getId())) {
+                throw new UnauthorizedAccessException("Doctor is not authorized to access this examination");
+            }
+        }
 
         List<DicomInstance> instances = dicomInstanceRepository.findByExaminationId(examination.getId());
         return examinationMapper.toDto(examination, instances);
@@ -698,6 +708,9 @@ public class ExaminationServiceImpl implements ExaminationService {
     public PageResponse<ExaminationDto> getExaminationsByPatientIdAndStudyMonth(Long patientId, int year, int month,
             Pageable pageable) {
         log.info("Fetching examinations for patient id: {} for year: {}, month: {}", patientId, year, month);
+        if (year <= 0) {
+            throw new IllegalArgumentException("Invalid year");
+        }
         LocalDate startDate = LocalDate.of(year, month, 1);
         if (startDate.isAfter(LocalDate.now())) {
             throw new IllegalArgumentException("Study month cannot be in the future");

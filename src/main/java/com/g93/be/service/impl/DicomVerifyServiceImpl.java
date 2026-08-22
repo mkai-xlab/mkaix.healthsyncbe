@@ -305,6 +305,14 @@ public class DicomVerifyServiceImpl implements DicomVerifyService {
             instance.setSopInstanceUid(instCache.getSopInstanceUid());
             instance.setStudyInstanceUid(finalStudyUid);
             instance.setBodyPart(instCache.getBodyPart());
+            instance.setImageLaterality(instCache.getImageLaterality());
+            
+            LocalDateTime instanceStudyDate = studyDateForGrouping.atStartOfDay();
+            if (pending.getStudyTime() != null) {
+                instanceStudyDate = LocalDateTime.of(studyDateForGrouping, pending.getStudyTime().toInstant().atZone(ZoneId.systemDefault()).toLocalTime());
+            }
+            instance.setStudyDate(instanceStudyDate);
+            
             instance.setCreatedAt(LocalDateTime.now());
             instance.setStatus(DicomInstanceStatus.AI_SENDING); // Đánh dấu sẵn sàng gửi qua Model AI
 
