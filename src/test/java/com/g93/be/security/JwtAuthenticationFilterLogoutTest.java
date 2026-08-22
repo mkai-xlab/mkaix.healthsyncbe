@@ -25,8 +25,9 @@ class JwtAuthenticationFilterLogoutTest {
     @Test
     void blacklistedAccessTokenDoesNotAuthenticateRequest() throws Exception {
         JwtTokenProvider tokenProvider = mock(JwtTokenProvider.class);
+        CustomUserDetailsService userDetailsService = mock(CustomUserDetailsService.class);
         TokenBlacklistService blacklistService = mock(TokenBlacklistService.class);
-        JwtAuthenticationFilter filter = new JwtAuthenticationFilter(tokenProvider, blacklistService);
+        JwtAuthenticationFilter filter = new JwtAuthenticationFilter(tokenProvider, userDetailsService, blacklistService);
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.addHeader("Authorization", "Bearer revoked_token");
         MockHttpServletResponse response = new MockHttpServletResponse();
