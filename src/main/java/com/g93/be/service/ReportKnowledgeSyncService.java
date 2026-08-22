@@ -166,7 +166,7 @@ public class ReportKnowledgeSyncService {
 
     private KnowledgeDocumentResponse response(KnowledgeDocument document) {
         return new KnowledgeDocumentResponse(document.getId(), document.getTitle(), document.getSourceType().name(),
-                document.getSourceUrl(), document.getOriginalName(), document.getAccessScope().name(),
+                document.getSourceUrl(), document.getOriginalName(), null, null, null, document.getAccessScope().name(),
                 document.getStatus().name(), document.getChunkCount(), document.getErrorMessage(),
                 document.getCreatedAt(), document.getIndexedAt());
     }

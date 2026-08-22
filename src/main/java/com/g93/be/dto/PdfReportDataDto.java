@@ -17,6 +17,7 @@ public class PdfReportDataDto {
 
     // Examination Info
     private String encounterCode;
+    private String studyDateTime;
     private String visitTime;
     private String doctorName;
     private String clinicalNotes;

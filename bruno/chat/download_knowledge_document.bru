@@ -1,17 +1,13 @@
 meta {
-  name: Generate PDF Report
+  name: Download Knowledge Document
   type: http
-  seq: 14
+  seq: 15
 }
 
-post {
-  url: {{baseUrl}}/examinations/{{examinationId}}/generate-report
+get {
+  url: {{baseUrl}}/knowledge-documents/{{documentId}}/download
   body: none
   auth: bearer
-}
-
-params:query {
-  isPersonal: true
 }
 
 auth:bearer {
@@ -19,15 +15,13 @@ auth:bearer {
 }
 
 vars:pre-request {
-  examinationId: 7
+  documentId: 14
 }
 
 tests {
-  test("returns report metadata", function() {
+  test("returns the original document as an attachment", function() {
     expect(res.status).to.equal(200);
-    expect(res.body.reportId).to.be.a("number");
-    expect(res.body.previewUrl).to.equal(`/api/v1/reports/${res.body.examinationId}/preview`);
-    expect(res.body.downloadUrl).to.equal(`/api/v1/reports/${res.body.examinationId}/download`);
+    expect(res.headers["content-disposition"]).to.include("attachment");
+    expect(res.headers["content-type"]).to.match(/application\/(pdf|octet-stream|msword)|text\/(plain|html)|application\/vnd\.openxmlformats-officedocument\.wordprocessingml\.document/);
   });
 }
-​

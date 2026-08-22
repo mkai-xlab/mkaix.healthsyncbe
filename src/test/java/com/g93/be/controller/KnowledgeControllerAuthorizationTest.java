@@ -18,6 +18,9 @@ class KnowledgeControllerAuthorizationTest {
         assertAuthorization("uploadBatch", KNOWLEDGE_MANAGEMENT);
         assertAuthorization("addUrl", KNOWLEDGE_MANAGEMENT);
         assertAuthorization("getAll", KNOWLEDGE_MANAGEMENT);
+        assertAuthorization("preview", KNOWLEDGE_MANAGEMENT);
+        assertAuthorization("content", KNOWLEDGE_MANAGEMENT);
+        assertAuthorization("download", KNOWLEDGE_MANAGEMENT);
         assertAuthorization("reindex", KNOWLEDGE_MANAGEMENT);
         assertAuthorization("delete", KNOWLEDGE_MANAGEMENT);
     }

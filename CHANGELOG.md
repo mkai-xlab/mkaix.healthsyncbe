@@ -8,6 +8,10 @@ This project can follow semantic versioning when formal releases start.
 
 ### Added
 
+- Added paginated medical-knowledge listing with keyword, source type, indexing status, access scope, pagination, and sorting filters.
+- Added authenticated knowledge-source text extraction, inline preview, and original-file download endpoints with safe storage-path validation.
+- Added `contentUrl`, `previewUrl`, and `downloadUrl` to file and URL knowledge-document responses and matching Bruno requests.
+- Added a large diagonal `HealthSync` watermark, AI-assistance disclaimer, and DICOM study date/time to newly generated PDF reports.
 - Added `TODAY_EXAMINATION_LIST` chat routing and a controlled query returning up to 10 newest examinations from today for backend selection flows.
 - Added report-aware HYBRID retrieval that uses stored report context to locate relevant approved medical evidence.
 - Added synchronous AI medical-content validation for uploaded files and public URL knowledge sources using large samples from the beginning, middle, and end.
@@ -43,6 +47,8 @@ This project can follow semantic versioning when formal releases start.
 
 ### Changed
 
+- Knowledge-document list responses are now paginated instead of returning an unbounded array.
+- PDF report template tests now render the PDF and verify that watermark-colored pixels are visible on every generated page.
 - Report vectors now authorize both the report creator and the examination's assigned doctor, while remaining owner-scoped for other users.
 - Report reconciliation now retries incomplete indexing, upgrades legacy report metadata, and resynchronizes when an existing PDF is returned.
 - Increased the default medical RAG retrieval size from 5 to 12 chunks.
