@@ -25,7 +25,7 @@ public interface DoctorRepository extends JpaRepository<Doctor, Long>, JpaSpecif
     @EntityGraph(attributePaths = { "avatar", "role" })
     List<Doctor> findAllByStatus(UserStatus status);
 
-    java.util.Optional<Doctor> findByUsername(String username);
+    Optional<Doctor> findByUsername(String username);
 
     @EntityGraph(attributePaths = { "avatar", "role" })
     Optional<Doctor> findProfileByUsername(String username);

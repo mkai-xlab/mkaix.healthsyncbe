@@ -19,25 +19,52 @@ public class AccessControlService {
     private final AiResultRepository aiResultRepository;
 
     public boolean canAccessExamination(Long examinationId, Authentication authentication) {
-        return isAdmin(currentUser(authentication)) || canAccessAssignedDoctor(
-                examinationRepository.findAssignedDoctorIdById(examinationId).orElse(null), authentication);
+        if (isAdmin(currentUser(authentication)) || canAccessAssignedDoctor(
+                examinationRepository.findAssignedDoctorIdById(examinationId).orElse(null), authentication)) {
+            return true;
+        }
+        return examinationRepository.findById(examinationId)
+                .map(exam -> exam.getPatient() != null && canAccessByPatient(exam.getPatient().getId(), authentication))
+                .orElse(false);
     }
 
     public boolean canAccessDicomInstance(Long dicomInstanceId, Authentication authentication) {
-        return canAccessAssignedDoctor(
-                dicomInstanceRepository.findAssignedDoctorIdById(dicomInstanceId).orElse(null), authentication);
+        if (canAccessAssignedDoctor(
+                dicomInstanceRepository.findAssignedDoctorIdById(dicomInstanceId).orElse(null), authentication)) {
+            return true;
+        }
+        return dicomInstanceRepository.findById(dicomInstanceId)
+                .map(instance -> instance.getExamination() != null && instance.getExamination().getPatient() != null 
+                        && canAccessByPatient(instance.getExamination().getPatient().getId(), authentication))
+                .orElse(false);
     }
 
     public boolean canAccessAiResult(Long aiResultId, Authentication authentication) {
-        return canAccessAssignedDoctor(
-                aiResultRepository.findAssignedDoctorIdById(aiResultId).orElse(null), authentication);
+        if (canAccessAssignedDoctor(
+                aiResultRepository.findAssignedDoctorIdById(aiResultId).orElse(null), authentication)) {
+            return true;
+        }
+        return aiResultRepository.findById(aiResultId)
+                .map(result -> result.getAiAnalysis() != null && result.getAiAnalysis().getDicomInstance() != null
+                        && result.getAiAnalysis().getDicomInstance().getExamination() != null
+                        && result.getAiAnalysis().getDicomInstance().getExamination().getPatient() != null 
+                        && canAccessByPatient(result.getAiAnalysis().getDicomInstance().getExamination().getPatient().getId(), authentication))
+                .orElse(false);
     }
 
     public boolean canAccessClinicalImage(Long imageId, Authentication authentication) {
         Long assignedDoctorId = dicomInstanceRepository.findAssignedDoctorIdByImageId(imageId)
                 .or(() -> aiResultRepository.findAssignedDoctorIdByImageId(imageId))
                 .orElse(null);
-        return canAccessAssignedDoctor(assignedDoctorId, authentication);
+        if (canAccessAssignedDoctor(assignedDoctorId, authentication)) {
+            return true;
+        }
+        
+        Long patientId = dicomInstanceRepository.findPatientIdByImageId(imageId)
+                .or(() -> aiResultRepository.findPatientIdByImageId(imageId))
+                .orElse(null);
+                
+        return canAccessByPatient(patientId, authentication);
     }
 
     public boolean canAccessDoctor(Long doctorId, Authentication authentication) {
@@ -56,6 +83,17 @@ public class AccessControlService {
         User user = currentUser(authentication);
         return user != null && isClinicalUser(user) && (isClinicalSupervisor(user)
                 || (assignedDoctorId != null && user.getId().equals(assignedDoctorId)));
+    }
+
+    private boolean canAccessByPatient(Long patientId, Authentication authentication) {
+        if (patientId == null) return false;
+        User user = currentUser(authentication);
+        if (user == null || user.getRole() == null) return false;
+        if (isAdmin(user) || isClinicalSupervisor(user)) return true;
+        if ("DOCTOR".equalsIgnoreCase(user.getRole().getCode())) {
+            return examinationRepository.existsByPatientIdAndDoctorId(patientId, user.getId());
+        }
+        return false;
     }
 
     private User currentUser(Authentication authentication) {

@@ -24,6 +24,12 @@ public interface DicomInstanceRepository extends JpaRepository<DicomInstance, Lo
         Optional<Long> findAssignedDoctorIdByImageId(
                         @Param("imageId") Long imageId);
 
+        @Query("select d.examination.patient.id from DicomInstance d "
+                        + "left join d.image image left join d.annotatedImage annotatedImage "
+                        + "where image.id = :imageId or annotatedImage.id = :imageId")
+        Optional<Long> findPatientIdByImageId(
+                        @Param("imageId") Long imageId);
+
         @Query("SELECT COUNT(DISTINCT d.studyInstanceUid) FROM DicomInstance d")
         long countUniqueStudies();
 }
