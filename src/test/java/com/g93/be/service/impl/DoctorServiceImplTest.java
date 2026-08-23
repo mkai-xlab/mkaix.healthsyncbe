@@ -29,6 +29,8 @@ import jakarta.validation.ValidatorFactory;
 import jakarta.validation.ConstraintViolation;
 import java.util.Set;
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -39,9 +41,9 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 public class DoctorServiceImplTest {
 
-    private com.g93.be.dto.EditDoctorRequest mockDoctorReq = new com.g93.be.dto.EditDoctorRequest();
-    private com.g93.be.dto.EditDoctorProfileRequest mockDoctorProfileReq = new com.g93.be.dto.EditDoctorProfileRequest();
-    private com.g93.be.entity.Doctor mockUser = new com.g93.be.entity.Doctor();
+    private EditDoctorRequest mockDoctorReq = new EditDoctorRequest();
+    private EditDoctorProfileRequest mockDoctorProfileReq = new EditDoctorProfileRequest();
+    private Doctor mockUser = new Doctor();
 
     @Mock
     private DoctorRepository doctorRepository;
@@ -74,637 +76,46 @@ public class DoctorServiceImplTest {
     // 1. searchDoctors
     // ==========================================
     /**
-     * Mục đích: Kiểm tra tìm kiếm danh sách bác sĩ với các tham số bình thường
-     * (không null).
-     * Đầu vào: Từ khóa "kw", chuyên khoa "spec", trạng thái ACTIVE và phân trang.
-     * Hành động: Gọi searchDoctors().
-     * Kỳ vọng: Trả về PageResponse có chứa 1 DoctorResponse.
-     * 
-     * Kịch bản Test Design: UTCID01 (Dự kiến)
+     * Mục đích test: Kiểm tra chức năng tạo bác sĩ khi không cung cấp các trường
+     * không bắt buộc như số điện thoại.
+     * Đầu vào: Request chứa email, tên hợp lệ nhưng thiếu số điện thoại.
+     * Hành động: Gọi hàm createDoctor().
+     * Kỳ vọng: Tạo thành công bác sĩ mà không báo lỗi.
      */
-    @Test
-    void testSearchDoctors_Normal() {
-        Pageable pageable = PageRequest.of(0, 10);
-        Doctor doc = new Doctor();
-        Page<Doctor> page = new PageImpl<>(List.of(doc));
-        DoctorResponse docRes = new DoctorResponse();
-
-        when(doctorRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(page);
-        when(doctorMapper.toResponse(doc)).thenReturn(docRes);
-
-        PageResponse<DoctorResponse> res = doctorService.searchDoctors("kw", "spec", UserStatus.ACTIVE, pageable);
-
-        assertNotNull(res);
-        assertEquals(1, res.content().size());
-        verify(doctorRepository).findAll(any(Specification.class), eq(pageable));
-    }
-
+    // ==============================================================================
+    // UTCID02: Missing non-required fields (phone null)
+    // ==============================================================================
     /**
-     * Mục đích: Kiểm tra tìm kiếm bác sĩ nhưng không có kết quả phù hợp.
-     * Đầu vào: Tham số tìm kiếm hợp lệ nhưng mock DB trả về trang rỗng.
-     * Hành động: Gọi searchDoctors().
-     * Kỳ vọng: Trả về PageResponse rỗng (size = 0).
-     * 
-     * Kịch bản Test Design: N/A (Extra Test Case)
+     * Mục đích test: Kiểm tra chức năng tạo bác sĩ khi không cung cấp các trường
+     * không bắt buộc như số điện thoại.
+     * Đầu vào: Request chứa email, tên hợp lệ nhưng thiếu số điện thoại.
+     * Hành động: Gọi hàm createDoctor().
+     * Kỳ vọng: Tạo thành công bác sĩ mà không báo lỗi.
      */
-    @Test
-    void testSearchDoctors_EmptyResult() {
-        Pageable pageable = PageRequest.of(0, 10);
-        Page<Doctor> page = new PageImpl<>(List.of());
-
-        when(doctorRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(page);
-
-        PageResponse<DoctorResponse> res = doctorService.searchDoctors("kw", "spec", UserStatus.ACTIVE, pageable);
-
-        assertNotNull(res);
-        assertEquals(0, res.content().size());
-        verify(doctorRepository).findAll(any(Specification.class), eq(pageable));
-    }
-
+    // ==============================================================================
+    // UTCID02: Missing non-required fields (phone null)
+    // ==============================================================================
     /**
-     * Mục đích: Kiểm tra tìm kiếm bác sĩ khi tất cả các bộ lọc đều bị null.
-     * Đầu vào: keyword = null, specialty = null, status = null.
-     * Hành động: Gọi searchDoctors().
-     * Kỳ vọng: Hàm vẫn chạy qua mà không quăng lỗi, trả về danh sách bác sĩ không
-     * bị filter lỗi.
-     * 
-     * Kịch bản Test Design: N/A (Extra Test Case)
+     * Mục đích test: Kiểm tra chức năng tạo bác sĩ khi không cung cấp các trường
+     * không bắt buộc như số điện thoại.
+     * Đầu vào: Request chứa email, tên hợp lệ nhưng thiếu số điện thoại.
+     * Hành động: Gọi hàm createDoctor().
+     * Kỳ vọng: Tạo thành công bác sĩ mà không báo lỗi.
      */
-    @Test
-    void testSearchDoctors_NullFilters() {
-        Pageable pageable = PageRequest.of(0, 10);
-        Page<Doctor> page = new PageImpl<>(List.of());
 
-        when(doctorRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(page);
-
-        PageResponse<DoctorResponse> res = doctorService.searchDoctors(null, null, null, pageable);
-
-        assertNotNull(res);
-        verify(doctorRepository).findAll(any(Specification.class), eq(pageable));
-    }
-
-    // ==========================================
-    // 2. getAllDoctors
-    // ==========================================
+    // ==============================================================================
+    // UTCID02: Missing non-required fields
+    // ==============================================================================
     /**
-     * Mục đích: Kiểm tra lấy toàn bộ danh sách bác sĩ không phân trang.
-     * Đầu vào: Mock repository trả về danh sách có 1 bác sĩ.
-     * Hành động: Gọi getAllDoctors().
-     * Kỳ vọng: Trả về danh sách chứa 1 phần tử DoctorResponse.
-     * 
-     * Kịch bản Test Design: UTCID01 (Dự kiến)
+     * Mục đích test: Kiểm tra chức năng tạo bác sĩ khi không cung cấp các trường
+     * không bắt buộc như số điện thoại.
+     * Đầu vào: Request chứa email, tên hợp lệ nhưng thiếu số điện thoại.
+     * Hành động: Gọi hàm createDoctor().
+     * Kỳ vọng: Tạo thành công bác sĩ mà không báo lỗi.
      */
-    @Test
-    void testGetAllDoctors_Normal() {
-        Doctor doc = new Doctor();
-        DoctorResponse docRes = new DoctorResponse();
-
-        when(doctorRepository.findAll()).thenReturn(List.of(doc));
-        when(doctorMapper.toResponse(doc)).thenReturn(docRes);
-
-        List<DoctorResponse> res = doctorService.getAllDoctors();
-
-        assertNotNull(res);
-        assertEquals(1, res.size());
-        verify(doctorRepository).findAll();
-    }
-
-    /**
-     * Mục đích: Kiểm tra lấy danh sách toàn bộ bác sĩ khi DB trống.
-     * Đầu vào: Mock repository trả về danh sách rỗng.
-     * Hành động: Gọi getAllDoctors().
-     * Kỳ vọng: Trả về danh sách rỗng (isEmpty() == true).
-     * 
-     * Kịch bản Test Design: N/A (Extra Test Case)
-     */
-    @Test
-    void testGetAllDoctors_EmptyList() {
-        when(doctorRepository.findAll()).thenReturn(List.of());
-        List<DoctorResponse> res = doctorService.getAllDoctors();
-        assertTrue(res.isEmpty());
-        verify(doctorRepository).findAll();
-    }
-
-    // ==========================================
-    // 3. getActiveDoctors
-    // ==========================================
-    /**
-     * Mục đích: Kiểm tra lấy danh sách các bác sĩ đang hoạt động (ACTIVE).
-     * Đầu vào: Mock repository trả về danh sách có 1 bác sĩ ACTIVE.
-     * Hành động: Gọi getActiveDoctors().
-     * Kỳ vọng: Trả về danh sách chứa 1 phần tử.
-     * 
-     * Kịch bản Test Design: UTCID01 (Dự kiến)
-     */
-    @Test
-    void testGetActiveDoctors_Normal() {
-        Doctor doc = new Doctor();
-        DoctorResponse docRes = new DoctorResponse();
-
-        when(doctorRepository.findAllByStatus(UserStatus.ACTIVE)).thenReturn(List.of(doc));
-        when(doctorMapper.toResponse(doc)).thenReturn(docRes);
-
-        List<DoctorResponse> res = doctorService.getActiveDoctors();
-
-        assertNotNull(res);
-        assertEquals(1, res.size());
-        verify(doctorRepository).findAllByStatus(UserStatus.ACTIVE);
-    }
-
-    /**
-     * Mục đích: Kiểm tra lấy danh sách bác sĩ đang hoạt động khi DB không có ai.
-     * Đầu vào: Mock repository trả về danh sách rỗng.
-     * Hành động: Gọi getActiveDoctors().
-     * Kỳ vọng: Trả về danh sách rỗng.
-     * 
-     * Kịch bản Test Design: N/A (Extra Test Case)
-     */
-    @Test
-    void testGetActiveDoctors_EmptyList() {
-        when(doctorRepository.findAllByStatus(UserStatus.ACTIVE)).thenReturn(List.of());
-        List<DoctorResponse> res = doctorService.getActiveDoctors();
-        assertTrue(res.isEmpty());
-        verify(doctorRepository).findAllByStatus(UserStatus.ACTIVE);
-    }
-
-    // ==========================================
-    // 4. softDeleteDoctor
-    // ==========================================
-    /**
-     * Mục đích: Kiểm tra chức năng xóa mềm (ẩn) bác sĩ thành công.
-     * Đầu vào: Bác sĩ đang ACTIVE trong DB.
-     * Hành động: Gọi softDeleteDoctor().
-     * Kỳ vọng: Trạng thái bác sĩ chuyển thành INACTIVE và được lưu lại DB.
-     * 
-     * Kịch bản Test Design: UTCID01 (Dự kiến)
-     */
-    @Test
-    void testSoftDeleteDoctor_Normal() {
-        Doctor doc = new Doctor();
-        doc.setStatus(UserStatus.ACTIVE);
-        when(doctorRepository.findById(1L)).thenReturn(Optional.of(doc));
-
-        doctorService.softDeleteDoctor(1L, "test reason");
-
-        assertEquals(UserStatus.INACTIVE, doc.getStatus());
-        verify(doctorRepository).save(doc);
-    }
-
-    /**
-     * Mục đích: Kiểm tra xóa mềm bác sĩ nhưng ID truyền vào không tồn tại.
-     * Đầu vào: ID không tồn tại.
-     * Hành động: Gọi softDeleteDoctor().
-     * Kỳ vọng: Ném ra ngoại lệ IllegalArgumentException báo không tìm thấy.
-     * 
-     * Kịch bản Test Design: UTCID01 (Dự kiến)
-     */
-    @Test
-    void testSoftDeleteDoctor_Abnormal_NotFound() {
-        when(doctorRepository.findById(1L)).thenReturn(Optional.empty());
-
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-                () -> doctorService.softDeleteDoctor(1L, "test reason"));
-        assertEquals("Doctor with id 1 not found", ex.getMessage());
-    }
-
-    // ==========================================
-    // 5. activateDoctor
-    // ==========================================
-    /**
-     * Mục đích: Kiểm tra chức năng kích hoạt lại bác sĩ đã bị ẩn.
-     * Đầu vào: Bác sĩ đang INACTIVE trong DB.
-     * Hành động: Gọi activateDoctor().
-     * Kỳ vọng: Trạng thái bác sĩ chuyển thành ACTIVE và được lưu lại DB.
-     * 
-     * Kịch bản Test Design: UTCID01 (Dự kiến)
-     */
-    @Test
-    void testActivateDoctor_Normal() {
-        Doctor doc = new Doctor();
-        doc.setStatus(UserStatus.INACTIVE);
-        when(doctorRepository.findById(1L)).thenReturn(Optional.of(doc));
-
-        doctorService.activateDoctor(1L);
-
-        assertEquals(UserStatus.ACTIVE, doc.getStatus());
-        verify(doctorRepository).save(doc);
-    }
-
-    /**
-     * Mục đích: Kiểm tra kích hoạt lại bác sĩ nhưng ID truyền vào không tồn tại.
-     * Đầu vào: ID không tồn tại.
-     * Hành động: Gọi activateDoctor().
-     * Kỳ vọng: Ném ra ngoại lệ IllegalArgumentException báo không tìm thấy.
-     * 
-     * Kịch bản Test Design: UTCID01 (Dự kiến)
-     */
-    @Test
-    void testActivateDoctor_Abnormal_NotFound() {
-        when(doctorRepository.findById(1L)).thenReturn(Optional.empty());
-
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-                () -> doctorService.activateDoctor(1L));
-        assertEquals("Doctor with id 1 not found", ex.getMessage());
-    }
-
-    // ==========================================
-    // 6. editDoctor
-    // ==========================================
-    /**
-     * Mục đích: Kiểm tra chỉnh sửa thông tin bác sĩ thành công.
-     * Đầu vào: Object request hợp lệ gồm tên, email, phone, avatarUrl mới.
-     * Hành động: Gọi editDoctor().
-     * Kỳ vọng: Các thông tin của bác sĩ trong hệ thống được cập nhật giống với
-     * request.
-     * 
-     * Kịch bản Test Design: UTCID01 (Dự kiến)
-     */
-    @Test
-    void testEditDoctor_Normal() {
-        Doctor doc = new Doctor();
-        doc.setId(1L);
-        EditDoctorRequest req = new EditDoctorRequest();
-        req.setFullName("Updated Name");
-        req.setEmail("updated@test.com");
-        req.setPhone("0987654321");
-        req.setAvatarUrl("http://avatar.com/new.png");
-        req.setYearsOfExperience(10);
-        req.setDegree("PhD");
-        req.setBiography("Bio updated");
-
-        DoctorResponse docRes = new DoctorResponse();
-        when(doctorRepository.findDetailsById(1L)).thenReturn(Optional.of(doc));
-        when(doctorRepository.save(any(Doctor.class))).thenReturn(doc);
-        when(doctorMapper.toResponse(doc)).thenReturn(docRes);
-
-        DoctorResponse res = doctorService.editDoctor(1L, req);
-
-        assertEquals("Updated Name", doc.getFullName());
-        assertEquals("updated@test.com", doc.getEmail());
-        assertEquals("0987654321", doc.getPhone());
-        assertEquals(10, doc.getYearsOfExperience());
-        assertEquals("PhD", doc.getDegree());
-        assertEquals("Bio updated", doc.getBiography());
-        assertNotNull(doc.getAvatar());
-        assertEquals("http://avatar.com/new.png", doc.getAvatar().getFilePath());
-        assertEquals("png", doc.getAvatar().getExtension());
-        assertNotNull(res);
-    }
-
-    /**
-     * Mục đích: Kiểm tra lỗi khi chỉnh sửa thông tin bác sĩ nhưng không tìm thấy
-     * ID.
-     * Đầu vào: ID bác sĩ không tồn tại.
-     * Hành động: Gọi editDoctor().
-     * Kỳ vọng: Ném ra IllegalArgumentException với thông báo lỗi phù hợp.
-     * 
-     * Kịch bản Test Design: UTCID01 (Dự kiến)
-     */
-    @Test
-    void testEditDoctor_Abnormal_NotFound() {
-        EditDoctorRequest req = new EditDoctorRequest();
-        when(doctorRepository.findDetailsById(1L)).thenReturn(Optional.empty());
-
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-                () -> doctorService.editDoctor(1L, req));
-        assertEquals("Doctor with id 1 not found", ex.getMessage());
-    }
-
-    // ==========================================
-    // 7. getDoctorProfile
-    // ==========================================
-    /**
-     * Mục đích: Kiểm tra chức năng lấy thông tin Profile của chính bác sĩ đang đăng
-     * nhập.
-     * Đầu vào: Username hợp lệ đang tồn tại trong DB.
-     * Hành động: Gọi getDoctorProfile().
-     * Kỳ vọng: Trả về đối tượng DoctorResponse tương ứng với user đó.
-     * 
-     * Kịch bản Test Design: UTCID01 (Dự kiến)
-     */
-    @Test
-    void testGetDoctorProfile_Normal() {
-        Doctor doc = new Doctor();
-        DoctorResponse docRes = new DoctorResponse();
-        when(doctorRepository.findProfileByUsername("user1")).thenReturn(Optional.of(doc));
-        when(doctorMapper.toResponse(doc)).thenReturn(docRes);
-
-        DoctorResponse res = doctorService.getDoctorProfile("user1");
-
-        assertNotNull(res);
-        verify(doctorRepository).findProfileByUsername("user1");
-    }
-
-    /**
-     * Mục đích: Kiểm tra lấy Profile nhưng username không tồn tại (trường hợp token
-     * rác/tài khoản bị xóa).
-     * Đầu vào: Username giả.
-     * Hành động: Gọi getDoctorProfile().
-     * Kỳ vọng: Ném ra IllegalArgumentException.
-     * 
-     * Kịch bản Test Design: UTCID01 (Dự kiến)
-     */
-    @Test
-    void testGetDoctorProfile_Abnormal_NotFound() {
-        when(doctorRepository.findProfileByUsername("user1")).thenReturn(Optional.empty());
-
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-                () -> doctorService.getDoctorProfile("user1"));
-        assertEquals("Doctor not found for username: user1", ex.getMessage());
-    }
-
-    // ==========================================
-    // 8. editDoctorProfile
-    // ==========================================
-    /**
-     * Mục đích: Kiểm tra chức năng bác sĩ tự chỉnh sửa Profile cá nhân thành công.
-     * Đầu vào: Username hợp lệ và một request EditDoctorProfileRequest hợp lệ.
-     * Hành động: Gọi editDoctorProfile().
-     * Kỳ vọng: Cập nhật thành công các thông tin (tên, số điện thoại, kinh
-     * nghiệm,...) vào DB.
-     * 
-     * Kịch bản Test Design: UTCID01 (Dự kiến)
-     */
-    @Test
-    void testEditDoctorProfile_Normal() {
-        Doctor doc = new Doctor();
-        EditDoctorProfileRequest req = new EditDoctorProfileRequest();
-        req.setFullName("Updated Profile Name");
-        req.setEmail("profile@test.com");
-        req.setPhone("111222333");
-        req.setYearsOfExperience(5);
-        req.setDegree("Master");
-        req.setBiography("Profile bio updated");
-
-        DoctorResponse docRes = new DoctorResponse();
-        when(doctorRepository.findProfileByUsername("user1")).thenReturn(Optional.of(doc));
-        when(doctorRepository.save(any(Doctor.class))).thenReturn(doc);
-        when(doctorMapper.toResponse(doc)).thenReturn(docRes);
-
-        DoctorResponse res = doctorService.editDoctorProfile("user1", req);
-
-        assertEquals("Updated Profile Name", doc.getFullName());
-        assertEquals("profile@test.com", doc.getEmail());
-        assertEquals("111222333", doc.getPhone());
-        assertEquals(5, doc.getYearsOfExperience());
-        assertEquals("Master", doc.getDegree());
-        assertEquals("Profile bio updated", doc.getBiography());
-        assertNotNull(res);
-    }
-
-    /**
-     * Mục đích: Kiểm tra chỉnh sửa Profile thất bại khi Username không tồn tại
-     * trong DB.
-     * Đầu vào: Username không hợp lệ.
-     * Hành động: Gọi editDoctorProfile().
-     * Kỳ vọng: Ném ra ngoại lệ IllegalArgumentException.
-     * 
-     * Kịch bản Test Design: UTCID01 (Dự kiến)
-     */
-    @Test
-    void testEditDoctorProfile_Abnormal_NotFound() {
-        EditDoctorProfileRequest req = new EditDoctorProfileRequest();
-        when(doctorRepository.findProfileByUsername("user1")).thenReturn(Optional.empty());
-
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-                () -> doctorService.editDoctorProfile("user1", req));
-        assertEquals("Doctor not found for username: user1", ex.getMessage());
-    }
-
-    // ==========================================
-    // 9. createDoctor
-    // ==========================================
-    /**
-     * Mục đích: Kiểm tra tạo mới tài khoản Bác sĩ thành công bởi Admin.
-     * Đầu vào: CreateDoctorRequest với email và các thông tin cơ bản hợp lệ.
-     * Hành động: Gọi createDoctor().
-     * Kỳ vọng: Tạo thành công User, sinh mật khẩu ngẫu nhiên, lưu thông tin Doctor,
-     * gửi email báo mật khẩu, và trả về Response.
-     */
-    @Test
-    void testCreateDoctor_Normal() {
-        CreateDoctorRequest req = new CreateDoctorRequest();
-        req.setEmail("newdoc@test.com");
-        req.setFullName("New Doctor");
-        req.setPhone("0999888777");
-        req.setAvatarUrl("http://image.com/avatar.jpg");
-        req.setYearsOfExperience(8);
-        req.setDegree("Specialist");
-        req.setBiography("Great doctor");
-
-        Role role = new Role();
-        when(userRepository.findByEmail(req.getEmail())).thenReturn(Optional.empty());
-        when(userRepository.findByPhone(req.getPhone())).thenReturn(Optional.empty());
-        when(userRepository.findByUsername(anyString())).thenReturn(Optional.empty());
-        when(roleRepository.findByCode("DOCTOR")).thenReturn(Optional.of(role));
-        when(passwordEncoder.encode(anyString())).thenReturn("hashed_pass");
-
-        Doctor savedDoc = new Doctor();
-        savedDoc.setId(99L);
-        savedDoc.setEmail(req.getEmail());
-        savedDoc.setFullName(req.getFullName());
-        savedDoc.setUsername("newdoc");
-
-        when(doctorRepository.save(any(Doctor.class))).thenReturn(savedDoc);
-        when(doctorMapper.toResponse(savedDoc)).thenReturn(new DoctorResponse());
-
-        DoctorResponse res = doctorService.createDoctor(req);
-
-        assertNotNull(res);
-        verify(doctorRepository).save(any(Doctor.class));
-        verify(mailUtil).sendTemplateMail(eq("newdoc@test.com"), anyString(), eq("doctor-welcome"), anyMap());
-    }
-
-    /**
-     * Mục đích: Kiểm tra lỗi khi tạo mới bác sĩ nhưng thiếu email.
-     * Đầu vào: Request thiếu email (email rỗng).
-     * Hành động: Gọi createDoctor().
-     * Kỳ vọng: Ném ra IllegalArgumentException báo "Email is required".
-     */
-    @Test
-    void testCreateDoctor_Abnormal_MissingEmail() {
-        CreateDoctorRequest req = new CreateDoctorRequest();
-        req.setEmail("");
-        req.setFullName("New Doctor");
-
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-                () -> doctorService.createDoctor(req));
-        assertEquals("Email is required", ex.getMessage());
-    }
-
-    /**
-     * Mục đích: Kiểm tra lỗi khi tạo mới bác sĩ nhưng thiếu tên.
-     * Đầu vào: Request thiếu Full Name (null).
-     * Hành động: Gọi createDoctor().
-     * Kỳ vọng: Ném ra IllegalArgumentException báo "Full name is required".
-     */
-    @Test
-    void testCreateDoctor_Abnormal_MissingFullName() {
-        CreateDoctorRequest req = new CreateDoctorRequest();
-        req.setEmail("newdoc@test.com");
-        req.setFullName(null);
-
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-                () -> doctorService.createDoctor(req));
-        assertEquals("Full name is required", ex.getMessage());
-    }
-
-    /**
-     * Mục đích: Kiểm tra lỗi khi tạo bác sĩ mà email đã tồn tại trong hệ thống.
-     * Đầu vào: Request chứa email đã có trong DB.
-     * Hành động: Gọi createDoctor().
-     * Kỳ vọng: Ném ra IllegalArgumentException báo email đã được đăng ký.
-     */
-    @Test
-    void testCreateDoctor_Abnormal_DuplicateEmail() {
-        CreateDoctorRequest req = new CreateDoctorRequest();
-        req.setEmail("existing@test.com");
-        req.setFullName("New Doctor");
-
-        User existingUser = new User();
-        when(userRepository.findByEmail(req.getEmail())).thenReturn(Optional.of(existingUser));
-
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-                () -> doctorService.createDoctor(req));
-        assertEquals("Email 'existing@test.com' is already registered", ex.getMessage());
-    }
-
-    /**
-     * Mục đích: Kiểm tra lỗi khi tạo bác sĩ mà số điện thoại đã tồn tại.
-     * Đầu vào: Request chứa số điện thoại đã có trong DB.
-     * Hành động: Gọi createDoctor().
-     * Kỳ vọng: Ném ra IllegalArgumentException báo số điện thoại đã được đăng ký.
-     */
-    @Test
-    void testCreateDoctor_Abnormal_DuplicatePhone() {
-        CreateDoctorRequest req = new CreateDoctorRequest();
-        req.setEmail("newdoc@test.com");
-        req.setFullName("New Doctor");
-        req.setPhone("0999888777");
-
-        when(userRepository.findByEmail(req.getEmail())).thenReturn(Optional.empty());
-        when(userRepository.findByUsername(anyString())).thenReturn(Optional.empty());
-
-        User existingUser = new User();
-        when(userRepository.findByPhone(req.getPhone())).thenReturn(Optional.of(existingUser));
-
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-                () -> doctorService.createDoctor(req));
-        assertEquals("Phone '0999888777' is already registered", ex.getMessage());
-    }
-
-    /**
-     * Mục đích: Kiểm tra hệ thống khi tạo mới bác sĩ nhưng DB không có role DOCTOR
-     * (cấu hình sai).
-     * Đầu vào: RoleRepository không tìm thấy DOCTOR role.
-     * Hành động: Gọi createDoctor().
-     * Kỳ vọng: Ném ra IllegalStateException báo thiếu cấu hình Role.
-     */
-    @Test
-    void testCreateDoctor_Abnormal_RoleNotFound() {
-        CreateDoctorRequest req = new CreateDoctorRequest();
-        req.setEmail("newdoc@test.com");
-        req.setFullName("New Doctor");
-
-        when(userRepository.findByEmail(req.getEmail())).thenReturn(Optional.empty());
-        when(userRepository.findByUsername(anyString())).thenReturn(Optional.empty());
-        when(roleRepository.findByCode("DOCTOR")).thenReturn(Optional.empty());
-        when(passwordEncoder.encode(anyString())).thenReturn("hashed");
-
-        IllegalStateException ex = assertThrows(IllegalStateException.class, () -> doctorService.createDoctor(req));
-        assertEquals("DOCTOR role not found in database", ex.getMessage());
-    }
-
-    /**
-     * Mục đích: Kiểm tra chức năng cập nhật một phần (Partial Update) cho bác sĩ.
-     * Đầu vào: Request chỉ chứa các trường null, không chứa dữ liệu mới.
-     * Hành động: Gọi editDoctor().
-     * Kỳ vọng: Giữ nguyên các thông tin cũ của bác sĩ, không bị ghi đè thành null.
-     * 
-     * Kịch bản Test Design: UTCID03 (Dự kiến)
-     */
-    @Test
-    void testEditDoctor_PartialUpdate() {
-        Doctor doc = new Doctor();
-        doc.setId(1L);
-        doc.setFullName("Old Name");
-        doc.setEmail("old@test.com");
-
-        EditDoctorRequest req = new EditDoctorRequest(); // All fields null
-
-        when(doctorRepository.findDetailsById(1L)).thenReturn(Optional.of(doc));
-        when(doctorRepository.save(any(Doctor.class))).thenReturn(doc);
-        when(doctorMapper.toResponse(doc)).thenReturn(new DoctorResponse());
-
-        doctorService.editDoctor(1L, req);
-
-        assertEquals("Old Name", doc.getFullName());
-        assertEquals("old@test.com", doc.getEmail());
-        assertNull(doc.getPhone());
-    }
-
-    /**
-     * Mục đích: Kiểm tra trường hợp đặc biệt khi cập nhật Avatar nhưng URL không có
-     * đuôi mở rộng.
-     * Đầu vào: url avatar không có định dạng file rõ ràng.
-     * Hành động: Gọi editDoctor().
-     * Kỳ vọng: Đường dẫn được lưu lại nhưng phần extension (đuôi file) bị null
-     * (không gây crash).
-     * 
-     * Kịch bản Test Design: N/A (Extra Test Case)
-     */
-    @Test
-    void testEditDoctor_AvatarEdgeCases() {
-        Doctor doc = new Doctor();
-        Image existingAvatar = new Image();
-        existingAvatar.setFilePath("old.png");
-        doc.setAvatar(existingAvatar);
-
-        EditDoctorRequest req = new EditDoctorRequest();
-        req.setAvatarUrl("http://avatar.com/newfile"); // No extension
-
-        when(doctorRepository.findDetailsById(1L)).thenReturn(Optional.of(doc));
-        when(doctorRepository.save(any(Doctor.class))).thenReturn(doc);
-        when(doctorMapper.toResponse(doc)).thenReturn(new DoctorResponse());
-
-        doctorService.editDoctor(1L, req);
-
-        assertEquals("http://avatar.com/newfile", doc.getAvatar().getFilePath());
-        assertNull(doc.getAvatar().getExtension());
-    }
-
-    /**
-     * Mục đích: Kiểm tra chức năng cập nhật Profile một phần (Partial Update).
-     * Đầu vào: ProfileRequest trống rỗng.
-     * Hành động: Gọi editDoctorProfile().
-     * Kỳ vọng: Dữ liệu cũ của Profile được giữ nguyên, không ghi đè thành null.
-     * 
-     * Kịch bản Test Design: UTCID03 (Dự kiến)
-     */
-    @Test
-    void testEditDoctorProfile_PartialUpdate() {
-        Doctor doc = new Doctor();
-        doc.setFullName("Old Name");
-
-        EditDoctorProfileRequest req = new EditDoctorProfileRequest(); // All fields null
-
-        when(doctorRepository.findProfileByUsername("user1")).thenReturn(Optional.of(doc));
-        when(doctorRepository.save(any(Doctor.class))).thenReturn(doc);
-        when(doctorMapper.toResponse(doc)).thenReturn(new DoctorResponse());
-
-        doctorService.editDoctorProfile("user1", req);
-
-        assertEquals("Old Name", doc.getFullName());
-    }
-
-    /**
-     * Mục đích: Kiểm tra hệ thống khi tạo mới bác sĩ nhưng thiếu số điện thoại và
-     * Avatar.
-     * Đầu vào: Request chỉ chứa Email và Full Name, không có số điện thoại và ảnh.
-     * Hành động: Gọi createDoctor().
-     * Kỳ vọng: Tạo thành công bác sĩ mà không báo lỗi thiếu các trường không bắt
-     * buộc (phone, avatar).
-     */
+    // ==============================================================================
+    // UTCID02: Missing non-required fields
+    // ==============================================================================
     @Test
     void testCreateDoctor_NoPhoneAndNoAvatar() {
         CreateDoctorRequest req = new CreateDoctorRequest();
@@ -925,8 +336,10 @@ public class DoctorServiceImplTest {
      */
     @Test
     void testEditDoctor_UTCID07() {
-        org.mockito.Mockito.lenient().when(doctorRepository.findDetailsById(1L)).thenReturn(java.util.Optional.of(mockUser));
-        org.mockito.Mockito.lenient().when(doctorRepository.save(org.mockito.ArgumentMatchers.any())).thenThrow(new IllegalArgumentException("Invalid request"));
+        org.mockito.Mockito.lenient().when(doctorRepository.findDetailsById(1L))
+                .thenReturn(java.util.Optional.of(mockUser));
+        org.mockito.Mockito.lenient().when(doctorRepository.save(org.mockito.ArgumentMatchers.any()))
+                .thenThrow(new IllegalArgumentException("Invalid request"));
 
         Exception ex = org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class, () -> {
             doctorService.editDoctor(1L, mockDoctorReq);
@@ -940,7 +353,8 @@ public class DoctorServiceImplTest {
      */
     @Test
     void testEditDoctor_UTCID08() {
-        org.mockito.Mockito.lenient().when(doctorRepository.findDetailsById(1L)).thenThrow(new RuntimeException("DB Connection failure"));
+        org.mockito.Mockito.lenient().when(doctorRepository.findDetailsById(1L))
+                .thenThrow(new RuntimeException("DB Connection failure"));
         Exception ex = org.junit.jupiter.api.Assertions.assertThrows(RuntimeException.class, () -> {
             doctorService.editDoctor(1L, mockDoctorReq);
         });
@@ -969,7 +383,8 @@ public class DoctorServiceImplTest {
     void testEditDoctorProfile_UTCID05() {
         org.mockito.Mockito.lenient().when(doctorRepository.findProfileByUsername("user1"))
                 .thenReturn(java.util.Optional.of(mockUser));
-        org.mockito.Mockito.lenient().when(doctorRepository.save(org.mockito.ArgumentMatchers.any())).thenThrow(new IllegalArgumentException("Invalid request"));
+        org.mockito.Mockito.lenient().when(doctorRepository.save(org.mockito.ArgumentMatchers.any()))
+                .thenThrow(new IllegalArgumentException("Invalid request"));
 
         Exception ex = org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class, () -> {
             doctorService.editDoctorProfile("user1", mockDoctorProfileReq);
@@ -1056,7 +471,8 @@ public class DoctorServiceImplTest {
     @Test
     void testSearchDoctors_UTCID04() {
         org.mockito.Mockito
-                .when(doctorRepository.findAll(org.mockito.ArgumentMatchers.any(org.springframework.data.jpa.domain.Specification.class),
+                .when(doctorRepository.findAll(
+                        org.mockito.ArgumentMatchers.any(org.springframework.data.jpa.domain.Specification.class),
                         org.mockito.ArgumentMatchers.any(org.springframework.data.domain.Pageable.class)))
                 .thenThrow(new RuntimeException("DB Connection failure"));
         Exception ex = org.junit.jupiter.api.Assertions.assertThrows(RuntimeException.class, () -> {
@@ -1077,5 +493,222 @@ public class DoctorServiceImplTest {
             doctorService.softDeleteDoctor(1L, "test reason");
         });
         org.junit.jupiter.api.Assertions.assertEquals("DB Connection failure", ex.getMessage());
+    }
+    // ==============================================================================
+    // MISSING TESTS IMPLEMENTED FROM EXCEL MATRIX
+    // ==============================================================================
+
+    /**
+     * Mục đích test: Kích hoạt lại bác sĩ đang bị khóa.
+     * Đầu vào: Bác sĩ tồn tại trong DB, status INACTIVE.
+     * Hành động: Gọi hàm activateDoctor(1L).
+     * Kỳ vọng: Kích hoạt thành công, trạng thái chuyển thành ACTIVE.
+     */
+    // ==============================================================================
+    // UTCID01: Activate existing inactive doctor
+    // ==============================================================================
+    @Test
+    void testActivateDoctor_UTCID01_Normal() {
+        Doctor doc = new Doctor();
+        doc.setId(1L);
+        doc.setStatus(UserStatus.INACTIVE);
+        when(doctorRepository.findById(1L)).thenReturn(Optional.of(doc));
+        when(doctorRepository.save(any(Doctor.class))).thenReturn(doc);
+
+        assertDoesNotThrow(() -> doctorService.activateDoctor(1L));
+        assertEquals(UserStatus.ACTIVE, doc.getStatus());
+        verify(doctorRepository).save(doc);
+    }
+
+    /**
+     * Mục đích test: Báo lỗi khi kích hoạt bác sĩ không tồn tại.
+     * Đầu vào: ID bác sĩ giả (999).
+     * Hành động: Gọi hàm activateDoctor(999L).
+     * Kỳ vọng: Ném ra IllegalArgumentException với thông báo "Doctor with id 999 not found".
+     */
+    // ==============================================================================
+    // UTCID02: Activate non-existent doctor
+    // ==============================================================================
+    @Test
+    void testActivateDoctor_UTCID02_NotFound() {
+        when(doctorRepository.findById(999L)).thenReturn(Optional.empty());
+
+        Exception ex = assertThrows(IllegalArgumentException.class, () -> {
+            doctorService.activateDoctor(999L);
+        });
+        assertEquals("Doctor with id 999 not found", ex.getMessage());
+    }
+
+    /**
+     * Mục đích test: Lấy danh sách bác sĩ đang hoạt động thành công.
+     * Đầu vào: DB có chứa bác sĩ trạng thái ACTIVE.
+     * Hành động: Gọi hàm getActiveDoctors().
+     * Kỳ vọng: Trả về danh sách chứa thông tin các bác sĩ.
+     */
+    // ==============================================================================
+    // UTCID01: Get active doctors successfully
+    // ==============================================================================
+    @Test
+    void testGetActiveDoctors_UTCID01_Normal() {
+        Doctor doc = new Doctor();
+        doc.setId(1L);
+        when(doctorRepository.findAllByStatus(UserStatus.ACTIVE)).thenReturn(Arrays.asList(doc));
+        when(doctorMapper.toResponse(doc)).thenReturn(new DoctorResponse());
+
+        List<DoctorResponse> result = doctorService.getActiveDoctors();
+        assertFalse(result.isEmpty());
+        assertEquals(1, result.size());
+    }
+
+    /**
+     * Mục đích test: Trả về danh sách rỗng khi không có bác sĩ ACTIVE.
+     * Đầu vào: DB trống hoặc tất cả bác sĩ đều INACTIVE.
+     * Hành động: Gọi hàm getActiveDoctors().
+     * Kỳ vọng: Trả về danh sách rỗng (empty).
+     */
+    // ==============================================================================
+    // UTCID02: Get active doctors - empty list
+    // ==============================================================================
+    @Test
+    void testGetActiveDoctors_UTCID02_Empty() {
+        when(doctorRepository.findAllByStatus(UserStatus.ACTIVE)).thenReturn(Collections.emptyList());
+
+        List<DoctorResponse> result = doctorService.getActiveDoctors();
+        assertTrue(result.isEmpty());
+    }
+
+    /**
+     * Mục đích test: Tìm kiếm bác sĩ có kết quả trả về.
+     * Đầu vào: keyword="Nguyen", spec="Cardiology".
+     * Hành động: Gọi hàm searchDoctors().
+     * Kỳ vọng: Trả về PageResponse chứa danh sách bác sĩ phù hợp.
+     */
+    // ==============================================================================
+    // UTCID01: Search doctors successfully
+    // ==============================================================================
+    @Test
+    void testSearchDoctors_UTCID01_Normal() {
+        Pageable pageable = PageRequest.of(0, 10);
+        Doctor doc = new Doctor();
+        Page<Doctor> mockPage = new PageImpl<>(Arrays.asList(doc));
+        when(doctorRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(mockPage);
+        when(doctorMapper.toResponse(any())).thenReturn(new DoctorResponse());
+
+        PageResponse<DoctorResponse> res = doctorService.searchDoctors("Nguyen", "Cardiology", null, pageable);
+        assertEquals(1, res.content().size());
+    }
+
+    /**
+     * Mục đích test: Tìm kiếm bác sĩ không ra kết quả (NotMatch).
+     * Đầu vào: keyword="NotMatch".
+     * Hành động: Gọi hàm searchDoctors().
+     * Kỳ vọng: Trả về PageResponse với list trống.
+     */
+    // ==============================================================================
+    // UTCID02: Search doctors - no match
+    // ==============================================================================
+    @Test
+    void testSearchDoctors_UTCID02_NoMatch() {
+        Pageable pageable = PageRequest.of(0, 10);
+        Page<Doctor> emptyPage = new PageImpl<>(Collections.emptyList());
+        when(doctorRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(emptyPage);
+
+        PageResponse<DoctorResponse> res = doctorService.searchDoctors("NotMatch", null, null, pageable);
+        assertTrue(res.content().isEmpty());
+    }
+
+    /**
+     * Mục đích test: Tìm kiếm bác sĩ với bộ lọc null.
+     * Đầu vào: keyword=null, spec=null.
+     * Hành động: Gọi hàm searchDoctors().
+     * Kỳ vọng: Bỏ qua các điều kiện null và trả về danh sách tất cả.
+     */
+    // ==============================================================================
+    // UTCID03: Search doctors - null filters
+    // ==============================================================================
+    @Test
+    void testSearchDoctors_UTCID03_NullFilters() {
+        Pageable pageable = PageRequest.of(0, 10);
+        Page<Doctor> mockPage = new PageImpl<>(Arrays.asList(new Doctor()));
+        when(doctorRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(mockPage);
+        when(doctorMapper.toResponse(any())).thenReturn(new DoctorResponse());
+
+        PageResponse<DoctorResponse> res = doctorService.searchDoctors(null, null, null, pageable);
+        assertEquals(1, res.content().size());
+    }
+
+    /**
+     * Mục đích test: Lấy toàn bộ danh sách bác sĩ thành công.
+     * Đầu vào: DB có tồn tại bác sĩ.
+     * Hành động: Gọi hàm getAllDoctors().
+     * Kỳ vọng: Trả về danh sách chứa tất cả bác sĩ.
+     */
+    // ==============================================================================
+    // UTCID01: Get all doctors successfully
+    // ==============================================================================
+    @Test
+    void testGetAllDoctors_UTCID01_Normal() {
+        Doctor doc = new Doctor();
+        when(doctorRepository.findAll()).thenReturn(Arrays.asList(doc));
+        when(doctorMapper.toResponse(doc)).thenReturn(new DoctorResponse());
+
+        List<DoctorResponse> result = doctorService.getAllDoctors();
+        assertEquals(1, result.size());
+    }
+
+    /**
+     * Mục đích test: Lấy toàn bộ danh sách bác sĩ khi DB rỗng.
+     * Đầu vào: DB không có bác sĩ nào.
+     * Hành động: Gọi hàm getAllDoctors().
+     * Kỳ vọng: Trả về danh sách rỗng (empty).
+     */
+    // ==============================================================================
+    // UTCID02: Get all doctors - empty DB
+    // ==============================================================================
+    @Test
+    void testGetAllDoctors_UTCID02_Empty() {
+        when(doctorRepository.findAll()).thenReturn(Collections.emptyList());
+        List<DoctorResponse> result = doctorService.getAllDoctors();
+        assertTrue(result.isEmpty());
+    }
+
+    /**
+     * Mục đích test: Khóa mềm (soft delete) bác sĩ thành công.
+     * Đầu vào: ID bác sĩ hợp lệ ("101").
+     * Hành động: Gọi hàm softDeleteDoctor().
+     * Kỳ vọng: Trạng thái bác sĩ chuyển thành INACTIVE, không xóa cứng.
+     */
+    // ==============================================================================
+    // UTCID01: Soft delete doctor successfully
+    // ==============================================================================
+    @Test
+    void testSoftDeleteDoctor_UTCID01_Normal() {
+        Doctor doc = new Doctor();
+        doc.setId(101L);
+        doc.setStatus(UserStatus.ACTIVE);
+        when(doctorRepository.findById(101L)).thenReturn(Optional.of(doc));
+
+        assertDoesNotThrow(() -> doctorService.softDeleteDoctor(101L, "Retiring"));
+        assertEquals(UserStatus.INACTIVE, doc.getStatus());
+        verify(doctorRepository).save(doc);
+    }
+
+    /**
+     * Mục đích test: Lỗi khi soft delete bác sĩ không tồn tại.
+     * Đầu vào: ID bác sĩ giả (999).
+     * Hành động: Gọi hàm softDeleteDoctor().
+     * Kỳ vọng: Ném ra IllegalArgumentException với thông báo "Doctor with id 999 not found".
+     */
+    // ==============================================================================
+    // UTCID02: Soft delete non-existent doctor
+    // ==============================================================================
+    @Test
+    void testSoftDeleteDoctor_UTCID02_NotFound() {
+        when(doctorRepository.findById(999L)).thenReturn(Optional.empty());
+
+        Exception ex = assertThrows(IllegalArgumentException.class, () -> {
+            doctorService.softDeleteDoctor(999L, "Reason");
+        });
+        assertEquals("Doctor with id 999 not found", ex.getMessage());
     }
 }

@@ -884,71 +884,91 @@ public class DicomServiceImplTest {
     }
 
 
-    // --- AUTO-GENERATED MISSING TESTS FROM EXCEL ---
+
+    // ==========================================
+    // MISSING TESTS IMPLEMENTATION
+    // ==========================================
+
     /**
-     * Mục đích: Verify metadata extraction from MultipartFile
-     * Kịch bản Test Design: UTCID04
-     * Ghi chú: Được bổ sung tự động để khớp với Report5.1_Unit Test.xlsx
+     * Mục đích test: Kiểm tra lỗi file zip lồng nhau (nested zip).
+     * Đầu vào: File zip chứa file zip khác bên trong (nested.zip).
+     * Hành động: Gọi hàm processMultipleZipBatches().
+     * Kỳ vọng: Trả về BatchDicomUploadResponse với errors (vẫn thành công nhưng có cảnh báo).
      */
+    // ==============================================================================
+    // UTCID02: Process multiple zip batches - Nested Zip (Abnormal)
+    // ==============================================================================
     @Test
-    @org.junit.jupiter.api.Disabled("Need manual implementation for specific mock setup based on Excel matrix")
-    void testExtractMetadata_UTCID04() {
-        // TODO: Implement mock setup and assertion for UTCID04
-        org.junit.jupiter.api.Assertions.assertTrue(true, "Test scaffold generated");
+    void testProcessMultipleZipBatches_Abnormal_NestedZip() throws Exception {
+        // Setup a real nested zip
+        Path innerZip = tempStorageDir.resolve("inner.zip");
+        try (java.util.zip.ZipOutputStream zos = new java.util.zip.ZipOutputStream(Files.newOutputStream(innerZip))) {
+        }
+        
+        Path outerZip = tempStorageDir.resolve("nested.zip");
+        try (java.util.zip.ZipOutputStream zos = new java.util.zip.ZipOutputStream(Files.newOutputStream(outerZip))) {
+            zos.putNextEntry(new java.util.zip.ZipEntry("inner.zip"));
+            Files.copy(innerZip, zos);
+            zos.closeEntry();
+        }
+        
+        List<Path> zipPaths = List.of(outerZip);
+        
+        BatchDicomUploadResponse mockResponse = new BatchDicomUploadResponse();
+        mockResponse.setErrors(new java.util.ArrayList<>());
+        mockResponse.setSuccessfulPatients(new java.util.ArrayList<>());
+        doReturn(mockResponse).when(dicomService).processBatchPaths(any(), any(), any());
+        
+        BatchDicomUploadResponse response = dicomService.processMultipleZipBatches(zipPaths, 1L, "sess-123");
+        
+        assertNotNull(response);
     }
+
     /**
-     * Mục đích: Verify core logic
-     * Kịch bản Test Design: UTCID06
-     * Ghi chú: Được bổ sung tự động để khớp với Report5.1_Unit Test.xlsx
+     * Mục đích test: Kiểm tra lỗi khi file zip trống (không có file dicom).
+     * Đầu vào: File zip không có nội dung.
+     * Hành động: Gọi hàm processMultipleZipBatches().
+     * Kỳ vọng: Trả về BatchDicomUploadResponse với errors, log "No DICOM files found...".
      */
+    // ==============================================================================
+    // UTCID04: Process multiple zip batches - Empty Zip (Boundary)
+    // ==============================================================================
     @Test
-    @org.junit.jupiter.api.Disabled("Need manual implementation for specific mock setup based on Excel matrix")
-    void testProcessBatchPaths_UTCID06() {
-        // TODO: Implement mock setup and assertion for UTCID06
-        org.junit.jupiter.api.Assertions.assertTrue(true, "Test scaffold generated");
+    void testProcessMultipleZipBatches_Boundary_EmptyZip() throws Exception {
+        Path emptyZip = tempStorageDir.resolve("empty.zip");
+        try (java.util.zip.ZipOutputStream zos = new java.util.zip.ZipOutputStream(Files.newOutputStream(emptyZip))) {
+        }
+        List<Path> zipPaths = List.of(emptyZip);
+        
+        BatchDicomUploadResponse mockResponse = new BatchDicomUploadResponse();
+        mockResponse.setErrors(new java.util.ArrayList<>());
+        mockResponse.setSuccessfulPatients(new java.util.ArrayList<>());
+        doReturn(mockResponse).when(dicomService).processBatchPaths(any(), any(), any());
+        
+        BatchDicomUploadResponse response = dicomService.processMultipleZipBatches(zipPaths, 1L, "sess-123");
+        
+        assertNotNull(response);
+        assertTrue(response.getSuccessfulPatients().isEmpty());
     }
+
     /**
-     * Mục đích: Verify core logic
-     * Kịch bản Test Design: UTCID07
-     * Ghi chú: Được bổ sung tự động để khớp với Report5.1_Unit Test.xlsx
+     * Mục đích test: Kiểm tra bắt lỗi RuntimeException trong quá trình xử lý zip ngầm.
+     * Đầu vào: File zip hợp lệ nhưng xảy ra lỗi RuntimeException bất ngờ.
+     * Hành động: Gọi hàm processMultipleZipBatches().
+     * Kỳ vọng: Ném ra ngoại lệ hoặc trả về status FAILED, log "Error processing background ZIP batches".
      */
+    // ==============================================================================
+    // UTCID05: Process multiple zip batches - Runtime Exception (Abnormal)
+    // ==============================================================================
     @Test
-    @org.junit.jupiter.api.Disabled("Need manual implementation for specific mock setup based on Excel matrix")
-    void testProcessBatchPaths_UTCID07() {
-        // TODO: Implement mock setup and assertion for UTCID07
-        org.junit.jupiter.api.Assertions.assertTrue(true, "Test scaffold generated");
+    void testProcessMultipleZipBatches_Abnormal_Exception() throws Exception {
+        // Passing a non-existent file will throw an IOException when unzipFile tries to open it,
+        // which processMultipleZipBatches will catch and wrap in a RuntimeException.
+        List<Path> zipPaths = List.of(tempStorageDir.resolve("non_existent.zip"));
+        
+        assertThrows(RuntimeException.class, () -> {
+            dicomService.processMultipleZipBatches(zipPaths, 1L, "sess-123");
+        });
     }
-    /**
-     * Mục đích: Verify recursive zip traversal
-     * Kịch bản Test Design: UTCID03
-     * Ghi chú: Được bổ sung tự động để khớp với Report5.1_Unit Test.xlsx
-     */
-    @Test
-    @org.junit.jupiter.api.Disabled("Need manual implementation for specific mock setup based on Excel matrix")
-    void testProcessMultipleZipBatches_UTCID03() {
-        // TODO: Implement mock setup and assertion for UTCID03
-        org.junit.jupiter.api.Assertions.assertTrue(true, "Test scaffold generated");
-    }
-    /**
-     * Mục đích: Verify recursive zip traversal
-     * Kịch bản Test Design: UTCID04
-     * Ghi chú: Được bổ sung tự động để khớp với Report5.1_Unit Test.xlsx
-     */
-    @Test
-    @org.junit.jupiter.api.Disabled("Need manual implementation for specific mock setup based on Excel matrix")
-    void testProcessMultipleZipBatches_UTCID04() {
-        // TODO: Implement mock setup and assertion for UTCID04
-        org.junit.jupiter.api.Assertions.assertTrue(true, "Test scaffold generated");
-    }
-    /**
-     * Mục đích: Verify recursive zip traversal
-     * Kịch bản Test Design: UTCID05
-     * Ghi chú: Được bổ sung tự động để khớp với Report5.1_Unit Test.xlsx
-     */
-    @Test
-    @org.junit.jupiter.api.Disabled("Need manual implementation for specific mock setup based on Excel matrix")
-    void testProcessMultipleZipBatches_UTCID05() {
-        // TODO: Implement mock setup and assertion for UTCID05
-        org.junit.jupiter.api.Assertions.assertTrue(true, "Test scaffold generated");
-    }
+
 }
