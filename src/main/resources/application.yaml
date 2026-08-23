@@ -104,6 +104,10 @@ app:
     medical-validation-sample-chars: ${CHAT_MEDICAL_VALIDATION_SAMPLE_CHARS:6000}
     medical-validation-min-confidence: ${CHAT_MEDICAL_VALIDATION_MIN_CONFIDENCE:0.7}
     report-sync-delay-ms: ${CHAT_REPORT_SYNC_DELAY_MS:300000}
+    pricing:
+      # gemini-3.5-flash list price, USD per 1,000,000 tokens.
+      input-price-per-million-tokens: ${CHAT_PRICING_INPUT_PER_MILLION_USD:1.5}
+      output-price-per-million-tokens: ${CHAT_PRICING_OUTPUT_PER_MILLION_USD:9.0}
 
 logging:
   level:

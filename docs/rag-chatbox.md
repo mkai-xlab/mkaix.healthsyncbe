@@ -225,6 +225,54 @@ older report vectors to metadata version 2 so the assigned-doctor access field i
 present. The manual recovery endpoint remains
 `POST /knowledge-documents/reports/{reportId}/sync`.
 
+## AI Usage and Cost Tracking
+
+Every Gemini call — router classification, chat answers, and document-upload
+medical validation — is logged to `ai_usage_logs` with prompt tokens, completion
+tokens, total tokens, and a computed USD cost. Completion tokens are derived as
+`totalTokens - promptTokens` rather than read directly from the provider, because
+Gemini's "thinking" tokens are billed and included in `totalTokens` but excluded
+from its reported completion-token count; deriving keeps the split accurate for
+billing and keeps `promptTokens + completionTokens == totalTokens` for every
+provider. Recording is best-effort: a failure to write the log never fails the
+underlying AI call.
+
+Cost is priced from `app.chat.pricing` (`CHAT_PRICING_INPUT_PER_MILLION_USD` /
+`CHAT_PRICING_OUTPUT_PER_MILLION_USD`, USD per 1,000,000 tokens), matching the
+Gemini model configured in `GEMINI_CHAT_MODEL`. Update these whenever the
+provider's list price changes; there is no API to read it automatically.
+Embedding calls (Ollama `bge-m3`) are not tracked — they run on self-hosted
+infrastructure and have no per-token provider cost.
+
+Known gap: when the router or the document classifier replies with unparsable
+JSON (rare, handled by falling back to a clarification/rejection), that call's
+usage is not recorded — Spring AI's `responseEntity()` throws before returning
+the raw `ChatResponse`, so there is nothing to log even though the call was
+already billed. Only the successful-parse path is under-counted; every
+successful call and every `answer()` call (chat replies) is recorded exactly.
+
+`GET /ai-usage/summary?from=yyyy-MM-dd&to=yyyy-MM-dd` (`ADMIN` role only)
+returns totals for that date range plus a breakdown by call type
+(`ROUTE`, `CHAT_ANSWER`, `DOCUMENT_VALIDATION`). Both `from` and `to` are
+optional and default to the trailing 30 days.
+
+```json
+{
+  "from": "2026-07-25",
+  "to": "2026-08-23",
+  "totalCalls": 5,
+  "totalPromptTokens": 12610,
+  "totalCompletionTokens": 3630,
+  "totalTokens": 16240,
+  "totalCostUsd": 0.051586,
+  "byCallType": [
+    { "callType": "ROUTE", "calls": 2, "promptTokens": 2599, "completionTokens": 1128, "totalTokens": 3727, "costUsd": 0.014051 },
+    { "callType": "CHAT_ANSWER", "calls": 2, "promptTokens": 4795, "completionTokens": 2090, "totalTokens": 6885, "costUsd": 0.026003 },
+    { "callType": "DOCUMENT_VALIDATION", "calls": 1, "promptTokens": 5216, "completionTokens": 412, "totalTokens": 5628, "costUsd": 0.011532 }
+  ]
+}
+```
+
 ## Local Startup
 
 ```powershell

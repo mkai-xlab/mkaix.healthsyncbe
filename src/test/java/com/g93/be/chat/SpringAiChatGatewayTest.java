@@ -1,5 +1,6 @@
 package com.g93.be.chat;
 
+import com.g93.be.service.AiUsageTrackingService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.chat.client.ChatClient;
@@ -26,12 +27,12 @@ class SpringAiChatGatewayTest {
         when(request.system(anyString())).thenReturn(request);
         when(request.user(anyString())).thenReturn(request);
         when(request.call()).thenReturn(callResponse);
-        gateway = new SpringAiChatGateway(chatClient);
+        gateway = new SpringAiChatGateway(chatClient, mock(AiUsageTrackingService.class));
     }
 
     @Test
     void unparsableRouterReplyBecomesNullDecisionInsteadOfServerError() {
-        when(callResponse.entity(ChatRoutingDecision.class))
+        when(callResponse.responseEntity(ChatRoutingDecision.class))
                 .thenThrow(new UnparsableReply("Unrecognized token 'Analyse'"));
 
         assertNull(gateway.route("ten cac benh nhan day la gi", "DOCTOR", "USER: thong ke ca kham KL3"));
@@ -39,7 +40,7 @@ class SpringAiChatGatewayTest {
 
     @Test
     void unparsableClassifierReplyBecomesNullAssessmentInsteadOfServerError() {
-        when(callResponse.entity(MedicalDocumentAssessment.class))
+        when(callResponse.responseEntity(MedicalDocumentAssessment.class))
                 .thenThrow(new UnparsableReply("Unrecognized token 'Here'"));
 
         assertNull(gateway.assessMedicalDocument("sample"));
@@ -47,7 +48,7 @@ class SpringAiChatGatewayTest {
 
     @Test
     void providerFailuresStillPropagateSoQuotaErrorsKeepTheirStatus() {
-        when(callResponse.entity(ChatRoutingDecision.class))
+        when(callResponse.responseEntity(ChatRoutingDecision.class))
                 .thenThrow(new RuntimeException("429 RESOURCE_EXHAUSTED: quota exceeded"));
 
         assertThrows(RuntimeException.class, () -> gateway.route("question", "DOCTOR", ""));

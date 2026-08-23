@@ -1,0 +1,33 @@
+meta {
+  name: Get AI Usage Summary
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/ai-usage/summary
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+tests {
+  test("defaults to the trailing 30 days and returns cost totals", function() {
+    expect(res.status).to.equal(200);
+    expect(res.body.from).to.be.a("string");
+    expect(res.body.to).to.be.a("string");
+    expect(res.body.totalCalls).to.be.a("number");
+    expect(res.body.totalPromptTokens).to.be.a("number");
+    expect(res.body.totalCompletionTokens).to.be.a("number");
+    expect(res.body.totalTokens).to.be.a("number");
+    expect(res.body.totalCostUsd).to.be.a("number");
+    expect(res.body.byCallType).to.be.an("array");
+    res.body.byCallType.forEach(function(row) {
+      expect(row.callType).to.be.oneOf(["ROUTE", "CHAT_ANSWER", "DOCUMENT_VALIDATION"]);
+      expect(row.promptTokens + row.completionTokens).to.equal(row.totalTokens);
+    });
+  });
+}

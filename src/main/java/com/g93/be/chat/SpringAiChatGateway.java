@@ -1,8 +1,12 @@
 package com.g93.be.chat;
 
+import com.g93.be.entity.AiCallType;
+import com.g93.be.service.AiUsageTrackingService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.client.ResponseEntity;
+import org.springframework.ai.chat.metadata.Usage;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
@@ -90,19 +94,24 @@ public class SpringAiChatGateway implements AiChatGateway {
             """;
 
     private final ChatClient chatClient;
+    private final AiUsageTrackingService usageTrackingService;
 
     @Override
     public MedicalDocumentAssessment assessMedicalDocument(String sampledContent) {
         try {
-            return chatClient.prompt()
+            ResponseEntity<ChatResponse, MedicalDocumentAssessment> responseEntity = chatClient.prompt()
                     .system(MEDICAL_DOCUMENT_CLASSIFIER_PROMPT)
                     .user("Document samples:\n" + sampledContent)
                     .call()
-                    .entity(MedicalDocumentAssessment.class);
+                    .responseEntity(MedicalDocumentAssessment.class);
+            recordUsage(AiCallType.DOCUMENT_VALIDATION, responseEntity.response());
+            return responseEntity.entity();
         } catch (JacksonException exception) {
             // Same failure mode as the router: an unparsable classifier reply must
             // become a plain document rejection (400), not a 500. The validator
             // already treats a null assessment as "not clearly medical".
+            // Same usage-tracking gap as route(): this already-billed call's token
+            // usage is not recorded when responseEntity() fails to parse the reply.
             log.warn("Medical document classifier returned an unparsable assessment: {}",
                     exception.getMessage());
             return null;
@@ -112,17 +121,22 @@ public class SpringAiChatGateway implements AiChatGateway {
     @Override
     public ChatRoutingDecision route(String question, String roleCode, String conversationHistory) {
         try {
-            return chatClient.prompt()
+            ResponseEntity<ChatResponse, ChatRoutingDecision> responseEntity = chatClient.prompt()
                     .system(ROUTER_PROMPT.formatted(LocalDate.now(), roleCode))
                     .user(conversationPrompt(question, conversationHistory))
                     .call()
-                    .entity(ChatRoutingDecision.class);
+                    .responseEntity(ChatRoutingDecision.class);
+            recordUsage(AiCallType.ROUTE, responseEntity.response());
+            return responseEntity.entity();
         } catch (JacksonException exception) {
             // The router sometimes answers with prose instead of the requested JSON.
             // Returning null lets the orchestrator fall back to a clarification
             // question instead of failing the whole request with a 500. Only the
             // JSON-parsing failure is swallowed here: provider errors such as a
             // quota rejection must keep propagating so they still map to 429.
+            // Known gap: responseEntity() throws before returning, so the ChatResponse
+            // (and its token usage) for this already-billed call is unrecoverable here
+            // and is not recorded in ai_usage_logs.
             log.warn("Router returned an unparsable decision, falling back to clarification: {}",
                     exception.getMessage());
             return null;
@@ -161,6 +175,7 @@ public class SpringAiChatGateway implements AiChatGateway {
                 .user(conversationPrompt(question, conversationHistory) + "\n\n" + context)
                 .call()
                 .chatResponse();
+        recordUsage(AiCallType.CHAT_ANSWER, response);
         if (response == null || response.getResult() == null) {
             return new GeneratedChatAnswer("The AI provider returned an empty response.", null);
         }
@@ -172,6 +187,28 @@ public class SpringAiChatGateway implements AiChatGateway {
             content = "The AI provider returned an empty response.";
         }
         return new GeneratedChatAnswer(content, tokensUsed);
+    }
+
+    private void recordUsage(AiCallType callType, ChatResponse response) {
+        if (response == null || response.getMetadata() == null) {
+            return;
+        }
+        Usage usage = response.getMetadata().getUsage();
+        String model = response.getMetadata().getModel();
+        if (usage == null) {
+            usageTrackingService.record(callType, model, null, null);
+            return;
+        }
+        Integer promptTokens = usage.getPromptTokens();
+        Integer totalTokens = usage.getTotalTokens();
+        // Derived, not usage.getCompletionTokens(): some providers (e.g. Gemini "thinking")
+        // bill hidden reasoning tokens that are folded into getTotalTokens() but excluded from
+        // getCompletionTokens(). Deriving from the total keeps cost calculation accurate and
+        // keeps promptTokens + completionTokens == totalTokens for every provider.
+        Integer completionTokens = promptTokens == null || totalTokens == null
+                ? usage.getCompletionTokens()
+                : totalTokens - promptTokens;
+        usageTrackingService.record(callType, model, promptTokens, completionTokens);
     }
 
     private String conversationPrompt(String question, String conversationHistory) {
