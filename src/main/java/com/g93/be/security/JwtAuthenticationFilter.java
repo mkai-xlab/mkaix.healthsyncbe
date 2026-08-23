@@ -15,12 +15,21 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import java.io.IOException;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.regex.Pattern;
 
 /**
  * Filter thực hiện trích xuất và kiểm tra JWT token từ request header.
  */
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
+
+    /**
+     * Cho phép truyền token qua query param `token` (thay vì header Authorization) CHỈ với các
+     * route trả file knowledge-document, để FE có thể gắn thẳng URL vào iframe/img/tab mới
+     * (những nơi không gửi được custom header). Không áp dụng cho các route khác.
+     */
+    private static final Pattern QUERY_TOKEN_ALLOWED_PATH =
+            Pattern.compile(".*/knowledge-documents/\\d+/(preview|content|download)$");
 
     private final JwtTokenProvider jwtTokenProvider;
     private final TokenBlacklistService tokenBlacklistService;
@@ -38,16 +47,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             HttpServletResponse response,
             FilterChain filterChain
     ) throws ServletException, IOException {
-        final String authHeader = request.getHeader("Authorization");
-        final String jwt;
+        final String jwt = resolveToken(request);
         final String userEmail;
 
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+        if (jwt == null) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        jwt = authHeader.substring(7);
         try {
             if (tokenBlacklistService.isAccessTokenBlacklisted(jwt)) {
                 filterChain.doFilter(request, response);
@@ -80,5 +87,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    private String resolveToken(HttpServletRequest request) {
+        String authHeader = request.getHeader("Authorization");
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            return authHeader.substring(7);
+        }
+
+        String queryToken = request.getParameter("token");
+        if (queryToken != null && !queryToken.isBlank()
+                && QUERY_TOKEN_ALLOWED_PATH.matcher(request.getRequestURI()).matches()) {
+            return queryToken;
+        }
+
+        return null;
     }
 }
