@@ -159,6 +159,10 @@ public class KnowledgeController {
                 .cacheControl(CacheControl.noStore())
                 .header(HttpHeaders.CONTENT_DISPOSITION, disposition.toString())
                 .header("X-Content-Type-Options", "nosniff")
+                // Overrides Spring Security's default X-Frame-Options: DENY (modern browsers
+                // prefer this CSP directive over X-Frame-Options when both are present), so
+                // the frontend can embed the preview directly in an <iframe>.
+                .header("Content-Security-Policy", "frame-ancestors *")
                 .body(file.resource());
     }
 }

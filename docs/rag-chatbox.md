@@ -43,9 +43,9 @@ still checks the clinical role and the `USE_AI_CHAT` permission.
 | `POST /knowledge-documents/upload/batch` | `MANAGE_MEDICAL_KNOWLEDGE` | Upload up to 10 documents with per-file results. |
 | `POST /knowledge-documents/url` | `MANAGE_MEDICAL_KNOWLEDGE` | Ingest an approved public HTTP(S) URL. |
 | `GET /knowledge-documents` | `MANAGE_MEDICAL_KNOWLEDGE` | List uploaded documents with metadata, indexing state, and errors. |
-| `GET /knowledge-documents/{id}/preview` | `MANAGE_MEDICAL_KNOWLEDGE` | Read the original stored document inline when the browser supports its media type. |
-| `GET /knowledge-documents/{id}/content` | `MANAGE_MEDICAL_KNOWLEDGE` | Extract readable plain text from the stored PDF, DOC, DOCX, TXT, or URL source. |
-| `GET /knowledge-documents/{id}/download` | `MANAGE_MEDICAL_KNOWLEDGE` | Download the original stored document as an attachment. |
+| `GET /knowledge-documents/{id}/preview` | `MANAGE_MEDICAL_KNOWLEDGE` | Read the original stored document inline when the browser supports its media type. Also accepts the token via `?token=` (see below). |
+| `GET /knowledge-documents/{id}/content` | `MANAGE_MEDICAL_KNOWLEDGE` | Extract readable plain text from the stored PDF, DOC, DOCX, TXT, or URL source. Also accepts the token via `?token=`. |
+| `GET /knowledge-documents/{id}/download` | `MANAGE_MEDICAL_KNOWLEDGE` | Download the original stored document as an attachment. Also accepts the token via `?token=`. |
 | `POST /knowledge-documents/{id}/reindex` | `MANAGE_MEDICAL_KNOWLEDGE` | Reindex a stored source. |
 | `DELETE /knowledge-documents/{id}` | `MANAGE_MEDICAL_KNOWLEDGE` | Delete metadata, file, and vectors. |
 | `POST /knowledge-documents/reports/{reportId}/sync` | `USE_AI_CHAT` and clinical role | Index one approved report. |
@@ -92,11 +92,31 @@ ingestion. `previewUrl` streams the original file with
 while DOC/DOCX behavior depends on browser support. `downloadUrl` returns the same
 file with `Content-Disposition: attachment`. All three responses use
 `Cache-Control: no-store`. A missing database row, missing stored file, or path
-outside the configured knowledge directory returns `404 Not Found`.
+outside the configured knowledge directory returns `404 Not Found`. Content type is
+resolved from the stored upload metadata first, then a fixed extension map
+(`pdf`/`doc`/`docx`/`txt`), then OS-level detection; it only falls back to
+`application/octet-stream` when none of those identify the file, so browsers
+reliably get a real MIME type instead of forcing a download.
 
 `REPORT` sources are generated from approved relational report data and do not have
 a stored knowledge source file. Their `contentUrl`, `previewUrl`, and `downloadUrl`
 are therefore `null`; use the report preview/download APIs for the generated PDF.
+
+#### Embedding preview/content/download in the frontend
+
+`<iframe src>`, `<img src>`, and a plain browser tab cannot attach an
+`Authorization` header, so all three endpoints also accept the access token as a
+`token` query parameter, e.g. `GET {previewUrl}?token={accessToken}`. This is an
+additive fallback scoped to exactly these three routes — the header-based flow is
+unchanged and every other endpoint still requires the `Authorization: Bearer`
+header. The query-string token is visible in browser history and server access
+logs for these URLs, so treat it the same as any bearer token: don't persist or
+share the resulting link long-term.
+
+These responses also send `Content-Security-Policy: frame-ancestors *`, which
+modern browsers honor over Spring Security's default `X-Frame-Options: DENY`, so
+the frontend can render `previewUrl` directly inside an `<iframe>` instead of
+fetching the bytes with JS and building a blob URL.
 
 Example question request:
 
