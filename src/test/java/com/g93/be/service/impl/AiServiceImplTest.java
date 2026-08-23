@@ -324,6 +324,7 @@ class AiServiceImplTest {
         request.setDicomInstanceIds(Arrays.asList(101L));
         DicomInstance instance = createMockInstance(101L, DicomInstanceStatus.AI_SENDING, "valid_101.png");
         when(dicomInstanceRepository.findById(101L)).thenReturn(Optional.of(instance));
+        when(dicomInstanceRepository.findByExaminationId(any())).thenReturn(List.of(instance));
         when(examinationMapper.toDto(any(), anyList())).thenReturn(new ExaminationDto());
 
         try (MockedConstruction<RestTemplate> mocked = Mockito.mockConstruction(RestTemplate.class,
@@ -564,6 +565,7 @@ class AiServiceImplTest {
 
         when(dicomInstanceRepository.findById(101L)).thenReturn(Optional.of(instance1));
         when(dicomInstanceRepository.findById(102L)).thenReturn(Optional.of(instance2));
+        when(dicomInstanceRepository.findByExaminationId(any())).thenReturn(Arrays.asList(instance1, instance2));
 
         ExaminationDto examDto = new ExaminationDto();
         ExaminationImageDto imgDto1 = new ExaminationImageDto();
