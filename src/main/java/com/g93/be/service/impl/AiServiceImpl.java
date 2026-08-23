@@ -198,7 +198,15 @@ public class AiServiceImpl implements AiService {
                             aiResult.setPredictedGrade(pGrade);
                             aiResult.setConfidence(p.getConfidence());
                             aiResult.setDescription(p.getDescription());
-                            aiResult.setKneeSide(p.getKneeSide());
+                            
+                            String predictedSide = p.getKneeSide();
+                            if (predictedSide == null || predictedSide.trim().isEmpty() || "unknown".equalsIgnoreCase(predictedSide.trim())) {
+                                String dicomSide = instance.getImageLaterality();
+                                if (dicomSide != null && !dicomSide.trim().isEmpty()) {
+                                    predictedSide = dicomSide;
+                                }
+                            }
+                            aiResult.setKneeSide(predictedSide);
                             aiResult.setRoiImage(roiImageEntity);
                             aiResult.setGradcamImage(gradcamImageEntity);
                             if (gradcamImageEntity != null) {
