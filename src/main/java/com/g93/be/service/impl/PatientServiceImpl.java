@@ -48,6 +48,10 @@ public class PatientServiceImpl implements PatientService {
                 String role = user.getRole().getCode();
                 Boolean isPersonal = filter.getIsPersonal();
 
+                if (!"ADMIN".equals(role) && !"DEPARTMENT_HEAD".equals(role) && !"DOCTOR".equals(role)) {
+                    throw new AccessDeniedException("Bạn không có quyền truy cập.");
+                }
+
                 if ("DOCTOR".equals(role)) {
                     if (Boolean.FALSE.equals(isPersonal)) {
                         throw new AccessDeniedException(
