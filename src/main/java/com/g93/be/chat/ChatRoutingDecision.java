@@ -6,5 +6,7 @@ public record ChatRoutingDecision(
         Long entityId,
         String dateFrom,
         String dateTo,
+        Integer klGrade,
+        String retrievalQuery,
         String clarificationQuestion) {
 }

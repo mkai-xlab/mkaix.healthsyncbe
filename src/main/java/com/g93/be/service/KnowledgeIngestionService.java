@@ -59,7 +59,10 @@ public class KnowledgeIngestionService {
     private final KnowledgeDocumentDeletionService deletionService;
     private final ApplicationEventPublisher eventPublisher;
 
-    @Transactional
+    // Deliberately not @Transactional: validate() below makes a synchronous
+    // Gemini call, and addUrl()'s download() makes a synchronous HTTP call.
+    // Neither should hold a DB transaction open for the duration of an external
+    // network call. repository.save() still commits atomically on its own.
     public KnowledgeDocumentResponse upload(
             MultipartFile file, String title, KnowledgeAccessScope scope, String username) {
         validateFile(file);
@@ -87,7 +90,6 @@ public class KnowledgeIngestionService {
         return toResponse(document);
     }
 
-    @Transactional
     public KnowledgeDocumentResponse addUrl(KnowledgeUrlRequest request, String username) {
         URI uri = validatePublicUrl(request.url());
         String sourceKey = "url:" + sha256(uri.normalize().toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));

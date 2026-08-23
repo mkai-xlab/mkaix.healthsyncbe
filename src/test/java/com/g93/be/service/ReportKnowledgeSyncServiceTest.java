@@ -10,7 +10,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.ai.transformer.splitter.TokenTextSplitter;
+import org.springframework.ai.transformer.splitter.TextSplitter;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.jdbc.core.RowMapper;
@@ -43,7 +43,7 @@ class ReportKnowledgeSyncServiceTest {
     @Mock
     private UserRepository userRepository;
     @Mock
-    private TokenTextSplitter splitter;
+    private TextSplitter splitter;
     @Mock
     private VectorStore vectorStore;
 

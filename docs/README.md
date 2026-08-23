@@ -27,6 +27,8 @@ This folder contains backend documentation for the Capstone project.
 21. [Contributing Guide](contributing.md)
 22. [DICOM to PNG Processing Pipeline](dicom-processor.md)
 23. [Architecture Decision Records](adr/README.md)
+24. [RAG Chatbox Code Guide](rag-chatbox-code-guide.md)
+25. [Examination Verification and Report Code Guide](examination-verification-report-code-guide.md)
 
 ## Assets
 
