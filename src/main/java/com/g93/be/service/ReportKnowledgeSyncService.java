@@ -14,7 +14,7 @@ import com.g93.be.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.document.Document;
-import org.springframework.ai.transformer.splitter.TokenTextSplitter;
+import org.springframework.ai.transformer.splitter.TextSplitter;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.ai.vectorstore.filter.FilterExpressionBuilder;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -42,7 +42,7 @@ public class ReportKnowledgeSyncService {
     private final NamedParameterJdbcTemplate jdbcTemplate;
     private final KnowledgeDocumentRepository repository;
     private final UserRepository userRepository;
-    private final TokenTextSplitter splitter;
+    private final TextSplitter splitter;
     private final VectorStore vectorStore;
 
     @Transactional

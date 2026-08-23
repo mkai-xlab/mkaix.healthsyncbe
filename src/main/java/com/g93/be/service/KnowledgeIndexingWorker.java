@@ -6,7 +6,7 @@ import com.g93.be.entity.KnowledgeDocument;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.document.Document;
-import org.springframework.ai.transformer.splitter.TokenTextSplitter;
+import org.springframework.ai.transformer.splitter.TextSplitter;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.ai.vectorstore.filter.FilterExpressionBuilder;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -28,7 +28,7 @@ public class KnowledgeIndexingWorker {
     private final KnowledgeIndexStateService stateService;
     private final KnowledgeDocumentOperationCoordinator operationCoordinator;
     private final KnowledgeDocumentReader documentReader;
-    private final TokenTextSplitter splitter;
+    private final TextSplitter splitter;
     private final VectorStore vectorStore;
 
     @Async("taskExecutor")
@@ -51,7 +51,7 @@ public class KnowledgeIndexingWorker {
             List<Document> parsed = documentReader.read(knowledge);
             List<Document> enriched = parsed.stream()
                     .filter(document -> document != null && document.isText())
-                    .map(document -> new Document(document.getText(), metadata(knowledge)))
+                    .map(document -> new Document(document.getText(), metadata(knowledge, document)))
                     .toList();
             List<Document> chunks = splitter.apply(enriched);
             if (chunks.isEmpty()) {
@@ -72,6 +72,21 @@ public class KnowledgeIndexingWorker {
             log.error("Knowledge indexing failed for document {}", event.documentId(), exception);
             stateService.markFailedIfPresent(event.documentId(), truncate(exception.getMessage()));
         }
+    }
+
+    /**
+     * Builds the source-level metadata every chunk of this document carries, then
+     * layers on any page-level metadata the reader attached (currently just
+     * "page" for PDFs) so citations can point at a specific page instead of only
+     * the document as a whole.
+     */
+    private Map<String, Object> metadata(KnowledgeDocument document, Document parsed) {
+        Map<String, Object> metadata = metadata(document);
+        Object page = parsed.getMetadata().get("page");
+        if (page != null) {
+            metadata.put("page", page);
+        }
+        return metadata;
     }
 
     private Map<String, Object> metadata(KnowledgeDocument document) {

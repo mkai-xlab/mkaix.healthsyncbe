@@ -13,8 +13,10 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 @Component
 public class KnowledgeDocumentReader {
@@ -43,7 +45,20 @@ public class KnowledgeDocumentReader {
 
     private List<Document> readPdf(Resource resource) {
         try (PDDocument pdf = PDDocument.load(resource.getInputStream())) {
-            return List.of(new Document(new PDFTextStripper().getText(pdf)));
+            PDFTextStripper stripper = new PDFTextStripper();
+            List<Document> pages = new ArrayList<>();
+            int pageCount = pdf.getNumberOfPages();
+            for (int page = 1; page <= pageCount; page++) {
+                stripper.setStartPage(page);
+                stripper.setEndPage(page);
+                String text = stripper.getText(pdf);
+                if (text != null && !text.isBlank()) {
+                    pages.add(new Document(text, Map.of("page", page)));
+                }
+            }
+            // An empty list (e.g. a scanned, image-only PDF) is intentional here:
+            // callers already treat "no extractable text" as a normal rejection case.
+            return pages;
         } catch (IOException exception) {
             throw new IllegalArgumentException("Could not read PDF document", exception);
         }
