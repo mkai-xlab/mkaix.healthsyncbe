@@ -610,6 +610,14 @@ public class DicomServiceImpl implements DicomService {
                         if (imageLaterality == null || imageLaterality.trim().isEmpty()) {
                             imageLaterality = attrs.getString(Tag.ImageLaterality, "");
                         }
+                        if (imageLaterality != null && !imageLaterality.trim().isEmpty()) {
+                            String normalized = imageLaterality.trim().toUpperCase();
+                            if (normalized.equals("L") || normalized.equals("LEFT") || normalized.equals("TRAI") || normalized.equals("GOI TRAI")) {
+                                imageLaterality = "left";
+                            } else if (normalized.equals("R") || normalized.equals("RIGHT") || normalized.equals("PHAI") || normalized.equals("GOI PHAI")) {
+                                imageLaterality = "right";
+                            }
+                        }
                     }
 
                     // Bắt buộc mỗi ảnh DICOM phải có SOPInstanceUID, nếu không coi như file hỏng
