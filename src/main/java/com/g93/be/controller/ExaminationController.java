@@ -206,6 +206,21 @@ public class ExaminationController {
     }
 
     /**
+     * Retrieves examinations filtered by dynamic criteria.
+     */
+    @GetMapping("/filter")
+    @PreAuthorize("hasAnyRole('ADMIN', 'DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT') or (hasRole('DOCTOR') and hasAuthority('VIEW_PENDING_DIAGNOSIS'))")
+    public ResponseEntity<PageResponse<ExaminationDto>> filterExaminations(
+            @RequestParam(required = false) java.util.List<ExaminationStatus> statuses,
+            @RequestParam(required = false) java.util.List<Integer> grades,
+            java.security.Principal principal,
+            @RequestParam(defaultValue = "false", required = false) Boolean isPersonal,
+            @PageableDefault(size = 10) Pageable pageable) {
+        log.info("Received request to filter examinations dynamically for user: {}", principal.getName());
+        return ResponseEntity.ok(examinationService.getExaminationsFiltered(statuses, grades, principal.getName(), isPersonal, pageable));
+    }
+
+    /**
      * Retrieves patient statistics grouped by max predicted grade based on user
      * role.
      *
