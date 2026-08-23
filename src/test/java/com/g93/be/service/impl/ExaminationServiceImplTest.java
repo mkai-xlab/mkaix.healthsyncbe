@@ -266,7 +266,7 @@ class ExaminationServiceImplTest {
         mockRole.setCode("DOCTOR");
         Boolean isPersonal = null; // Should ignore and use personal
         when(userRepository.findByUsernameOrEmail("user1", "user1")).thenReturn(Optional.of(mockUser));
-        when(examinationRepository.findByDoctorIdAndStatus(1L, ExaminationStatus.VERIFIED, pageable)).thenReturn(mockPage);
+        when(examinationRepository.findByDoctorIdAndStatus(eq(1L), eq(ExaminationStatus.VERIFIED), any(Pageable.class))).thenReturn(mockPage);
         when(dicomInstanceRepository.findByExaminationId(100L)).thenReturn(List.of());
         when(examinationMapper.toDto(mockExam, List.of())).thenReturn(mockExamDto);
 
@@ -274,7 +274,7 @@ class ExaminationServiceImplTest {
 
         assertNotNull(res);
         assertEquals(1, res.content().size());
-        verify(examinationRepository).findByDoctorIdAndStatus(1L, ExaminationStatus.VERIFIED, pageable);
+        verify(examinationRepository).findByDoctorIdAndStatus(eq(1L), eq(ExaminationStatus.VERIFIED), any(Pageable.class));
     }
 
     /**
@@ -288,7 +288,7 @@ class ExaminationServiceImplTest {
         mockRole.setCode("HEAD_OF_DEPARTMENT");
         Boolean isPersonal = true;
         when(userRepository.findByUsernameOrEmail("user1", "user1")).thenReturn(Optional.of(mockUser));
-        when(examinationRepository.findByDoctorIdAndStatus(1L, ExaminationStatus.VERIFIED, pageable)).thenReturn(mockPage);
+        when(examinationRepository.findByDoctorIdAndStatus(eq(1L), eq(ExaminationStatus.VERIFIED), any(Pageable.class))).thenReturn(mockPage);
         when(dicomInstanceRepository.findByExaminationId(100L)).thenReturn(List.of());
         when(examinationMapper.toDto(mockExam, List.of())).thenReturn(mockExamDto);
 
@@ -296,7 +296,7 @@ class ExaminationServiceImplTest {
 
         assertNotNull(res);
         assertEquals(1, res.content().size());
-        verify(examinationRepository).findByDoctorIdAndStatus(1L, ExaminationStatus.VERIFIED, pageable);
+        verify(examinationRepository).findByDoctorIdAndStatus(eq(1L), eq(ExaminationStatus.VERIFIED), any(Pageable.class));
     }
 
     /**
@@ -310,7 +310,7 @@ class ExaminationServiceImplTest {
         mockRole.setCode("HEAD_OF_DEPARTMENT");
         Boolean isPersonal = false;
         when(userRepository.findByUsernameOrEmail("user1", "user1")).thenReturn(Optional.of(mockUser));
-        when(examinationRepository.findByStatus(ExaminationStatus.VERIFIED, pageable)).thenReturn(mockPage);
+        when(examinationRepository.findByStatus(eq(ExaminationStatus.VERIFIED), any(Pageable.class))).thenReturn(mockPage);
         when(dicomInstanceRepository.findByExaminationId(100L)).thenReturn(List.of());
         when(examinationMapper.toDto(mockExam, List.of())).thenReturn(mockExamDto);
 
@@ -318,7 +318,7 @@ class ExaminationServiceImplTest {
 
         assertNotNull(res);
         assertEquals(1, res.content().size());
-        verify(examinationRepository).findByStatus(ExaminationStatus.VERIFIED, pageable);
+        verify(examinationRepository).findByStatus(eq(ExaminationStatus.VERIFIED), any(Pageable.class));
     }
 
     /**
@@ -332,7 +332,7 @@ class ExaminationServiceImplTest {
         mockRole.setCode("ADMIN");
         Boolean isPersonal = false;
         when(userRepository.findByUsernameOrEmail("user1", "user1")).thenReturn(Optional.of(mockUser));
-        when(examinationRepository.findByStatus(ExaminationStatus.VERIFIED, pageable)).thenReturn(mockPage);
+        when(examinationRepository.findByStatus(eq(ExaminationStatus.VERIFIED), any(Pageable.class))).thenReturn(mockPage);
         when(dicomInstanceRepository.findByExaminationId(100L)).thenReturn(List.of());
         when(examinationMapper.toDto(mockExam, List.of())).thenReturn(mockExamDto);
 
@@ -340,7 +340,7 @@ class ExaminationServiceImplTest {
 
         assertNotNull(res);
         assertEquals(1, res.content().size());
-        verify(examinationRepository).findByStatus(ExaminationStatus.VERIFIED, pageable);
+        verify(examinationRepository).findByStatus(eq(ExaminationStatus.VERIFIED), any(Pageable.class));
     }
 
     /**

@@ -21,6 +21,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
+import jakarta.persistence.criteria.Predicate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.g93.be.exception.UnauthorizedAccessException;
@@ -392,21 +394,22 @@ public class ExaminationServiceImpl implements ExaminationService {
 
         String roleCode = user.getRole().getCode();
         Page<Examination> examinationPage;
+        Pageable sortedPageable = getCustomSortPageable(pageable);
 
         if ("DOCTOR".equalsIgnoreCase(roleCode)) {
-            examinationPage = examinationRepository.findByDoctorIdAndStatus(user.getId(), status, pageable);
+            examinationPage = examinationRepository.findByDoctorIdAndStatus(user.getId(), status, sortedPageable);
         } else if ("HEAD_OF_DEPARTMENT".equalsIgnoreCase(roleCode) || "DEPARTMENT_HEAD".equalsIgnoreCase(roleCode)) {
             if (Boolean.TRUE.equals(isPersonal)) {
-                examinationPage = examinationRepository.findByDoctorIdAndStatus(user.getId(), status, pageable);
+                examinationPage = examinationRepository.findByDoctorIdAndStatus(user.getId(), status, sortedPageable);
             } else {
-                examinationPage = examinationRepository.findByStatus(status, pageable);
+                examinationPage = examinationRepository.findByStatus(status, sortedPageable);
             }
         } else if ("ADMIN".equalsIgnoreCase(roleCode)) {
             if (Boolean.TRUE.equals(isPersonal)) {
                 return new PageResponse<>(List.of(), 0, pageable.getPageSize(), 0, 0, true); // Admin doesn't have
                                                                                              // personal exams
             } else {
-                examinationPage = examinationRepository.findByStatus(status, pageable);
+                examinationPage = examinationRepository.findByStatus(status, sortedPageable);
             }
         } else {
             return new PageResponse<>(List.of(), 0, pageable.getPageSize(), 0, 0, true);
@@ -744,5 +747,59 @@ public class ExaminationServiceImpl implements ExaminationService {
                 Sort.Order.desc("maxPredictedGrade").nullsLast(),
                 Sort.Order.desc("createdAt"));
         return PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), sort);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<ExaminationDto> getExaminationsFiltered(List<ExaminationStatus> statuses, List<Integer> grades, String username, Boolean isPersonal, Pageable pageable) {
+        log.info("Filtering examinations dynamically for username: {}, statuses: {}, grades: {}, isPersonal: {}", username, statuses, grades, isPersonal);
+        User user = userRepository.findByUsernameOrEmail(username, username)
+                .orElseThrow(() -> {
+                    log.warn("User with username/email {} not found", username);
+                    return new IllegalArgumentException("User with username/email " + username + " not found");
+                });
+
+        if (user.getRole() == null || user.getRole().getCode() == null) {
+            return new PageResponse<>(List.of(), 0, pageable.getPageSize(), 0, 0, true);
+        }
+
+        String roleCode = user.getRole().getCode();
+
+        Specification<Examination> spec = (root, query, cb) -> {
+            List<Predicate> predicates = new java.util.ArrayList<>();
+
+            // 1. RBAC Filtering
+            if ("DOCTOR".equalsIgnoreCase(roleCode)) {
+                predicates.add(cb.equal(root.get("doctor").get("id"), user.getId()));
+            } else if ("HEAD_OF_DEPARTMENT".equalsIgnoreCase(roleCode) || "DEPARTMENT_HEAD".equalsIgnoreCase(roleCode)) {
+                if (Boolean.TRUE.equals(isPersonal)) {
+                    predicates.add(cb.equal(root.get("doctor").get("id"), user.getId()));
+                }
+            } else if ("ADMIN".equalsIgnoreCase(roleCode)) {
+                if (Boolean.TRUE.equals(isPersonal)) {
+                    // Admin doesn't have personal exams, so return a predicate that is always false
+                    predicates.add(cb.disjunction()); // 1=0
+                }
+            } else {
+                predicates.add(cb.disjunction());
+            }
+
+            // 2. Status Filtering
+            if (statuses != null && !statuses.isEmpty()) {
+                predicates.add(root.get("status").in(statuses));
+            }
+
+            // 3. Grade Filtering
+            if (grades != null && !grades.isEmpty()) {
+                predicates.add(root.get("maxPredictedGrade").in(grades));
+            }
+
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
+
+        Pageable sortedPageable = pageable.getSort().isSorted() ? pageable : getCustomSortPageable(pageable);
+        Page<Examination> examinationPage = examinationRepository.findAll(spec, sortedPageable);
+
+        return mapToPageResponse(examinationPage);
     }
 }
