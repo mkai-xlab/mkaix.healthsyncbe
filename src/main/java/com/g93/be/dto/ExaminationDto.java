@@ -21,6 +21,7 @@ public class ExaminationDto {
     private String status;
     private LocalDate studyDate;
     private java.time.LocalTime studyTime;
+    @com.fasterxml.jackson.annotation.JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "UTC")
     private LocalDateTime visitTime;
     private String thumbnailUrl;
     private String referringPhysician;
