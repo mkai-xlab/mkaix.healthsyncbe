@@ -9,6 +9,7 @@ public record ReportListItemResponse(
         Long reportId,
         Long examinationId,
         String encounterCode,
+        @com.fasterxml.jackson.annotation.JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "UTC")
         LocalDateTime visitTime,
         String patientCode,
         String patientName,
@@ -17,6 +18,7 @@ public record ReportListItemResponse(
         String fileName,
         Long fileSize,
         String contentType,
+        @com.fasterxml.jackson.annotation.JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "UTC")
         LocalDateTime generatedAt,
         String previewUrl,
         String downloadUrl) {
