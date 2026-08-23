@@ -328,24 +328,35 @@ public class AiServiceImpl implements AiService {
 
         List<ExaminationDto> finalResults = new ArrayList<>();
         for (Examination exam : uniqueExams.values()) {
-            List<DicomInstance> examInstances = instancesByExam.getOrDefault(exam.getId(), new ArrayList<>());
+            // Lấy toàn bộ ảnh của ca khám từ Database
+            List<DicomInstance> allInstancesOfExam = dicomInstanceRepository.findByExaminationId(exam.getId());
 
             boolean allFailed = true;
-            for (DicomInstance inst : examInstances) {
+            for (DicomInstance inst : allInstancesOfExam) {
                 if (inst.getStatus() == DicomInstanceStatus.GET_RESULTED) {
                     allFailed = false;
                     break;
                 }
             }
 
-            if (allFailed && !examInstances.isEmpty()) {
+            if (allFailed && !allInstancesOfExam.isEmpty()) {
+                // Nếu 100% ảnh đều lỗi -> Ca khám thất bại
                 exam.setStatus(ExaminationStatus.AI_FAILED);
-            } else {
-                exam.setStatus(ExaminationStatus.NEED_VERIFY);
+            } else if (!allFailed) {
+                // Nếu có ít nhất 1 ảnh có kết quả AI
+                // Chỉ cập nhật (hoặc giữ) trạng thái NEED_VERIFY nếu ca khám chưa được bác sĩ duyệt
+                if (exam.getStatus() == ExaminationStatus.AI_PROCESSING || 
+                    exam.getStatus() == ExaminationStatus.AI_FAILED || 
+                    exam.getStatus() == ExaminationStatus.NEED_VERIFY || 
+                    exam.getStatus() == null) {
+                    
+                    exam.setStatus(ExaminationStatus.NEED_VERIFY);
+                }
+                // Nếu đã VERIFIED hoặc REPORT_GENERATED thì GIỮ NGUYÊN trạng thái.
             }
             examinationRepository.save(exam);
 
-            ExaminationDto examDto = examinationMapper.toDto(exam, examInstances);
+            ExaminationDto examDto = examinationMapper.toDto(exam, allInstancesOfExam);
             int maxGrade = -1;
 
             if (examDto != null && examDto.getImages() != null) {
