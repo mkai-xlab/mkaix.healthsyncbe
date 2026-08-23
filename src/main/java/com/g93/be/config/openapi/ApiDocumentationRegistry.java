@@ -203,6 +203,9 @@ final class ApiDocumentationRegistry {
                 add("ExaminationController", "getExaminationsByGrade", "Ca khám", "Lọc ca khám theo KL grade",
                                 "Lọc theo maxPredictedGrade từ 0 đến 4 trong phạm vi được phép.", "200",
                                 "Trang ca khám theo KL grade", "EXAMINATION_PAGE", null, ResponseKind.JSON);
+                add("ExaminationController", "filterExaminations", "Ca khám", "Lọc ca khám động theo nhiều điều kiện",
+                                "Lọc ca khám kết hợp theo mảng trạng thái (statuses) và mảng mức độ KL (grades). Tự động đẩy KL4 lên đầu nếu không chọn sắp xếp ngày.", "200",
+                                "Trang ca khám đã được lọc và sắp xếp", "EXAMINATION_PAGE", null, ResponseKind.JSON);
                 add("ExaminationController", "getPatientGradeStatistics", "Ca khám", "Thống kê bệnh nhân theo KL grade",
                                 "Đếm bệnh nhân theo kết quả KL mới nhất, hỗ trợ lọc khoảng ngày.", "200",
                                 "Số bệnh nhân theo từng grade", "GRADE_STATS", null, ResponseKind.JSON);
