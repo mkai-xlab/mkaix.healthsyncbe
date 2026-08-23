@@ -51,12 +51,14 @@ public class PatientServiceImplTest {
     // 1. createPatient
     // ==========================================
     /**
-     * Mục đích: Kiểm tra chức năng tạo mới.
-     * Đầu vào: Kịch bản: Luồng chuẩn (dữ liệu hợp lệ).
-     * Hành động: Gọi phương thức CreatePatient().
-     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
-     
-     * Kịch bản Test Design: UTCID01 (Dự kiến) */
+     * Mục đích test: Kiểm tra tạo mới bệnh nhân thành công với thông tin hợp lệ.
+     * Đầu vào: fullName="Nguyen Van A", thực hiện bởi role DEPARTMENT_HEAD hoặc DOCTOR.
+     * Hành động: Gọi hàm createPatient().
+     * Kỳ vọng: Lưu bệnh nhân thành công, ghi log "Starting registration..." và "Patient saved successfully...".
+     */
+    // ==============================================================================
+    // UTCID01: Create patient successfully (Normal)
+    // ==============================================================================
     @Test
     void testCreatePatient_Normal() {
         CreatePatientRequest req = new CreatePatientRequest();
@@ -83,12 +85,14 @@ public class PatientServiceImplTest {
     }
 
     /**
-     * Mục đích: Kiểm tra chức năng tạo mới.
-     * Đầu vào: Kịch bản: Luồng lỗi (Abnormal/Invalid).
-     * Hành động: Gọi phương thức CreatePatient().
-     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
-     
-     * Kịch bản Test Design: UTCID01 (Dự kiến) */
+     * Mục đích test: Kiểm tra báo lỗi khi tên bệnh nhân bị thiếu hoặc rỗng ("").
+     * Đầu vào: fullName="", thực hiện bởi role hợp lệ.
+     * Hành động: Gọi hàm createPatient().
+     * Kỳ vọng: Ném ra ngoại lệ IllegalArgumentException với message "Full name is required".
+     */
+    // ==============================================================================
+    // UTCID02: Create patient failed - empty full name (Abnormal)
+    // ==============================================================================
     @Test
     void testCreatePatient_Abnormal_MissingFullName() {
         CreatePatientRequest req = new CreatePatientRequest();
@@ -99,12 +103,14 @@ public class PatientServiceImplTest {
     }
 
     /**
-     * Mục đích: Kiểm tra chức năng tạo mới.
-     * Đầu vào: Kịch bản: Luồng lỗi (Abnormal/Invalid).
-     * Hành động: Gọi phương thức CreatePatient().
-     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
-     
-     * Kịch bản Test Design: UTCID01 (Dự kiến) */
+     * Mục đích test: Kiểm tra báo lỗi khi tên bệnh nhân bị bỏ trống (null).
+     * Đầu vào: fullName=null, thực hiện bởi role hợp lệ.
+     * Hành động: Gọi hàm createPatient().
+     * Kỳ vọng: Ném ra ngoại lệ IllegalArgumentException với message "Full name is required".
+     */
+    // ==============================================================================
+    // UTCID03: Create patient failed - null full name (Abnormal)
+    // ==============================================================================
     @Test
     void testCreatePatient_Abnormal_NullFullName() {
         CreatePatientRequest req = new CreatePatientRequest();
@@ -198,12 +204,14 @@ public class PatientServiceImplTest {
     // 3. getAllPatients
     // ==========================================
     /**
-     * Mục đích: Kiểm tra chức năng lấy.
-     * Đầu vào: Kịch bản: Admin Success.
-     * Hành động: Gọi phương thức GetAllPatients().
-     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
-     
-     * Kịch bản Test Design: N/A (Extra Test Case) */
+     * Mục đích test: Verify get all patients as Admin.
+     * Đầu vào: Role ADMIN.
+     * Hành động: Gọi getAllPatients.
+     * Kỳ vọng: Trả về PageResponse thành công.
+     */
+    // ==============================================================================
+    // UTCID01: Get all patients - ADMIN/HEAD (Normal)
+    // ==============================================================================
     @Test
     void testGetAllPatients_Admin_Success() {
         PatientFilterRequest filter = new PatientFilterRequest();
@@ -227,12 +235,14 @@ public class PatientServiceImplTest {
     }
 
     /**
-     * Mục đích: Kiểm tra chức năng lấy.
-     * Đầu vào: Kịch bản: DoctorPersonal Success.
-     * Hành động: Gọi phương thức GetAllPatients().
-     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
-     
-     * Kịch bản Test Design: N/A (Extra Test Case) */
+     * Mục đích test: Verify get all patients as Doctor (Personal only).
+     * Đầu vào: Role DOCTOR, isPersonal=true.
+     * Hành động: Gọi getAllPatients.
+     * Kỳ vọng: Trả về PageResponse thành công.
+     */
+    // ==============================================================================
+    // UTCID02: Get all patients - Doctor personal (Normal)
+    // ==============================================================================
     @Test
     void testGetAllPatients_DoctorPersonal_Success() {
         PatientFilterRequest filter = new PatientFilterRequest();
@@ -258,12 +268,14 @@ public class PatientServiceImplTest {
     }
 
     /**
-     * Mục đích: Kiểm tra chức năng lấy.
-     * Đầu vào: Kịch bản: Ném ngoại lệ (Exception).
-     * Hành động: Gọi phương thức GetAllPatients().
-     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
-     
-     * Kịch bản Test Design: N/A (Extra Test Case) */
+     * Mục đích test: Verify get all patients as Doctor (Not Personal).
+     * Đầu vào: Role DOCTOR, isPersonal=false.
+     * Hành động: Gọi getAllPatients.
+     * Kỳ vọng: Ném ra AccessDeniedException.
+     */
+    // ==============================================================================
+    // UTCID03: Get all patients - Doctor not personal (Abnormal)
+    // ==============================================================================
     @Test
     void testGetAllPatients_DoctorNotPersonal_ThrowsException() {
         PatientFilterRequest filter = new PatientFilterRequest();
@@ -280,6 +292,33 @@ public class PatientServiceImplTest {
         
         AccessDeniedException ex = assertThrows(AccessDeniedException.class, () -> patientService.getAllPatients(filter, pageable, "doctor"));
         assertEquals("Bạn không có quyền xem toàn bộ danh sách bệnh nhân của hệ thống.", ex.getMessage());
+    }
+
+    /**
+     * Mục đích test: Kiểm tra luồng xử lý getAllPatients khi user có role không hợp lệ (Fail Role).
+     * Đầu vào: User có Role không thuộc danh sách cho phép (ví dụ ROLE_USER).
+     * Hành động: Gọi hàm getAllPatients.
+     * Kỳ vọng: Ném ra AccessDeniedException vì không có quyền truy cập.
+     */
+    // ==============================================================================
+    // UTCID04: Get all patients - Fail Role (Abnormal)
+    // ==============================================================================
+    @Test
+    void testGetAllPatients_Abnormal_FailRole() {
+        PatientFilterRequest filter = new PatientFilterRequest();
+        Pageable pageable = PageRequest.of(0, 10);
+        
+        User failUser = new User();
+        failUser.setId(6L);
+        Role failRole = new Role();
+        failRole.setCode("ROLE_USER"); // Invalid role
+        failUser.setRole(failRole);
+
+        when(userRepository.findByUsername("failuser")).thenReturn(Optional.of(failUser));
+        
+        assertThrows(org.springframework.security.access.AccessDeniedException.class, () -> 
+            patientService.getAllPatients(filter, pageable, "failuser")
+        );
     }
 
     /**
@@ -317,12 +356,14 @@ public class PatientServiceImplTest {
     // 4. getPatientsByUploadDate
     // ==========================================
     /**
-     * Mục đích: Kiểm tra chức năng lấy.
-     * Đầu vào: Kịch bản: WithNullUsername.
-     * Hành động: Gọi phương thức GetPatientsByUploadDate().
-     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
-     
-     * Kịch bản Test Design: N/A (Extra Test Case) */
+     * Mục đích test: Verify get patients by upload date with Null Username (Fail Role).
+     * Đầu vào: Username null hoặc Role không hợp lệ.
+     * Hành động: Gọi getPatientsByUploadDate.
+     * Kỳ vọng: Ném ra Exception.
+     */
+    // ==============================================================================
+    // UTCID03: Get patients by date - Fail Role (Abnormal)
+    // ==============================================================================
     @Test
     void testGetPatientsByUploadDate_WithNullUsername() {
         LocalDate date = LocalDate.of(2023, 5, 15);
@@ -344,12 +385,14 @@ public class PatientServiceImplTest {
     }
 
     /**
-     * Mục đích: Kiểm tra chức năng lấy.
-     * Đầu vào: Kịch bản: WithAdminUsername.
-     * Hành động: Gọi phương thức GetPatientsByUploadDate().
-     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
-     
-     * Kịch bản Test Design: N/A (Extra Test Case) */
+     * Mục đích test: Verify get patients by upload date as Admin.
+     * Đầu vào: Role ADMIN, Valid Date.
+     * Hành động: Gọi getPatientsByUploadDate.
+     * Kỳ vọng: Trả về danh sách bệnh nhân.
+     */
+    // ==============================================================================
+    // UTCID01: Get patients by date - Admin/Head (Normal)
+    // ==============================================================================
     @Test
     void testGetPatientsByUploadDate_WithAdminUsername() {
         LocalDate date = LocalDate.of(2023, 5, 15);
@@ -378,12 +421,14 @@ public class PatientServiceImplTest {
     }
 
     /**
-     * Mục đích: Kiểm tra chức năng lấy.
-     * Đầu vào: Kịch bản: WithDoctorUsername.
-     * Hành động: Gọi phương thức GetPatientsByUploadDate().
-     * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
-     
-     * Kịch bản Test Design: N/A (Extra Test Case) */
+     * Mục đích test: Verify get patients by upload date as Doctor.
+     * Đầu vào: Role DOCTOR, Valid Date.
+     * Hành động: Gọi getPatientsByUploadDate.
+     * Kỳ vọng: Trả về danh sách bệnh nhân.
+     */
+    // ==============================================================================
+    // UTCID02: Get patients by date - Doctor (Normal)
+    // ==============================================================================
     @Test
     void testGetPatientsByUploadDate_WithDoctorUsername() {
         LocalDate date = LocalDate.of(2023, 5, 15);
