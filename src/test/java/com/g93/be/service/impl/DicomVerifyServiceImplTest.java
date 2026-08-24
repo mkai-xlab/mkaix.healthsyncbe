@@ -56,7 +56,7 @@ public class DicomVerifyServiceImplTest {
     // UTCID01: Process verified session - Null Instance IDs (Boundary)
     // ==============================================================================
     @Test
-    void test_Boundary_NullInstanceIds() {
+    void testProcessVerifiedSessionAsync_UTCID01_Boundary_NullInstanceIds() {
         dicomVerifyService.processVerifiedSessionAsync(null, "doctor1");
         verify(aiService, never()).predictBatch(any());
         verify(notificationService, never()).sendNotification(any());
@@ -72,7 +72,7 @@ public class DicomVerifyServiceImplTest {
     // UTCID02: Process verified session - Empty Instance IDs (Boundary)
     // ==============================================================================
     @Test
-    void test_Boundary_EmptyInstanceIds() {
+    void testProcessVerifiedSessionAsync_UTCID02_Boundary_EmptyInstanceIds() {
         dicomVerifyService.processVerifiedSessionAsync(new ArrayList<>(), "doctor1");
         verify(aiService, never()).predictBatch(any());
         verify(notificationService, never()).sendNotification(any());
@@ -93,7 +93,7 @@ public class DicomVerifyServiceImplTest {
     // UTCID03: Process verified session - Null Username (Abnormal)
     // ==============================================================================
     @Test
-    void test_Abnormal_NullUsername() {
+    void testProcessVerifiedSessionAsync_UTCID03_Abnormal_NullUsername() {
         List<Long> instanceIds = Arrays.asList(1L);
         when(aiService.predictBatch(any(AiPredictionRequest.class))).thenReturn(new ArrayList<>());
 
@@ -116,7 +116,7 @@ public class DicomVerifyServiceImplTest {
     // UTCID04: Process verified session - User Not Found (Abnormal)
     // ==============================================================================
     @Test
-    void test_Abnormal_UserNotFound() {
+    void testProcessVerifiedSessionAsync_UTCID04_Abnormal_UserNotFound() {
         List<Long> instanceIds = Arrays.asList(1L);
         String username = "unknown_user";
         when(userRepository.findByUsername(username)).thenReturn(Optional.empty());
@@ -140,7 +140,7 @@ public class DicomVerifyServiceImplTest {
     // UTCID05: Process verified session - AI Service throws Exception (Abnormal)
     // ==============================================================================
     @Test
-    void test_Abnormal_AiServiceThrowsException() {
+    void testProcessVerifiedSessionAsync_UTCID05_Abnormal_AiServiceThrowsException() {
         List<Long> instanceIds = Arrays.asList(1L);
         String username = "doctor1";
         User user = new User();
@@ -172,7 +172,7 @@ public class DicomVerifyServiceImplTest {
     // UTCID06: Process verified session - Notification throws exception (Abnormal)
     // ==============================================================================
     @Test
-    void test_Abnormal_AiServiceAndNotificationThrowException() {
+    void testProcessVerifiedSessionAsync_UTCID06_Abnormal_AiServiceAndNotificationThrowException() {
         List<Long> instanceIds = Arrays.asList(1L);
         String username = "doctor1";
         User user = new User();
@@ -203,7 +203,7 @@ public class DicomVerifyServiceImplTest {
     // UTCID07: Process verified session - No Predictions (Normal)
     // ==============================================================================
     @Test
-    void test_Normal_NoPredictions() {
+    void testProcessVerifiedSessionAsync_UTCID09_Normal_NoPredictions() {
         List<Long> instanceIds = Arrays.asList(1L, 2L);
         String username = "doctor1";
         User user = new User();
@@ -234,7 +234,7 @@ public class DicomVerifyServiceImplTest {
     // UTCID08: Process verified session - Valid Predictions Same Patient (Normal)
     // ==============================================================================
     @Test
-    void test_Normal_ValidPredictions_SamePatient() {
+    void testProcessVerifiedSessionAsync_UTCID08_Normal_ValidPredictions_SamePatient() {
         List<Long> instanceIds = Arrays.asList(1L, 2L);
         String username = "doctor1";
         User user = new User();
@@ -273,10 +273,11 @@ public class DicomVerifyServiceImplTest {
      * nhân (mảng thống kê trả về có size = 2).
      */
     // ==============================================================================
-    // UTCID09: Process verified session - Valid Predictions Multiple Patients (Normal)
+    // UTCID09: Process verified session - Valid Predictions Multiple Patients
+    // (Normal)
     // ==============================================================================
     @Test
-    void test_Normal_ValidPredictions_MultiplePatients() {
+    void testProcessVerifiedSessionAsync_UTCID07_Normal_ValidPredictions_MultiplePatients() {
         List<Long> instanceIds = Arrays.asList(1L, 2L);
         String username = "doctor1";
         User user = new User();
@@ -317,10 +318,11 @@ public class DicomVerifyServiceImplTest {
      * không xảy ra lỗi NullPointerException.
      */
     // ==============================================================================
-    // UTCID10: Process verified session - Prediction with Null Patient or Grade (Normal)
+    // UTCID10: Process verified session - Prediction with Null Patient or Grade
+    // (Normal)
     // ==============================================================================
     @Test
-    void test_Normal_PredictionWithNullPatientOrGrade() {
+    void testProcessVerifiedSessionAsync_UTCID10_Normal_PredictionWithNullPatientOrGrade() {
         List<Long> instanceIds = Arrays.asList(1L, 2L);
         String username = "doctor1";
         User user = new User();
@@ -350,6 +352,5 @@ public class DicomVerifyServiceImplTest {
         List<?> statsList = (List<?>) sentNotif.data();
         assertEquals(0, statsList.size(), "Stats should be empty as all invalid exams were skipped");
     }
-
 
 }
