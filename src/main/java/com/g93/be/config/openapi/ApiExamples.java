@@ -258,6 +258,9 @@ final class ApiExamples {
             Map.entry("AUDIT_PAGE", json("""
                     {"content":[{"id":81,"username":"admin","title":"UPDATE_ROLE_PERMISSIONS","description":"Cập nhật quyền cho role DOCTOR","ipAddress":"127.0.0.1","userAgent":"Swagger UI","timeStamp":"2026-08-02T11:00:00"}],"pageNumber":0,"pageSize":20,"totalElements":1,"totalPages":1,"isLast":true}
                     """)),
+            Map.entry("AI_USAGE_SUMMARY", json("""
+                    {"from":"2026-07-26","to":"2026-08-24","totalCalls":340,"totalPromptTokens":512000,"totalCompletionTokens":128000,"totalTokens":640000,"totalCostUsd":1.9200,"byCallType":[{"callType":"CHAT_ANSWER","calls":210,"promptTokens":380000,"completionTokens":96000,"totalTokens":476000,"costUsd":1.4340},{"callType":"ROUTE","calls":130,"promptTokens":132000,"completionTokens":32000,"totalTokens":164000,"costUsd":0.4860}]}
+                    """)),
             Map.entry("GRADE_STATS", json("""
                     [{"grade":0,"patientCount":8},{"grade":1,"patientCount":5},{"grade":2,"patientCount":4},{"grade":3,"patientCount":3},{"grade":4,"patientCount":1}]
                     """)),

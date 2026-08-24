@@ -146,7 +146,7 @@ public class PdfExportService {
             Report report = new Report();
             report.setExamination(examination);
             report.setOperatingDoctor(currentUser);
-            report.setClinicalSummary(form.conclusion());
+            report.setClinicalSummary(examination.getFinalDiagnosis());
             report.setFilePath(fileName);
             report.setFileName(fileName);
             report.setContentType(PDF_CONTENT_TYPE);
@@ -155,6 +155,10 @@ public class PdfExportService {
             Report savedReport = reportRepository.save(report);
             eventPublisher.publishEvent(new ReportKnowledgeSyncRequestedEvent(savedReport.getId()));
 
+            // The result block belongs to the examination, not to any single PDF render, so the
+            // next draft can offer the doctor's own wording back instead of the auto-composed text.
+            examination.setFindings(String.join("\n", form.findings()));
+            examination.setConclusion(form.conclusion());
             examination.setStatus(ExaminationStatus.REPORT_GENERATED);
             examinationRepository.save(examination);
             log.info("PDF report {} generated for examination {}", savedReport.getId(), examinationId);
@@ -258,6 +262,10 @@ public class PdfExportService {
      * Fills every form field from the examination record, the configured letterhead, and the
      * Kellgren-Lawrence grades confirmed during verification. This is what the doctor sees in the
      * preview, and what any field they leave alone falls back to on confirm.
+     *
+     * <p>The result block prefers whatever the doctor confirmed the last time a report was
+     * generated for this examination, since that already reflects their own wording; only a first
+     * confirmation falls back to the grade-only text auto-composed from the verified KL grades.
      */
     private ReportForm buildFormDefaults(
             Examination examination,
@@ -266,6 +274,8 @@ public class PdfExportService {
         Patient patient = examination.getPatient();
         String leftKlGrade = finalGradeForSide(finalAiResults.results(), "LEFT");
         String rightKlGrade = finalGradeForSide(finalAiResults.results(), "RIGHT");
+        List<String> savedFindings = splitLines(examination.getFindings());
+        String savedConclusion = valueOrBlank(examination.getConclusion());
         return new ReportForm(
                 valueOrBlank(examination.getEncounterCode()),
                 // The visit sequence has no source record; the doctor types it in the preview.
@@ -274,8 +284,10 @@ public class PdfExportService {
                 formatAge(patient, examination),
                 formatGender(patient),
                 patient == null ? "" : valueOrBlank(patient.getAddress()),
-                contentComposer.composeFindings(leftKlGrade, rightKlGrade),
-                contentComposer.composeConclusion(leftKlGrade, rightKlGrade),
+                savedFindings.isEmpty()
+                        ? contentComposer.composeFindings(leftKlGrade, rightKlGrade) : savedFindings,
+                savedConclusion.isBlank()
+                        ? contentComposer.composeConclusion(leftKlGrade, rightKlGrade) : savedConclusion,
                 reportProperties.signaturePlace(),
                 LocalDate.now(),
                 currentUser == null ? "" : valueOrBlank(currentUser.getFullName()));
