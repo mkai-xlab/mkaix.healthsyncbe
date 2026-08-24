@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>Phieu chup Xquang</title>
+    <style>
+        @page { size: A4; margin: 13mm 15mm 14mm; }
+        * { box-sizing: border-box; font-family: Tahoma, sans-serif; }
+        body { margin: 0; color: #14181d; font-size: 11.5px; line-height: 1.45; }
+
+        /* ---------- Letterhead ---------- */
+        .letterhead { width: 100%; border-collapse: collapse; }
+        .letterhead td { vertical-align: middle; padding: 0; }
+        .crest { width: 70px; }
+        .crest img { width: 66px; height: 66px; }
+        .org { padding-left: 9px !important; }
+        .org .ministry { font-size: 10px; color: #33414f; text-transform: uppercase; letter-spacing: 0.3px; }
+        .org .hospital { font-size: 13px; font-weight: bold; text-transform: uppercase; color: #0f5132; }
+        .org .department { font-size: 10px; text-transform: uppercase; color: #33414f; letter-spacing: 0.2px; }
+        .form-meta { width: 130px; font-size: 9.5px; color: #33414f; text-align: right; }
+        .form-meta div { margin-bottom: 2px; }
+        .form-meta .value { color: #14181d; font-weight: bold; }
+
+        .header-rule { height: 2px; background-color: #0f5132; margin: 7px 0 0; }
+        .header-rule-thin { height: 1px; background-color: #9dbcab; margin: 1.5px 0 0; }
+
+        /* ---------- Title ---------- */
+        h1 { margin: 14px 0 0; text-align: center; font-size: 19px; letter-spacing: 2.5px; color: #0f5132; }
+        .attempt { margin: 2px 0 0; text-align: center; font-size: 10px; color: #4a5a68; }
+
+        /* ---------- Patient block ----------
+           A closed grid rather than dotted fill-in rules: every value is printed by the
+           system, so the block should read as a finished record, not a blank form. */
+        .info { width: 100%; border-collapse: collapse; margin-top: 12px; border: 1px solid #c6d3cb; }
+        .info td { border: 1px solid #dfe7e2; padding: 4.5px 8px; vertical-align: middle; }
+        .info .lbl { color: #45555f; font-size: 10.5px; white-space: nowrap; background-color: #f5f8f6; }
+        .info .val { color: #14181d; }
+        .info .val.strong { font-weight: bold; letter-spacing: 0.2px; }
+        .info .lbl-name { width: 78px; }
+        .info .lbl-age { width: 44px; }
+        .info .val-age { width: 46px; }
+        .info .lbl-sex { width: 62px; }
+        .info .val-sex { width: 72px; }
+
+        /* ---------- Result block ---------- */
+        .result-heading { margin: 18px 0 0; text-align: center; }
+        .result-heading .text { font-size: 13px; font-weight: bold; letter-spacing: 3px; color: #0f5132; }
+        .result-underline { width: 78px; height: 1.5px; background-color: #0f5132; margin: 3px auto 10px; }
+
+        .findings { margin: 0; padding-left: 19px; }
+        .findings li { margin-bottom: 4px; padding-left: 2px; }
+
+        .conclusion { margin-top: 13px; border-left: 3px solid #0f5132; padding: 1px 0 1px 9px; }
+        .conclusion .label { font-weight: bold; color: #0f5132; letter-spacing: 0.4px; }
+        .conclusion .body { margin-top: 2px; }
+        .conclusion .body div { margin-bottom: 2px; font-weight: bold; }
+
+        /* ---------- Signature ---------- */
+        .closing { margin-top: 26px; width: 100%; border-collapse: collapse; page-break-inside: avoid; }
+        .closing td { vertical-align: top; }
+        .closing .slot { width: 46%; text-align: center; }
+        .closing .place-date { font-style: italic; font-size: 10.5px; color: #33414f; }
+        .closing .role { font-weight: bold; text-transform: uppercase; letter-spacing: 0.6px; margin-top: 1px; }
+        .closing .gap { height: 52px; }
+        .closing .name { font-weight: bold; font-size: 12px; }
+
+        /* ---------- Footer ---------- */
+        .footer { position: fixed; bottom: 0; left: 0; right: 0; }
+        .footer-rule { height: 1px; background-color: #c3d2c9; }
+        .footer-note { margin-top: 5px; font-size: 8.5px; color: #63727f; text-align: center; line-height: 1.45; }
+
+        /* ---------- Watermark ---------- */
+        .report-watermark {
+            position: fixed;
+            top: 40%;
+            left: -20%;
+            width: 140%;
+            text-align: center;
+            color: #e8eff7;
+            z-index: -1;
+            transform: rotate(-45deg);
+            transform-origin: center center;
+        }
+        .report-watermark-brand { font-size: 118px; font-weight: bold; letter-spacing: 0; }
+        .report-watermark-disclaimer { margin-top: 8px; font-size: 10px; letter-spacing: 0; }
+    </style>
+</head>
+<body>
+<div class="report-watermark" aria-hidden="true">
+    <div class="report-watermark-brand">HealthSync</div>
+    <div class="report-watermark-disclaimer">đây là sản phẩm AI, chỉ là công cụ hỗ trợ, AI có thể sai sót</div>
+</div>
+
+<table class="letterhead">
+    <tr>
+        <td class="crest">
+            <img th:if="${data.hospitalLogo != null}" th:src="${data.hospitalLogo}" alt=""/>
+        </td>
+        <td class="org">
+            <div class="ministry" th:text="${data.ministryName}"></div>
+            <div class="hospital" th:text="${data.hospitalName}"></div>
+            <div class="department" th:text="${data.departmentName}"></div>
+        </td>
+        <td class="form-meta">
+            <div>MS: <span class="value" th:text="${data.formCode}"></span></div>
+            <div>Số: <span class="value" th:text="${data.documentNumber}"></span></div>
+        </td>
+    </tr>
+</table>
+<div class="header-rule"></div>
+<div class="header-rule-thin"></div>
+
+<h1>PHIẾU CHỤP XQUANG</h1>
+<p class="attempt" th:if="${data.attemptNumber != null and !#strings.isEmpty(data.attemptNumber)}">
+    (lần thứ <span th:text="${data.attemptNumber}"></span>)
+</p>
+
+<table class="info">
+    <tr>
+        <td class="lbl lbl-name">Họ và tên</td>
+        <td class="val strong" th:text="${data.patientName}"></td>
+        <td class="lbl lbl-age">Tuổi</td>
+        <td class="val val-age" th:text="${data.age}"></td>
+        <td class="lbl lbl-sex">Giới tính</td>
+        <td class="val val-sex" th:text="${data.gender}"></td>
+    </tr>
+    <tr>
+        <td class="lbl">Địa chỉ</td>
+        <td class="val" colspan="5" th:text="${data.address}"></td>
+    </tr>
+    <tr>
+        <td class="lbl">Khoa</td>
+        <td class="val" colspan="5" th:text="${data.clinicalDepartment}"></td>
+    </tr>
+</table>
+
+<div class="result-heading">
+    <span class="text">KẾT QUẢ</span>
+    <div class="result-underline"></div>
+</div>
+<ul class="findings">
+    <li th:each="finding : ${data.findings}" th:text="${finding}"></li>
+</ul>
+
+<div class="conclusion">
+    <div class="label">KẾT LUẬN:</div>
+    <div class="body">
+        <div th:each="line : ${data.conclusionLines}" th:text="${line}"></div>
+    </div>
+</div>
+
+<table class="closing">
+    <tr>
+        <td></td>
+        <td class="slot">
+            <div class="place-date"><span th:text="${data.signaturePlace}"></span>,
+                ngày <span th:text="${data.signatureDay}"></span>
+                tháng <span th:text="${data.signatureMonth}"></span>
+                năm <span th:text="${data.signatureYear}"></span></div>
+            <div class="role">Bác sỹ chuyên khoa</div>
+            <div class="gap"></div>
+            <div class="name" th:text="${data.doctorName}"></div>
+        </td>
+    </tr>
+</table>
+
+<div class="footer">
+    <div class="footer-rule"></div>
+    <div class="footer-note">
+        Phiếu được lập với sự hỗ trợ của hệ thống HealthSync.
+        Kết quả AI chỉ mang tính tham khảo, chẩn đoán cuối cùng thuộc về bác sĩ chuyên khoa.
+    </div>
+</div>
+</body>
+</html>

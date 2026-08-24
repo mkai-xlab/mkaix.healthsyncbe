@@ -180,6 +180,12 @@ final class ApiExamples {
             Map.entry("REPORT", json("""
                     {"reportId":9,"examinationId":42,"fileName":"report_ENC-2026-0042_a1b2c3d4.pdf","fileSize":38832,"contentType":"application/pdf","generatedAt":"2026-08-02T10:30:00","previewUrl":"/api/v1/reports/42/preview","downloadUrl":"/api/v1/reports/42/download"}
                     """)),
+            Map.entry("REPORT_DRAFT", json("""
+                    {"examinationId":42,"patientCode":"PAT_A12B34CD","ministryName":"Bộ Quốc phòng","hospitalName":"Viện Y học cổ truyền Quân đội","departmentName":"Khoa Chẩn đoán hình ảnh","formCode":"08/BV-02","clinicalDepartment":"Khoa Chẩn đoán hình ảnh","doctorName":"BS. Hà Công Thỏa","leftKlGrade":"2","rightKlGrade":"3","documentNumber":"ENC-2026-0042","attemptNumber":"","patientName":"Nguyễn Văn A","age":"48","gender":"Nam","address":"Xã Quang Bị, Thành phố Hà Nội","findings":["Gối phải: Thoái hóa khớp gối độ 3 (Kellgren-Lawrence).","Gối trái: Thoái hóa khớp gối độ 2 (Kellgren-Lawrence)."],"conclusion":"Hình ảnh thoái hóa khớp gối: gối phải độ 3, gối trái độ 2 theo phân loại Kellgren-Lawrence.","signaturePlace":"Hà Nội","signatureDate":"07/05/2026"}
+                    """)),
+            Map.entry("GENERATE_REPORT_REQUEST", json("""
+                    {"documentNumber":"SO-2026-0077","attemptNumber":"1","patientName":"Nguyễn Văn A","age":"48","gender":"Nam","address":"Xã Quang Bị, Thành phố Hà Nội","findings":["Gối phải: Thoái hóa khớp gối độ 3 (Kellgren-Lawrence).","Gối trái: Không thoái hóa khớp gối (Kellgren-Lawrence độ 0)."],"conclusion":"Hình ảnh thoái hóa khớp gối phải độ 3 theo phân loại Kellgren-Lawrence.","signaturePlace":"Hà Nội","signatureDate":"07/05/2026"}
+                    """)),
             Map.entry("REPORT_PAGE", json("""
                     {"content":[{"reportId":9,"examinationId":42,"encounterCode":"ENC-2026-0042","visitTime":"2026-08-02T09:30:00","patientCode":"PAT_A12B34CD","patientName":"Nguyễn Văn A","doctorId":7,"doctorName":"BS. Nguyễn Minh An","fileName":"report_ENC-2026-0042_a1b2c3d4.pdf","fileSize":38832,"contentType":"application/pdf","generatedAt":"2026-08-02T10:30:00","previewUrl":"/api/v1/reports/42/preview","downloadUrl":"/api/v1/reports/42/download"}],"pageNumber":0,"pageSize":10,"totalElements":1,"totalPages":1,"isLast":true}
                     """)),

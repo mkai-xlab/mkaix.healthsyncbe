@@ -1,17 +1,13 @@
 meta {
-  name: Generate PDF Report
+  name: Get Report Preview Draft
   type: http
-  seq: 14
+  seq: 35
 }
 
-post {
-  url: {{baseUrl}}/examinations/{{examinationId}}/generate-report
+get {
+  url: {{baseUrl}}/examinations/{{examinationId}}/report-draft
   body: none
   auth: bearer
-}
-
-params:query {
-  isPersonal: true
 }
 
 auth:bearer {
@@ -23,17 +19,25 @@ vars:pre-request {
 }
 
 tests {
-  test("returns report metadata", function() {
+  test("returns a pre-filled form", function() {
     expect(res.status).to.equal(200);
-    expect(res.body.reportId).to.be.a("number");
-    expect(res.body.previewUrl).to.equal(`/api/v1/reports/${res.body.examinationId}/preview`);
-    expect(res.body.downloadUrl).to.equal(`/api/v1/reports/${res.body.examinationId}/download`);
+    expect(res.body.examinationId).to.be.a("number");
+    expect(res.body.hospitalName).to.be.a("string");
+    expect(res.body.findings).to.be.an("array");
+    expect(res.body.findings.length).to.be.above(0);
+    expect(res.body.conclusion).to.be.a("string");
+    expect(res.body.signatureDate).to.match(/^\d{2}\/\d{2}\/\d{4}$/);
+    expect(res.body.doctorName).to.be.a("string");
   });
 }
 
 docs {
-  Generates the X-ray report PDF ("PHIEU CHUP XQUANG") with no doctor edits: every field keeps the
-  pre-filled value, including the result block composed from the confirmed Kellgren-Lawrence
-  grades. An already generated report is returned untouched. The normal flow is
-  GET /examinations/{id}/report-draft followed by "Confirm And Generate PDF Report".
+  Step 1 of the report flow. Returns the whole X-ray form pre-filled for the preview screen:
+  patient details from the examination record, the configured letterhead and Khoa, and a
+  KẾT QUẢ / KẾT LUẬN block stating the Kellgren-Lawrence grades confirmed during verification.
+  The doctor edits any editable field on screen - including both result blocks - then posts the
+  confirmed form back to POST /examinations/{id}/generate-report. No PDF is created by this call.
+  
+  doctorName is read-only: it is the account calling this endpoint, and that is the name printed
+  on the signature line.
 }

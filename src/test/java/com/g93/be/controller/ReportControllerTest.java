@@ -1,5 +1,7 @@
 package com.g93.be.controller;
 
+import com.g93.be.dto.GenerateReportRequest;
+import com.g93.be.dto.ReportResponse;
 import com.g93.be.service.PdfExportService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -10,6 +12,9 @@ import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+
+import java.time.LocalDateTime;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -50,6 +55,34 @@ class ReportControllerTest {
         assertTrue(response.getHeaders().getFirst(HttpHeaders.CONTENT_DISPOSITION)
                 .startsWith("attachment"));
         verify(pdfExportService).getReportFileByExaminationId(9L, "doctor");
+    }
+
+    @Test
+    void generateReportForwardsAnAbsentBodyAsNullSoTheDraftTextIsKept() {
+        ReportResponse response = reportResponse();
+        when(pdfExportService.generateAndSavePdfReport(9L, "doctor", null)).thenReturn(response);
+
+        assertEquals(response, reportController.generatePdfReport(9L, null, () -> "doctor").getBody());
+        verify(pdfExportService).generateAndSavePdfReport(9L, "doctor", null);
+    }
+
+    @Test
+    void generateReportForwardsTheDoctorEditedResultText() {
+        GenerateReportRequest request = new GenerateReportRequest(
+                null, null, null, null, null, null,
+                List.of("Bác sĩ mô tả kết quả."), "Kết luận của bác sĩ.", null, null);
+        ReportResponse response = reportResponse();
+        when(pdfExportService.generateAndSavePdfReport(9L, "doctor", request)).thenReturn(response);
+
+        assertEquals(response,
+                reportController.generatePdfReport(9L, request, () -> "doctor").getBody());
+        verify(pdfExportService).generateAndSavePdfReport(9L, "doctor", request);
+    }
+
+    private ReportResponse reportResponse() {
+        return new ReportResponse(
+                31L, 9L, "report.pdf", 3L, MediaType.APPLICATION_PDF_VALUE, LocalDateTime.now(),
+                "/api/v1/reports/9/preview", "/api/v1/reports/9/download");
     }
 
     private PdfExportService.ReportFile reportFile() {
