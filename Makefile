@@ -1,38 +1,48 @@
 # HealthSync backend - one-command stack control.
-# Chay `make` la up toan bo (MySQL, Redis, Qdrant, Ollama, MailDev, Backend).
+# Running plain `make` starts everything: MySQL, Redis, Qdrant, Ollama, MailDev, Backend.
+
+# Both profiles are required. Without them MySQL, Qdrant and Ollama stay down.
+COMPOSE := docker compose --profile database --profile rag
+NETWORK := knee-oa-net
 
 .DEFAULT_GOAL := up
-.PHONY: up down restart logs ps clean rebuild help
+.PHONY: up down restart logs ps rebuild clean network help
 
-## up      - Khoi dong toan bo stack (mac dinh)
-up:
-	./up.sh up
+## up      - Start the full stack (default)
+up: network
+	$(COMPOSE) up -d --build
+	$(COMPOSE) ps
 
-## down    - Dung va xoa container (giu nguyen du lieu)
+## down    - Stop and remove containers (volume data is kept)
 down:
-	./up.sh down
+	$(COMPOSE) down
 
-## restart - Dung roi khoi dong lai
-restart:
-	./up.sh restart
+## restart - Stop, then start again
+restart: down up
 
-## logs    - Xem log tat ca service
+## logs    - Follow logs from every service
 logs:
-	./up.sh logs
+	$(COMPOSE) logs -f --tail=100
 
-## ps      - Xem trang thai container
+## ps      - Show container status
 ps:
-	./up.sh ps
+	$(COMPOSE) ps
 
-## rebuild - Build lai image backend roi khoi dong lai
-rebuild:
-	docker compose --profile database --profile rag build --no-cache be
-	./up.sh up
+## rebuild - Rebuild the backend image from scratch, then start
+rebuild: network
+	$(COMPOSE) build --no-cache be
+	$(COMPOSE) up -d
+	$(COMPOSE) ps
 
-## clean   - Xoa ca volume (MAT TOAN BO DU LIEU)
+## clean   - Remove containers AND volumes (DESTROYS ALL DATA)
 clean:
-	./up.sh clean
+	$(COMPOSE) down -v
 
-## help    - Liet ke cac lenh
+# The compose network is declared as "external", so it is not created
+# automatically. Check first, create only when missing.
+network:
+	@docker network inspect $(NETWORK) >/dev/null 2>&1 || docker network create $(NETWORK)
+
+## help    - List available commands
 help:
 	@grep -E '^## ' $(MAKEFILE_LIST) | sed 's/^## /  make /'
