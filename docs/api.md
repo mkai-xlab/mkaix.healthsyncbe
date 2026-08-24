@@ -15,16 +15,19 @@ signature place come from the `app.report.*` configuration keys, so a different 
 the form without a code change. The report is signed by the authenticated doctor: the name on the
 signature line is always taken from the account that generated it, never from the request.
 
-Reporting is a two-step flow. The doctor opens the report preview, which arrives pre-filled — the
-result block stating the Kellgren-Lawrence grades confirmed during verification — edits any field
-by hand, and only then presses confirm, which is the single step that renders a PDF.
+Reporting is a two-step flow, and it happens once per examination. The doctor opens the report
+preview, which arrives pre-filled — the result block stating the Kellgren-Lawrence grades
+confirmed during verification — edits any field by hand, and only then presses confirm, which is
+the single step that renders a PDF. A report is final once generated: neither endpoint can be used
+again afterward. `GET report-draft` returns `400 Bad Request` once the examination's status is
+`REPORT_GENERATED`, and `POST generate-report` likewise returns the existing report untouched
+rather than rendering a new one, even if a body is sent. The confirmed content lives on afterward
+via the report preview/download endpoints, not through either of these two.
 
 The result block states the grade and nothing else; the radiographic signs behind it are the
 doctor's to write. Both `findings` and `conclusion` are editable, and confirming a report saves them
-onto the examination (`examinations.findings`, `examinations.conclusion`) — not just into the PDF.
-The next time the preview is opened for the same examination, it offers the doctor's own saved
-wording back instead of resetting to the grade-only auto-composed text; only the very first
-confirmation for an examination falls back to that auto-composed draft.
+onto the examination (`examinations.findings`, `examinations.conclusion`), not just into the PDF —
+so the confirmed wording is queryable even without opening the file.
 
 Both endpoints reject `ADMIN` by design: they require `DEPARTMENT_HEAD`/`HEAD_OF_DEPARTMENT`,
 or `DOCTOR` holding `GENERATE_PDF_REPORT`, and a doctor only reaches examinations assigned to
@@ -36,6 +39,11 @@ admin.
 Returns the whole form pre-filled for the preview screen. No PDF is created. Requires
 `DEPARTMENT_HEAD`/`HEAD_OF_DEPARTMENT`, or `DOCTOR` with the `GENERATE_PDF_REPORT` permission; a
 doctor only sees examinations assigned to them.
+
+A report is final once generated: this endpoint only serves a draft while the examination's
+status is `VERIFIED`. Once `POST generate-report` has produced a report (status
+`REPORT_GENERATED`), calling this endpoint returns `400 Bad Request` — the confirmed content is
+viewed via the report preview/download endpoints instead, never re-drafted.
 
 ```json
 {
@@ -71,14 +79,18 @@ the signature line always names the authenticated doctor. Everything else is edi
 preview screen. `attemptNumber` has no source record and arrives blank for the doctor to type in.
 `signatureDate` uses `dd/MM/yyyy`.
 
-Status codes: `200 OK`; `400 Bad Request` when the examination is not verified or has no confirmed
-AI result; `403 Forbidden` for a doctor not assigned to the examination.
+Status codes: `200 OK`; `400 Bad Request` when the examination is not verified, has no confirmed AI
+result, or already has a generated report; `403 Forbidden` for a doctor not assigned to the
+examination.
 
 #### `POST /examinations/{id}/generate-report`
 
 The confirm step: renders the PDF from the values the doctor approved. The request body is
-**optional** and backward compatible — posting no body keeps every pre-filled value and returns an
-already generated report untouched.
+**optional** — omitting it keeps every pre-filled value. A report can only be generated once per
+examination: once the status is `REPORT_GENERATED`, this endpoint always returns that same report
+untouched, with or without a body, rather than rendering a new one. The one exception is recovery —
+if the stored PDF file has gone missing from disk, the next call re-renders it (applying any body
+sent at that point) instead of failing.
 
 ```json
 {
@@ -100,8 +112,7 @@ already generated report untouched.
 
 Every field is optional and falls back independently to the pre-filled value, so the frontend may
 send only what the doctor actually changed. Blank lines in `findings` are dropped rather than
-printed as empty bullets. Sending a body always re-renders the PDF, even when the examination
-already has a report. The letterhead, the imaging department, and the signing doctor's name are
+printed as empty bullets. The letterhead, the imaging department, and the signing doctor's name are
 not accepted here.
 
 Validation returns `400 Bad Request` with the standard `ErrorResponse` before any PDF is rendered.

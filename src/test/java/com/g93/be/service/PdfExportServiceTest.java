@@ -607,6 +607,22 @@ class PdfExportServiceTest {
     }
 
     @Test
+    void getReportDraft_RejectsExaminationWithAnAlreadyGeneratedReport() {
+        mockExamination.setStatus(ExaminationStatus.REPORT_GENERATED);
+        when(examinationRepository.findById(1L)).thenReturn(Optional.of(mockExamination));
+
+        IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
+                () -> pdfExportService.getReportDraft(1L, "doctor"));
+
+        assertEquals(
+                "Report has already been generated for this examination; "
+                        + "view the confirmed result via the report preview or download endpoint",
+                error.getMessage());
+        // The report is final, so no AI/grade lookup should even happen for a locked examination.
+        verify(dicomInstanceRepository, never()).findByExaminationId(anyLong());
+    }
+
+    @Test
     void getReportDraft_RejectsUnassignedDoctor() {
         Doctor otherDoctor = new Doctor();
         otherDoctor.setId(8L);

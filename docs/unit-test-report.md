@@ -8,7 +8,7 @@
 | Executed Date | 24/08/2026 |
 | Framework | JUnit Jupiter, Mockito, PDFBox, OpenHTMLToPDF, Thymeleaf |
 | Java | 21 (Temurin 21.0.12), Apache Maven 3.9.9 |
-| Phạm vi | "PHIEU CHUP XQUANG" template render, letterhead logo embedding, Kellgren-Lawrence-only result text, report-draft preview with examination-level persistence, doctor-confirmed form overlay, authenticated-doctor signature, endpoint authorization, and OpenAPI registration |
+| Phạm vi | "PHIEU CHUP XQUANG" template render, letterhead logo embedding, Kellgren-Lawrence-only result text, report-draft preview with examination-level persistence and a one-time-only lock once generated, doctor-confirmed form overlay, authenticated-doctor signature, endpoint authorization, and OpenAPI registration |
 
 Command:
 
@@ -18,7 +18,7 @@ mvn -o test -Dtest=PdfExportServiceTest,XrayReportTemplateTest,XrayReportContent
 
 | Test Class | Passed | Failed | Errors | Skipped | Covered behavior |
 |---|---:|---:|---:|---:|---|
-| `PdfExportServiceTest` | 28 | 0 | 0 | 0 | Generation, access, and error paths; whole-form pre-fill; doctor-confirmed field overlay; signature always naming the authenticated doctor; logo embedding; persisting and reusing the doctor's saved result text on the examination; regeneration when the doctor confirms edits |
+| `PdfExportServiceTest` | 29 | 0 | 0 | 0 | Generation, access, and error paths; whole-form pre-fill; doctor-confirmed field overlay; signature always naming the authenticated doctor; logo embedding; persisting and reusing the doctor's saved result text on the examination; the draft endpoint refusing to reopen once a report has been generated |
 | `XrayReportTemplateTest` | 6 | 0 | 0 | 0 | Real PDF render of every form block, doctor-edited result text, blank fields, dropped request rows and lab branding, embedded hospital crest, and graceful degradation when the crest is absent |
 | `XrayReportContentComposerTest` | 10 | 0 | 0 | 0 | Grade-only findings and conclusion for every Kellgren-Lawrence grade, single/both knees, and out-of-range input |
 | `ReportControllerTest` | 4 | 0 | 0 | 0 | Inline preview, attachment download, and forwarding of an absent versus confirmed request body |
@@ -26,7 +26,7 @@ mvn -o test -Dtest=PdfExportServiceTest,XrayReportTemplateTest,XrayReportContent
 | `ReportListServiceTest` | 3 | 0 | 0 | 0 | Generated-report listing scoped by doctor and department head |
 | `ReportKnowledgeSyncServiceTest` | 2 | 0 | 0 | 0 | RAG indexing still reads `report.clinical_summary` correctly now that it reflects the examination's final diagnosis again |
 | `OpenApiDocumentationTest` | 4 | 0 | 0 | 0 | Every controller method is registered with a documented request, response, and error contract |
-| **TOTAL** | **88** | **0** | **0** | **0** | **100% pass** |
+| **TOTAL** | **89** | **0** | **0** | **0** | **100% pass** |
 
 | UTCID | Classification | Test case | Expected/Actual result | Result |
 |---|:---:|---|---|:---:|
@@ -45,6 +45,7 @@ mvn -o test -Dtest=PdfExportServiceTest,XrayReportTemplateTest,XrayReportContent
 | UTC-XRAY-DRAFT-02 | A | Draft for an unverified examination | Rejected with "Examination must be verified before drafting its report" | P |
 | UTC-XRAY-DRAFT-03 | A | Draft requested by an unassigned doctor | Rejected with `AccessDeniedException` | P |
 | UTC-XRAY-DRAFT-04 | N | Draft for an examination with a previously saved result | Returns the doctor's own saved `findings`/`conclusion` instead of the grade-only auto-composed text | P |
+| UTC-XRAY-DRAFT-05 | A | Draft requested after the report is already generated | Rejected with "Report has already been generated for this examination; view the confirmed result via the report preview or download endpoint"; no AI/grade lookup happens | P |
 | UTC-XRAY-GEN-01 | N | Confirm step prints every submitted field | All 10 editable fields reach the rendered view model; Khoa stays the configured one | P |
 | UTC-XRAY-GEN-05 | A | Department head generates another doctor's report | The signature names the head who generated it, never a submitted name | P |
 | UTC-XRAY-GEN-02 | B | Only the conclusion is edited | Auto-filled findings are kept and the conclusion is replaced | P |

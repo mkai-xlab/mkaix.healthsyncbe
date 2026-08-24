@@ -37,8 +37,14 @@ docs {
   KẾT QUẢ / KẾT LUẬN block stating the Kellgren-Lawrence grades confirmed during verification.
   The doctor edits any editable field on screen - including both result blocks - then posts the
   confirmed form back to POST /examinations/{id}/generate-report. No PDF is created by this call.
-  
+
   doctorName is read-only: it is the account calling this endpoint, and that is the name printed
   on the signature line.
+
+  Only serves a draft while the examination is still VERIFIED. Once a report has been generated
+  (status REPORT_GENERATED), this call returns 400 instead - see
+  "Get Report Preview Draft Rejects Already Generated Report" - and the confirmed content is
+  viewed via Preview/Download PDF Report instead. examinationId below must point at a VERIFIED
+  examination that has not been confirmed yet.
 }
 ​
