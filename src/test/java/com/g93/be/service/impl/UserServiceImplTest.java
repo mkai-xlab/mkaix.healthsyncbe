@@ -144,7 +144,8 @@ public class UserServiceImplTest {
         when(userRepository.findByPhone("0902223334")).thenReturn(Optional.empty());
         when(roleRepository.findById(3L)).thenReturn(Optional.of(role));
         when(passwordEncoder.encode(anyString())).thenReturn("encoded");
-        // HEAD_OF_DEPARTMENT role → doctorRepository.save() is called (JPA JOINED inheritance)
+        // HEAD_OF_DEPARTMENT role → doctorRepository.save() is called (JPA JOINED
+        // inheritance)
         Doctor savedDoctor = new Doctor();
         savedDoctor.setId(11L);
         savedDoctor.setUsername("head");
@@ -187,7 +188,7 @@ public class UserServiceImplTest {
      * Kỳ vọng: Xử lý ngoại lệ hoặc tự động đổi username.
      */
     // ==============================================================================
-    // UTCID04: Create user - Duplicate username (Boundary)
+    // UTCID04: Create user - Duplicate username (Boundary )
     // ==============================================================================
     @Test
     void testCreateUser_Boundary_UsernameDuplicate() { // UTC04
@@ -207,7 +208,7 @@ public class UserServiceImplTest {
         when(userRepository.findByEmail("abc@gmail.com")).thenReturn(Optional.empty());
         when(userRepository.findByPhone("0901234567")).thenReturn(Optional.empty());
         when(roleRepository.findById(2L)).thenReturn(Optional.of(role));
-        
+
         // Mock DB returns existing user for "abc" and "abc1", but empty for "abc2"
         when(userRepository.findByUsername("abc")).thenReturn(Optional.of(new User()));
         when(userRepository.findByUsername("abc1")).thenReturn(Optional.of(new User()));
@@ -299,9 +300,10 @@ public class UserServiceImplTest {
     void testCreateUser_Abnormal_NameHasNumbers() { // UTC08
         CreateUserRequest req = new CreateUserRequest("John123", "new@gmail.com", "0901234567", 2L);
         Set<ConstraintViolation<CreateUserRequest>> violations = validator.validate(req);
-        
+
         assertFalse(violations.isEmpty());
-        assertTrue(violations.stream().anyMatch(v -> v.getMessage().contains("Họ và tên chỉ được chứa chữ cái và khoảng trắng")));
+        assertTrue(violations.stream()
+                .anyMatch(v -> v.getMessage().contains("Họ và tên chỉ được chứa chữ cái và khoảng trắng")));
     }
 
     /**
@@ -317,7 +319,7 @@ public class UserServiceImplTest {
     void testCreateUser_Abnormal_PhoneTooShort() { // UTC09
         CreateUserRequest req = new CreateUserRequest("John Doe", "new@gmail.com", "0901", 2L);
         Set<ConstraintViolation<CreateUserRequest>> violations = validator.validate(req);
-        
+
         assertFalse(violations.isEmpty());
         assertTrue(violations.stream().anyMatch(v -> v.getMessage().contains("Phone must be exactly 10 digits")));
     }
@@ -335,9 +337,10 @@ public class UserServiceImplTest {
     void testCreateUser_Abnormal_PhoneBlank() { // UTC10
         CreateUserRequest req = new CreateUserRequest("John Doe", "new@gmail.com", "", 2L);
         Set<ConstraintViolation<CreateUserRequest>> violations = validator.validate(req);
-        
+
         assertFalse(violations.isEmpty());
-        assertTrue(violations.stream().anyMatch(v -> v.getMessage().contains("Phone number cannot be blank") || v.getMessage().contains("Phone must be exactly 10 digits")));
+        assertTrue(violations.stream().anyMatch(v -> v.getMessage().contains("Phone number cannot be blank")
+                || v.getMessage().contains("Phone must be exactly 10 digits")));
     }
 
     /**
@@ -353,7 +356,7 @@ public class UserServiceImplTest {
     void testCreateUser_Abnormal_NameBlank() { // UTC11
         CreateUserRequest req = new CreateUserRequest("", "new@gmail.com", "0901234567", 2L);
         Set<ConstraintViolation<CreateUserRequest>> violations = validator.validate(req);
-        
+
         assertFalse(violations.isEmpty());
         assertTrue(violations.stream().anyMatch(v -> v.getMessage().contains("Full name cannot be blank")));
     }
@@ -379,7 +382,7 @@ public class UserServiceImplTest {
         when(userRepository.findByPhone(anyString())).thenReturn(Optional.empty());
         when(roleRepository.findById(2L)).thenReturn(Optional.of(role));
         when(passwordEncoder.encode(anyString())).thenReturn("encoded");
-        
+
         // DOCTOR role → doctorRepository.save() is called
         when(doctorRepository.save(any(Doctor.class))).thenThrow(new RuntimeException("DB Connection refused"));
 
@@ -523,7 +526,7 @@ public class UserServiceImplTest {
     }
 
     // ==========================================
-    // 3. countHeads (4 Test Cases)
+    // 3. countHeads (5 Test Cases)
     // ==========================================
 
     /**
@@ -633,7 +636,8 @@ public class UserServiceImplTest {
         admin.setRole(role);
 
         when(userRepository.findByUsername("adminUser")).thenReturn(Optional.of(admin));
-        when(userRepository.countByRoleCode("HEAD_OF_DEPARTMENT")).thenThrow(new RuntimeException("DB Connection refused"));
+        when(userRepository.countByRoleCode("HEAD_OF_DEPARTMENT"))
+                .thenThrow(new RuntimeException("DB Connection refused"));
 
         RuntimeException ex = assertThrows(RuntimeException.class, () -> userService.countHeads("adminUser"));
         assertEquals("DB Connection refused", ex.getMessage());
@@ -746,22 +750,22 @@ public class UserServiceImplTest {
      * Đầu vào: Kịch bản: Luồng chuẩn (dữ liệu hợp lệ).
      * Hành động: Gọi phương thức SearchStaff().
      * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
-     
-     * Kịch bản Test Design: UTCID01 (Dự kiến) */
+     * 
+     * Kịch bản Test Design: UTCID01 (Dự kiến)
+     */
     @Test
     void testSearchStaff_Normal() {
         org.springframework.data.domain.Page<User> mockPage = new org.springframework.data.domain.PageImpl<>(
-                java.util.List.of(userWithRole(2L, "DOCTOR"))
-        );
+                java.util.List.of(userWithRole(2L, "DOCTOR")));
         when(userRepository.searchStaff(
                 eq(java.util.List.of("HEAD_OF_DEPARTMENT", "DOCTOR")),
                 eq("doctor"),
                 eq(UserStatus.ACTIVE),
-                any(org.springframework.data.domain.Pageable.class)
-        )).thenReturn(mockPage);
+                any(org.springframework.data.domain.Pageable.class))).thenReturn(mockPage);
 
-        org.springframework.data.domain.Page<UserResponse> result = userService.searchStaff("doctor", UserStatus.ACTIVE, 0, 10);
-        
+        org.springframework.data.domain.Page<UserResponse> result = userService.searchStaff("doctor", UserStatus.ACTIVE,
+                0, 10);
+
         assertNotNull(result);
         assertEquals(1, result.getContent().size());
         assertEquals("doctor", result.getContent().get(0).getUsername());
@@ -776,8 +780,9 @@ public class UserServiceImplTest {
      * Đầu vào: Kịch bản: Luồng chuẩn (dữ liệu hợp lệ).
      * Hành động: Gọi phương thức ToggleUserStatus().
      * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
-     
-     * Kịch bản Test Design: UTCID01 (Dự kiến) */
+     * 
+     * Kịch bản Test Design: UTCID01 (Dự kiến)
+     */
     @Test
     void testToggleUserStatus_Deactivate_Normal() {
         User admin = userWithRole(1L, "ADMIN");
@@ -803,8 +808,9 @@ public class UserServiceImplTest {
      * Đầu vào: Kịch bản: Luồng chuẩn (dữ liệu hợp lệ).
      * Hành động: Gọi phương thức ToggleUserStatus().
      * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
-     
-     * Kịch bản Test Design: UTCID01 (Dự kiến) */
+     * 
+     * Kịch bản Test Design: UTCID01 (Dự kiến)
+     */
     @Test
     void testToggleUserStatus_Activate_Normal() {
         User admin = userWithRole(1L, "ADMIN");
@@ -830,8 +836,9 @@ public class UserServiceImplTest {
      * Đầu vào: Kịch bản: Ném ngoại lệ (Exception).
      * Hành động: Gọi phương thức ToggleUserStatus().
      * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
-     
-     * Kịch bản Test Design: UTCID03 (Dự kiến) */
+     * 
+     * Kịch bản Test Design: UTCID03 (Dự kiến)
+     */
     @Test
     void testToggleUserStatus_Deactivate_MissingReason_ThrowsException() {
         User admin = userWithRole(1L, "ADMIN");
@@ -844,9 +851,9 @@ public class UserServiceImplTest {
         com.g93.be.dto.ToggleStatusRequest req = new com.g93.be.dto.ToggleStatusRequest();
         req.setInactiveReason(""); // Blank
 
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, 
-            () -> userService.toggleUserStatus(2L, req, "admin"));
-        
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> userService.toggleUserStatus(2L, req, "admin"));
+
         assertEquals("Inactive reason is required when deactivating a user", ex.getMessage());
         verify(userRepository, never()).save(any(User.class));
     }
@@ -856,8 +863,9 @@ public class UserServiceImplTest {
      * Đầu vào: Kịch bản: Ném ngoại lệ (Exception).
      * Hành động: Gọi phương thức ToggleUserStatus().
      * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
-     
-     * Kịch bản Test Design: N/A (Extra Test Case) */
+     * 
+     * Kịch bản Test Design: N/A (Extra Test Case)
+     */
     @Test
     void testToggleUserStatus_TargetIsAdmin_ThrowsException() {
         User admin = userWithRole(1L, "ADMIN");
@@ -866,9 +874,9 @@ public class UserServiceImplTest {
         when(userRepository.findByUsername("admin")).thenReturn(Optional.of(admin));
         when(userRepository.findById(2L)).thenReturn(Optional.of(target));
 
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, 
-            () -> userService.toggleUserStatus(2L, new com.g93.be.dto.ToggleStatusRequest(), "admin"));
-        
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> userService.toggleUserStatus(2L, new com.g93.be.dto.ToggleStatusRequest(), "admin"));
+
         assertEquals("Cannot modify the status of an ADMIN user via this endpoint", ex.getMessage());
         verify(userRepository, never()).save(any(User.class));
     }
@@ -878,8 +886,9 @@ public class UserServiceImplTest {
      * Đầu vào: Kịch bản: Ném ngoại lệ (Exception).
      * Hành động: Gọi phương thức ToggleUserStatus().
      * Kỳ vọng: Hoạt động đúng như thiết kế, trả về kết quả tương ứng hoặc báo lỗi.
-     
-     * Kịch bản Test Design: UTCID02 (Dự kiến) */
+     * 
+     * Kịch bản Test Design: UTCID02 (Dự kiến)
+     */
     @Test
     void testToggleUserStatus_UserNotFound_ThrowsException() {
         User admin = userWithRole(1L, "ADMIN");
@@ -887,9 +896,10 @@ public class UserServiceImplTest {
         when(userRepository.findByUsername("admin")).thenReturn(Optional.of(admin));
         when(userRepository.findById(99L)).thenReturn(Optional.empty());
 
-        com.g93.be.exception.ResourceNotFoundException ex = assertThrows(com.g93.be.exception.ResourceNotFoundException.class, 
-            () -> userService.toggleUserStatus(99L, new com.g93.be.dto.ToggleStatusRequest(), "admin"));
-        
+        com.g93.be.exception.ResourceNotFoundException ex = assertThrows(
+                com.g93.be.exception.ResourceNotFoundException.class,
+                () -> userService.toggleUserStatus(99L, new com.g93.be.dto.ToggleStatusRequest(), "admin"));
+
         assertTrue(ex.getMessage().contains("not found"));
     }
 }

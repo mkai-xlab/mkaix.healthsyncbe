@@ -168,7 +168,7 @@ public class PatientServiceImpl implements PatientService {
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public PatientDetailsResponse getPatientDetailsWithImages(String patientId, String username) {
         Patient patient = patientRepository.findByPatientCode(patientId)
                 .orElseThrow(() -> new IllegalArgumentException("Patient with code " + patientId + " not found"));

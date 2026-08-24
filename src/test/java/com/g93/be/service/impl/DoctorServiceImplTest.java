@@ -122,20 +122,14 @@ public class DoctorServiceImplTest {
         req.setEmail("newdoc@test.com");
         req.setFullName("New Doctor");
 
-        Role role = new Role();
-        when(userRepository.findByEmail(anyString())).thenReturn(Optional.empty());
-        when(userRepository.findByUsername(anyString())).thenReturn(Optional.empty());
-        when(roleRepository.findByCode("DOCTOR")).thenReturn(Optional.of(role));
-        when(passwordEncoder.encode(anyString())).thenReturn("hashed");
+        // Act & Assert
+        Exception ex = org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class, () -> {
+            doctorService.createDoctor(req);
+        });
 
-        Doctor savedDoc = new Doctor();
-        when(doctorRepository.save(any(Doctor.class))).thenReturn(savedDoc);
-        when(doctorMapper.toResponse(savedDoc)).thenReturn(new DoctorResponse());
-
-        doctorService.createDoctor(req);
-
+        org.junit.jupiter.api.Assertions.assertEquals("Phone number is required", ex.getMessage());
         verify(userRepository, never()).findByPhone(anyString());
-        verify(doctorRepository).save(argThat(d -> d.getPhone() == null && d.getAvatar() == null));
+        verify(doctorRepository, never()).save(any(Doctor.class));
     }
 
     /**
@@ -152,6 +146,7 @@ public class DoctorServiceImplTest {
         CreateDoctorRequest req = new CreateDoctorRequest();
         req.setEmail("test@test.com");
         req.setFullName("New Doctor");
+        req.setPhone("0901234567");
 
         Role role = new Role();
         when(userRepository.findByEmail(anyString())).thenReturn(Optional.empty());
@@ -189,6 +184,7 @@ public class DoctorServiceImplTest {
         CreateDoctorRequest req = new CreateDoctorRequest();
         req.setEmail("!!!@test.com"); // base will be empty after regex
         req.setFullName("New Doctor");
+        req.setPhone("0901234567");
 
         Role role = new Role();
         when(userRepository.findByEmail(anyString())).thenReturn(Optional.empty());
