@@ -214,6 +214,11 @@ public class AiServiceImpl implements AiService {
                                                                                                       // compatibility
                             }
                             aiResult = aiResultRepository.save(aiResult);
+                            
+                            if (analysis.getAiResults() == null) {
+                                analysis.setAiResults(new ArrayList<>());
+                            }
+                            analysis.getAiResults().add(aiResult);
 
                             // 3.5 - Lưu chi tiết tỷ lệ % (Confidence Scores) cho từng mức độ bệnh
                             if (p.getDetails() != null) {
@@ -331,10 +336,22 @@ public class AiServiceImpl implements AiService {
             // Lấy toàn bộ ảnh của ca khám từ Database
             List<DicomInstance> allInstancesOfExam = dicomInstanceRepository.findByExaminationId(exam.getId());
 
+            boolean hasUnreviewedResult = false;
             boolean allFailed = true;
             for (DicomInstance inst : allInstancesOfExam) {
                 if (inst.getStatus() == DicomInstanceStatus.GET_RESULTED) {
                     allFailed = false;
+                    AiAnalysis analysis = inst.getAiAnalysis();
+                    if (analysis != null && analysis.getAiResults() != null) {
+                        for (AiResult res : analysis.getAiResults()) {
+                            if (res.getDiagnosisReview() == null) {
+                                hasUnreviewedResult = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+                if (!allFailed && hasUnreviewedResult) {
                     break;
                 }
             }
@@ -342,17 +359,9 @@ public class AiServiceImpl implements AiService {
             if (allFailed && !allInstancesOfExam.isEmpty()) {
                 // Nếu 100% ảnh đều lỗi -> Ca khám thất bại
                 exam.setStatus(ExaminationStatus.AI_FAILED);
-            } else if (!allFailed) {
-                // Nếu có ít nhất 1 ảnh có kết quả AI
-                // Chỉ cập nhật (hoặc giữ) trạng thái NEED_VERIFY nếu ca khám chưa được bác sĩ duyệt
-                if (exam.getStatus() == ExaminationStatus.AI_PROCESSING || 
-                    exam.getStatus() == ExaminationStatus.AI_FAILED || 
-                    exam.getStatus() == ExaminationStatus.NEED_VERIFY || 
-                    exam.getStatus() == null) {
-                    
-                    exam.setStatus(ExaminationStatus.NEED_VERIFY);
-                }
-                // Nếu đã VERIFIED hoặc REPORT_GENERATED thì GIỮ NGUYÊN trạng thái.
+            } else if (hasUnreviewedResult) {
+                // Nếu có ảnh mới thành công nhưng chưa được duyệt -> Bắt buộc về NEED_VERIFY
+                exam.setStatus(ExaminationStatus.NEED_VERIFY);
             }
             examinationRepository.save(exam);
 
