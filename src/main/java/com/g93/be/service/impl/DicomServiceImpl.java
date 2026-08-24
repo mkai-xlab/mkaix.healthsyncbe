@@ -564,6 +564,7 @@ public class DicomServiceImpl implements DicomService {
                     String imageLaterality = null;
                     int imageRows = 0;
                     int imageColumns = 0;
+                    String modality = null;
 
                     // Mở và đọc nội dung file DICOM bằng thư viện dcm4che3
                     try (DicomInputStream dis = new DicomInputStream(tempFile.toFile())) {
@@ -618,6 +619,10 @@ public class DicomServiceImpl implements DicomService {
                                 imageLaterality = "right";
                             }
                         }
+                        
+                        imageRows = attrs.getInt(Tag.Rows, 0);
+                        imageColumns = attrs.getInt(Tag.Columns, 0);
+                        modality = attrs.getString(Tag.Modality, "");
                     }
 
                     // Bắt buộc mỗi ảnh DICOM phải có SOPInstanceUID, nếu không coi như file hỏng
@@ -724,6 +729,9 @@ public class DicomServiceImpl implements DicomService {
                             .filePath(dbDcmPath)
                             .bodyPart(bodyPart)
                             .imageLaterality(imageLaterality)
+                            .imageRows(imageRows)
+                            .imageColumns(imageColumns)
+                            .modality(modality)
                             .build());
 
                 } catch (Exception e) {

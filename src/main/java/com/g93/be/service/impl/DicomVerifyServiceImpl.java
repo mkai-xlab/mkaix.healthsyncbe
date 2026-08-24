@@ -306,6 +306,9 @@ public class DicomVerifyServiceImpl implements DicomVerifyService {
             instance.setStudyInstanceUid(finalStudyUid);
             instance.setBodyPart(instCache.getBodyPart());
             instance.setImageLaterality(instCache.getImageLaterality());
+            instance.setImageRows(instCache.getImageRows());
+            instance.setImageColumns(instCache.getImageColumns());
+            instance.setModality(instCache.getModality());
             
             LocalDateTime instanceStudyDate = studyDateForGrouping.atStartOfDay();
             if (pending.getStudyTime() != null) {
