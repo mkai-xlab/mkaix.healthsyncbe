@@ -93,9 +93,10 @@ public class PdfExportService {
      * Renders the X-ray report PDF for a verified examination.
      *
      * <p>This is the confirm step of the preview flow: {@code request} carries the form fields the
-     * doctor reviewed and edited, and a fresh PDF is always rendered so those values reach the file.
-     * Any field left blank falls back to the pre-filled value, and calling this with no body at all
-     * returns the previously generated report untouched.
+     * doctor reviewed and edited, and a fresh PDF is rendered the first time. A report can only be
+     * generated once per examination — once the status is {@code REPORT_GENERATED}, every later call
+     * (with or without a body) just returns that same report untouched instead of creating another
+     * one, unless the underlying PDF file has gone missing, in which case it is re-rendered to recover.
      */
     @Transactional
     @LogAction("GENERATE_PDF_REPORT")
@@ -109,7 +110,7 @@ public class PdfExportService {
         User currentUser = getUser(username);
         authorizeReportAccess(examination, currentUser);
 
-        if (request == null && examination.getStatus() == ExaminationStatus.REPORT_GENERATED) {
+        if (examination.getStatus() == ExaminationStatus.REPORT_GENERATED) {
             Report existingReport = reportRepository
                     .findFirstByExaminationIdOrderByCreatedAtDesc(examinationId)
                     .filter(this::reportFileExists)
@@ -214,6 +215,10 @@ public class PdfExportService {
     /**
      * Returns the report form pre-filled for review. The doctor edits it on screen and posts the
      * confirmed values back to the generate endpoint, which is the only step that renders a PDF.
+     *
+     * <p>Once a report has been generated for the examination, the report is final: this endpoint
+     * stops offering a draft and the doctor is pointed to the preview/download endpoints instead,
+     * matching {@link #generateAndSavePdfReport} which likewise refuses to render a second time.
      */
     @Transactional(readOnly = true)
     public ReportDraftResponse getReportDraft(Long examinationId, String username) {
@@ -222,7 +227,7 @@ public class PdfExportService {
                         "Examination not found with id: " + examinationId));
         User currentUser = getUser(username);
         authorizeReportAccess(examination, currentUser);
-        requireVerified(examination, "drafting");
+        requireDraftable(examination);
 
         FinalAiResults finalAiResults = buildFinalAiResults(examinationId);
         ReportForm form = buildFormDefaults(examination, currentUser, finalAiResults);
@@ -255,6 +260,23 @@ public class PdfExportService {
                 && examination.getStatus() != ExaminationStatus.REPORT_GENERATED) {
             throw new IllegalArgumentException(
                     "Examination must be verified before " + action + " its report");
+        }
+    }
+
+    /**
+     * Guards the draft preview specifically: unlike {@link #requireVerified}, a report that has
+     * already been generated is rejected rather than let through, since the report is final once
+     * generated and there is nothing left to draft.
+     */
+    private void requireDraftable(Examination examination) {
+        if (examination.getStatus() == ExaminationStatus.REPORT_GENERATED) {
+            throw new IllegalArgumentException(
+                    "Report has already been generated for this examination; "
+                            + "view the confirmed result via the report preview or download endpoint");
+        }
+        if (examination.getStatus() != ExaminationStatus.VERIFIED) {
+            throw new IllegalArgumentException(
+                    "Examination must be verified before drafting its report");
         }
     }
 
