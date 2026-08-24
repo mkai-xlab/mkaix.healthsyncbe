@@ -214,6 +214,11 @@ public class AiServiceImpl implements AiService {
                                                                                                       // compatibility
                             }
                             aiResult = aiResultRepository.save(aiResult);
+                            
+                            if (analysis.getAiResults() == null) {
+                                analysis.setAiResults(new ArrayList<>());
+                            }
+                            analysis.getAiResults().add(aiResult);
 
                             // 3.5 - Lưu chi tiết tỷ lệ % (Confidence Scores) cho từng mức độ bệnh
                             if (p.getDetails() != null) {
