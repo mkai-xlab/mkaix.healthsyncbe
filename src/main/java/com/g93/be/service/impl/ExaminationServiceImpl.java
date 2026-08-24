@@ -381,6 +381,9 @@ public class ExaminationServiceImpl implements ExaminationService {
     @Transactional(readOnly = true)
     public PageResponse<ExaminationDto> getExaminationsByStatus(ExaminationStatus status, String username,
             Boolean isPersonal, Pageable pageable) {
+        if (status == null) {
+            throw new IllegalArgumentException("Invalid status");
+        }
         log.info("Fetching examinations by status: {} for username: {}, isPersonal: {}", status, username, isPersonal);
         User user = userRepository.findByUsernameOrEmail(username, username)
                 .orElseThrow(() -> {

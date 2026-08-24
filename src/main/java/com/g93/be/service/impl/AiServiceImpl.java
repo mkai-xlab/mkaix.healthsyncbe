@@ -214,6 +214,11 @@ public class AiServiceImpl implements AiService {
                                                                                                       // compatibility
                             }
                             aiResult = aiResultRepository.save(aiResult);
+                            
+                            if (analysis.getAiResults() == null) {
+                                analysis.setAiResults(new ArrayList<>());
+                            }
+                            analysis.getAiResults().add(aiResult);
 
                             // 3.5 - Lưu chi tiết tỷ lệ % (Confidence Scores) cho từng mức độ bệnh
                             if (p.getDetails() != null) {
@@ -328,24 +333,39 @@ public class AiServiceImpl implements AiService {
 
         List<ExaminationDto> finalResults = new ArrayList<>();
         for (Examination exam : uniqueExams.values()) {
-            List<DicomInstance> examInstances = instancesByExam.getOrDefault(exam.getId(), new ArrayList<>());
+            // Lấy toàn bộ ảnh của ca khám từ Database
+            List<DicomInstance> allInstancesOfExam = dicomInstanceRepository.findByExaminationId(exam.getId());
 
+            boolean hasUnreviewedResult = false;
             boolean allFailed = true;
-            for (DicomInstance inst : examInstances) {
+            for (DicomInstance inst : allInstancesOfExam) {
                 if (inst.getStatus() == DicomInstanceStatus.GET_RESULTED) {
                     allFailed = false;
+                    AiAnalysis analysis = inst.getAiAnalysis();
+                    if (analysis != null && analysis.getAiResults() != null) {
+                        for (AiResult res : analysis.getAiResults()) {
+                            if (res.getDiagnosisReview() == null) {
+                                hasUnreviewedResult = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+                if (!allFailed && hasUnreviewedResult) {
                     break;
                 }
             }
 
-            if (allFailed && !examInstances.isEmpty()) {
+            if (allFailed && !allInstancesOfExam.isEmpty()) {
+                // Nếu 100% ảnh đều lỗi -> Ca khám thất bại
                 exam.setStatus(ExaminationStatus.AI_FAILED);
-            } else {
+            } else if (hasUnreviewedResult) {
+                // Nếu có ảnh mới thành công nhưng chưa được duyệt -> Bắt buộc về NEED_VERIFY
                 exam.setStatus(ExaminationStatus.NEED_VERIFY);
             }
             examinationRepository.save(exam);
 
-            ExaminationDto examDto = examinationMapper.toDto(exam, examInstances);
+            ExaminationDto examDto = examinationMapper.toDto(exam, allInstancesOfExam);
             int maxGrade = -1;
 
             if (examDto != null && examDto.getImages() != null) {

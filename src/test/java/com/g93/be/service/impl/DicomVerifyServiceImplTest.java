@@ -52,6 +52,9 @@ public class DicomVerifyServiceImplTest {
      * Kỳ vọng: Bỏ qua toàn bộ tiến trình, không gọi AI service hay Notification
      * service.
      */
+    // ==============================================================================
+    // UTCID01: Process verified session - Null Instance IDs (Boundary)
+    // ==============================================================================
     @Test
     void test_Boundary_NullInstanceIds() {
         dicomVerifyService.processVerifiedSessionAsync(null, "doctor1");
@@ -65,6 +68,9 @@ public class DicomVerifyServiceImplTest {
      * Hành động: Gọi processVerifiedSessionAsync().
      * Kỳ vọng: Bỏ qua toàn bộ tiến trình, không gọi AI hay gửi thông báo.
      */
+    // ==============================================================================
+    // UTCID02: Process verified session - Empty Instance IDs (Boundary)
+    // ==============================================================================
     @Test
     void test_Boundary_EmptyInstanceIds() {
         dicomVerifyService.processVerifiedSessionAsync(new ArrayList<>(), "doctor1");
@@ -83,6 +89,9 @@ public class DicomVerifyServiceImplTest {
      * Kỳ vọng: Quá trình AI dự đoán vẫn được gọi nhưng việc tìm kiếm User và gửi
      * thông báo Notification bị bỏ qua (không gây crash).
      */
+    // ==============================================================================
+    // UTCID03: Process verified session - Null Username (Abnormal)
+    // ==============================================================================
     @Test
     void test_Abnormal_NullUsername() {
         List<Long> instanceIds = Arrays.asList(1L);
@@ -103,6 +112,9 @@ public class DicomVerifyServiceImplTest {
      * Kỳ vọng: AI service vẫn phân tích ảnh nhưng phần thống kê và thông báo không
      * được gửi đi.
      */
+    // ==============================================================================
+    // UTCID04: Process verified session - User Not Found (Abnormal)
+    // ==============================================================================
     @Test
     void test_Abnormal_UserNotFound() {
         List<Long> instanceIds = Arrays.asList(1L);
@@ -124,6 +136,9 @@ public class DicomVerifyServiceImplTest {
      * Kỳ vọng: Bắt ngoại lệ và gửi thông báo loại ERROR "Lỗi phân tích AI" qua
      * NotificationService.
      */
+    // ==============================================================================
+    // UTCID05: Process verified session - AI Service throws Exception (Abnormal)
+    // ==============================================================================
     @Test
     void test_Abnormal_AiServiceThrowsException() {
         List<Long> instanceIds = Arrays.asList(1L);
@@ -153,6 +168,9 @@ public class DicomVerifyServiceImplTest {
      * Kỳ vọng: Hệ thống bắt (swallow) toàn bộ lỗi một cách an toàn mà không làm sập
      * luồng Async.
      */
+    // ==============================================================================
+    // UTCID06: Process verified session - Notification throws exception (Abnormal)
+    // ==============================================================================
     @Test
     void test_Abnormal_AiServiceAndNotificationThrowException() {
         List<Long> instanceIds = Arrays.asList(1L);
@@ -181,6 +199,9 @@ public class DicomVerifyServiceImplTest {
      * Kỳ vọng: Gửi thông báo thành công với loại "AI_RESULT", nội dung thống kê số
      * liệu rỗng (nhưng không null).
      */
+    // ==============================================================================
+    // UTCID07: Process verified session - No Predictions (Normal)
+    // ==============================================================================
     @Test
     void test_Normal_NoPredictions() {
         List<Long> instanceIds = Arrays.asList(1L, 2L);
@@ -209,6 +230,9 @@ public class DicomVerifyServiceImplTest {
      * Kỳ vọng: Gửi thông báo thống kê gộp chung lại cho Bệnh nhân đó (chỉ lấy Max
      * Grade = 4), mảng thống kê trả về có size = 1.
      */
+    // ==============================================================================
+    // UTCID08: Process verified session - Valid Predictions Same Patient (Normal)
+    // ==============================================================================
     @Test
     void test_Normal_ValidPredictions_SamePatient() {
         List<Long> instanceIds = Arrays.asList(1L, 2L);
@@ -248,6 +272,9 @@ public class DicomVerifyServiceImplTest {
      * Kỳ vọng: Gửi thông báo có kèm theo số liệu thống kê riêng biệt cho 2 bệnh
      * nhân (mảng thống kê trả về có size = 2).
      */
+    // ==============================================================================
+    // UTCID09: Process verified session - Valid Predictions Multiple Patients (Normal)
+    // ==============================================================================
     @Test
     void test_Normal_ValidPredictions_MultiplePatients() {
         List<Long> instanceIds = Arrays.asList(1L, 2L);
@@ -289,6 +316,9 @@ public class DicomVerifyServiceImplTest {
      * Kỳ vọng: Dễ dàng bỏ qua (skip) các bản ghi lỗi, mảng thống kê trả về rỗng,
      * không xảy ra lỗi NullPointerException.
      */
+    // ==============================================================================
+    // UTCID10: Process verified session - Prediction with Null Patient or Grade (Normal)
+    // ==============================================================================
     @Test
     void test_Normal_PredictionWithNullPatientOrGrade() {
         List<Long> instanceIds = Arrays.asList(1L, 2L);
@@ -321,114 +351,5 @@ public class DicomVerifyServiceImplTest {
         assertEquals(0, statsList.size(), "Stats should be empty as all invalid exams were skipped");
     }
 
-    // --- AUTO-GENERATED MISSING TESTS FROM EXCEL ---
-    /**
-     * Mục đích: Verify processVerifiedSessionAsync AI batch req
-     * Kịch bản Test Design: UTCID01
-     */
-    @Test
-    @org.junit.jupiter.api.Disabled("Need manual implementation for specific mock setup based on Excel matrix")
-    void testProcessVerifiedSessionAsync_UTCID01() {
-        // TODO: Implement mock setup and assertion for UTCID01
-        org.junit.jupiter.api.Assertions.assertTrue(true, "Test scaffold generated");
-    }
 
-    /**
-     * Mục đích: Verify processVerifiedSessionAsync AI batch req
-     * Kịch bản Test Design: UTCID02
-     */
-    @Test
-    @org.junit.jupiter.api.Disabled("Need manual implementation for specific mock setup based on Excel matrix")
-    void testProcessVerifiedSessionAsync_UTCID02() {
-        // TODO: Implement mock setup and assertion for UTCID02
-        org.junit.jupiter.api.Assertions.assertTrue(true, "Test scaffold generated");
-    }
-
-    /**
-     * Mục đích: Verify processVerifiedSessionAsync AI batch req
-     * Kịch bản Test Design: UTCID03
-     */
-    @Test
-    @org.junit.jupiter.api.Disabled("Need manual implementation for specific mock setup based on Excel matrix")
-    void testProcessVerifiedSessionAsync_UTCID03() {
-        // TODO: Implement mock setup and assertion for UTCID03
-        org.junit.jupiter.api.Assertions.assertTrue(true, "Test scaffold generated");
-    }
-
-    /**
-     * Mục đích: Verify processVerifiedSessionAsync AI batch req
-     * Kịch bản Test Design: UTCID04
-     */
-    @Test
-    @org.junit.jupiter.api.Disabled("Need manual implementation for specific mock setup based on Excel matrix")
-    void testProcessVerifiedSessionAsync_UTCID04() {
-        // TODO: Implement mock setup and assertion for UTCID04
-        org.junit.jupiter.api.Assertions.assertTrue(true, "Test scaffold generated");
-    }
-
-    /**
-     * Mục đích: Verify processVerifiedSessionAsync AI batch req
-     * Kịch bản Test Design: UTCID05
-     */
-    @Test
-    @org.junit.jupiter.api.Disabled("Need manual implementation for specific mock setup based on Excel matrix")
-    void testProcessVerifiedSessionAsync_UTCID05() {
-        // TODO: Implement mock setup and assertion for UTCID05
-        org.junit.jupiter.api.Assertions.assertTrue(true, "Test scaffold generated");
-    }
-
-    /**
-     * Mục đích: Verify processVerifiedSessionAsync AI batch req
-     * Kịch bản Test Design: UTCID06
-     */
-    @Test
-    @org.junit.jupiter.api.Disabled("Need manual implementation for specific mock setup based on Excel matrix")
-    void testProcessVerifiedSessionAsync_UTCID06() {
-        // TODO: Implement mock setup and assertion for UTCID06
-        org.junit.jupiter.api.Assertions.assertTrue(true, "Test scaffold generated");
-    }
-
-    /**
-     * Mục đích: Verify processVerifiedSessionAsync AI batch req
-     * Kịch bản Test Design: UTCID07
-     */
-    @Test
-    @org.junit.jupiter.api.Disabled("Need manual implementation for specific mock setup based on Excel matrix")
-    void testProcessVerifiedSessionAsync_UTCID07() {
-        // TODO: Implement mock setup and assertion for UTCID07
-        org.junit.jupiter.api.Assertions.assertTrue(true, "Test scaffold generated");
-    }
-
-    /**
-     * Mục đích: Verify processVerifiedSessionAsync AI batch req
-     * Kịch bản Test Design: UTCID08
-     */
-    @Test
-    @org.junit.jupiter.api.Disabled("Need manual implementation for specific mock setup based on Excel matrix")
-    void testProcessVerifiedSessionAsync_UTCID08() {
-        // TODO: Implement mock setup and assertion for UTCID08
-        org.junit.jupiter.api.Assertions.assertTrue(true, "Test scaffold generated");
-    }
-
-    /**
-     * Mục đích: Verify processVerifiedSessionAsync AI batch req
-     * Kịch bản Test Design: UTCID09
-     */
-    @Test
-    @org.junit.jupiter.api.Disabled("Need manual implementation for specific mock setup based on Excel matrix")
-    void testProcessVerifiedSessionAsync_UTCID09() {
-        // TODO: Implement mock setup and assertion for UTCID09
-        org.junit.jupiter.api.Assertions.assertTrue(true, "Test scaffold generated");
-    }
-
-    /**
-     * Mục đích: Verify processVerifiedSessionAsync AI batch req
-     * Kịch bản Test Design: UTCID10
-     */
-    @Test
-    @org.junit.jupiter.api.Disabled("Need manual implementation for specific mock setup based on Excel matrix")
-    void testProcessVerifiedSessionAsync_UTCID10() {
-        // TODO: Implement mock setup and assertion for UTCID10
-        org.junit.jupiter.api.Assertions.assertTrue(true, "Test scaffold generated");
-    }
 }
