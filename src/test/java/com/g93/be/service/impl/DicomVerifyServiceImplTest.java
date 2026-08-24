@@ -93,7 +93,7 @@ public class DicomVerifyServiceImplTest {
     // UTCID03: Process verified session - Null Username (Abnormal)
     // ==============================================================================
     @Test
-    void testProcessVerifiedSessionAsync_UTCID04_Abnormal_NullUsername() {
+    void testProcessVerifiedSessionAsync_UTCID03_Abnormal_NullUsername() {
         List<Long> instanceIds = Arrays.asList(1L);
         when(aiService.predictBatch(any(AiPredictionRequest.class))).thenReturn(new ArrayList<>());
 
@@ -116,7 +116,7 @@ public class DicomVerifyServiceImplTest {
     // UTCID04: Process verified session - User Not Found (Abnormal)
     // ==============================================================================
     @Test
-    void testProcessVerifiedSessionAsync_UTCID03_Abnormal_UserNotFound() {
+    void testProcessVerifiedSessionAsync_UTCID04_Abnormal_UserNotFound() {
         List<Long> instanceIds = Arrays.asList(1L);
         String username = "unknown_user";
         when(userRepository.findByUsername(username)).thenReturn(Optional.empty());
@@ -273,7 +273,8 @@ public class DicomVerifyServiceImplTest {
      * nhân (mảng thống kê trả về có size = 2).
      */
     // ==============================================================================
-    // UTCID09: Process verified session - Valid Predictions Multiple Patients (Normal)
+    // UTCID09: Process verified session - Valid Predictions Multiple Patients
+    // (Normal)
     // ==============================================================================
     @Test
     void testProcessVerifiedSessionAsync_UTCID07_Normal_ValidPredictions_MultiplePatients() {
@@ -317,7 +318,8 @@ public class DicomVerifyServiceImplTest {
      * không xảy ra lỗi NullPointerException.
      */
     // ==============================================================================
-    // UTCID10: Process verified session - Prediction with Null Patient or Grade (Normal)
+    // UTCID10: Process verified session - Prediction with Null Patient or Grade
+    // (Normal)
     // ==============================================================================
     @Test
     void testProcessVerifiedSessionAsync_UTCID10_Normal_PredictionWithNullPatientOrGrade() {
@@ -350,6 +352,5 @@ public class DicomVerifyServiceImplTest {
         List<?> statsList = (List<?>) sentNotif.data();
         assertEquals(0, statsList.size(), "Stats should be empty as all invalid exams were skipped");
     }
-
 
 }
