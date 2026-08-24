@@ -16,6 +16,7 @@ This project can follow semantic versioning when formal releases start.
 - Added `GET /examinations/{id}/report-draft`, returning the whole report form pre-filled for the preview screen, with an editable result block stating the Kellgren-Lawrence grades confirmed during verification and nothing further about radiographic signs.
 - Added an optional request body to `POST /examinations/{id}/generate-report` carrying the form fields the doctor confirmed on the preview; every field falls back independently to the pre-filled value, and sending a body always re-renders the PDF.
 - Reports are now signed by the authenticated doctor: the name on the signature line comes from the account that generated the report and cannot be supplied in the request.
+- Added `findings` and `conclusion` columns to `examinations`, so the doctor-confirmed report result block persists with the examination instead of living only inside the generated PDF; the next report preview for the same examination offers that saved wording back instead of resetting to the grade-only auto-composed draft.
 - Added paginated medical-knowledge listing with keyword, source type, indexing status, access scope, pagination, and sorting filters.
 - Added authenticated knowledge-source text extraction, inline preview, and original-file download endpoints with safe storage-path validation.
 - Added `contentUrl`, `previewUrl`, and `downloadUrl` to file and URL knowledge-document responses and matching Bruno requests.

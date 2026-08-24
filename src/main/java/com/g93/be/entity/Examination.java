@@ -72,6 +72,14 @@ public class Examination {
     @Column(name = "max_predicted_grade")
     private Integer maxPredictedGrade;
 
+    /** Result bullet lines printed in the report's "KET QUA" block, one per line, as confirmed by the doctor. */
+    @Column(name = "findings", columnDefinition = "TEXT")
+    private String findings;
+
+    /** Text printed in the report's "KET LUAN" block, as confirmed by the doctor. */
+    @Column(name = "conclusion", columnDefinition = "TEXT")
+    private String conclusion;
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();

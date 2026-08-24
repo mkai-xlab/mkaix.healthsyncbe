@@ -509,6 +509,25 @@ class PdfExportServiceTest {
     }
 
     @Test
+    void getReportDraft_ReturnsTheDoctorsOwnWordingSavedFromAnEarlierConfirmation() {
+        AiResult right = aiResult(2, DiagnosisReviewDecision.AI_CONFIRMED, 3);
+        right.setKneeSide("RIGHT");
+        mockExamination.setFindings("Hẹp khe khớp đùi chày trong.\nGai xương bờ mâm chày.");
+        mockExamination.setConclusion("Thoái hóa khớp gối phải giai đoạn muộn.");
+        when(examinationRepository.findById(1L)).thenReturn(Optional.of(mockExamination));
+        when(dicomInstanceRepository.findByExaminationId(1L)).thenReturn(List.of(instance(right)));
+
+        ReportDraftResponse draft = pdfExportService.getReportDraft(1L, "doctor");
+
+        // The examination already carries the doctor's own wording from a prior confirmation, so
+        // the draft must offer that back instead of resetting to the grade-only auto-composed text.
+        assertEquals(
+                List.of("Hẹp khe khớp đùi chày trong.", "Gai xương bờ mâm chày."),
+                draft.findings());
+        assertEquals("Thoái hóa khớp gối phải giai đoạn muộn.", draft.conclusion());
+    }
+
+    @Test
     void generateAndSavePdfReport_PrintsEveryFormFieldTheDoctorConfirmed() {
         AiResult right = aiResult(2, DiagnosisReviewDecision.AI_CONFIRMED, 3);
         right.setKneeSide("RIGHT");
@@ -622,8 +641,12 @@ class PdfExportServiceTest {
         org.mockito.ArgumentCaptor<Report> reportCaptor =
                 org.mockito.ArgumentCaptor.forClass(Report.class);
         verify(reportRepository).save(reportCaptor.capture());
-        assertEquals("Thoái hóa khớp gối phải giai đoạn muộn.",
-                reportCaptor.getValue().getClinicalSummary());
+        // clinical_summary keeps its original meaning (the examination's final diagnosis); the
+        // doctor-confirmed result block belongs to the examination instead, asserted below.
+        assertEquals("Test diagnosis", reportCaptor.getValue().getClinicalSummary());
+        assertEquals("Hẹp khe khớp đùi chày trong.\nGai xương bờ mâm chày.",
+                mockExamination.getFindings());
+        assertEquals("Thoái hóa khớp gối phải giai đoạn muộn.", mockExamination.getConclusion());
     }
 
     @Test

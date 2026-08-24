@@ -20,7 +20,11 @@ result block stating the Kellgren-Lawrence grades confirmed during verification 
 by hand, and only then presses confirm, which is the single step that renders a PDF.
 
 The result block states the grade and nothing else; the radiographic signs behind it are the
-doctor's to write. Both `findings` and `conclusion` are editable.
+doctor's to write. Both `findings` and `conclusion` are editable, and confirming a report saves them
+onto the examination (`examinations.findings`, `examinations.conclusion`) — not just into the PDF.
+The next time the preview is opened for the same examination, it offers the doctor's own saved
+wording back instead of resetting to the grade-only auto-composed text; only the very first
+confirmation for an examination falls back to that auto-composed draft.
 
 Both endpoints reject `ADMIN` by design: they require `DEPARTMENT_HEAD`/`HEAD_OF_DEPARTMENT`,
 or `DOCTOR` holding `GENERATE_PDF_REPORT`, and a doctor only reaches examinations assigned to
