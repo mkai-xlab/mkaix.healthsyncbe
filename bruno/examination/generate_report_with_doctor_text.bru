@@ -16,24 +16,18 @@ auth:bearer {
 
 body:json {
   {
-    "documentNumber": "SO-2026-0077",
-    "attemptNumber": "1",
-    "patientName": "HÀ HUY ĐOÀN",
-    "age": "48",
-    "gender": "Nam",
-    "address": "Xã Quang Bị, Thành phố Hà Nội",
     "findings": [
-      "Gối phải: Thoái hóa khớp gối độ 3 (Kellgren-Lawrence).",
-      "Gối trái: Không thoái hóa khớp gối (Kellgren-Lawrence độ 0)."
+      "Gối phải: Thoái hóa khớp gối độ 0 (Kellgren-Lawrence).",
+      "Gối trái: Không thoái hóa khớp gối (Kellgren-Lawrence độ 1)."
     ],
-    "conclusion": "Hình ảnh thoái hóa khớp gối phải độ 3 theo phân loại Kellgren-Lawrence.",
+    "conclusion": "Cần ăn nhiều vào.",
     "signaturePlace": "Hà Nội",
     "signatureDate": "07/05/2026"
   }
 }
 
 vars:pre-request {
-  examinationId: 8
+  examinationId: 9
 }
 
 tests {
@@ -55,3 +49,4 @@ docs {
   The letterhead and Khoa are fixed by app.report.* configuration, and the name on the signature
   line is always the authenticated doctor, so none of them are accepted here.
 }
+​

@@ -1,31 +1,32 @@
 # UNIT TEST REPORT - HEALTHSYNC BACKEND
 
-## X-ray report form with a doctor-confirmed preview (23/08/2026)
+## X-ray report form with a doctor-confirmed preview (24/08/2026)
 
 | Thuộc tính | Giá trị |
 |---|---|
 | Executed By | Claude |
-| Executed Date | 23/08/2026 |
+| Executed Date | 24/08/2026 |
 | Framework | JUnit Jupiter, Mockito, PDFBox, OpenHTMLToPDF, Thymeleaf |
 | Java | 21 (Temurin 21.0.12), Apache Maven 3.9.9 |
-| Phạm vi | "PHIEU CHUP XQUANG" template render, letterhead logo embedding, Kellgren-Lawrence-only result text, report-draft preview, doctor-confirmed form overlay, authenticated-doctor signature, endpoint authorization, and OpenAPI registration |
+| Phạm vi | "PHIEU CHUP XQUANG" template render, letterhead logo embedding, Kellgren-Lawrence-only result text, report-draft preview with examination-level persistence, doctor-confirmed form overlay, authenticated-doctor signature, endpoint authorization, and OpenAPI registration |
 
 Command:
 
 ```bash
-mvn -o test -Dtest=PdfExportServiceTest,XrayReportTemplateTest,XrayReportContentComposerTest,ReportControllerTest,ControllerRbacTest,ReportListServiceTest,OpenApiDocumentationTest
+mvn -o test -Dtest=PdfExportServiceTest,XrayReportTemplateTest,XrayReportContentComposerTest,ReportControllerTest,ControllerRbacTest,ReportListServiceTest,ReportKnowledgeSyncServiceTest,OpenApiDocumentationTest
 ```
 
 | Test Class | Passed | Failed | Errors | Skipped | Covered behavior |
 |---|---:|---:|---:|---:|---|
-| `PdfExportServiceTest` | 27 | 0 | 0 | 0 | Generation, access, and error paths; whole-form pre-fill; doctor-confirmed field overlay; signature always naming the authenticated doctor; logo embedding; regeneration when the doctor confirms edits |
+| `PdfExportServiceTest` | 28 | 0 | 0 | 0 | Generation, access, and error paths; whole-form pre-fill; doctor-confirmed field overlay; signature always naming the authenticated doctor; logo embedding; persisting and reusing the doctor's saved result text on the examination; regeneration when the doctor confirms edits |
 | `XrayReportTemplateTest` | 6 | 0 | 0 | 0 | Real PDF render of every form block, doctor-edited result text, blank fields, dropped request rows and lab branding, embedded hospital crest, and graceful degradation when the crest is absent |
 | `XrayReportContentComposerTest` | 10 | 0 | 0 | 0 | Grade-only findings and conclusion for every Kellgren-Lawrence grade, single/both knees, and out-of-range input |
 | `ReportControllerTest` | 4 | 0 | 0 | 0 | Inline preview, attachment download, and forwarding of an absent versus confirmed request body |
 | `ControllerRbacTest` | 31 | 0 | 0 | 0 | Role/permission enforcement across controllers, including the report-draft and generate endpoints |
 | `ReportListServiceTest` | 3 | 0 | 0 | 0 | Generated-report listing scoped by doctor and department head |
+| `ReportKnowledgeSyncServiceTest` | 2 | 0 | 0 | 0 | RAG indexing still reads `report.clinical_summary` correctly now that it reflects the examination's final diagnosis again |
 | `OpenApiDocumentationTest` | 4 | 0 | 0 | 0 | Every controller method is registered with a documented request, response, and error contract |
-| **TOTAL** | **85** | **0** | **0** | **0** | **100% pass** |
+| **TOTAL** | **88** | **0** | **0** | **0** | **100% pass** |
 
 | UTCID | Classification | Test case | Expected/Actual result | Result |
 |---|:---:|---|---|:---:|
@@ -43,11 +44,13 @@ mvn -o test -Dtest=PdfExportServiceTest,XrayReportTemplateTest,XrayReportContent
 | UTC-XRAY-DRAFT-01 | N | Report draft pre-fills the whole form | Patient, letterhead, fixed Khoa, dates, and result text arrive filled; `attemptNumber` arrives blank | P |
 | UTC-XRAY-DRAFT-02 | A | Draft for an unverified examination | Rejected with "Examination must be verified before drafting its report" | P |
 | UTC-XRAY-DRAFT-03 | A | Draft requested by an unassigned doctor | Rejected with `AccessDeniedException` | P |
+| UTC-XRAY-DRAFT-04 | N | Draft for an examination with a previously saved result | Returns the doctor's own saved `findings`/`conclusion` instead of the grade-only auto-composed text | P |
 | UTC-XRAY-GEN-01 | N | Confirm step prints every submitted field | All 10 editable fields reach the rendered view model; Khoa stays the configured one | P |
 | UTC-XRAY-GEN-05 | A | Department head generates another doctor's report | The signature names the head who generated it, never a submitted name | P |
 | UTC-XRAY-GEN-02 | B | Only the conclusion is edited | Auto-filled findings are kept and the conclusion is replaced | P |
 | UTC-XRAY-GEN-03 | B | Blank line inside submitted findings | Dropped rather than printed as an empty bullet | P |
 | UTC-XRAY-GEN-04 | N | Confirm on an already generated report | A fresh PDF is rendered instead of returning the old file | P |
+| UTC-XRAY-GEN-06 | N | Confirm persists the result block on the examination | `examinations.findings`/`examinations.conclusion` hold the doctor's confirmed text; `report.clinical_summary` keeps the examination's final diagnosis, unchanged | P |
 | UTC-XRAY-RBAC-01 | A | Report-draft endpoint authorization | Requires a clinical role with `GENERATE_PDF_REPORT`; admin is rejected | P |
 
 > Note: the 150 `@SpringBootTest` integration-test errors in a full `mvn test` run are unrelated to

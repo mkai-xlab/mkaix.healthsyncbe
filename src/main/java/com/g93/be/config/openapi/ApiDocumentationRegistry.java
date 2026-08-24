@@ -419,6 +419,11 @@ final class ApiDocumentationRegistry {
                 add("AuditLogController", "getAuditLogs", "Nhật ký hệ thống", "Lấy audit log",
                                 "Admin xem nhật ký thao tác có phân trang, mới nhất trước.", "200", "Trang audit log",
                                 "AUDIT_PAGE", null, ResponseKind.JSON);
+                add("AiUsageController", "summary", "Nhật ký hệ thống", "Thống kê chi phí sử dụng AI",
+                                "Admin xem tổng số lượt gọi, token, và chi phí ước tính (USD) theo loại lời gọi AI"
+                                                + " trong khoảng thời gian; mặc định 30 ngày gần nhất khi không truyền"
+                                                + " from/to.",
+                                "200", "Tổng hợp chi phí AI", "AI_USAGE_SUMMARY", null, ResponseKind.JSON);
                 addMultipart("FileUploadController", "uploadAvatar", "Tệp", "Tải tệp avatar",
                                 "Lưu ảnh avatar và trả URL nội bộ; endpoint không tự gán ảnh vào profile.", "200",
                                 "URL tệp đã lưu", "FILE_URL", ResponseKind.JSON);
