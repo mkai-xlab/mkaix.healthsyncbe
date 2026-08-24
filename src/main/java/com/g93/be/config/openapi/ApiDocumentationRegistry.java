@@ -297,9 +297,13 @@ final class ApiDocumentationRegistry {
                 add("ReportController", "getGeneratedReports", "Báo cáo PDF", "Danh sách báo cáo đã tạo",
                                 "Bác sĩ chỉ xem report của các ca được gán cho mình; trưởng khoa xem toàn bộ report trong khoa.",
                                 "200", "Trang danh sách report", "REPORT_PAGE", null, ResponseKind.JSON);
+                add("ReportController", "getReportDraft", "Báo cáo PDF", "Lấy nháp kết quả báo cáo",
+                                "Trả phần KẾT QUẢ và KẾT LUẬN được điền sẵn từ độ KL bác sĩ đã xác nhận, để bác sĩ sửa trước khi tạo PDF.",
+                                "200", "Nháp kết quả có thể chỉnh sửa", "REPORT_DRAFT", null, ResponseKind.JSON);
                 add("ReportController", "generatePdfReport", "Báo cáo PDF", "Tạo báo cáo PDF",
-                                "Tạo và lưu PDF từ kết quả cuối cùng của ca đã VERIFIED.", "200",
-                                "Metadata và URL báo cáo", "REPORT", null, ResponseKind.JSON);
+                                "Tạo và lưu PDF từ kết quả cuối cùng của ca đã VERIFIED. Body không bắt buộc: gửi kèm phần kết quả bác sĩ tự nhập để in và lưu theo lời văn của bác sĩ.",
+                                "200", "Metadata và URL báo cáo", "REPORT", "GENERATE_REPORT_REQUEST",
+                                ResponseKind.JSON);
                 add("ReportController", "previewReport", "Báo cáo PDF", "Xem trước báo cáo PDF",
                                 "Trả PDF dạng inline để frontend hiển thị mà không ép tải xuống.", "200",
                                 "Nội dung PDF inline", null, null, ResponseKind.PDF);

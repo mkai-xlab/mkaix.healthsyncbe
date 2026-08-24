@@ -6,6 +6,7 @@ import com.g93.be.dto.DoctorResponse;
 import com.g93.be.dto.FeatureResponse;
 import com.g93.be.dto.PageResponse;
 import com.g93.be.dto.PermissionResponse;
+import com.g93.be.dto.ReportDraftResponse;
 import com.g93.be.dto.ReportResponse;
 import com.g93.be.dto.ReportListItemResponse;
 import com.g93.be.dto.UpdateFeatureRequest;
@@ -27,6 +28,7 @@ import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 
 import java.util.List;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
@@ -257,10 +259,32 @@ class ControllerRbacTest {
         ReportResponse response = new ReportResponse(
                 9L, 42L, "report.pdf", 100L, "application/pdf", LocalDateTime.now(),
                 "/api/v1/reports/42/preview", "/api/v1/reports/42/download");
-        when(pdfExportService.generateAndSavePdfReport(42L, "doctor")).thenReturn(response);
+        when(pdfExportService.generateAndSavePdfReport(42L, "doctor", null)).thenReturn(response);
 
         assertEquals(response,
-                reportController.generatePdfReport(42L, () -> "doctor").getBody());
+                reportController.generatePdfReport(42L, null, () -> "doctor").getBody());
+    }
+
+    @Test
+    @WithMockUser(authorities = {"ROLE_DOCTOR", "GENERATE_PDF_REPORT"})
+    void userWithPdfAuthorityCanReadTheReportDraft() {
+        ReportDraftResponse draft = new ReportDraftResponse(
+                42L, "PAT-001",
+                "BỘ QUỐC PHÒNG", "VIỆN Y HỌC CỔ TRUYỀN QUÂN ĐỘI", "KHOA CHẨN ĐOÁN HÌNH ẢNH",
+                "08/BV-02", "Khoa Chẩn đoán hình ảnh", "BS. Hà Công Thỏa", "2", "3",
+                "ENC-2026-0042", "", "John Doe", "48", "Nam", "Hà Nội",
+                List.of("Gối phải: Thoái hóa khớp gối độ 3 (Kellgren-Lawrence)."), "Kết luận",
+                "Hà Nội", LocalDate.of(2026, 5, 7));
+        when(pdfExportService.getReportDraft(42L, "doctor")).thenReturn(draft);
+
+        assertEquals(draft, reportController.getReportDraft(42L, () -> "doctor").getBody());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void adminCannotReadTheReportDraft() {
+        assertThrows(AccessDeniedException.class,
+                () -> reportController.getReportDraft(42L, () -> "admin"));
     }
 
     @Test
@@ -285,7 +309,7 @@ class ControllerRbacTest {
     @WithMockUser(authorities = {"ROLE_ADMIN", "GENERATE_PDF_REPORT"})
     void adminCannotGenerateReportEvenWithStaleClinicalPermission() {
         assertThrows(AccessDeniedException.class,
-                () -> reportController.generatePdfReport(42L, () -> "admin"));
+                () -> reportController.generatePdfReport(42L, null, () -> "admin"));
     }
 
     @Test
