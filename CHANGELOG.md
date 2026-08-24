@@ -6,8 +6,16 @@ This project can follow semantic versioning when formal releases start.
 
 ## Unreleased
 
+### Removed
+
+- Removed the `PHIEU THU THAP SO LIEU CA NHAN` research data-collection PDF template and its `PdfReportDataDto` view model; report generation now renders the clinical X-ray form only.
+
 ### Added
 
+- Replaced the research data-collection PDF template with the "PHIEU CHUP XQUANG" hospital report form, printed with the hospital crest on the letterhead and with the letterhead text, form code, imaging department, and signature place configurable through `app.report.*`. Patient details are laid out as a closed label/value grid rather than dotted fill-in rules, so a downloaded report reads as a finished record instead of a blank form.
+- Added `GET /examinations/{id}/report-draft`, returning the whole report form pre-filled for the preview screen, with an editable result block stating the Kellgren-Lawrence grades confirmed during verification and nothing further about radiographic signs.
+- Added an optional request body to `POST /examinations/{id}/generate-report` carrying the form fields the doctor confirmed on the preview; every field falls back independently to the pre-filled value, and sending a body always re-renders the PDF.
+- Reports are now signed by the authenticated doctor: the name on the signature line comes from the account that generated the report and cannot be supplied in the request.
 - Added paginated medical-knowledge listing with keyword, source type, indexing status, access scope, pagination, and sorting filters.
 - Added authenticated knowledge-source text extraction, inline preview, and original-file download endpoints with safe storage-path validation.
 - Added `contentUrl`, `previewUrl`, and `downloadUrl` to file and URL knowledge-document responses and matching Bruno requests.

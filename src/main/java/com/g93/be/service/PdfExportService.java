@@ -2,7 +2,10 @@ package com.g93.be.service;
 
 import com.g93.be.aspect.LogAction;
 import com.g93.be.chat.ReportKnowledgeSyncRequestedEvent;
-import com.g93.be.dto.PdfReportDataDto;
+import com.g93.be.config.XrayReportProperties;
+import com.g93.be.dto.GenerateReportRequest;
+import com.g93.be.dto.ReportDraftResponse;
+import com.g93.be.dto.XrayReportDataDto;
 import com.g93.be.dto.PageResponse;
 import com.g93.be.dto.ReportListItemResponse;
 import com.g93.be.dto.ReportResponse;
@@ -48,6 +51,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.Period;
 import java.time.format.DateTimeFormatter;
@@ -56,8 +60,11 @@ import java.util.Base64;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Stream;
 import java.util.UUID;
 
 @Service
@@ -73,20 +80,36 @@ public class PdfExportService {
     private final ReportRepository reportRepository;
     private final UserRepository userRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final XrayReportContentComposer contentComposer;
+    private final XrayReportProperties reportProperties;
+
+    /** Letterhead logos are packaged and never change at runtime, so encode them once. */
+    private final Map<String, String> logoDataUriCache = new ConcurrentHashMap<>();
 
     @Value("${app.pdf.export-dir}")
     private String exportDir;
 
+    /**
+     * Renders the X-ray report PDF for a verified examination.
+     *
+     * <p>This is the confirm step of the preview flow: {@code request} carries the form fields the
+     * doctor reviewed and edited, and a fresh PDF is always rendered so those values reach the file.
+     * Any field left blank falls back to the pre-filled value, and calling this with no body at all
+     * returns the previously generated report untouched.
+     */
     @Transactional
     @LogAction("GENERATE_PDF_REPORT")
-    public ReportResponse generateAndSavePdfReport(Long examinationId, String username) {
+    public ReportResponse generateAndSavePdfReport(
+            Long examinationId,
+            String username,
+            GenerateReportRequest request) {
         Examination examination = examinationRepository.findByIdForUpdate(examinationId)
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Examination not found with id: " + examinationId));
         User currentUser = getUser(username);
         authorizeReportAccess(examination, currentUser);
 
-        if (examination.getStatus() == ExaminationStatus.REPORT_GENERATED) {
+        if (request == null && examination.getStatus() == ExaminationStatus.REPORT_GENERATED) {
             Report existingReport = reportRepository
                     .findFirstByExaminationIdOrderByCreatedAtDesc(examinationId)
                     .filter(this::reportFileExists)
@@ -96,19 +119,16 @@ public class PdfExportService {
                 return toResponse(existingReport);
             }
         }
-        if (examination.getStatus() != ExaminationStatus.VERIFIED
-                && examination.getStatus() != ExaminationStatus.REPORT_GENERATED) {
-            throw new IllegalArgumentException(
-                    "Examination must be verified before generating its report");
-        }
+        requireVerified(examination, "generating");
 
-        Patient patient = examination.getPatient();
         FinalAiResults finalAiResults = buildFinalAiResults(examinationId);
-        PdfReportDataDto dataDto = buildReportData(examination, patient, finalAiResults);
+        ReportForm form = applyDoctorEdits(
+                buildFormDefaults(examination, currentUser, finalAiResults), request);
+        XrayReportDataDto dataDto = buildXrayReportData(form);
 
         Context context = new Context();
         context.setVariable("data", dataDto);
-        String htmlContent = templateEngine.process("pdf/report-template", context);
+        String htmlContent = templateEngine.process("pdf/xray-report-template", context);
 
         Path exportRoot = getExportRoot();
         String fileName = buildFileName(examination);
@@ -126,7 +146,7 @@ public class PdfExportService {
             Report report = new Report();
             report.setExamination(examination);
             report.setOperatingDoctor(currentUser);
-            report.setClinicalSummary(examination.getFinalDiagnosis());
+            report.setClinicalSummary(form.conclusion());
             report.setFilePath(fileName);
             report.setFileName(fileName);
             report.setContentType(PDF_CONTENT_TYPE);
@@ -187,34 +207,194 @@ public class PdfExportService {
                 report.getFileSize() == null ? fileSize(reportPath) : report.getFileSize());
     }
 
-    private PdfReportDataDto buildReportData(
+    /**
+     * Returns the report form pre-filled for review. The doctor edits it on screen and posts the
+     * confirmed values back to the generate endpoint, which is the only step that renders a PDF.
+     */
+    @Transactional(readOnly = true)
+    public ReportDraftResponse getReportDraft(Long examinationId, String username) {
+        Examination examination = examinationRepository.findById(examinationId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Examination not found with id: " + examinationId));
+        User currentUser = getUser(username);
+        authorizeReportAccess(examination, currentUser);
+        requireVerified(examination, "drafting");
+
+        FinalAiResults finalAiResults = buildFinalAiResults(examinationId);
+        ReportForm form = buildFormDefaults(examination, currentUser, finalAiResults);
+        Patient patient = examination.getPatient();
+        return new ReportDraftResponse(
+                examinationId,
+                patient == null ? null : patient.getPatientCode(),
+                reportProperties.ministryName(),
+                reportProperties.hospitalName(),
+                reportProperties.departmentName(),
+                reportProperties.formCode(),
+                reportProperties.clinicalDepartment(),
+                form.doctorName(),
+                finalGradeForSide(finalAiResults.results(), "LEFT"),
+                finalGradeForSide(finalAiResults.results(), "RIGHT"),
+                form.documentNumber(),
+                form.attemptNumber(),
+                form.patientName(),
+                form.age(),
+                form.gender(),
+                form.address(),
+                form.findings(),
+                form.conclusion(),
+                form.signaturePlace(),
+                form.signatureDate());
+    }
+
+    private void requireVerified(Examination examination, String action) {
+        if (examination.getStatus() != ExaminationStatus.VERIFIED
+                && examination.getStatus() != ExaminationStatus.REPORT_GENERATED) {
+            throw new IllegalArgumentException(
+                    "Examination must be verified before " + action + " its report");
+        }
+    }
+
+    /**
+     * Fills every form field from the examination record, the configured letterhead, and the
+     * Kellgren-Lawrence grades confirmed during verification. This is what the doctor sees in the
+     * preview, and what any field they leave alone falls back to on confirm.
+     */
+    private ReportForm buildFormDefaults(
             Examination examination,
-            Patient patient,
+            User currentUser,
             FinalAiResults finalAiResults) {
-        DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
-        DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-        List<PdfReportDataDto.AiResultExportDto> aiResults = finalAiResults.results();
-        return PdfReportDataDto.builder()
-                .patientCode(patient.getPatientCode())
-                .patientName(patient.getFullName())
-                .dob(patient.getDob() != null ? patient.getDob().format(dateFormatter) : "")
-                .age(formatAge(patient, examination))
-                .gender(patient.getGender() != null ? patient.getGender().name() : "")
-                .address(valueOrBlank(patient.getAddress()))
-                .encounterCode(valueOrBlank(examination.getEncounterCode()))
-                .studyDateTime(formatStudyDateTime(examination))
-                .visitTime(examination.getVisitTime() != null
-                        ? examination.getVisitTime().format(dateTimeFormatter) : "")
-                .doctorName(examination.getDoctor() != null
-                        ? valueOrBlank(examination.getDoctor().getFullName()) : "")
-                .clinicalNotes(valueOrBlank(examination.getClinicalNotes()))
-                .finalDiagnosis(valueOrBlank(examination.getFinalDiagnosis()))
-                .leftKlGrade(finalGradeForSide(aiResults, "LEFT"))
-                .rightKlGrade(finalGradeForSide(aiResults, "RIGHT"))
-                .processingTime(finalAiResults.totalDurationMillis() == null
-                        ? "" : formatDuration(finalAiResults.totalDurationMillis()))
-                .aiResults(aiResults)
+        Patient patient = examination.getPatient();
+        String leftKlGrade = finalGradeForSide(finalAiResults.results(), "LEFT");
+        String rightKlGrade = finalGradeForSide(finalAiResults.results(), "RIGHT");
+        return new ReportForm(
+                valueOrBlank(examination.getEncounterCode()),
+                // The visit sequence has no source record; the doctor types it in the preview.
+                "",
+                patient == null ? "" : valueOrBlank(patient.getFullName()),
+                formatAge(patient, examination),
+                formatGender(patient),
+                patient == null ? "" : valueOrBlank(patient.getAddress()),
+                contentComposer.composeFindings(leftKlGrade, rightKlGrade),
+                contentComposer.composeConclusion(leftKlGrade, rightKlGrade),
+                reportProperties.signaturePlace(),
+                LocalDate.now(),
+                currentUser == null ? "" : valueOrBlank(currentUser.getFullName()));
+    }
+
+    /**
+     * Overlays the values the doctor confirmed onto the pre-filled form. Each field falls back
+     * independently, so correcting one line never blanks the rest of the sheet.
+     */
+    private ReportForm applyDoctorEdits(ReportForm defaults, GenerateReportRequest request) {
+        if (request == null) {
+            return defaults;
+        }
+        List<String> findings = cleanFindings(request.findings());
+        return new ReportForm(
+                override(defaults.documentNumber(), request.documentNumber()),
+                override(defaults.attemptNumber(), request.attemptNumber()),
+                override(defaults.patientName(), request.patientName()),
+                override(defaults.age(), request.age()),
+                override(defaults.gender(), request.gender()),
+                override(defaults.address(), request.address()),
+                findings.isEmpty() ? defaults.findings() : findings,
+                override(defaults.conclusion(), request.conclusion()),
+                override(defaults.signaturePlace(), request.signaturePlace()),
+                request.signatureDate() == null ? defaults.signatureDate() : request.signatureDate(),
+                // The signature always names the authenticated doctor, never a submitted value.
+                defaults.doctorName());
+    }
+
+    private String override(String defaultValue, String submitted) {
+        return submitted == null || submitted.isBlank() ? defaultValue : submitted.trim();
+    }
+
+    private List<String> cleanFindings(List<String> findings) {
+        if (findings == null) {
+            return List.of();
+        }
+        return findings.stream()
+                .filter(Objects::nonNull)
+                .map(String::trim)
+                .filter(line -> !line.isEmpty())
+                .toList();
+    }
+
+    private List<String> splitLines(String value) {
+        if (value == null || value.isBlank()) {
+            return List.of();
+        }
+        return Stream.of(value.split("\\R"))
+                .map(String::trim)
+                .filter(line -> !line.isEmpty())
+                .toList();
+    }
+
+    private XrayReportDataDto buildXrayReportData(ReportForm form) {
+        return XrayReportDataDto.builder()
+                .ministryName(reportProperties.ministryName())
+                .hospitalName(reportProperties.hospitalName())
+                .departmentName(reportProperties.departmentName())
+                .formCode(reportProperties.formCode())
+                .hospitalLogo(logoDataUri("report/logo-hospital.png"))
+                .documentNumber(form.documentNumber())
+                .attemptNumber(form.attemptNumber())
+                .patientName(form.patientName())
+                .age(form.age())
+                .gender(form.gender())
+                .address(form.address())
+                // The imaging department is fixed by configuration, never by the doctor.
+                .clinicalDepartment(reportProperties.clinicalDepartment())
+                .findings(form.findings())
+                .conclusionLines(splitLines(form.conclusion()))
+                .signaturePlace(form.signaturePlace())
+                .signatureDay(formatDayOrMonth(form.signatureDate().getDayOfMonth()))
+                .signatureMonth(formatDayOrMonth(form.signatureDate().getMonthValue()))
+                .signatureYear(String.valueOf(form.signatureDate().getYear()))
+                .doctorName(form.doctorName())
                 .build();
+    }
+
+    /**
+     * Reads a packaged letterhead logo as a data URI. The renderer resolves no external hosts, so
+     * the bytes must travel inside the HTML. A missing file degrades to a logo-less letterhead
+     * rather than failing the whole report.
+     */
+    private String logoDataUri(String classpathLocation) {
+        String cached = logoDataUriCache.get(classpathLocation);
+        if (cached != null) {
+            return cached.isEmpty() ? null : cached;
+        }
+        String dataUri = "";
+        ClassPathResource resource = new ClassPathResource(classpathLocation);
+        if (resource.exists()) {
+            try (InputStream inputStream = resource.getInputStream()) {
+                dataUri = "data:image/png;base64,"
+                        + Base64.getEncoder().encodeToString(inputStream.readAllBytes());
+            } catch (Exception exception) {
+                log.warn("Could not read report logo {}", classpathLocation, exception);
+            }
+        } else {
+            log.warn("Report logo {} is not packaged; rendering the letterhead without it",
+                    classpathLocation);
+        }
+        logoDataUriCache.put(classpathLocation, dataUri);
+        return dataUri.isEmpty() ? null : dataUri;
+    }
+
+    private String formatDayOrMonth(int value) {
+        return String.format(Locale.US, "%02d", value);
+    }
+
+    private String formatGender(Patient patient) {
+        if (patient == null || patient.getGender() == null) {
+            return "";
+        }
+        return switch (patient.getGender()) {
+            case MALE -> "Nam";
+            case FEMALE -> "N\u1EEF";
+            case OTHER -> "Kh\u00E1c";
+        };
     }
 
     private void renderPdf(String htmlContent, Path outputPath) throws Exception {
@@ -348,8 +528,13 @@ public class PdfExportService {
                 downloadUrl);
     }
 
+    /**
+     * Collects the Kellgren-Lawrence grade each knee was verified with. Only the side and the
+     * confirmed grade reach the form, so an unreviewed result is a hard error rather than a blank
+     * line on a signed report.
+     */
     private FinalAiResults buildFinalAiResults(Long examinationId) {
-        List<PdfReportDataDto.AiResultExportDto> results = new ArrayList<>();
+        List<VerifiedGrade> results = new ArrayList<>();
         Set<Long> countedAnalysisIds = new HashSet<>();
         long totalDurationMillis = 0L;
         boolean hasDuration = false;
@@ -379,46 +564,9 @@ public class PdfExportService {
                     throw new IllegalArgumentException(
                             "AI result with ID " + aiResult.getId() + " has not been confirmed");
                 }
-                results.add(PdfReportDataDto.AiResultExportDto.builder()
-                        .dicomInstanceId(dicomIdentifier(instance))
-                        .kneeSide(resolveKneeSide(aiResult, instance))
-                        .klGrade(String.valueOf(review.getConfirmedKlGrade()))
-                        .aiPredictedGrade(String.valueOf(aiResult.getPredictedGrade()))
-                        .decision(review.getDecision().name())
-                        .confidence(formatConfidence(aiResult.getConfidence()))
-                        .inferenceTime(formatDuration(latestAnalysis.getDuration()))
-                        .modality(valueOrBlank(instance.getModality()))
-                        .imageFormat("DICOM")
-                        .manufacturer("")
-                        .acquisitionPosition("")
-                        .imageQuality("")
-                        .readerOneOsteophyte("")
-                        .readerTwoOsteophyte("")
-                        .readerOneJointSpace("")
-                        .readerTwoJointSpace("")
-                        .readerOneSubchondralSclerosis("")
-                        .readerTwoSubchondralSclerosis("")
-                        .readerOneBoneDeformity("")
-                        .readerTwoBoneDeformity("")
-                        .readerOneKlGrade("")
-                        .readerTwoKlGrade("")
-                        .consensusKlGrade(String.valueOf(review.getConfirmedKlGrade()))
-                        .readerOneProcessingTime("")
-                        .readerTwoProcessingTime("")
-                        .osteophyteDetection("")
-                        .jointSpaceDetection("")
-                        .comparisonResult(formatComparison(
-                                aiResult.getPredictedGrade(), review.getConfirmedKlGrade()))
-                        .errorAnalysisNote(valueOrBlank(review.getReviewNote()))
-                        .interpretation(aiResult.getDescription())
-                        .reviewNote(review.getReviewNote())
-                        .gradcamBase64(fetchImageAsBase64(
-                                aiResult.getStorageHeatmapFilePath() != null
-                                        ? aiResult.getStorageHeatmapFilePath()
-                                        : aiResult.getGradcamImage() != null
-                                                ? aiResult.getGradcamImage().getFilePath()
-                                                : null))
-                        .build());
+                results.add(new VerifiedGrade(
+                        resolveKneeSide(aiResult, instance),
+                        String.valueOf(review.getConfirmedKlGrade())));
             }
         }
         if (results.isEmpty()) {
@@ -442,12 +590,10 @@ public class PdfExportService {
         return normalizeKneeSide(side);
     }
 
-    private String finalGradeForSide(
-            List<PdfReportDataDto.AiResultExportDto> aiResults,
-            String expectedSide) {
+    private String finalGradeForSide(List<VerifiedGrade> aiResults, String expectedSide) {
         return aiResults.stream()
-                .filter(result -> result != null && expectedSide.equals(normalizeKneeSide(result.getKneeSide())))
-                .map(result -> result.getKlGrade())
+                .filter(result -> result != null && expectedSide.equals(normalizeKneeSide(result.kneeSide())))
+                .map(VerifiedGrade::klGrade)
                 .filter(grade -> grade != null && !grade.isBlank())
                 .map(Integer::valueOf)
                 .max(Integer::compareTo)
@@ -479,7 +625,7 @@ public class PdfExportService {
     }
 
     private String formatAge(Patient patient, Examination examination) {
-        if (patient.getDob() == null) {
+        if (patient == null || patient.getDob() == null) {
             return "";
         }
         java.time.LocalDate reference = examination.getVisitTime() != null
@@ -577,8 +723,25 @@ public class PdfExportService {
             Long fileSize) {
     }
 
-    private record FinalAiResults(
-            List<PdfReportDataDto.AiResultExportDto> results,
-            Long totalDurationMillis) {
+    /** Every field of the report form, pre-filled or confirmed by the doctor. */
+    private record ReportForm(
+            String documentNumber,
+            String attemptNumber,
+            String patientName,
+            String age,
+            String gender,
+            String address,
+            List<String> findings,
+            String conclusion,
+            String signaturePlace,
+            LocalDate signatureDate,
+            String doctorName) {
+    }
+
+    /** One knee's verified Kellgren-Lawrence grade, as confirmed by the reviewing doctor. */
+    private record VerifiedGrade(String kneeSide, String klGrade) {
+    }
+
+    private record FinalAiResults(List<VerifiedGrade> results, Long totalDurationMillis) {
     }
 }
