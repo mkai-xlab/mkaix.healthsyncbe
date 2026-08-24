@@ -1,11 +1,11 @@
 @echo off
-REM Dung toan bo stack HealthSync. Du lieu trong volume van duoc giu.
+REM Stop the full HealthSync stack. Volume data is preserved.
 cd /d "%~dp0"
 
-echo Dang dung toan bo container...
+echo Stopping all containers...
 docker compose --profile database --profile rag down
 
 echo.
-echo Da dung. Du lieu MySQL/Qdrant/Ollama van con trong volume.
+echo Stopped. MySQL, Qdrant and Ollama data is still kept in volumes.
 echo.
 pause
