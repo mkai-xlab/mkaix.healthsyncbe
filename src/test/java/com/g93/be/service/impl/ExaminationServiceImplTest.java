@@ -1599,7 +1599,7 @@ class ExaminationServiceImplTest {
     }
 
     @Test
-    void testCountSevereExaminations_UTCID02() {
+    void testCountSevereExaminations_UTCID03() {
         mockRole.setCode("ADMIN");
         when(userRepository.findById(1L)).thenReturn(Optional.of(mockUser));
         when(examinationRepository.countByMaxPredictedGradeIn(List.of(3, 4))).thenReturn(15L);
@@ -1610,7 +1610,7 @@ class ExaminationServiceImplTest {
     }
 
     @Test
-    void testCountSevereExaminations_UTCID03() {
+    void testCountSevereExaminations_UTCID02() {
         mockRole.setCode("ADMIN");
         when(userRepository.findById(1L)).thenReturn(Optional.of(mockUser));
 
@@ -1685,16 +1685,16 @@ class ExaminationServiceImplTest {
         mockRole.setCode("ADMIN");
         when(userRepository.findById(1L)).thenReturn(Optional.of(mockUser));
         when(examinationRepository.count()).thenReturn(100L);
-        
+
         long res = examinationService.getTotalExaminations(1L, false);
         assertEquals(100L, res);
     }
 
     @Test
-    void testCountTotalExaminations_UTCID02_DBFailure() {
+    void testCountTotalExaminations_UTCID08_DBFailure() {
         mockRole.setCode("ADMIN");
         when(userRepository.findById(1L)).thenThrow(new RuntimeException("DB Connection failure"));
-        
+
         RuntimeException ex = assertThrows(RuntimeException.class, () -> {
             examinationService.getTotalExaminations(1L, false);
         });
@@ -1706,7 +1706,7 @@ class ExaminationServiceImplTest {
         mockRole.setCode("ADMIN");
         when(userRepository.findById(1L)).thenReturn(Optional.of(mockUser));
         when(examinationRepository.count()).thenReturn(100L);
-        
+
         long res = examinationService.getTotalExaminations(1L, null);
         assertEquals(100L, res);
     }
@@ -1716,7 +1716,7 @@ class ExaminationServiceImplTest {
         mockRole.setCode("HEAD_OF_DEPARTMENT");
         when(userRepository.findById(1L)).thenReturn(Optional.of(mockUser));
         when(examinationRepository.count()).thenReturn(100L);
-        
+
         long res = examinationService.getTotalExaminations(1L, false);
         assertEquals(100L, res);
     }
@@ -1726,7 +1726,7 @@ class ExaminationServiceImplTest {
         mockRole.setCode("HEAD_OF_DEPARTMENT");
         when(userRepository.findById(1L)).thenReturn(Optional.of(mockUser));
         when(examinationRepository.countByDoctorId(1L)).thenReturn(50L);
-        
+
         long res = examinationService.getTotalExaminations(1L, true);
         assertEquals(50L, res);
     }
@@ -1736,7 +1736,7 @@ class ExaminationServiceImplTest {
         mockRole.setCode("DOCTOR");
         when(userRepository.findById(1L)).thenReturn(Optional.of(mockUser));
         when(examinationRepository.countByDoctorId(1L)).thenReturn(50L);
-        
+
         long res = examinationService.getTotalExaminations(1L, false);
         assertEquals(50L, res);
     }
@@ -1744,7 +1744,7 @@ class ExaminationServiceImplTest {
     @Test
     void testCountTotalExaminations_UTCID07_UserNotFound() {
         when(userRepository.findById(999L)).thenReturn(Optional.empty());
-        
+
         IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
             examinationService.getTotalExaminations(999L, false);
         });
@@ -1752,9 +1752,9 @@ class ExaminationServiceImplTest {
     }
 
     @Test
-    void testCountTotalExaminations_UTCID08_InvalidInput() {
+    void testCountTotalExaminations_UTCID02_InvalidInput() {
         when(userRepository.findById(-1L)).thenThrow(new IllegalArgumentException("Invalid Input"));
-        
+
         IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> {
             examinationService.getTotalExaminations(-1L, false);
         });
@@ -1779,7 +1779,7 @@ class ExaminationServiceImplTest {
     }
 
     @Test
-    void testCountTotalExaminationsLast7Days_UTCID02() {
+    void testCountTotalExaminationsLast7Days_UTCID03() {
         mockRole.setCode("ADMIN");
         when(userRepository.findById(1L)).thenReturn(Optional.of(mockUser));
         when(examinationRepository
@@ -1792,7 +1792,7 @@ class ExaminationServiceImplTest {
     }
 
     @Test
-    void testCountTotalExaminationsLast7Days_UTCID03() {
+    void testCountTotalExaminationsLast7Days_UTCID02() {
         mockRole.setCode("ADMIN");
         when(userRepository.findById(1L)).thenReturn(Optional.of(mockUser));
 
