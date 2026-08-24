@@ -57,6 +57,8 @@ public class ExaminationMapper {
         ed.setDescription(ex.getDescription());
         ed.setIsViewed(ex.getIsViewed());
         ed.setMaxPredictedGrade(ex.getMaxPredictedGrade());
+        ed.setFindings(ex.getFindings());
+        ed.setConclusion(ex.getConclusion());
 
         if (ex.getPatient() != null) {
             ed.setPatient(patientMapper.toResponse(ex.getPatient()));

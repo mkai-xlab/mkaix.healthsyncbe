@@ -35,4 +35,6 @@ public class ExaminationDto {
     private java.util.List<ExaminationImageDto> images;
     private Integer isViewed;
     private Integer maxPredictedGrade;
+    private String findings;
+    private String conclusion;
 }

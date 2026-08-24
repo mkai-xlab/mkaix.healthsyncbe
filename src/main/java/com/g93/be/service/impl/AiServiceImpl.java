@@ -139,6 +139,7 @@ public class AiServiceImpl implements AiService {
                     if (analysis == null) {
                         analysis = new AiAnalysis();
                         analysis.setDicomInstance(instance);
+                        instance.setAiAnalysis(analysis);
                     } else {
                         // Nếu ảnh này đã được phân tích trước đó, xóa bỏ kết quả cũ để lưu kết quả mới
                         if (analysis.getAiResults() != null) {
@@ -286,6 +287,7 @@ public class AiServiceImpl implements AiService {
                 if (analysis == null) {
                     analysis = new AiAnalysis();
                     analysis.setDicomInstance(instance);
+                    instance.setAiAnalysis(analysis);
                 }
                 analysis.setStartTime(LocalDateTime.now());
                 analysis.setStatus("FAILED");
@@ -310,6 +312,7 @@ public class AiServiceImpl implements AiService {
                 if (analysis == null) {
                     analysis = new AiAnalysis();
                     analysis.setDicomInstance(instance);
+                    instance.setAiAnalysis(analysis);
                 }
                 analysis.setStartTime(LocalDateTime.now());
                 analysis.setStatus("FAILED");
