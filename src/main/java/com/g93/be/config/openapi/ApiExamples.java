@@ -97,10 +97,10 @@ final class ApiExamples {
                     {"roleId":3}
                     """)),
             Map.entry("USER", json("""
-                    {"id":12,"username":"staff01","fullName":"Nguyễn Hải Yến","email":"staff01@healthsync.vn","phone":"0987654321","role":{"id":2,"code":"DOCTOR","name":"Medical Doctor"},"status":"ACTIVE","userType":"DOCTOR","createdAt":"2026-08-02T08:00:00","updatedAt":null}
+                    {"id":12,"username":"staff01","fullName":"Nguyễn Hải Yến","email":"staff01@healthsync.vn","phone":"0987654321","role":{"id":2,"code":"DOCTOR","name":"Bác sĩ"},"status":"ACTIVE","userType":"DOCTOR","createdAt":"2026-08-02T08:00:00","updatedAt":null}
                     """)),
             Map.entry("USER_LIST", json("""
-                    [{"id":7,"username":"doctor01","fullName":"BS. Nguyễn Minh An","email":"doctor01@healthsync.vn","role":{"id":2,"code":"DOCTOR","name":"Medical Doctor"},"status":"ACTIVE","userType":"DOCTOR","createdAt":"2026-07-20T08:30:00"}]
+                    [{"id":7,"username":"doctor01","fullName":"BS. Nguyễn Minh An","email":"doctor01@healthsync.vn","role":{"id":2,"code":"DOCTOR","name":"Bác sĩ"},"status":"ACTIVE","userType":"DOCTOR","createdAt":"2026-07-20T08:30:00"}]
                     """)),
             Map.entry("CREATE_PATIENT_REQUEST", json("""
                     {
@@ -238,7 +238,7 @@ final class ApiExamples {
                     {"content":[{"id":83,"sessionId":12,"role":"USER","content":"Explain KL grade 3","route":null,"tokensUsed":null,"createdAt":"2026-08-08T09:02:55"},{"id":84,"sessionId":12,"role":"ASSISTANT","content":"KL grade 3 indicates definite narrowing.","route":"MEDICAL_RAG","tokensUsed":176,"createdAt":"2026-08-08T09:03:00"}],"pageNumber":0,"pageSize":50,"totalElements":2,"totalPages":1,"isLast":true}
                     """)),
             Map.entry("ROLE_LIST", json("""
-                    [{"id":1,"code":"ADMIN","name":"Administrator"},{"id":2,"code":"DOCTOR","name":"Medical Doctor"},{"id":3,"code":"PATIENT","name":"Patient"}]
+                    [{"id":1,"code":"ADMIN","name":"Quản trị viên hệ thống"},{"id":2,"code":"DOCTOR","name":"Bác sĩ"},{"id":3,"code":"HEAD_OF_DEPARTMENT","name":"Trưởng khoa"}]
                     """)),
             Map.entry("ROLE_PERMISSIONS_REQUEST", json("""
                     {"permissionIds":[1,2,3,14,15,22]}

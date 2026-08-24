@@ -601,16 +601,83 @@ fixed vocabulary.
 
 ## 13. Report-to-Knowledge Pipeline
 
-### `src/main/java/com/g93/be/service/PdfExportService.java`, relevant lines 80-147
+### `src/main/java/com/g93/be/service/PdfExportService.java`, relevant lines 101-173
+
+As of the X-ray report rework, a report can be generated **exactly once** per
+examination and the draft preview (`GET /examinations/{id}/report-draft`) is
+locked shut immediately afterward. Neither of those two endpoints is
+reachable again once `REPORT_GENERATED` is reached; only `generateAndSavePdfReport`
+still runs (idempotently) to recover a missing file. See
+[examination-verification-report-code-guide.md](examination-verification-report-code-guide.md)
+for the full line-by-line breakdown of both endpoints; only the RAG-relevant
+event-publishing lines are annotated here.
 
 | Lines | Explanation |
 | --- | --- |
-| 80-88 | Report generation is transactional, locks examination, resolves requester and authorizes access. |
-| 89-97 | When a valid existing PDF is reused, it republishes `ReportKnowledgeSyncRequestedEvent`; this repairs prior failed/missing vector indexing without regenerating PDF. |
-| 99-103 | Only VERIFIED or already REPORT_GENERATED examinations can produce reports. |
-| 105-135 | Builds report data, renders and atomically moves PDF, then persists `Report` metadata. |
-| 136 | Publishes report sync event for the saved report. Because enclosing transaction commits after return, listener executes after durable report metadata. |
-| 138-146 | Marks examination REPORT_GENERATED; any exception removes temporary/output files and propagates failure. |
+| 103-106 | `generateAndSavePdfReport(Long examinationId, String username, GenerateReportRequest request)` — the third parameter is the doctor's confirmed form fields, always optional. |
+| 107-111 | Locks the examination row (`findByIdForUpdate`), resolves the caller, authorizes access. |
+| 113-122 | If already `REPORT_GENERATED` and the PDF file still exists on disk, republishes `ReportKnowledgeSyncRequestedEvent` for the existing report ID and returns it untouched — `request` is not even inspected. This is what repairs prior failed/missing vector indexing without regenerating the PDF. |
+| 123 | `requireVerified()` — only `VERIFIED`, or `REPORT_GENERATED` with a missing file (recovery), reach the render path below. |
+| 125-132 | Builds `ReportForm` (pre-filled defaults overlaid with any submitted edits) and the Thymeleaf `data` context for `pdf/xray-report-template`. |
+| 134-145 | Renders and atomically moves the PDF into the export directory. |
+| 147-156 | Persists `Report` metadata, then publishes `ReportKnowledgeSyncRequestedEvent` for the newly saved report ID — same event type as the reuse branch above, so the listener code path in `ReportKnowledgeSyncService` does not need to distinguish first-time generation from a republish. |
+| 159-164 | Saves `findings`/`conclusion` onto the `Examination` row (not onto `Report`) and marks the examination `REPORT_GENERATED`. This happens in the same transaction as the `Report` insert, so the sync event is only ever published for a report whose examination-level result text is already durable. |
+| 167-172 | Any exception during render/persist deletes the temporary/output files and rethrows; the event already published for a reused report (lines 113-122) is unaffected since that branch returns before reaching this `try` block. |
+
+Annotated excerpt of only the RAG-relevant lines (the two places
+`ReportKnowledgeSyncRequestedEvent` is published, and why the listener never
+needs to tell first-generation and republish apart):
+
+```java
+public ReportResponse generateAndSavePdfReport(
+        Long examinationId, String username, GenerateReportRequest request) {
+    Examination examination = examinationRepository.findByIdForUpdate(examinationId)
+            .orElseThrow(/* ... */);
+    User currentUser = getUser(username);
+    authorizeReportAccess(examination, currentUser);
+
+    if (examination.getStatus() == ExaminationStatus.REPORT_GENERATED) {
+        Report existingReport = reportRepository
+                .findFirstByExaminationIdOrderByCreatedAtDesc(examinationId)
+                .filter(this::reportFileExists)
+                .orElse(null);
+        if (existingReport != null) {
+            // PUBLISH #1 - "reuse" path: no new Report row, no new PDF, but the event still
+            // fires. This is the ONLY way a stuck/failed knowledge row gets retried without
+            // the doctor having to somehow "un-generate" a report first - they just call
+            // generate-report again (any client retry, or the FE resending on a stale UI
+            // state) and this branch alone repairs indexing.
+            eventPublisher.publishEvent(new ReportKnowledgeSyncRequestedEvent(existingReport.getId()));
+            return toResponse(existingReport);
+        }
+        // existingReport == null: status says REPORT_GENERATED but no live file - falls
+        // through to render again below, which will hit PUBLISH #2 with a FRESH report ID.
+    }
+    requireVerified(examination, "generating");
+
+    // ... build ReportForm, render PDF, move file (lines 125-145; no RAG-relevant lines here) ...
+
+    Report report = new Report();
+    // ... report.set*(...) (lines 148-155; no RAG-relevant lines here) ...
+    Report savedReport = reportRepository.save(report);
+    // PUBLISH #2 - "first generation or recovery" path: a brand-new (or freshly re-rendered)
+    // Report row exists NOW, saved in the SAME transaction as everything above it. Because
+    // Spring only actually delivers this event after the surrounding @Transactional commits
+    // (see ReportKnowledgeSyncService.syncGeneratedReport(), annotated separately below),
+    // the listener is GUARANTEED to find savedReport.getId() persisted in MySQL by the time
+    // it runs - there is no race where the event fires before the report row is durable.
+    eventPublisher.publishEvent(new ReportKnowledgeSyncRequestedEvent(savedReport.getId()));
+
+    examination.setFindings(String.join("\n", form.findings()));
+    examination.setConclusion(form.conclusion());
+    examination.setStatus(ExaminationStatus.REPORT_GENERATED);
+    examinationRepository.save(examination);
+    return toResponse(savedReport);
+    // Both PUBLISH #1 and PUBLISH #2 emit the SAME event type carrying only a report ID -
+    // ReportKnowledgeSyncService.syncGeneratedReport() (below) has no idea, and does not
+    // need to know, which branch produced it.
+}
+```
 
 ### `src/main/java/com/g93/be/service/ReportKnowledgeSyncService.java`
 
