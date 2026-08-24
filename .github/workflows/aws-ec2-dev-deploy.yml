@@ -33,8 +33,8 @@ jobs:
           script: |
             set -e
             cd ~/healthsync/mkaix.healthsyncbe/
-            git checkout dev
-            git pull --ff-only origin dev
+            git fetch origin dev
+            git checkout -B dev origin/dev
             docker compose config --quiet
             docker compose up -d --build be
             docker image prune -f
