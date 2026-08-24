@@ -102,6 +102,7 @@ class MedicalRagServiceTest {
     }
 
     private ChatProperties properties(int topK) {
-        return new ChatProperties(true, "knowledge", 1000, 1000, topK, 0.6, 6000, 0.7, 1000);
+        return new ChatProperties(true, "knowledge", 1000, 1000, topK, 0.6, 6000, 0.7, 1000,
+                new ChatProperties.Pricing(1.5, 9.0));
     }
 }
