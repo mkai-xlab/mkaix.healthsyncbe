@@ -159,6 +159,11 @@ final class ApiDocumentationRegistry {
                 add("PatientController", "deletePatient", "Bệnh nhân", "Xóa bệnh nhân",
                                 "Trưởng khoa xóa bệnh nhân theo ID khi quy tắc dữ liệu cho phép.",
                                 "200", "Xóa thành công, không có response body", null, null, ResponseKind.VOID);
+                addNotFound("PatientController", "deletePatientCompletely", "Bệnh nhân", "Xóa toàn bộ bệnh nhân",
+                                "Xóa vĩnh viễn bệnh nhân theo mã cùng toàn bộ ca khám, DICOM, kết quả AI, "
+                                                + "báo cáo và chỉ mục RAG liên quan; không thể hoàn tác và "
+                                                + "không giới hạn theo vai trò, chỉ cần đăng nhập hợp lệ.",
+                                "200", "Xóa thành công, không có response body", null, null, ResponseKind.VOID);
                 add("PatientController", "getPatientDetailsWithImages", "Bệnh nhân", "Xem chi tiết bệnh nhân",
                                 "Trả hồ sơ bệnh nhân cùng các ca khám gần đây và URL hình ảnh liên quan.",
                                 "200", "Chi tiết bệnh nhân", "PATIENT_DETAILS", null, ResponseKind.JSON);

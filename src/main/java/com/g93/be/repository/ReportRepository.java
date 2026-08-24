@@ -8,11 +8,14 @@ import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
 public interface ReportRepository extends JpaRepository<Report, Long> {
     Optional<Report> findFirstByExaminationIdOrderByCreatedAtDesc(Long examinationId);
+
+    List<Report> findByExaminationId(Long examinationId);
 
     @EntityGraph(attributePaths = {"examination", "examination.patient", "examination.doctor"})
     Page<Report> findByExamination_Doctor_Id(Long doctorId, Pageable pageable);

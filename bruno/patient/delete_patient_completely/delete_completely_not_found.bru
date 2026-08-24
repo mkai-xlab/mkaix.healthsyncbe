@@ -1,0 +1,26 @@
+meta {
+  name: Delete Patient Completely - Not Found
+  type: http
+  seq: 2
+}
+
+delete {
+  url: {{baseUrl}}/patients/code/DOES-NOT-EXIST-000/full-delete
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+tests {
+  test("unknown patientCode returns 404", function() {
+    expect(res.status).to.equal(404);
+  });
+}
+
+docs {
+  Calls the full-purge endpoint with a patientCode that does not exist. Expects 404
+  (ResourceNotFoundException), confirming the lookup runs before any deletion happens.
+}

@@ -1,0 +1,41 @@
+meta {
+  name: Delete Patient Completely (Full Purge)
+  type: http
+  seq: 1
+}
+
+delete {
+  url: {{baseUrl}}/patients/code/{{patientCode}}/full-delete
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+vars:pre-request {
+  patientCode: CHANGE_ME_2600055967
+}
+
+tests {
+  test("patient is fully purged", function() {
+    expect(res.status).to.equal(200);
+  });
+}
+
+docs {
+  IRREVERSIBLE. Permanently deletes the patient identified by patientCode, along with every
+  examination, DICOM instance, AI analysis/result, diagnosis review, report, and RAG knowledge
+  index entry that exists only because of that patient. Physical files (.dcm, preview/annotated/
+  ROI/GradCAM images, report PDF) are deleted from disk on a best-effort basis after the database
+  changes succeed.
+
+  Set the patientCode var above to a real, disposable patient code before running this - do not
+  run it against patientCode 2600055967 (or any real patient) unless you actually intend to
+  destroy that record. There is no confirmation step and no undo.
+
+  Unlike every other write endpoint in this collection, this one has no role/permission
+  requirement beyond a valid access token: run any login request first (Login Success for admin,
+  Login Doctor for a doctor account) - either will work here.
+}
