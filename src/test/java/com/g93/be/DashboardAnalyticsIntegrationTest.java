@@ -25,6 +25,9 @@ import static org.springframework.security.test.web.servlet.setup.SecurityMockMv
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 
 @SpringBootTest
 @Transactional
@@ -220,24 +223,34 @@ public class DashboardAnalyticsIntegrationTest {
 
     @Test
     void testViewDoctorDashboard_Success() throws Exception {
+        UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
+                "doc_1", 
+                null, 
+                List.of(
+                        new SimpleGrantedAuthority("ROLE_DOCTOR"),
+                        new SimpleGrantedAuthority("VIEW_PENDING_DIAGNOSIS"),
+                        new SimpleGrantedAuthority("VIEW_ANALYTIC_HISTORY")
+                )
+        );
+
         // doctorUser1 has 2 exams: 1 severe, 1 verified, 1 unverified 
         mockMvc.perform(get("/examinations/my-total")
-                        .header("Authorization", "Bearer " + doctor1Token))
+                        .with(authentication(auth)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", is(2)));
 
         mockMvc.perform(get("/examinations/my-total-severe")
-                        .header("Authorization", "Bearer " + doctor1Token))
+                        .with(authentication(auth)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", is(1)));
 
         mockMvc.perform(get("/examinations/my-total-verified")
-                        .header("Authorization", "Bearer " + doctor1Token))
+                        .with(authentication(auth)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", is(1)));
 
         mockMvc.perform(get("/examinations/my-total-unverified")
-                        .header("Authorization", "Bearer " + doctor1Token))
+                        .with(authentication(auth)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", is(1)));
     }

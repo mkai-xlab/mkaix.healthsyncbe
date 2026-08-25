@@ -108,10 +108,17 @@ public class SecurityAndRbacIntegrationTest {
                 doAnswer(invocation -> {
                         LoginRequest request = invocation.getArgument(0);
                         String username = request.username() != null ? request.username().trim() : "";
-                        String lockoutKey = "login:lockout:" + username;
                         
-                        if (Boolean.TRUE.equals(stringRedisTemplate.hasKey(lockoutKey))) {
-                                throw new IllegalArgumentException("Tài khoản của bạn đã bị khóa tạm thời do nhập sai nhiều lần. Vui lòng thử lại sau.");
+                        // Find user in database
+                        com.g93.be.entity.User user = userRepository.findByUsername(username).orElse(null);
+                        if (user != null && user.getLoginLockedUntil() != null) {
+                                if (user.getLoginLockedUntil().isAfter(java.time.LocalDateTime.now())) {
+                                        throw new com.g93.be.exception.LoginLockedException(user.getLoginLockedUntil());
+                                } else {
+                                        user.setFailedLoginAttempts(0);
+                                        user.setLoginLockedUntil(null);
+                                        userRepository.save(user);
+                                }
                         }
                         
                         try {
@@ -119,8 +126,11 @@ public class SecurityAndRbacIntegrationTest {
                                                 new UsernamePasswordAuthenticationToken(username, request.password())
                                 );
                                 
-                                String attemptKey = "login:attempts:" + username;
-                                stringRedisTemplate.delete(attemptKey);
+                                if (user != null) {
+                                        user.setFailedLoginAttempts(0);
+                                        user.setLoginLockedUntil(null);
+                                        userRepository.save(user);
+                                }
                                 
                                 CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
                                 if (Boolean.TRUE.equals(userDetails.getUser().getIsFirstActivated())) {
@@ -139,14 +149,15 @@ public class SecurityAndRbacIntegrationTest {
                                                 userDetails.getPermissions()
                                 );
                         } catch (AuthenticationException ex) {
-                                String attemptKey = "login:attempts:" + username;
-                                Long attempts = stringRedisTemplate.opsForValue().increment(attemptKey, 1);
-                                if (attempts != null && attempts == 1) {
-                                        stringRedisTemplate.expire(attemptKey, java.time.Duration.ofMinutes(10));
-                                }
-                                if (attempts != null && attempts >= 5) {
-                                        stringRedisTemplate.opsForValue().set(lockoutKey, "locked", java.time.Duration.ofMinutes(5));
-                                        stringRedisTemplate.delete(attemptKey);
+                                if (user != null) {
+                                        int attempts = (user.getFailedLoginAttempts() != null ? user.getFailedLoginAttempts() : 0) + 1;
+                                        user.setFailedLoginAttempts(attempts);
+                                        if (attempts >= 5) {
+                                                user.setLoginLockedUntil(java.time.LocalDateTime.now().plusMinutes(5));
+                                                userRepository.save(user);
+                                                throw new com.g93.be.exception.LoginLockedException(user.getLoginLockedUntil());
+                                        }
+                                        userRepository.save(user);
                                 }
                                 throw ex;
                         }
@@ -483,7 +494,7 @@ public class SecurityAndRbacIntegrationTest {
                 // 3. Request should be rejected immediately (evicted session)
                 mockMvc.perform(get("/doctors/profile")
                                 .header("Authorization", "Bearer " + doctorToken))
-                                .andExpect(status().isOk());
+                                .andExpect(status().isForbidden());
         }
 
         
