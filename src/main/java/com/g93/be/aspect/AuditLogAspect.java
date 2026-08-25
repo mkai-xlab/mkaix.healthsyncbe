@@ -1,6 +1,7 @@
 package com.g93.be.aspect;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.g93.be.service.AuditLogService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -27,7 +28,11 @@ import java.util.Map;
 public class AuditLogAspect {
 
     private final AuditLogService auditLogService;
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    // findAndRegisterModules() picks up jackson-datatype-jsr310 from the classpath so
+    // java.time types in method arguments serialize instead of failing the audit entry.
+    private final ObjectMapper objectMapper = new ObjectMapper()
+            .findAndRegisterModules()
+            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
     @AfterReturning(pointcut = "@annotation(logAction)", returning = "result")
     public void logAfter(JoinPoint joinPoint, LogAction logAction, Object result) {
