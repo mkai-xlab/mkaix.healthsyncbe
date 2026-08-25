@@ -188,7 +188,777 @@ Từ phần này trở đi, source code Java vẫn giữ nguyên cú pháp và t
 Anh. Điều này cần thiết để bạn có thể copy/đối chiếu chính xác với code chạy thực
 tế; mọi diễn giải quan trọng đã được viết bằng tiếng Việt trong phần này.
 
-## 1. Scope and Mental Model
+### 0.10 Mục Lục Hành Động: Frontend Bấm Gì → Backend Chạy Chuỗi Hàm Nào
+
+Repo này (`mkaix.healthsyncbe`) chỉ chứa source **backend**, không có source
+frontend. Vì vậy "hành động frontend" dưới đây được mô tả ở mức hợp đồng API:
+đây là danh sách đầy đủ mọi request mà bất kỳ client nào (web, mobile, Postman,
+Bruno collection trong `bruno/`...) phải gọi để tạo ra trải nghiệm RAG chatbox.
+Với mỗi request, tài liệu liệt kê chính xác chuỗi hàm Java chạy theo thứ tự,
+kèm `file.java:dòng` để mở đúng vị trí trong IDE.
+
+**Một lớp áp dụng cho toàn bộ 15 hành động đầu tiên, không lặp lại ở từng mục:**
+mọi HTTP request trước tiên đi qua `JwtAuthenticationFilter`
+(`security/JwtAuthenticationFilter.java`, xem mục 2). Thiếu header
+`Authorization: Bearer <accessToken>`, token hết hạn, token nằm trong blacklist,
+hoặc chữ ký sai sẽ khiến request bị `SecurityConfig` chặn với `401` **trước khi**
+controller được gọi — không một dòng code RAG nào (Gemini, Qdrant, MySQL) chạy.
+Nếu token hợp lệ, Spring Security AOP tiếp tục đánh giá `@PreAuthorize` được khai
+báo trên từng method; sai role hoặc thiếu permission trả về `403` cũng **trước
+khi** vào thân method controller.
+
+| # | Hành động người dùng bấm trên UI | HTTP | Quyền bắt buộc (`@PreAuthorize`) |
+| --- | --- | --- | --- |
+| 1 | Mở "Đoạn chat mới" (trống, hoặc gắn với 1 ca khám) | `POST /chat/sessions` | role lâm sàng + `USE_AI_CHAT` |
+| 2 | Sidebar hiển thị danh sách các đoạn chat | `GET /chat/sessions` | role lâm sàng + `USE_AI_CHAT` |
+| 3 | Bấm vào 1 đoạn chat cũ để tải lịch sử | `GET /chat/sessions/{id}/messages` | role lâm sàng + `USE_AI_CHAT` |
+| 4 | Gõ câu hỏi, bấm nút "Gửi" | `POST /chat/ask` | role lâm sàng + `USE_AI_CHAT` |
+| 5 | Đổi tên / đóng / mở lại một đoạn chat | `PATCH /chat/sessions/{id}` | role lâm sàng + `USE_AI_CHAT` |
+| 6 | Upload 1 tài liệu y khoa vào kho tri thức | `POST /knowledge-documents/upload` | role quản lý + `MANAGE_MEDICAL_KNOWLEDGE` |
+| 7 | Upload nhiều tài liệu cùng lúc (kéo-thả) | `POST /knowledge-documents/upload/batch` | role quản lý + `MANAGE_MEDICAL_KNOWLEDGE` |
+| 8 | Thêm nguồn tri thức từ URL | `POST /knowledge-documents/url` | role quản lý + `MANAGE_MEDICAL_KNOWLEDGE` |
+| 9 | Trang quản lý tài liệu: liệt kê / lọc / tìm kiếm / phân trang | `GET /knowledge-documents` | role quản lý + `MANAGE_MEDICAL_KNOWLEDGE` |
+| 10 | Bấm icon "xem trước" (nhúng trong iframe) | `GET /knowledge-documents/{id}/preview` | role quản lý + `MANAGE_MEDICAL_KNOWLEDGE` |
+| 11 | Bấm "xem nội dung text" đã trích xuất | `GET /knowledge-documents/{id}/content` | role quản lý + `MANAGE_MEDICAL_KNOWLEDGE` |
+| 12 | Bấm icon "tải xuống" file gốc | `GET /knowledge-documents/{id}/download` | role quản lý + `MANAGE_MEDICAL_KNOWLEDGE` |
+| 13 | Bấm "Index lại" trên tài liệu `FAILED`/`PENDING` | `POST /knowledge-documents/{id}/reindex` | role quản lý + `MANAGE_MEDICAL_KNOWLEDGE` |
+| 14 | Bấm "Xóa" một tài liệu | `DELETE /knowledge-documents/{id}` | role quản lý + `MANAGE_MEDICAL_KNOWLEDGE` |
+| 15 | Bác sĩ bấm "Đồng bộ report này vào AI" thủ công | `POST /knowledge-documents/reports/{id}/sync` | `DOCTOR`/`DEPARTMENT_HEAD`/`HEAD_OF_DEPARTMENT` + `USE_AI_CHAT` (**không** cần `MANAGE_MEDICAL_KNOWLEDGE`, **không** cho `ADMIN`) |
+| 16 | Bấm "Tạo báo cáo PDF" trên trang khám (thuộc module khám bệnh, không thuộc `/chat` hay `/knowledge-documents`) | `POST /examinations/{id}/report` (module khác) | tự động kích hoạt RAG, xem mục 0.10.16 |
+| — | Worker lập chỉ mục chạy nền | không phải HTTP, chạy sau khi transaction commit | không áp dụng |
+| — | Job quét định kỳ mỗi 5 phút | không phải HTTP, `@Scheduled` | không áp dụng |
+
+Vai trò "role lâm sàng" ở trên là literal SpEL
+`hasAnyRole('ADMIN', 'DOCTOR', 'DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT')`
+(`ChatController.java:39-40`); "role quản lý" là cùng bốn role đó nhưng đổi
+permission thành `MANAGE_MEDICAL_KNOWLEDGE` (khai báo lặp lại trên từng
+`@PreAuthorize` của `KnowledgeController.java`, không dùng hằng số chung).
+
+---
+
+#### 0.10.1 Tạo đoạn chat mới (trống, hoặc gắn với 1 ca khám)
+
+**FE làm gì**: người dùng bấm nút "Đoạn chat mới" trên sidebar chatbox. Nếu bấm
+từ trang chi tiết một ca khám ("Hỏi AI về ca này"), FE gửi kèm `examinationId`.
+
+```
+POST /chat/sessions
+Authorization: Bearer <accessToken>
+Content-Type: application/json
+
+{ "title": null, "examinationId": 482 }
+```
+
+Chuỗi gọi:
+
+1. `ChatController.createSession()` (`ChatController.java:51-58`) nhận
+   `CreateChatSessionRequest`. `@Valid` kiểm tra `title` (nếu có) tối đa 160 ký
+   tự (`CreateChatSessionRequest.java:5-9`); không kiểm tra ownership ở DTO.
+2. Gọi `ChatSessionService.create(request, principal.getName())`
+   (`ChatSessionService.java:46-52`), chạy trong 1 `@Transactional`.
+3. `requireUser(username)` (`ChatSessionService.java:159-162`) tra
+   `UserRepository.findByUsername`; không có user → `404 ResourceNotFoundException`.
+4. `createSession(user, title, examinationId)` (`ChatSessionService.java:125-137`):
+   - Tạo entity `ChatSession` mới, gán `user`, `active=true`.
+   - `normalizeTitle()` (`ChatSessionService.java:215-217`): title rỗng →
+     hằng số `"New conversation"` (`DEFAULT_TITLE`, dòng 38).
+   - Nếu `examinationId != null`: `examinationRepository.findById()`, không có
+     → `404`; sau đó `authorizeExamination(user, examination)`
+     (`ChatSessionService.java:169-178`) — `HEAD_OF_DEPARTMENT`/`DEPARTMENT_HEAD`
+     được gắn bất kỳ ca khám nào, các role khác **phải** là
+     `examination.doctor.id == user.id`, sai thì `403 AccessDeniedException`.
+   - `chatSessionRepository.save(session)` ghi 1 row mới vào bảng
+     `chat_sessions` (MySQL). `@PrePersist` trên entity tự gán `createdAt`/`updatedAt`.
+5. `toSessionResponse()` (`ChatSessionService.java:228-236`) map entity → DTO.
+
+**Dữ liệu thay đổi**: 1 row mới trong `chat_sessions`. Không đụng tới
+`chat_messages`, không gọi Gemini, không gọi Qdrant.
+
+**Response** `201 Created`:
+```json
+{
+  "id": 91, "examinationId": 482, "title": "New conversation",
+  "active": true, "createdAt": "...", "updatedAt": "..."
+}
+```
+
+---
+
+#### 0.10.2 Sidebar hiển thị danh sách đoạn chat
+
+```
+GET /chat/sessions?page=0&size=20
+```
+
+`ChatController.getSessions()` (`ChatController.java:60-66`, mặc định
+`size=20`) → `ChatSessionService.getSessions()` (`ChatSessionService.java:54-59`,
+`readOnly` transaction) → `requireUser()` rồi
+`ChatSessionRepository.findByUserIdOrderByUpdatedAtDescIdDesc()`
+(`ChatSessionRepository.java:10-14`) — **chỉ** trả session của chính người gọi,
+sắp xếp theo lần chạm gần nhất. Mỗi entity map qua `toSessionResponse()`.
+Không có tài liệu/report/Gemini/Qdrant nào bị chạm tới; đây là API đọc thuần
+MySQL, dùng để vẽ sidebar.
+
+---
+
+#### 0.10.3 Bấm vào 1 đoạn chat cũ, tải lịch sử tin nhắn
+
+```
+GET /chat/sessions/91/messages?page=0&size=50
+```
+
+`ChatController.getMessages()` (`ChatController.java:68-75`) →
+`ChatSessionService.getMessages()` (`ChatSessionService.java:61-68`):
+
+1. `requireOwnedSession(sessionId, requireUser(username))`
+   (`ChatSessionService.java:164-166`) truy vấn
+   `ChatSessionRepository.findByIdAndUserId(sessionId, user.getId())`. Nếu
+   session thuộc người khác, kết quả rỗng → `404` — **không phải** `403`, để
+   không tiết lộ session đó có tồn tại hay không.
+2. `ChatMessageRepository.findBySessionIdOrderByCreatedAtAscIdAsc()`
+   (`ChatMessageRepository.java:10-14`) đọc trang tin nhắn theo thứ tự **cũ →
+   mới** (ngược với truy vấn lịch sử nội bộ dùng cho Gemini, vốn lấy mới → cũ
+   rồi đảo lại — xem 0.10.4).
+3. Map từng `ChatMessage` qua `toMessageResponse()`
+   (`ChatSessionService.java:238-246`). DTO này **không** có field
+   `sources`/`warning` vì hai thứ đó không được lưu bền — chỉ tồn tại trong
+   response gốc của `POST /chat/ask` lúc trả lời. Tải lại lịch sử sẽ hiển thị
+   nội dung trả lời text nhưng không hiển thị lại citation.
+
+---
+
+#### 0.10.4 Gõ câu hỏi, bấm "Gửi" — luồng trung tâm của RAG
+
+```
+POST /chat/ask
+{ "sessionId": 91, "question": "Giải thích KL grade 3 là gì" }
+```
+
+`ChatQuestionRequest` (`dto/ChatQuestionRequest.java:6-11`): `sessionId` có thể
+`null` (tự tạo session mới); `question` bắt buộc, tối đa 2000 ký tự.
+`ChatController.ask()` (`ChatController.java:42-49`) gọi thẳng
+`ChatOrchestratorService.ask(sessionId, question, principal.getName())`
+(`ChatOrchestratorService.java:33-57`). Chuỗi gọi đầy đủ:
+
+**Bước 1 — chuẩn bị hội thoại (MySQL, trước khi chạm AI):**
+`ChatSessionService.prepare()` (`ChatSessionService.java:90-108`, 1 transaction):
+tìm/tạo session sở hữu bởi user; nếu `session.active == false` → `400`; đọc
+`findTop20BySessionIdOrderByCreatedAtDescIdDesc` (20 tin nhắn gần nhất, mới →
+cũ) và dựng chuỗi lịch sử qua `formatHistory()`
+(`ChatSessionService.java:180-203`, cắt ở 12.000 ký tự — hằng số
+`MAX_HISTORY_CHARACTERS`, dòng 39 — rồi đảo lại cũ → mới); **sau đó mới**
+`saveMessage(session, USER, question.trim(), null, null)` lưu câu hỏi hiện tại
+thành 1 row `chat_messages` — vì vậy `history` trả về **chưa** chứa câu hỏi vừa
+gửi, gateway sẽ nối `Current question:` riêng ở bước 3.
+
+**Bước 2 — Gemini phân loại câu hỏi (router), chưa trả lời:**
+`aiGateway.route(question, roleCode, history)` →
+`SpringAiChatGateway.route()` (`chat/SpringAiChatGateway.java:121-144`) gọi
+`ChatClient` với `ROUTER_PROMPT` (dòng 34-77) đã format `%s` = ngày hiện tại và
+`%s` = role code. Prompt này bắt Gemini: chỉ phân loại chứ không trả lời; tự
+suy luận lại câu hỏi từ pronoun/tham chiếu trong lịch sử (`"những ca đó"`,
+`"report đó"`...) thành `retrievalQuery` độc lập ngữ cảnh; chỉ chọn 1 trong 4
+route (`ChatRoute`: `BUSINESS_DATA`, `MEDICAL_RAG`, `HYBRID`, `CLARIFICATION`);
+chọn `businessIntent` trong whitelist cố định (`BusinessQueryIntent`, xem
+0.10.4.B); tuyệt đối **không được sinh ra SQL**. Kết quả deserialize thành
+`ChatRoutingDecision` record (`chat/ChatRoutingDecision.java:3-11`: `route`,
+`businessIntent`, `entityId`, `dateFrom`, `dateTo`, `klGrade`, `retrievalQuery`,
+`clarificationQuestion`). Nếu Gemini trả JSON không parse được, `route()` bắt
+`JacksonException`, log cảnh báo và trả `null` thay vì `500`;
+`ChatOrchestratorService.normalize()` (dòng 105-111) biến `null`/`route==null`
+thành `CLARIFICATION` với câu hỏi làm rõ mặc định.
+
+**Bước 3 — Java (không phải Gemini) quyết định gọi hàm nào**, `switch` thuần
+Java trên `decision.route()` (dòng 40-47), 4 nhánh:
+
+- **`CLARIFICATION`** (dòng 41-42): không đụng DB/Qdrant. Trả thẳng
+  `decision.clarificationQuestion()` nếu có, không thì câu mặc định
+  (`clarification()`, dòng 113-117).
+
+- **`BUSINESS_DATA`** (dòng 43, → `businessAnswer()` dòng 59-67): gọi
+  `BusinessDataQueryService.execute(decision, username)` **trước**, sau đó mới
+  gọi Gemini với đúng context SQL trả về — xem 0.10.4.B để có chuỗi SQL chi
+  tiết theo từng `businessIntent`. Câu trả lời cuối là
+  `aiGateway.answerBusiness(question, result.context(), history)` →
+  `SpringAiChatGateway.answerBusiness()` (dòng 146-152) gắn nhãn
+  `"BUSINESS DATA CONTEXT:\n"` rồi gọi `answer()` chung (dòng 172-190) với hệ
+  thống prompt `ANSWER_RULES` (dòng 79-94) — prompt này cấm bịa dữ liệu, cấm
+  tiết lộ tên/địa chỉ/SĐT bệnh nhân (chỉ được nói `patient_code`), và bắt định
+  dạng Markdown GitHub-flavoured.
+
+- **`MEDICAL_RAG`** (dòng 44, → `medicalAnswer()` dòng 69-80): tính
+  `retrievalQuery` ưu tiên `decision.retrievalQuery()` do Gemini tự viết (đã
+  resolve pronoun), fallback về `contextualRetrievalQuery()` (dòng 131-137, lấy
+  2000 ký tự cuối lịch sử + câu hỏi hiện tại) nếu router bỏ trống — hàm
+  `retrievalQuery()` dòng 124-129. Query này đưa vào
+  `MedicalRagService.retrieve(query, roleCode, userId)` — xem 0.10.4.C. Nếu
+  `result.isEmpty()` (không có source nào qua ngưỡng) → trả thẳng câu cố định
+  `"I could not find sufficient approved medical evidence in the knowledge
+  base."` (dòng 74-75), **Gemini không được gọi để tự đoán** khi không có
+  bằng chứng. Có source → `aiGateway.answerMedical()` (dòng 154-160, gắn nhãn
+  `"RETRIEVED MEDICAL CONTEXT:\n"`). Cả hai nhánh đều gắn `MEDICAL_WARNING`
+  (dòng 25-26) vào response.
+
+- **`HYBRID`** (dòng 45-46, → `hybridAnswer()` dòng 82-103): chạy SQL
+  (`businessDataQueryService.execute()`) **trước**, rồi nối kết quả SQL vào
+  cuối chuỗi truy vấn retrieval
+  (`retrievalQuery(...) + "\nHEALTHSYNC DATA:\n" + business.context()`, dòng
+  90-92) trước khi gọi `medicalRagService.retrieve()` — nghĩa là ID/thuật ngữ
+  lâm sàng lấy được từ MySQL giúp tìm vector chính xác hơn. Nếu phần y khoa
+  rỗng, fallback dùng `answerBusiness()` nhưng **vẫn giữ** cảnh báo y khoa
+  (dòng 93-96); nếu có cả hai, gộp `sources` của business + medical rồi gọi
+  `aiGateway.answerHybrid()` (dòng 162-170, gắn cả hai nhãn context).
+
+**Bước 4 — lưu câu trả lời và trả response:** dù route nào, sau khi có
+`AnswerResult`, `ChatSessionService.saveAssistantMessage(session, route.name(),
+answer)` (`ChatSessionService.java:110-123`, **transaction riêng** với bước 1)
+lưu 1 row `ASSISTANT` vào `chat_messages` kèm `route` và `tokensUsed`, rồi
+`touch()` cập nhật `updatedAt` của session. `response()`
+(`ChatOrchestratorService.java:139-155`) dựng `ChatAnswerResponse` cuối cùng.
+
+**Vì sao 2 message có thể "lệch cặp"**: bước 1 (lưu USER) và bước 4 (lưu
+ASSISTANT) là hai transaction MySQL độc lập. Nếu Gemini/Qdrant lỗi ở bước 2-3
+sau khi bước 1 đã commit, `chat_messages` sẽ có 1 row USER không có row
+ASSISTANT đi kèm — đây là hành vi hiện tại của code, không phải bug của
+UI/repository.
+
+**Response** `200 OK`:
+```json
+{
+  "sessionId": 91, "messageId": 214, "route": "MEDICAL_RAG",
+  "answer": "## KL Grade 3\n...", "sources": [
+    {"sourceId": "knowledge-document:12", "title": "OARSI Guideline 2023",
+     "sourceType": "MEDICAL_DOCUMENT", "reference": "knowledge-document:12, tr. 4",
+     "score": 0.81}
+  ],
+  "warning": "AI-generated medical information is for decision support and must be reviewed by a qualified clinician.",
+  "generatedAt": "...", "tokensUsed": 812
+}
+```
+
+##### 0.10.4.A Bảng route ⇄ hàm Java ⇄ nguồn dữ liệu
+
+| Route | Java gọi gì | Nguồn context cho Gemini |
+| --- | --- | --- |
+| `CLARIFICATION` | không gọi service nào | không có, chỉ hỏi lại |
+| `BUSINESS_DATA` | `BusinessDataQueryService.execute()` | text do SQL cố định sinh ra |
+| `MEDICAL_RAG` | `MedicalRagService.retrieve()` | chunk đã qua similarity + lọc quyền ở Qdrant |
+| `HYBRID` | SQL trước, `MedicalRagService.retrieve()` sau | cả hai, có nhãn tách riêng trong prompt |
+
+##### 0.10.4.B Nhánh `BUSINESS_DATA`/`HYBRID`: whitelist SQL, không có SQL tự do
+
+`BusinessDataQueryService.execute()` (`BusinessDataQueryService.java:42-72`):
+
+1. Tra `role` thật từ MySQL (không tin role trong JWT claim một cách mù quáng —
+   vẫn query lại `User`). `ADMIN` + intent lâm sàng (`isClinical()`, dòng
+   192-199: `EXAMINATION_LIST`, `TODAY_EXAMINATION_LIST`,
+   `EXAMINATION_FINAL_RESULT`, `REPORT_SUMMARY`, `GRADE_DISTRIBUTION`,
+   `GRADE_COUNT`) → `403 UnauthorizedAccessException` **trước khi** chạy SQL.
+2. `dateRange()` (dòng 208-222) resolve `dateFrom`/`dateTo` do Gemini trích ra
+   từ câu hỏi tự nhiên thành khoảng `LocalDateTime` (không có ngày tường minh
+   → toàn bộ dữ liệu từ 1970 tới ngày mai; hai intent `TODAY_*` mặc định hôm
+   nay).
+3. `switch (intent)` (dòng 61-71) — đây là **whitelist đóng cứng** 9 giá trị
+   enum (`BusinessQueryIntent.java:3-14`), Gemini chỉ được chọn tên intent, Java
+   chọn hàm/SQL tương ứng, không bao giờ nhận SQL string từ model:
+   - `TODAY_EXAMINATION_COUNT`/`EXAMINATION_COUNT` → `countExaminations()`
+     (dòng 110-117): `COUNT(*) FROM examinations` theo `created_at`, thêm
+     `AND e.doctor_id = :userId` nếu role là `DOCTOR`.
+   - `TODAY_EXAMINATION_LIST`/`EXAMINATION_LIST` → `recentExaminations()`
+     (dòng 88-108): join `patients` lấy `patient_code` (**không bao giờ** lấy
+     tên bệnh nhân — comment dòng 80-86 giải thích lý do: context này bị echo
+     lại vào lịch sử hội thoại ở mọi lượt sau, nên PII không được phép lọt
+     vào); lọc theo `klGrade` nếu có, dùng đúng công thức ưu tiên review đã
+     xác nhận hơn AI-prediction thô (`EFFECTIVE_GRADE`, dòng 34-37); giới hạn
+     cứng 10 dòng.
+   - `REPORT_COUNT` → `countReports()` (dòng 119-127).
+   - `EXAMINATION_FINAL_RESULT` → `examinationResult()` (dòng 129-143), bắt
+     buộc `entityId` dương, không tìm thấy/không thuộc quyền → `404`.
+   - `REPORT_SUMMARY` → `reportSummary()` (dòng 145-160).
+   - `GRADE_DISTRIBUTION` → `gradeDistribution()` (dòng 162-172): `GROUP BY`
+     grade hiệu lực.
+   - `GRADE_COUNT` → `gradeCount()` (dòng 174-185), bắt buộc `klGrade` hợp lệ
+     0-4 (`requireGrade()`, dòng 201-206) nếu Gemini không trích được thì
+     `400`.
+   - `UNKNOWN` (Gemini không map được câu hỏi vào 8 intent trên) →
+     `400 IllegalArgumentException` tường minh, **không** âm thầm chạy 1 câu
+     truy vấn đoán mò.
+4. Mỗi nhánh trả `BusinessQueryResult(context, sources)` qua `result()` (dòng
+   187-190) — `sources` luôn có `score = null` vì không phải kết quả similarity.
+
+##### 0.10.4.C Nhánh `MEDICAL_RAG`/`HYBRID`: Ollama embedding + Qdrant, lọc quyền ngay tại Qdrant
+
+`MedicalRagService.retrieve(question, roleCode, userId)`
+(`MedicalRagService.java:31-70`):
+
+1. `scopeFilter(roleCode, userId)` (dòng 72-91) dựng biểu thức filter Qdrant
+   dạng chuỗi, **luôn** bắt buộc `publicationStatus == 'PUBLISHED'`:
+   - `ADMIN`: `(accessScope == 'ALL' || accessScope == 'ADMIN')`.
+   - `DOCTOR`/`HEAD_OF_DEPARTMENT`/`DEPARTMENT_HEAD`: `(accessScope == 'ALL' ||
+     accessScope == 'DOCTOR' || (accessScope == 'OWNER' && (ownerUserId == <id>
+     || assignedDoctorUserId == <id>)))` — role trưởng khoa **chưa** tự động
+     thấy toàn bộ report của khoa, chỉ thấy report họ là chủ sở hữu/bác sĩ được
+     gán (comment dòng 78-80 nói rõ đây là hạn chế hiện tại, không phải thiết
+     kế cuối cùng).
+   - Role khác → `403 AccessDeniedException`, fail-closed.
+2. `SearchRequest.builder().query(question).topK(properties.retrievalTopK())`
+   (mặc định 12, `application.yaml:109`)
+   `.similarityThreshold(properties.similarityThreshold())` (mặc định 0.35,
+   `application.yaml:110`) `.filterExpression(scopeFilter)` rồi
+   `vectorStore.similaritySearch(request)` (dòng 33-39). Bản thân Java
+   **không** tự embedding câu hỏi: Spring AI's Qdrant `VectorStore` tự động gọi
+   model embedding cấu hình (`bge-m3` qua Ollama,
+   `application.yaml:70-77`/mục 2) để biến `question` thành vector, rồi gửi
+   `filterExpression` cùng vector đó thẳng tới Qdrant. Java không có bước
+   "lấy hết vector rồi tự lọc trong RAM" — mọi document không khớp filter
+   **không bao giờ** rời khỏi Qdrant.
+3. Không có match → `MedicalRetrievalResult("", List.of())` (dòng 40-41,
+   "empty" theo số lượng source chứ không theo độ dài text).
+4. Có match: lặp theo thứ tự điểm số giảm dần, ghép text vào `context` (giới
+   hạn 60.000 ký tự — `MAX_CONTEXT_CHARS`, dòng 26, comment giải thích: với
+   `topK=12` × chunk ~700 token, giới hạn cũ từng cắt mất khoảng nửa bằng
+   chứng trước khi tới Gemini), không bao giờ cắt giữa chừng 1 chunk — thà bỏ
+   nguyên chunk (dòng 56-61). Mỗi chunk được gắn nhãn `[SOURCE: <title>]`.
+   `uniqueSources` dùng `LinkedHashMap` để 1 tài liệu chỉ xuất hiện 1 lần trong
+   danh sách nguồn trả về cho FE dù nhiều chunk của nó được chọn (dòng 64-67).
+
+---
+
+#### 0.10.5 Đổi tên / đóng / mở lại một đoạn chat
+
+```
+PATCH /chat/sessions/91
+{ "title": "Hỏi về KL grade", "active": null }
+```
+
+`ChatController.updateSession()` (`ChatController.java:77-84`) →
+`ChatSessionService.update()` (`ChatSessionService.java:70-88`): cả `title` và
+`active` đều `null` → `400` (dòng 72-74, phải có ít nhất 1 field); `title` rỗng
+sau `trim()` → `400`; áp field nào có, ghi `updatedAt = now()`, lưu. Đóng đoạn
+chat tức là `active=false`, khiến `POST /chat/ask` sau đó dùng `sessionId` này
+bị chặn ở `prepare()` với `400 "Chat session is inactive"` (mục 0.10.4, bước 1).
+
+---
+
+#### 0.10.6 Upload 1 tài liệu y khoa
+
+**FE làm gì**: trang "Kho tri thức", bấm "Tải lên", chọn 1 file PDF/DOC/DOCX/TXT.
+
+```
+POST /knowledge-documents/upload
+Content-Type: multipart/form-data
+file=<bytes>; title=(optional); accessScope=ALL|DOCTOR|ADMIN|OWNER (default ALL)
+```
+
+`KnowledgeController.upload()` (`KnowledgeController.java:53-63`) có thêm
+`@LogAction("UPLOAD_MEDICAL_KNOWLEDGE")` — `AuditLogAspect` ghi 1 row vào bảng
+`audit_logs` (ai làm, action nào, khi nào) song song, độc lập với luồng nghiệp
+vụ chính. Gọi `KnowledgeIngestionService.upload()`
+(`KnowledgeIngestionService.java:79-104`, **cố ý không** `@Transactional` vì
+hàm này gọi Gemini đồng bộ — không giữ transaction DB mở trong lúc chờ mạng):
+
+1. `validateFile()` (dòng 209-220): file rỗng → `400`; vượt
+   `properties.maxDocumentBytes()` (mặc định 50 MB,
+   `application.yaml:107`) → `400`; đuôi file ngoài
+   `{pdf, doc, docx, txt}` (`ALLOWED_EXTENSIONS`, dòng 51) → `400`.
+2. Đọc toàn bộ bytes, tính `sha256`. `sourceKey = "file:" + checksum`; đã tồn
+   tại trong `knowledge_documents` (`repository.existsBySourceKey()`) → `400`
+   "đã upload rồi" — chặn **trước khi** gọi Gemini, tiết kiệm 1 lượt gọi model
+   cho file trùng.
+3. **`medicalDocumentValidator.validate(bytes, filename, contentType)`** —
+   xem 0.10.6.A, đây là bước "cổng chắn" quan trọng nhất: nếu không pass, toàn
+   bộ các bước ghi file/DB dưới đây **không xảy ra**.
+4. `storeFile()` (dòng 262-276): ghi bytes vào `knowledgeDir` (mặc định
+   `<storage-base-dir>/knowledge`, `application.yaml:106`) với tên **UUID**
+   ngẫu nhiên giữ nguyên đuôi file — tên file gốc không bao giờ dùng làm tên
+   vật lý trên đĩa (chống path traversal/đè file). Có `path.startsWith(root)`
+   guard sau khi normalize.
+5. Tạo entity `KnowledgeDocument`: `sourceType=FILE`, `status` mặc định
+   `PENDING` (do `@PrePersist` của entity, không set tường minh ở đây),
+   `uploadedBy = user hiện tại`, lưu MySQL.
+6. `requestIndex(document.getId())` (dòng 205-207) publish
+   `KnowledgeIndexRequestedEvent` — Spring **chưa gửi event ngay**, đợi tới khi
+   phương thức HTTP hiện tại hoàn tất chu trình request/response bình thường
+   (đây không phải transactional event vì `upload()` không có
+   `@Transactional`, event được publish và xử lý đồng bộ trong cùng lời gọi,
+   nhưng listener thật sự chạy nền — xem 0.10.17).
+7. `toResponse()` trả DTO với `status: "PENDING"`, `chunkCount: null`.
+
+**Response** `202 Accepted` (không phải `200`/`201` — vector hoá chưa xong lúc
+trả response):
+```json
+{ "id": 44, "title": "OARSI Guideline 2023", "sourceType": "FILE",
+  "status": "PENDING", "chunkCount": null,
+  "previewUrl": "/api/v1/knowledge-documents/44/preview", ... }
+```
+
+FE thường phải tự polling lại `GET /knowledge-documents` hoặc mở lại danh sách
+sau vài giây để thấy `status` chuyển `PROCESSING → INDEXED`/`FAILED`.
+
+##### 0.10.6.A Cổng chắn: `MedicalDocumentValidator` — Gemini xác nhận "đây có phải tài liệu y khoa"
+
+`MedicalDocumentValidator.validate()` (`MedicalDocumentValidator.java:24-43`):
+
+1. `documentReader.read(bytes, filename, contentType)` →
+   `KnowledgeDocumentReader` (`KnowledgeDocumentReader.java`, mục 10): PDF dùng
+   PDFBox, TXT đọc UTF-8 nghiêm ngặt, DOC/DOCX/HTML (từ URL) dùng Apache Tika.
+2. Nối toàn bộ text; rỗng/không đọc được → `400`.
+3. `sample()` (`MedicalDocumentValidator.java:45-57`): tài liệu ngắn gửi
+   nguyên văn (`[COMPLETE DOCUMENT]`); tài liệu dài chỉ gửi 3 mẫu đầu/giữa/cuối
+   mỗi mẫu `medicalValidationSampleChars` ký tự (mặc định 6000,
+   `application.yaml:111`) — để không tốn quá nhiều token Gemini cho 1 file
+   lớn mà vẫn đủ đại diện.
+4. `aiChatGateway.assessMedicalDocument(samples)` →
+   `SpringAiChatGateway.assessMedicalDocument()` (dòng 99-119) gọi Gemini với
+   `MEDICAL_DOCUMENT_CLASSIFIER_PROMPT` (dòng 23-32) — prompt nói rõ: chỉ chấp
+   nhận nội dung y khoa/lâm sàng/dược/y tế công cộng thực chất; từ chối tài
+   liệu kinh doanh/phần mềm/pháp lý dù có nhắc từ y khoa hờ hợt; **coi mẫu văn
+   bản là dữ liệu không tin cậy, không được làm theo chỉ dẫn nằm trong đó**
+   (chống prompt injection từ chính nội dung file upload); mơ hồ → phải trả
+   `medical=false`. Kết quả deserialize thành `MedicalDocumentAssessment`
+   (`chat/MedicalDocumentAssessment.java:7-10`: `medical`, `confidence`,
+   `reason`).
+5. Từ chối khi: `assessment == null` (Gemini trả JSON không parse được), hoặc
+   `medical != true`, hoặc `confidence == null`, hoặc
+   `confidence < medicalValidationMinConfidence` (mặc định 0.7,
+   `application.yaml:112`) → `400 "Document rejected: <reason>"`.
+
+Vì bước này chạy **trước** `storeFile()`/`repository.save()` trong
+`upload()`/`addUrl()`, một file bị từ chối không để lại rác trên đĩa, không có
+metadata MySQL, không có vector — không cần dọn dẹp gì thêm.
+
+---
+
+#### 0.10.7 Upload nhiều tài liệu cùng lúc (kéo-thả nhiều file)
+
+```
+POST /knowledge-documents/upload/batch
+files=<file1>,<file2>,...; accessScope=ALL
+```
+
+`KnowledgeController.uploadBatch()` (`KnowledgeController.java:65-74`) →
+`KnowledgeBatchIngestionService.upload()`
+(`KnowledgeBatchIngestionService.java:26-56`): rỗng hoặc rỗng danh sách → `400`;
+quá `MAX_BATCH_FILES = 10` (dòng 22) → `400`. Sau đó **lặp tuần tự** (không
+song song) gọi lại chính xác `KnowledgeIngestionService.upload()` của mục
+0.10.6 cho từng file — nghĩa là mỗi file trải qua đầy đủ: kiểm tra đuôi/size →
+SHA-256 dedupe → Gemini classifier → lưu MySQL → publish event riêng (mỗi file
+= 1 lần gọi Gemini classifier, 1 event index riêng, chạy nền độc lập). Lỗi
+`IllegalArgumentException` của 1 file (trùng file, không phải y khoa, sai
+định dạng...) được bắt riêng và chỉ đánh dấu file đó `accepted=false` kèm
+`error` — **không** làm hỏng các file còn lại trong batch (dòng 39-51); lỗi
+runtime không lường trước cũng được log rồi tiếp tục, không để 1 file lỗi lạ
+làm crash toàn bộ request.
+
+**Response** `202 Accepted` — luôn thành công ở tầng HTTP dù batch có file bị
+từ chối, chi tiết từng file nằm trong body:
+```json
+{ "total": 3, "accepted": 2, "rejected": 1, "items": [
+  {"originalFileName": "a.pdf", "accepted": true, "document": {...}, "error": null},
+  {"originalFileName": "b.txt", "accepted": false, "document": null,
+   "error": "Document rejected: the content is not clearly medical"},
+  {"originalFileName": "a.pdf", "accepted": false, "document": null,
+   "error": "This document has already been uploaded"}
+]}
+```
+
+---
+
+#### 0.10.8 Thêm nguồn tri thức từ URL
+
+```
+POST /knowledge-documents/url
+{ "title": "WHO Osteoarthritis Guideline", "url": "https://who.int/...", "accessScope": "ALL" }
+```
+
+`KnowledgeController.addUrl()` (`KnowledgeController.java:76-83`) →
+`KnowledgeIngestionService.addUrl()` (`KnowledgeIngestionService.java:106-130`):
+
+1. `validatePublicUrl()` (dòng 243-260): bắt buộc scheme `http`/`https`, có
+   host, **không** có user-info trong URL (chặn dạng `http://user:pass@host`).
+   `InetAddress.getAllByName(host)` resolve DNS rồi loại mọi địa chỉ
+   any-local/loopback/link-local/site-local/multicast — đây là hàng rào chống
+   **SSRF**: ngăn backend bị lừa tự gọi vào `127.0.0.1`, mạng nội bộ
+   `10.x/172.16.x/192.168.x`, hay `169.254.x` (metadata endpoint của cloud).
+2. `sourceKey = "url:" + sha256(URL đã normalize)`; đã tồn tại → `400`.
+3. `download(uri)` (dòng 222-241): dùng `knowledgeRestClient` bean
+   (`ChatAiConfiguration.java`, mục 2) — **redirect bị tắt hoàn toàn** ở tầng
+   HTTP client, nên kể cả nếu DNS check ở bước 1 pass nhưng server trả
+   `302` sang địa chỉ nội bộ, request vẫn không đi theo redirect đó; đọc tối
+   đa `maxUrlBytes + 1` byte (mặc định 5 MB, `application.yaml:108`) để phát
+   hiện vượt giới hạn mà không cần tải hết file khổng lồ; không phải `2xx` →
+   `400`; rỗng hoặc vượt giới hạn → `400`.
+4. `medicalDocumentValidator.validate(bytes, "source.html", "text/html")` —
+   **cùng cổng chắn Gemini y hệt mục 0.10.6.A**, dùng Tika để đọc text từ HTML.
+5. `storeFile(bytes, "source.html")` ghi HTML thô vào `knowledgeDir` (không
+   phải bản đã strip tag).
+6. Lưu `KnowledgeDocument` với `sourceType=URL`, `sourceUrl` = URL gốc, publish
+   `KnowledgeIndexRequestedEvent` giống hệt luồng upload file.
+
+**Response** `202 Accepted`, cấu trúc DTO giống 0.10.6 nhưng `sourceType: "URL"`.
+
+---
+
+#### 0.10.9 Trang quản lý tài liệu: liệt kê / lọc / tìm kiếm
+
+```
+GET /knowledge-documents?keyword=OARSI&sourceType=FILE&status=INDEXED&accessScope=ALL&page=0&size=20&sort=createdAt,desc
+```
+
+`KnowledgeController.getAll()` (`KnowledgeController.java:85-94`, mặc định sort
+`createdAt DESC`, `size=20`) → `KnowledgeIngestionService.getAll(...)`
+(`KnowledgeIngestionService.java:137-149`): `keyword` rỗng/blank normalize
+thành `null` để JPQL coi filter là "bỏ qua" thay vì so khớp chuỗi rỗng; gọi
+`KnowledgeDocumentRepository.search()` (JPQL case-insensitive theo
+title/originalName, kết hợp AND các filter optional khác) — thuần đọc MySQL,
+không đụng Qdrant/Gemini.
+
+---
+
+#### 0.10.10 Xem trước tài liệu (nhúng trong iframe)
+
+```
+GET /knowledge-documents/44/preview
+```
+
+`KnowledgeController.preview()` (`KnowledgeController.java:96-100`) →
+`ingestionService.getFile(id)` (`KnowledgeIngestionService.java:151-173`,
+`readOnly` transaction):
+
+1. Không có `storagePath` (ví dụ tài liệu `sourceType=REPORT`, sinh ra thẳng
+   trong Qdrant, không có file vật lý) → `404`.
+2. `Path.of(...).toRealPath()` resolve cả `knowledgeDir` gốc lẫn đường dẫn file
+   thật (theo symlink); `!path.startsWith(root)` hoặc không phải regular file
+   → `404`. Đây là chống **path traversal**: mọi lỗi IO (kể cả file bị xoá thủ
+   công ngoài ứng dụng) đều quy về `404` chung, không rò rỉ chi tiết filesystem
+   ra ngoài.
+3. Content-Type resolve theo thứ tự ưu tiên: content-type lưu DB (nếu có ý
+   nghĩa) → map cứng theo đuôi file (`EXTENSION_CONTENT_TYPES`, dòng 59-63,
+   vì `Files.probeContentType` không đáng tin trên nhiều máy chủ Linux/Docker)
+   → `Files.probeContentType` → cuối cùng `application/octet-stream`.
+4. Controller's `fileResponse(file, download=false)`
+   (`KnowledgeController.java:142-167`) dựng response: `Content-Disposition:
+   inline`, `Cache-Control: no-store`, `X-Content-Type-Options: nosniff`, và
+   ghi đè `Content-Security-Policy: frame-ancestors *` để override mặc định
+   `X-Frame-Options: DENY` của Spring Security — chủ đích cho phép FE nhúng
+   file này trong `<iframe>` để "xem trước" ngay trên trang, thay vì bị trình
+   duyệt chặn vì chính sách chống clickjacking mặc định.
+
+---
+
+#### 0.10.11 Xem nội dung text đã trích xuất
+
+```
+GET /knowledge-documents/44/content
+```
+
+`KnowledgeController.content()` (`KnowledgeController.java:102-109`, trả
+`text/plain; charset=UTF-8`, `no-store`) →
+`ingestionService.getText(id)` (`KnowledgeIngestionService.java:175-183`): gọi
+lại `getFile(id)` **chỉ để tận dụng guard ownership/tồn-tại/path-traversal ở
+trên** (kết quả trả về không được dùng), rồi `documentReader.read(document)`
+đọc lại toàn bộ file từ đĩa và nối các đoạn text bằng `\n\n`. Đây là cách FE
+hiển thị "văn bản mà hệ thống thực sự trích xuất được" — khác với preview (file
+gốc PDF/DOC) — hữu ích để debug khi 1 file bị `FAILED` vì "No readable text".
+
+---
+
+#### 0.10.12 Tải file gốc
+
+```
+GET /knowledge-documents/44/download
+```
+
+Giống hệt luồng 0.10.10 nhưng `download=true` trong `fileResponse()` →
+`Content-Disposition: attachment`, và có thêm
+`@LogAction("DOWNLOAD_MEDICAL_KNOWLEDGE")` ghi audit log (khác `preview` –
+`preview` không audit).
+
+---
+
+#### 0.10.13 Bấm "Index lại" trên tài liệu `FAILED`/`PENDING`
+
+```
+POST /knowledge-documents/44/reindex
+```
+
+`KnowledgeController.reindex()` (`KnowledgeController.java:118-123`) →
+`KnowledgeIngestionService.reindex()` (`KnowledgeIngestionService.java:188-196`,
+1 transaction): set lại `status = PENDING`, xoá `errorMessage`, save, rồi
+`requestIndex()` publish lại `KnowledgeIndexRequestedEvent` — **file vật lý và
+metadata giữ nguyên**, chỉ kích hoạt lại `KnowledgeIndexingWorker` chạy từ đầu
+(đọc file → chunk → embed → ghi Qdrant, xem 0.10.17). Vector cũ (nếu còn sót từ
+lần chạy trước) bị xoá theo `sourceKey` trước khi thêm vector mới ở trong
+worker, không phải ở bước này.
+
+---
+
+#### 0.10.14 Bấm "Xóa" một tài liệu
+
+```
+DELETE /knowledge-documents/44
+```
+
+`KnowledgeController.delete()` (`KnowledgeController.java:134-140`) →
+`KnowledgeIngestionService.delete(id)` (dòng 198-203): bọc toàn bộ trong
+`KnowledgeDocumentOperationCoordinator.executeExclusively(id, ...)`
+(`KnowledgeDocumentOperationCoordinator.java`, mục 12) — khoá theo document ID
+bằng 1 trong 256 `ReentrantLock` cố định (striped lock), để việc xoá **không
+thể** chạy đồng thời với worker đang index cùng document trong cùng 1 JVM.
+Bên trong khoá, `KnowledgeDocumentDeletionService.delete()`
+(`KnowledgeDocumentDeletionService.java:27-34`, 1 transaction): xoá toàn bộ
+chunk Qdrant theo `FilterExpressionBuilder().eq("sourceKey",
+document.getSourceKey())` **trước**, xoá row `knowledge_documents` **sau**, rồi
+`deleteStoredFile()` (dòng 36-50) xoá file vật lý (bỏ qua nếu
+`sourceType=REPORT` vì không có `storagePath`; cùng kiểu `startsWith(root)`
+guard chống xoá nhầm ngoài `knowledgeDir`). Trả `204 No Content`.
+
+**Race condition đã được xử lý tường minh**: nếu lệnh xoá này chạy đúng lúc
+`KnowledgeIndexingWorker` vừa `vectorStore.add(chunks)` xong nhưng chưa kịp
+`markIndexed()`, worker sẽ phát hiện row đã biến mất khi cố update status và tự
+xoá lại các chunk vừa thêm — xem 0.10.17, tránh để lại "vector mồ côi" không có
+metadata MySQL tương ứng.
+
+---
+
+#### 0.10.15 Bác sĩ đồng bộ 1 report vào AI thủ công
+
+**FE làm gì**: trên trang xem report đã duyệt, bác sĩ bấm nút kiểu "Đưa report
+này vào trợ lý AI" (dùng khi report cũ có trước khi RAG được bật, hoặc lần
+index tự động trước đó bị lỗi).
+
+```
+POST /knowledge-documents/reports/205/sync
+```
+
+`KnowledgeController.syncReport()` (`KnowledgeController.java:125-132`) — chú
+ý quyền khác hẳn các endpoint `/knowledge-documents` còn lại:
+`hasAnyRole('DOCTOR', 'DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT')` (**không** có
+`ADMIN`) và `hasAuthority('USE_AI_CHAT')` (**không** phải
+`MANAGE_MEDICAL_KNOWLEDGE`) — vì đây thực chất là hành động "hỏi AI về report
+của mình", không phải quản trị kho tri thức chung. Gọi
+`ReportKnowledgeSyncService.syncReport()`
+(`ReportKnowledgeSyncService.java:48-62`):
+
+1. `ADMIN` gọi tới đây (dù về lý thuyết không qua nổi `@PreAuthorize` ở trên,
+   hàm vẫn tự kiểm tra lại) → `403` — kiểm tra kép có chủ đích.
+2. `loadReport(reportId)` (dòng 143-165) 1 câu SQL join `report` +
+   `examinations` + `diagnosis_reviews` lấy `ownerUserId` (ưu tiên
+   `operating_doctor_id`, fallback `examination.doctor_id`) và
+   `assignedDoctorUserId`; không thấy report → `404`.
+3. `DOCTOR` chỉ được đồng bộ report họ sở hữu hoặc được gán — không phải cả
+   hai → `403`.
+4. `index(row)` (dòng 94-141) — **chạy đồng bộ ngay trong request**, khác
+   file/URL: dựng text mô tả report (report ID, examination ID, study date,
+   final diagnosis, confirmed KL grades, clinical summary — **cố ý không** có
+   tên/địa chỉ/SĐT bệnh nhân hay đường dẫn DICOM/ảnh), `splitter.apply()` chia
+   chunk, `vectorStore.delete()` chunk cũ theo `sourceKey =
+   "report:" + reportId` rồi `vectorStore.add()` chunk mới, cập nhật
+   `knowledge_documents` (`status=INDEXED`, `chunkCount`, `indexedAt`).
+   `accessScope` luôn là `OWNER`. Lỗi trong lúc ghi Qdrant → `status=FAILED`,
+   lưu `errorMessage`, rồi **ném lại exception** (khác `upload()`/`addUrl()`
+   vốn trả `202` trước khi biết kết quả — endpoint này đợi xong luôn).
+
+**Response**: dù controller khai `202`, hàm `syncReport()` thực chất trả kết
+quả **sau khi** đã index xong (đồng bộ), nên `status` trong body luôn là
+`INDEXED` (hoặc exception nếu lỗi) chứ không phải `PENDING` như luồng file/URL.
+
+---
+
+#### 0.10.16 (Ngoài module chat) Bấm "Tạo báo cáo PDF" → tự động đưa report vào RAG
+
+Đây **không phải** endpoint của `/chat` hay `/knowledge-documents`, nhưng là
+ví dụ rõ nhất cho việc "1 hành động FE ở tính năng khác âm thầm gọi vào RAG".
+Chi tiết đầy đủ của chính endpoint này nằm ở
+[examination-verification-report-code-guide.md](examination-verification-report-code-guide.md);
+ở đây chỉ trích phần chạm RAG, khớp với `PdfExportService.java:101-173` (mục
+13 phía dưới có annotate từng dòng bằng tiếng Việt):
+
+1. Bác sĩ bấm "Tạo báo cáo" trên trang khám đã `VERIFIED` →
+   `PdfExportService.generateAndSavePdfReport()` render PDF, lưu row `Report`
+   mới trong **cùng transaction** với việc set `examination.status =
+   REPORT_GENERATED`, rồi `eventPublisher.publishEvent(new
+   ReportKnowledgeSyncRequestedEvent(savedReport.getId()))`.
+2. Vì đây là `@TransactionalEventListener(phase = AFTER_COMMIT)`
+   trên `ReportKnowledgeSyncService.syncGeneratedReport()`
+   (`ReportKnowledgeSyncService.java:64-73`, chạy `@Async("taskExecutor")`
+   trong 1 transaction MỚI `REQUIRES_NEW`), listener chỉ chạy **sau khi** row
+   `Report` chắc chắn đã commit vào MySQL — không có race condition nào khiến
+   event bắn ra trước khi report thật sự tồn tại bền vững.
+3. Listener gọi lại đúng hàm `index()` mô tả ở mục 0.10.15 bước 4 — cùng 1
+   pipeline, không phân biệt "sync thủ công" hay "sync tự động sau khi tạo
+   PDF".
+4. Nếu bác sĩ bấm lại nút "Tạo báo cáo" khi report **đã** `REPORT_GENERATED`
+   và file PDF vẫn còn trên đĩa, `generateAndSavePdfReport()` **không** render
+   lại, chỉ phát lại cùng loại event cho `report.getId()` cũ — đây chính là
+   cách một report bị index lỗi/kẹt được "sửa" mà bác sĩ không cần thao tác gì
+   trong Kho tri thức, chỉ cần bấm lại nút Tạo báo cáo ở màn hình khám.
+
+---
+
+#### 0.10.17 Nền: `KnowledgeIndexingWorker` — thực sự đẩy vector vào Qdrant
+
+Không có request HTTP nào gọi trực tiếp worker này; nó là listener cho
+`KnowledgeIndexRequestedEvent` do 0.10.6/0.10.7/0.10.8/0.10.13 publish.
+`KnowledgeIndexingWorker.index()` (`KnowledgeIndexingWorker.java:34-41`):
+`@TransactionalEventListener(phase = AFTER_COMMIT, fallbackExecution = true)`
+đảm bảo **không bao giờ** index 1 upload đã bị rollback; `@Async("taskExecutor")`
+đẩy việc ra khỏi thread HTTP request (`AsyncConfig`, mục 2: 1 thread duy nhất,
+hàng đợi 20 — cố tình serialize để không làm quá tải Ollama/Qdrant cùng lúc).
+Trước khi làm việc thật, cũng khoá qua
+`KnowledgeDocumentOperationCoordinator.executeExclusively()` (cùng cơ chế khoá
+với xoá ở 0.10.14). `indexExclusively()` (dòng 43-75):
+
+1. `stateService.markProcessing(documentId)` (`KnowledgeIndexStateService.java`,
+   transaction `REQUIRES_NEW`) set `status=PROCESSING`; nếu document đã bị xoá
+   trước khi worker kịp chạy → trả `null`, worker dừng ngay, không làm gì thêm.
+2. `documentReader.read(knowledge)` đọc lại file từ đĩa (PDFBox/Tika/UTF-8 tuỳ
+   loại — cùng logic với `MedicalDocumentValidator` ở bước validate, nhưng lần
+   này đọc **toàn bộ** tài liệu, không sample).
+3. Với mỗi `Document` con trả về, gắn `metadata()` (dòng 92-108): `sourceKey`,
+   `knowledgeDocumentId`, `title`, `sourceType`, `reference` (URL gốc nếu có,
+   không thì `"knowledge-document:<id>"`), `accessScope`,
+   `publicationStatus="PUBLISHED"` cứng, và **chỉ khi** `accessScope=OWNER`
+   mới thêm `ownerUserId` (đúng chính là chỉ trường hợp file upload dạng
+   riêng tư; report dùng `ReportKnowledgeSyncService` tự gắn metadata OWNER
+   riêng, xem 0.10.15). PDF còn có thêm `page` theo từng đoạn (dòng 83-90).
+4. `splitter.apply(enriched)` — bean `medicalKnowledgeSplitter`
+   (`ChatAiConfiguration.java`, mục 2): chunk ~700 token, tối thiểu 250 ký tự
+   giữ lại, bỏ chunk dưới 20 ký tự, tối đa 10.000 chunk/nguồn. 0 chunk (tài
+   liệu không có text đọc được) → ném lỗi, rơi xuống `catch` thành `FAILED`.
+5. `vectorStore.delete(filter sourceKey == ...)` xoá sạch chunk cũ (idempotent
+   cho trường hợp reindex) **trước khi** `vectorStore.add(chunks)` — đây chính
+   là bước Spring AI **tự động gọi Ollama** để embedding từng chunk thành
+   vector rồi ghi (upsert) vào Qdrant.
+6. `stateService.markIndexed(documentId, chunks.size())`
+   (transaction `REQUIRES_NEW` riêng): ghi `status=INDEXED`, `chunkCount`,
+   `indexedAt`. Nếu hàm này trả `false` (document đã bị xoá đúng lúc giữa bước
+   5 và bước 6), worker **tự xoá lại** chính các vector vừa thêm ở bước 5 để
+   không để lại "vector mồ côi" trong Qdrant không có metadata MySQL tương ứng.
+7. Bất kỳ `RuntimeException`/`LinkageError` nào trong toàn bộ quá trình →
+   log lỗi, `stateService.markFailedIfPresent()` ghi `status=FAILED` +
+   `errorMessage` (cắt ở 1000 ký tự) **chỉ khi** document vẫn còn tồn tại
+   (best-effort, không "hồi sinh" 1 document đã bị người dùng xoá).
+
+---
+
+#### 0.10.18 Nền: job quét định kỳ vá report bị bỏ sót
+
+`ReportKnowledgeSyncService.syncNewReports()`
+(`ReportKnowledgeSyncService.java:75-92`), `@Scheduled` mỗi
+`reportSyncDelayMs` (mặc định 300.000 ms = 5 phút,
+`application.yaml:113`, cần `@EnableScheduling` trên `BeApplication`, mục 2).
+Không do FE gọi, không cần người dùng thao tác gì. Mỗi lần chạy: 1 câu SQL
+`LEFT JOIN knowledge_documents ON source_key = CONCAT('report:', r.id)` tìm tối
+đa 100 report có bác sĩ phụ trách nhưng **chưa** có knowledge row, hoặc có
+nhưng chưa `INDEXED`, hoặc `checksum` khác giá trị schema hiện tại
+(`'report-metadata-v2'` — dùng như một "phiên bản format metadata", tăng lên
+mỗi khi cấu trúc text/metadata index report đổi, để tự động re-index toàn bộ
+report cũ theo format mới mà không cần migration thủ công). Với mỗi report,
+gọi lại đúng `index()` (0.10.15 bước 4); lỗi từng report được log và bỏ qua,
+không chặn các report còn lại trong batch 100.
+
+---
 
 The production files that directly implement this feature are:
 
@@ -642,30 +1412,31 @@ public ReportResponse generateAndSavePdfReport(
                 .filter(this::reportFileExists)
                 .orElse(null);
         if (existingReport != null) {
-            // PUBLISH #1 - "reuse" path: no new Report row, no new PDF, but the event still
-            // fires. This is the ONLY way a stuck/failed knowledge row gets retried without
-            // the doctor having to somehow "un-generate" a report first - they just call
-            // generate-report again (any client retry, or the FE resending on a stale UI
-            // state) and this branch alone repairs indexing.
+            // PHÁT SỰ KIỆN #1 - nhánh "dùng lại": không có Report row mới, không có PDF mới,
+            // nhưng sự kiện vẫn được phát. Đây là CÁCH DUY NHẤT để 1 knowledge row bị kẹt/lỗi
+            // được thử lại mà bác sĩ không cần "hủy generate" report trước - họ chỉ cần gọi lại
+            // generate-report (client tự retry, hoặc FE gửi lại từ UI cũ) là nhánh này tự sửa
+            // lại việc index.
             eventPublisher.publishEvent(new ReportKnowledgeSyncRequestedEvent(existingReport.getId()));
             return toResponse(existingReport);
         }
-        // existingReport == null: status says REPORT_GENERATED but no live file - falls
-        // through to render again below, which will hit PUBLISH #2 with a FRESH report ID.
+        // existingReport == null: status báo REPORT_GENERATED nhưng không còn file thật - rơi
+        // xuống dưới để render lại, sẽ chạm PHÁT SỰ KIỆN #2 với 1 report ID HOÀN TOÀN MỚI.
     }
     requireVerified(examination, "generating");
 
-    // ... build ReportForm, render PDF, move file (lines 125-145; no RAG-relevant lines here) ...
+    // ... dựng ReportForm, render PDF, di chuyển file (dòng 125-145; không có dòng nào liên quan RAG ở đây) ...
 
     Report report = new Report();
-    // ... report.set*(...) (lines 148-155; no RAG-relevant lines here) ...
+    // ... report.set*(...) (dòng 148-155; không có dòng nào liên quan RAG ở đây) ...
     Report savedReport = reportRepository.save(report);
-    // PUBLISH #2 - "first generation or recovery" path: a brand-new (or freshly re-rendered)
-    // Report row exists NOW, saved in the SAME transaction as everything above it. Because
-    // Spring only actually delivers this event after the surrounding @Transactional commits
-    // (see ReportKnowledgeSyncService.syncGeneratedReport(), annotated separately below),
-    // the listener is GUARANTEED to find savedReport.getId() persisted in MySQL by the time
-    // it runs - there is no race where the event fires before the report row is durable.
+    // PHÁT SỰ KIỆN #2 - nhánh "generate lần đầu hoặc phục hồi": 1 Report row hoàn toàn mới
+    // (hoặc vừa được render lại) NGAY LÚC NÀY đã tồn tại, được lưu trong CÙNG transaction với
+    // mọi thứ ở trên. Vì Spring chỉ thực sự gửi sự kiện này SAU KHI @Transactional bao quanh
+    // commit xong (xem ReportKnowledgeSyncService.syncGeneratedReport(), chú thích riêng bên
+    // dưới), listener CHẮC CHẮN tìm thấy savedReport.getId() đã được lưu bền trong MySQL vào
+    // lúc nó chạy - không có race condition nào khiến sự kiện phát ra trước khi report row
+    // thực sự tồn tại lâu dài.
     eventPublisher.publishEvent(new ReportKnowledgeSyncRequestedEvent(savedReport.getId()));
 
     examination.setFindings(String.join("\n", form.findings()));
@@ -673,9 +1444,9 @@ public ReportResponse generateAndSavePdfReport(
     examination.setStatus(ExaminationStatus.REPORT_GENERATED);
     examinationRepository.save(examination);
     return toResponse(savedReport);
-    // Both PUBLISH #1 and PUBLISH #2 emit the SAME event type carrying only a report ID -
-    // ReportKnowledgeSyncService.syncGeneratedReport() (below) has no idea, and does not
-    // need to know, which branch produced it.
+    // Cả PHÁT SỰ KIỆN #1 lẫn #2 đều phát CÙNG 1 loại sự kiện, chỉ mang theo report ID -
+    // ReportKnowledgeSyncService.syncGeneratedReport() (bên dưới) không biết và cũng không
+    // cần biết nhánh nào đã tạo ra nó.
 }
 ```
 
@@ -765,43 +1536,43 @@ Source: `ChatOrchestratorService.java:33-57`.
 
 ```java
 public ChatAnswerResponse ask(Long sessionId, String question, String username) {
-    // 1. Resolve/create the owned session, build OLD history, then save the USER row.
-    //    The returned history deliberately does not yet contain `question`.
+    // 1. Lấy/tạo session thuộc sở hữu người gọi, dựng lịch sử CŨ, rồi mới lưu row USER.
+    //    Lịch sử trả về CỐ Ý chưa chứa `question` hiện tại.
     ChatSessionService.PreparedConversation conversation =
             chatSessionService.prepare(sessionId, question, username);
 
-    // 2. Role and user ID come from MySQL User, not from the model output.
-    //    These values later constrain SQL and Qdrant access.
+    // 2. Role và user ID lấy từ User trong MySQL, không phải từ output của model.
+    //    2 giá trị này sau đó dùng để giới hạn quyền truy cập SQL và Qdrant.
     String roleCode = conversation.user().getRole().getCode();
     String history = conversation.history();
 
-    // 3. Gemini returns structured JSON mapped to ChatRoutingDecision.
-    //    normalize prevents a null route from crashing the switch.
+    // 3. Gemini trả JSON có cấu trúc, map vào ChatRoutingDecision.
+    //    normalize() ngăn route null làm crash switch bên dưới.
     ChatRoutingDecision decision = normalize(aiGateway.route(question, roleCode, history));
 
-    // 4. Java, not Gemini, chooses the exact allowed execution branch.
+    // 4. Java, KHÔNG PHẢI Gemini, mới là bên chọn đúng nhánh thực thi được phép.
     AnswerResult result = switch (decision.route()) {
-        // No database/vector/model answer call. Return the router's clarification text.
+        // Không gọi database/vector/model nào cả. Trả thẳng câu hỏi làm rõ của router.
         case CLARIFICATION -> new AnswerResult(
                 new GeneratedChatAnswer(clarification(decision), null), List.of(), null);
 
-        // Run fixed SQL selected by enum, then ask Gemini only to phrase that result.
+        // Chạy SQL cố định theo enum, rồi chỉ nhờ Gemini diễn giải kết quả đó thành câu trả lời.
         case BUSINESS_DATA -> businessAnswer(question, username, decision, history);
 
-        // Search authorised vector chunks, then answer only when evidence exists.
+        // Tìm chunk vector đã qua lọc quyền, chỉ trả lời khi thực sự có evidence.
         case MEDICAL_RAG -> medicalAnswer(question, roleCode, conversation.user().getId(), history);
 
-        // Run business SQL first, use it to improve retrieval, then answer from both contexts.
+        // Chạy SQL nghiệp vụ trước, dùng kết quả đó cải thiện retrieval, rồi trả lời từ cả 2 nguồn.
         case HYBRID -> hybridAnswer(
                 question, username, roleCode, conversation.user().getId(), decision, history);
     };
 
-    // 5. The assistant row is persisted only after every required external call succeeded.
-    //    If Gemini/Qdrant fails earlier, the USER row from prepare() remains without this row.
+    // 5. Row ASSISTANT chỉ được lưu SAU KHI mọi lệnh gọi ngoài cần thiết đã thành công.
+    //    Nếu Gemini/Qdrant lỗi trước đó, row USER từ prepare() vẫn còn mà không có row này.
     ChatMessage savedMessage = chatSessionService.saveAssistantMessage(
             conversation.session(), decision.route().name(), result.answer());
 
-    // 6. Build API-only response. Sources/warning are returned now but not stored in ChatMessage.
+    // 6. Dựng response CHỈ để trả API. Sources/warning trả về ngay đây nhưng không lưu vào ChatMessage.
     return response(
             conversation.session().getId(),
             savedMessage.getId(),
@@ -812,26 +1583,25 @@ public ChatAnswerResponse ask(Long sessionId, String question, String username) 
 }
 ```
 
-The important invariant is that the model can classify but cannot broaden the
-backend's operational surface. A `BUSINESS_DATA` decision still goes through a
-finite Java `switch`; a `MEDICAL_RAG` decision still receives an authorization
-filter before searching Qdrant.
+Bất biến quan trọng: model chỉ được phân loại chứ không thể mở rộng phạm vi vận hành của
+backend. Quyết định `BUSINESS_DATA` vẫn phải đi qua đúng 1 `switch` hữu hạn của Java; quyết định
+`MEDICAL_RAG` vẫn phải qua lớp lọc quyền trước khi search Qdrant.
 
 ```java
 private AnswerResult medicalAnswer(String question, String roleCode, Long userId, String history) {
-    // Add bounded follow-up history to the vector query. This is retrieval context,
-    // not the entire model prompt history.
+    // Thêm 1 đoạn lịch sử follow-up có giới hạn vào câu truy vấn vector. Đây là ngữ cảnh cho
+    // retrieval, không phải toàn bộ lịch sử prompt gửi model.
     MedicalRetrievalResult result = medicalRagService.retrieve(
             contextualRetrievalQuery(question, history), roleCode, userId);
 
     if (result.isEmpty()) {
-        // Do not ask Gemini to answer a medical question with no approved evidence.
+        // Không yêu cầu Gemini trả lời câu hỏi y khoa khi không có evidence đã duyệt nào.
         return new AnswerResult(new GeneratedChatAnswer(
                 "I could not find sufficient approved medical evidence in the knowledge base.", null),
                 List.of(), MEDICAL_WARNING);
     }
 
-    // `result.context()` contains only chunks which passed Qdrant similarity and scope filters.
+    // `result.context()` chỉ chứa chunk đã qua cả bộ lọc similarity lẫn bộ lọc phạm vi của Qdrant.
     return new AnswerResult(
             aiGateway.answerMedical(question, result.context(), history),
             result.sources(),
@@ -841,23 +1611,23 @@ private AnswerResult medicalAnswer(String question, String roleCode, Long userId
 private AnswerResult hybridAnswer(
         String question, String username, String roleCode, Long userId,
         ChatRoutingDecision decision, String history) {
-    // The report/examination value comes from controlled MySQL SQL, before any LLM answer.
+    // Giá trị report/examination lấy từ SQL MySQL đã kiểm soát, TRƯỚC khi có bất kỳ câu trả lời LLM nào.
     BusinessQueryResult business = businessDataQueryService.execute(decision, username);
 
-    // Including that factual data in the retrieval query makes a guideline search specific
-    // to the selected report, diagnosis or grade.
+    // Đưa dữ liệu thực tế đó vào câu truy vấn retrieval khiến việc tìm guideline trở nên đặc thù
+    // theo đúng report, chẩn đoán hoặc độ KL đã chọn.
     MedicalRetrievalResult medical = medicalRagService.retrieve(
             contextualRetrievalQuery(question + "\nHEALTHSYNC DATA:\n" + business.context(), history),
             roleCode, userId);
 
     if (medical.isEmpty()) {
-        // The user still receives correct operational data; warning remains because request was medical.
+        // Người dùng vẫn nhận đúng dữ liệu vận hành; cảnh báo vẫn giữ vì câu hỏi vốn có tính y khoa.
         return new AnswerResult(
                 aiGateway.answerBusiness(question, business.context(), history),
                 business.sources(), MEDICAL_WARNING);
     }
 
-    // Preserve database source first, append clinical-evidence sources after it.
+    // Giữ nguồn database trước, nối thêm nguồn evidence lâm sàng vào sau.
     List<ChatSourceResponse> sources = new ArrayList<>(business.sources());
     sources.addAll(medical.sources());
     return new AnswerResult(
@@ -873,37 +1643,37 @@ Source: `ChatSessionService.java:90-108`, `180-213`.
 ```java
 @Transactional
 public PreparedConversation prepare(Long sessionId, String question, String username) {
-    // Look up the principal's actual User. Missing user is 404; no anonymous fallback exists.
+    // Tra đúng User thật của người gọi. Không tìm thấy user thì 404, không có nhánh anonymous nào.
     User user = requireUser(username);
 
-    // First question creates a session and derives its title from the question.
-    // Existing conversation must belong to exactly this user.
+    // Câu hỏi đầu tiên tạo session mới và tự đặt tiêu đề theo câu hỏi đó.
+    // Session đã có từ trước bắt buộc phải thuộc ĐÚNG người dùng này.
     ChatSession session = sessionId == null
             ? createSession(user, titleFromQuestion(question), null)
             : requireOwnedSession(sessionId, user);
 
-    // Closed conversations retain history but cannot accept a new message.
+    // Hội thoại đã đóng vẫn giữ lịch sử nhưng không nhận tin nhắn mới.
     if (!session.isActive()) {
         throw new IllegalArgumentException("Chat session is inactive");
     }
 
-    // Query returns newest -> oldest. conversationContext() reverses selected messages
-    // so Gemini receives chronological `USER:` / `ASSISTANT:` history.
+    // Query trả về mới -> cũ. conversationContext() đảo ngược lại các tin nhắn đã chọn
+    // để Gemini nhận đúng thứ tự thời gian `USER:` / `ASSISTANT:`.
     String history = conversationContext(session, chatMessageRepository
             .findTop20BySessionIdOrderByCreatedAtDescIdDesc(session.getId()));
 
-    // Persist after history construction: caller supplies current question separately to Gemini.
+    // Lưu SAU KHI đã dựng xong lịch sử: câu hỏi hiện tại được gửi riêng cho Gemini bởi caller.
     saveMessage(session, ChatMessageRole.USER, question.trim(), null, null);
 
-    // A session created by an older/default flow becomes titled at first real question.
+    // Session được tạo từ luồng cũ/mặc định sẽ được đặt tiêu đề ngay ở câu hỏi thật đầu tiên.
     if (DEFAULT_TITLE.equals(session.getTitle())) {
         session.setTitle(titleFromQuestion(question));
     }
 
-    // Makes this session newest in its owner's session list.
+    // Đưa session này lên đầu danh sách session của chủ sở hữu (mới nhất).
     touch(session);
 
-    // Carries session/user/history to orchestrator, all scoped to this transaction's work.
+    // Mang session/user/history sang cho orchestrator, tất cả nằm trong phạm vi transaction này.
     return new PreparedConversation(session, user, history);
 }
 
@@ -917,8 +1687,8 @@ private String formatHistory(List<ChatMessage> newestFirst) {
     for (ChatMessage message : newestFirst) {
         int messageLength = message.getContent() == null ? 0 : message.getContent().length();
 
-        // Stop before adding an older row that would exceed 12,000 chars.
-        // `!selected.isEmpty()` means the newest message is retained even if it is very large.
+        // Dừng TRƯỚC KHI thêm 1 tin nhắn cũ hơn sẽ khiến tổng vượt quá 12.000 ký tự.
+        // `!selected.isEmpty()` nghĩa là tin nhắn mới nhất luôn được giữ dù nó rất dài.
         if (!selected.isEmpty() && characters + messageLength > MAX_HISTORY_CHARACTERS) {
             break;
         }
@@ -926,7 +1696,7 @@ private String formatHistory(List<ChatMessage> newestFirst) {
         characters += messageLength;
     }
 
-    // Repository order is newest-first; the prompt needs chronological order.
+    // Repository trả về theo thứ tự mới nhất trước; prompt cần thứ tự thời gian thuận.
     Collections.reverse(selected);
     StringBuilder history = new StringBuilder();
     for (ChatMessage message : selected) {
@@ -944,7 +1714,7 @@ private String conversationContext(ChatSession session, List<ChatMessage> messag
         return history;
     }
 
-    // This is not saved as a ChatMessage(SYSTEM); it exists only in this model prompt.
+    // Dòng này KHÔNG được lưu thành ChatMessage(SYSTEM) - nó chỉ tồn tại trong prompt gửi model.
     String examinationContext = "SYSTEM: This conversation is linked to examination ID "
             + session.getExamination().getId() + ".";
     return history.isBlank() ? examinationContext : examinationContext + "\n" + history;
@@ -962,32 +1732,32 @@ Source: `SpringAiChatGateway.java:59-127`.
 ```java
 public ChatRoutingDecision route(String question, String roleCode, String conversationHistory) {
     return chatClient.prompt()
-            // Role is substituted into router instructions. It is not supplied by user text.
+            // Role được chèn thẳng vào chỉ dẫn cho router. Không lấy từ text của user.
             .system(ROUTER_PROMPT.formatted(roleCode))
-            // History is clearly labelled follow-up context and question is delimited.
+            // Lịch sử được ghi nhãn rõ là ngữ cảnh follow-up, câu hỏi được phân tách riêng.
             .user(conversationPrompt(question, conversationHistory))
-            // Executes the configured Google GenAI provider request.
+            // Thực thi request tới provider Google GenAI đã cấu hình.
             .call()
-            // Spring AI maps the structured response to the Java record.
+            // Spring AI tự map response có cấu trúc vào Java record.
             .entity(ChatRoutingDecision.class);
 }
 
 private GeneratedChatAnswer answer(String question, String context, String conversationHistory) {
     ChatResponse response = chatClient.prompt()
-            // ANSWER_RULES say to use only context and ignore instructions inside it.
+            // ANSWER_RULES dặn chỉ dùng context, bỏ qua mọi chỉ dẫn nằm bên trong nó.
             .system(ANSWER_RULES)
-            // Context is appended by Java only after history/current-question delimiter.
+            // Context chỉ được Java nối vào SAU dấu phân cách lịch sử/câu hỏi hiện tại.
             .user(conversationPrompt(question, conversationHistory) + "\n\n" + context)
             .call()
-            // Unlike route(), retain raw response for usage metadata.
+            // Khác route(): giữ nguyên response thô để lấy usage metadata.
             .chatResponse();
 
     if (response == null || response.getResult() == null) {
-        // A syntactically successful but empty provider result does not become null application content.
+        // Kết quả provider thành công về mặt cú pháp nhưng rỗng - không để nó biến thành null.
         return new GeneratedChatAnswer("The AI provider returned an empty response.", null);
     }
 
-    // Usage data is optional across providers, so each nullable level is checked.
+    // Dữ liệu usage là tuỳ chọn, khác nhau giữa các provider, nên kiểm tra null ở từng cấp.
     Integer tokensUsed = response.getMetadata() == null || response.getMetadata().getUsage() == null
             ? null
             : response.getMetadata().getUsage().getTotalTokens();
@@ -999,7 +1769,7 @@ private GeneratedChatAnswer answer(String question, String context, String conve
 }
 
 private String conversationPrompt(String question, String conversationHistory) {
-    // Avoid passing Java null as literal model content.
+    // Tránh truyền thẳng Java null làm nội dung literal gửi cho model.
     String history = conversationHistory == null || conversationHistory.isBlank()
             ? "No previous messages."
             : conversationHistory;
@@ -1883,21 +2653,21 @@ Source: `BusinessDataQueryService.java:30-74`.
 
 ```java
 public BusinessQueryResult execute(ChatRoutingDecision decision, String username) {
-    // Do not trust the router for identity; reload current user and role from MySQL.
+    // Không tin danh tính do router trả về; đọc lại current user và role thẳng từ MySQL.
     User user = userRepository.findByUsername(username)
             .orElseThrow(() -> new ResourceNotFoundException("User not found"));
     String role = user.getRole().getCode();
 
-    // Missing intent cannot select a default query.
+    // Thiếu intent thì không thể chọn query mặc định nào cả.
     BusinessQueryIntent intent = decision.businessIntent() == null
             ? BusinessQueryIntent.UNKNOWN : decision.businessIntent();
 
-    // Clinical detail is blocked for ADMIN before any SQL is sent.
+    // Chi tiết lâm sàng bị chặn cho ADMIN TRƯỚC KHI bất kỳ SQL nào được gửi đi.
     if ("ADMIN".equals(role) && isClinical(intent)) {
         throw new UnauthorizedAccessException("Administrators cannot access clinical examination details");
     }
 
-    // Date conversion and named parameter binding are performed once for all branches.
+    // Chuyển đổi ngày và bind tham số có tên chỉ thực hiện 1 lần cho mọi nhánh.
     DateRange range = dateRange(decision, intent);
     MapSqlParameterSource parameters = new MapSqlParameterSource()
             .addValue("from", range.from())
@@ -1906,7 +2676,7 @@ public BusinessQueryResult execute(ChatRoutingDecision decision, String username
             .addValue("entityId", decision.entityId());
     boolean scopedDoctor = "DOCTOR".equals(role);
 
-    // This is the SQL allow-list. No router-produced SQL string is ever executed.
+    // Đây chính là whitelist SQL. Không có chuỗi SQL nào do router tạo ra từng được thực thi.
     return switch (intent) {
         case TODAY_EXAMINATION_COUNT, EXAMINATION_COUNT ->
                 countExaminations(parameters, range, scopedDoctor);
@@ -1921,20 +2691,20 @@ public BusinessQueryResult execute(ChatRoutingDecision decision, String username
 
 private BusinessQueryResult recentExaminations(
         MapSqlParameterSource parameters, DateRange range, boolean scopedDoctor) {
-    // A visit time takes precedence; older data may have only created_at.
+    // Ưu tiên visit_time; dữ liệu cũ có thể chỉ có created_at.
     String examinationTime = "COALESCE(e.visit_time, e.created_at)";
     String sql = "SELECT e.id AS examination_id, e.encounter_code, p.patient_code, "
             + "p.full_name AS patient_name, " + examinationTime + " AS visit_time, "
             + "e.status, e.priority FROM examinations e "
             + "JOIN patients p ON p.patient_code = e.patient_id "
             + "WHERE " + examinationTime + " >= :from AND " + examinationTime + " < :to"
-            // Doctors only see assigned rows. Heads are deliberately unscoped here.
+            // Bác sĩ chỉ thấy row được gán cho mình. Trưởng khoa CỐ Ý không bị giới hạn ở đây.
             + (scopedDoctor ? " AND e.doctor_id = :userId" : "")
-            // LIMIT is a hard data/control boundary, not an LLM request preference.
+            // LIMIT là ranh giới dữ liệu/kiểm soát cứng, không phải tuỳ chọn theo yêu cầu của LLM.
             + " ORDER BY " + examinationTime + " DESC, e.id DESC LIMIT 10";
 
     List<Map<String, Object>> rows = jdbcTemplate.queryForList(sql, parameters);
-    // The provider receives serialised result data and an explicit maximum, not JDBC access.
+    // Provider chỉ nhận dữ liệu kết quả đã serialize kèm giới hạn rõ ràng, không có quyền truy cập JDBC.
     return result("recent_examinations=" + rows + ", from=" + range.from() + ", to=" + range.to()
                     + ", maximum_results=10",
             "MySQL recent examinations", "database:examinations/recent");
@@ -1951,8 +2721,8 @@ Source: `MedicalRagService.java:29-85`.
 
 ```java
 public MedicalRetrievalResult retrieve(String question, String roleCode, Long userId) {
-    // Create filter before issuing vector request. The query cannot return unauthorized chunks
-    // and rely on a later Java filter.
+    // Tạo filter TRƯỚC KHI gửi request vector. Không để câu truy vấn trả về chunk chưa được
+    // phép rồi trông cậy vào 1 bước lọc Java sau đó.
     String scopeFilter = scopeFilter(roleCode, userId);
     SearchRequest request = SearchRequest.builder()
             .query(question)
@@ -1961,7 +2731,7 @@ public MedicalRetrievalResult retrieve(String question, String roleCode, Long us
             .filterExpression(scopeFilter)
             .build();
 
-    // Spring AI embeds question through configured Ollama model and calls Qdrant.
+    // Spring AI tự embedding câu hỏi qua model Ollama đã cấu hình rồi gọi Qdrant.
     List<Document> matches = vectorStore.similaritySearch(request);
     if (matches == null || matches.isEmpty()) {
         return new MedicalRetrievalResult("", List.of());
@@ -1970,7 +2740,7 @@ public MedicalRetrievalResult retrieve(String question, String roleCode, Long us
     StringBuilder context = new StringBuilder();
     Map<String, ChatSourceResponse> uniqueSources = new LinkedHashMap<>();
     for (Document document : matches) {
-        // Hard character cap protects the final Gemini prompt size.
+        // Giới hạn cứng số ký tự để bảo vệ kích thước prompt cuối cùng gửi Gemini.
         if (context.length() >= MAX_CONTEXT_CHARS) {
             break;
         }
@@ -1985,7 +2755,7 @@ public MedicalRetrievalResult retrieve(String question, String roleCode, Long us
                     .append(text, 0, Math.min(text.length(), remaining)).append("\n\n");
         }
 
-        // Multiple chunks from the same file may be in prompt; API returns it as one source.
+        // Nhiều chunk từ cùng 1 file có thể cùng nằm trong prompt; API chỉ trả về đúng 1 source cho chúng.
         String key = reference == null ? title : reference;
         uniqueSources.putIfAbsent(key,
                 new ChatSourceResponse(key, title,
@@ -1995,13 +2765,13 @@ public MedicalRetrievalResult retrieve(String question, String roleCode, Long us
 }
 
 private String scopeFilter(String roleCode, Long userId) {
-    // Indexer sets this on every chunk. Unpublished chunks cannot match any role.
+    // Cờ này do indexer gắn vào MỌI chunk. Chunk chưa publish thì không khớp được với role nào cả.
     String published = "publicationStatus == 'PUBLISHED' && ";
     if ("ADMIN".equals(roleCode)) {
         return published + "(accessScope == 'ALL' || accessScope == 'ADMIN')";
     }
     if ("HEAD_OF_DEPARTMENT".equals(roleCode) || "DEPARTMENT_HEAD".equals(roleCode)) {
-        // Department role does not automatically grant every private report.
+        // Role cấp khoa không tự động được cấp quyền xem MỌI report riêng tư.
         return published + "(accessScope == 'ALL' || accessScope == 'DOCTOR' "
                 + "|| (accessScope == 'OWNER' && (ownerUserId == " + userId
                 + " || assignedDoctorUserId == " + userId + ")))";
@@ -2021,10 +2791,10 @@ Source: `MedicalDocumentValidator.java:24-57`.
 
 ```java
 public void validate(byte[] bytes, String originalName, String contentType) {
-    // Reader chooses PDFBox, UTF-8 TextReader, or Tika based on type/name.
+    // Reader tự chọn PDFBox, UTF-8 TextReader, hoặc Tika dựa theo type/tên file.
     List<Document> documents = documentReader.read(bytes, originalName, contentType);
 
-    // Ignore null/non-text artifacts and merge readable pieces into classifier input.
+    // Bỏ qua các artifact null/không phải text, gộp các đoạn đọc được thành input cho classifier.
     String content = documents.stream()
             .filter(document -> document != null && document.isText())
             .map(Document::getText)
@@ -2032,11 +2802,11 @@ public void validate(byte[] bytes, String originalName, String contentType) {
             .reduce((left, right) -> left + "\n\n" + right)
             .orElseThrow(() -> new IllegalArgumentException("No readable text was found in the document"));
 
-    // Full short files are sent; large files send exactly three representative positions.
+    // File ngắn gửi nguyên văn; file lớn chỉ gửi đúng 3 vị trí đại diện.
     String samples = sample(content, properties.medicalValidationSampleChars());
     MedicalDocumentAssessment assessment = aiChatGateway.assessMedicalDocument(samples);
 
-    // Fail closed: provider failure/null, ambiguity, no confidence, or below threshold rejects source.
+    // Fail closed: provider lỗi/null, không rõ ràng, thiếu confidence, hoặc dưới ngưỡng đều bị từ chối.
     if (assessment == null || !Boolean.TRUE.equals(assessment.medical())
             || assessment.confidence() == null
             || assessment.confidence() < properties.medicalValidationMinConfidence()) {
@@ -2074,25 +2844,25 @@ Source: `KnowledgeIngestionService.java:62-88`.
 @Transactional
 public KnowledgeDocumentResponse upload(
         MultipartFile file, String title, KnowledgeAccessScope scope, String username) {
-    // Cheap request checks happen before loading potentially 50 MiB into memory.
+    // Kiểm tra rẻ tiền trước, trước khi phải nạp có thể tới 50 MiB vào bộ nhớ.
     validateFile(file);
     byte[] bytes = readBytes(file);
 
-    // Exact same bytes must not be represented by two file knowledge sources.
+    // Cùng 1 chuỗi byte không được phép tồn tại thành 2 knowledge source file khác nhau.
     String checksum = sha256(bytes);
     if (repository.existsBySourceKey("file:" + checksum)) {
         throw new IllegalArgumentException("This document has already been uploaded");
     }
 
-    // Synchronous semantic gate. It throws before any disk or DB side effect on rejection.
+    // Cổng kiểm tra ngữ nghĩa đồng bộ. Ném lỗi TRƯỚC khi có bất kỳ side-effect nào lên đĩa/DB nếu bị từ chối.
     medicalDocumentValidator.validate(bytes, file.getOriginalFilename(), file.getContentType());
     User user = findUser(username);
 
-    // Store under random server file name; never trust client pathname as server path.
+    // Lưu dưới tên file ngẫu nhiên phía server; không bao giờ tin đường dẫn client gửi lên làm path server.
     Path storagePath = storeFile(bytes, file.getOriginalFilename());
 
     KnowledgeDocument document = new KnowledgeDocument();
-    document.setSourceKey("file:" + checksum);       // also Qdrant deletion/group key
+    document.setSourceKey("file:" + checksum);       // đồng thời là key để xoá/group trong Qdrant
     document.setTitle(normalizeTitle(title, file.getOriginalFilename()));
     document.setSourceType(KnowledgeSourceType.FILE);
     document.setOriginalName(safeFileName(file.getOriginalFilename()));
@@ -2100,10 +2870,10 @@ public KnowledgeDocumentResponse upload(
     document.setStoragePath(storagePath.toString());
     document.setChecksum(checksum);
     document.setAccessScope(scope == null ? KnowledgeAccessScope.ALL : scope);
-    document.setUploadedBy(user);                     // needed for OWNER retrieval filter
-    document = repository.save(document);             // default status is PENDING from entity
+    document.setUploadedBy(user);                     // cần cho bộ lọc retrieval theo OWNER
+    document = repository.save(document);             // status mặc định là PENDING (định nghĩa trong entity)
 
-    // Worker listens after this transaction commits, so it can find metadata/file.
+    // Worker chỉ lắng nghe SAU KHI transaction này commit, nên chắc chắn tìm thấy metadata/file.
     requestIndex(document.getId());
     return toResponse(document);
 }
@@ -2122,7 +2892,7 @@ Source: `KnowledgeIndexingWorker.java:34-100`.
 @Async("taskExecutor")
 @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
 public void index(KnowledgeIndexRequestedEvent event) {
-    // Serialise index/delete for this document ID within this application process.
+    // Tuần tự hoá index/delete cho cùng 1 document ID, trong phạm vi 1 tiến trình ứng dụng.
     operationCoordinator.executeExclusively(event.documentId(), () -> {
         indexExclusively(event);
         return null;
@@ -2132,15 +2902,15 @@ public void index(KnowledgeIndexRequestedEvent event) {
 private void indexExclusively(KnowledgeIndexRequestedEvent event) {
     log.info("Starting knowledge indexing for document {}", event.documentId());
     try {
-        // New transaction makes PROCESSING visible immediately.
+        // Transaction mới giúp trạng thái PROCESSING hiển thị ngay lập tức.
         KnowledgeDocument knowledge = stateService.markProcessing(event.documentId());
         if (knowledge == null) {
-            // A delete may finish before queued async job begins.
+            // Có thể việc xoá đã hoàn tất trước khi job async xếp hàng kịp bắt đầu.
             log.info("Skipping indexing because knowledge document {} was deleted", event.documentId());
             return;
         }
 
-        // Parse original physical file and replace any parser metadata with access-safe metadata.
+        // Đọc lại file vật lý gốc, thay mọi metadata do parser sinh ra bằng metadata an toàn về quyền truy cập.
         List<Document> parsed = documentReader.read(knowledge);
         List<Document> enriched = parsed.stream()
                 .filter(document -> document != null && document.isText())
@@ -2151,13 +2921,13 @@ private void indexExclusively(KnowledgeIndexRequestedEvent event) {
             throw new IllegalArgumentException("No readable text was found in the document");
         }
 
-        // Reindex is replace-not-append: remove all old chunks for one logical source first.
+        // Reindex là THAY THẾ chứ không phải NỐI THÊM: xoá hết chunk cũ của 1 nguồn logic trước.
         vectorStore.delete(new FilterExpressionBuilder()
                 .eq("sourceKey", knowledge.getSourceKey()).build());
-        // Spring AI embeds every chunk using BGE-M3, then writes point/vector + metadata to Qdrant.
+        // Spring AI tự embedding từng chunk bằng BGE-M3, rồi ghi point/vector + metadata vào Qdrant.
         vectorStore.add(chunks);
 
-        // Deletion can occur between add() and status update. Do not leave orphan Qdrant chunks.
+        // Việc xoá có thể xảy ra giữa lúc add() và lúc cập nhật status. Không được để sót chunk mồ côi trong Qdrant.
         if (!stateService.markIndexed(event.documentId(), chunks.size())) {
             vectorStore.delete(new FilterExpressionBuilder()
                     .eq("sourceKey", knowledge.getSourceKey()).build());
@@ -2167,7 +2937,7 @@ private void indexExclusively(KnowledgeIndexRequestedEvent event) {
         log.info("Knowledge indexing completed for document {} with {} chunks",
                 event.documentId(), chunks.size());
     } catch (RuntimeException | LinkageError exception) {
-        // A failed job is observable/retryable through metadata, rather than silently disappearing.
+        // 1 job lỗi vẫn quan sát/thử lại được qua metadata, thay vì biến mất âm thầm.
         log.error("Knowledge indexing failed for document {}", event.documentId(), exception);
         stateService.markFailedIfPresent(event.documentId(), truncate(exception.getMessage()));
     }
@@ -2200,7 +2970,7 @@ Source: `ReportKnowledgeSyncService.java:94-140`.
 private KnowledgeDocumentResponse index(ReportKnowledge row) {
     String sourceKey = "report:" + row.reportId();
 
-    // Reuse one metadata row per report. Scheduled repair executes this same method.
+    // Dùng lại đúng 1 row metadata cho mỗi report. Cơ chế sửa chữa theo lịch cũng gọi đúng method này.
     KnowledgeDocument knowledge = repository.findBySourceKey(sourceKey)
             .orElseGet(KnowledgeDocument::new);
     knowledge.setSourceKey(sourceKey);
@@ -2208,12 +2978,12 @@ private KnowledgeDocumentResponse index(ReportKnowledge row) {
     knowledge.setSourceType(KnowledgeSourceType.REPORT);
     knowledge.setAccessScope(KnowledgeAccessScope.OWNER);
     knowledge.setStatus(KnowledgeDocumentStatus.PROCESSING);
-    // Marker lets scheduled sync detect older report metadata format.
+    // Marker giúp job sync theo lịch phát hiện metadata report còn ở định dạng cũ.
     knowledge.setChecksum("report-metadata-v2");
     knowledge.setUploadedBy(userRepository.findById(row.ownerUserId()).orElse(null));
     knowledge = repository.save(knowledge);
 
-    // This is the only report text embedded. It intentionally excludes patient PII and image paths.
+    // Đây là toàn bộ text của report được embedding. CỐ Ý loại trừ PII bệnh nhân và mọi đường dẫn ảnh.
     String text = "Approved HealthSync clinical report. Report ID: " + row.reportId()
             + ". Examination ID: " + row.examinationId()
             + ". Study date: " + nullable(row.studyDate())
@@ -2230,14 +3000,14 @@ private KnowledgeDocumentResponse index(ReportKnowledge row) {
     metadata.put("accessScope", KnowledgeAccessScope.OWNER.name());
     metadata.put("ownerUserId", row.ownerUserId());
     if (row.assignedDoctorUserId() != null) {
-        // MedicalRagService permits this doctor to retrieve owner's private report.
+        // Nhờ metadata này, MedicalRagService cho phép đúng bác sĩ này lấy được report riêng của chủ sở hữu.
         metadata.put("assignedDoctorUserId", row.assignedDoctorUserId());
     }
     metadata.put("publicationStatus", "PUBLISHED");
     List<Document> chunks = splitter.apply(List.of(new Document(text, metadata)));
 
     try {
-        // Same replacement semantics as file/URL indexing.
+        // Cùng ngữ nghĩa "thay thế" như khi index file/URL.
         vectorStore.delete(new FilterExpressionBuilder().eq("sourceKey", sourceKey).build());
         vectorStore.add(chunks);
         knowledge.setChunkCount(chunks.size());
@@ -2245,7 +3015,7 @@ private KnowledgeDocumentResponse index(ReportKnowledge row) {
         knowledge.setIndexedAt(LocalDateTime.now());
         knowledge.setErrorMessage(null);
     } catch (RuntimeException exception) {
-        // Unlike generated-PDF event caller, this method records FAILED before rethrowing.
+        // Khác với nơi gọi từ sự kiện PDF vừa tạo: method này ghi nhận FAILED TRƯỚC khi ném lại lỗi.
         knowledge.setStatus(KnowledgeDocumentStatus.FAILED);
         String message = exception.getMessage() == null ? "Report indexing failed" : exception.getMessage();
         knowledge.setErrorMessage(message.length() > 1000 ? message.substring(0, 1000) : message);
@@ -2270,19 +3040,19 @@ Source: `KnowledgeIngestionService.java:90-115`, `213-251`.
 ```java
 @Transactional
 public KnowledgeDocumentResponse addUrl(KnowledgeUrlRequest request, String username) {
-    // Reject unsupported/private URL before opening an outbound connection.
+    // Từ chối URL không hỗ trợ/riêng tư TRƯỚC KHI mở bất kỳ kết nối đi ra ngoài nào.
     URI uri = validatePublicUrl(request.url());
 
-    // URL identity is normalized URL text, unlike file identity which is byte checksum.
+    // Danh tính của URL là text URL đã chuẩn hoá, khác với file (danh tính là checksum của byte).
     String sourceKey = "url:" + sha256(uri.normalize().toString()
             .getBytes(java.nio.charset.StandardCharsets.UTF_8));
     if (repository.existsBySourceKey(sourceKey)) {
         throw new IllegalArgumentException("This URL has already been added");
     }
 
-    // RestClient has redirect disabled and download() enforces byte ceiling/HTTP success.
+    // RestClient đã tắt redirect và download() tự ép trần dung lượng/yêu cầu HTTP thành công.
     byte[] bytes = download(uri);
-    // URL content is treated as HTML input and must pass the same medical classifier.
+    // Nội dung URL được coi là input HTML, vẫn phải qua đúng bộ phân loại y khoa như file thường.
     medicalDocumentValidator.validate(bytes, "source.html", "text/html");
     Path storagePath = storeFile(bytes, "source.html");
 
@@ -2294,7 +3064,7 @@ public KnowledgeDocumentResponse addUrl(KnowledgeUrlRequest request, String user
     document.setOriginalName("source.html");
     document.setContentType("text/html");
     document.setStoragePath(storagePath.toString());
-    document.setChecksum(sha256(bytes));             // content checksum retained for diagnostics
+    document.setChecksum(sha256(bytes));             // giữ checksum nội dung để phục vụ chẩn đoán
     document.setAccessScope(request.accessScope() == null ? KnowledgeAccessScope.ALL : request.accessScope());
     document.setUploadedBy(findUser(username));
     document = repository.save(document);
@@ -2305,13 +3075,13 @@ public KnowledgeDocumentResponse addUrl(KnowledgeUrlRequest request, String user
 private URI validatePublicUrl(String rawUrl) {
     URI uri = URI.create(rawUrl.trim());
 
-    // A relative URI, non-HTTP protocol, missing host, or user-info form is never acceptable.
+    // URI tương đối, giao thức không phải HTTP, thiếu host, hoặc có dạng user-info đều không bao giờ được chấp nhận.
     if (!("http".equalsIgnoreCase(uri.getScheme()) || "https".equalsIgnoreCase(uri.getScheme()))
             || uri.getHost() == null || uri.getUserInfo() != null) {
         throw new IllegalArgumentException("Only absolute HTTP or HTTPS URLs are supported");
     }
     try {
-        // Resolve all A/AAAA answers. A single private/local answer rejects request.
+        // Resolve TOÀN BỘ bản ghi A/AAAA. Chỉ cần 1 kết quả riêng tư/nội bộ là từ chối cả request.
         for (InetAddress address : InetAddress.getAllByName(uri.getHost())) {
             if (address.isAnyLocalAddress() || address.isLoopbackAddress()
                     || address.isLinkLocalAddress() || address.isSiteLocalAddress()
@@ -2337,34 +3107,34 @@ Source: `KnowledgeDocumentReader.java:22-57`.
 
 ```java
 public List<Document> read(KnowledgeDocument knowledge) {
-    // Persistent metadata tells reader where source bytes live and what the original type was.
+    // Metadata đã lưu bền cho reader biết byte gốc nằm ở đâu và kiểu file gốc là gì.
     return read(new FileSystemResource(knowledge.getStoragePath()),
             knowledge.getOriginalName(), knowledge.getContentType());
 }
 
 public List<Document> read(byte[] bytes, String originalName, String contentType) {
-    // ByteArrayResource normally has no filename; custom resource restores it for Tika detection.
+    // ByteArrayResource bình thường không có tên file; resource tự viết khôi phục lại tên để Tika nhận diện được.
     Resource resource = new NamedByteArrayResource(bytes, originalName);
     return read(resource, originalName, contentType);
 }
 
 private List<Document> read(Resource resource, String originalName, String contentType) {
     if (isType(originalName, contentType, "pdf", "application/pdf")) {
-        // PDFBox performs text extraction. It does not OCR image-only scanned PDF pages.
+        // PDFBox chỉ trích xuất text. Không OCR các trang PDF scan thuần ảnh.
         return readPdf(resource);
     }
     if (isType(originalName, contentType, "txt", "text/plain")) {
-        // Explicit UTF-8 prevents platform-default encoding differences.
+        // Ép UTF-8 rõ ràng để tránh khác biệt encoding mặc định giữa các platform.
         TextReader reader = new TextReader(resource);
         reader.setCharset(StandardCharsets.UTF_8);
         return reader.get();
     }
-    // DOC/DOCX and stored HTML reach Apache Tika through Spring AI reader.
+    // DOC/DOCX và HTML đã lưu đều đi qua Apache Tika thông qua reader của Spring AI.
     return new TikaDocumentReader(resource).get();
 }
 
 private boolean isType(String originalName, String contentType, String extension, String mediaType) {
-    // Declared known media type wins; extension is compatibility fallback.
+    // Media type khai báo rõ ràng luôn được ưu tiên; extension chỉ là phương án dự phòng tương thích.
     if (mediaType.equalsIgnoreCase(contentType)) {
         return true;
     }
@@ -2383,17 +3153,17 @@ Source: `KnowledgeDocumentDeletionService.java:27-50`.
 ```java
 @Transactional
 public void delete(Long id) {
-    // The outer coordinator lock has already serialized delete versus worker for this ID.
+    // Lock của coordinator ở tầng ngoài đã tuần tự hoá delete với worker cho cùng ID này rồi.
     KnowledgeDocument document = repository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Knowledge document not found"));
 
-    // sourceKey is attached to each chunk, so this deletes the whole logical source in Qdrant.
+    // sourceKey được gắn vào MỌI chunk, nên lệnh này xoá trọn vẹn 1 nguồn logic trong Qdrant.
     vectorStore.delete(new FilterExpressionBuilder().eq("sourceKey", document.getSourceKey()).build());
 
-    // Delete metadata after vector deletion; FK/user lifecycle rules are handled by schema.
+    // Xoá metadata SAU KHI đã xoá vector; các ràng buộc FK/vòng đời user do schema tự lo.
     repository.delete(document);
 
-    // FILE/URL sources remove original bytes. REPORT has no storage path and becomes a no-op.
+    // Nguồn FILE/URL thì xoá luôn byte gốc. REPORT không có storage path nên bước này thành no-op.
     deleteStoredFile(document);
 }
 
@@ -2404,7 +3174,7 @@ private void deleteStoredFile(KnowledgeDocument document) {
     try {
         Path root = Path.of(properties.knowledgeDir()).toAbsolutePath().normalize();
         Path storedFile = Path.of(document.getStoragePath()).toAbsolutePath().normalize();
-        // Database corruption must not turn API delete into arbitrary server-file deletion.
+        // Dữ liệu DB hỏng không được phép biến 1 lệnh xoá qua API thành xoá tuỳ ý file bất kỳ trên server.
         if (!storedFile.startsWith(root)) {
             throw new IllegalStateException("Invalid knowledge storage path");
         }
@@ -2477,23 +3247,23 @@ public class ChatAiConfiguration {
 
     @Bean
     ChatClient healthSyncChatClient(ChatClient.Builder builder) {
-        // Builder has already selected provider/model from spring.ai YAML configuration.
-        // This bean is injected into SpringAiChatGateway by type.
+        // Builder đã tự chọn sẵn provider/model từ cấu hình YAML spring.ai.
+        // Bean này được inject vào SpringAiChatGateway theo type.
         return builder.build();
     }
 
     @Bean
     TokenTextSplitter medicalKnowledgeSplitter() {
         return TokenTextSplitter.builder()
-                // Target semantic chunk size passed to the embedding model.
+                // Kích thước chunk ngữ nghĩa mục tiêu gửi cho model embedding.
                 .withChunkSize(700)
-                // Avoid tiny trailing fragments when possible.
+                // Tránh các mảnh nhỏ lẻ còn sót lại ở cuối nếu có thể.
                 .withMinChunkSizeChars(250)
-                // Fragments below this are retained/excluded according to splitter logic, not embedded alone.
+                // Mảnh nhỏ hơn giá trị này thì được giữ/loại tuỳ theo logic splitter, không tự embedding riêng lẻ.
                 .withMinChunkLengthToEmbed(20)
-                // Prevent a malformed source from creating unbounded vector writes.
+                // Ngăn 1 nguồn dữ liệu hỏng tạo ra số lượng ghi vector không giới hạn.
                 .withMaxNumChunks(10_000)
-                // Keep paragraph/sentence delimiters to preserve semantic boundaries.
+                // Giữ lại dấu phân cách đoạn văn/câu để bảo toàn ranh giới ngữ nghĩa.
                 .withKeepSeparator(true)
                 .build();
     }
@@ -2502,7 +3272,7 @@ public class ChatAiConfiguration {
     RestClient knowledgeRestClient(RestClient.Builder builder) {
         HttpClient httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(5))
-                // A redirect could move a validated public URL to a private address.
+                // 1 redirect có thể đưa 1 URL công khai đã validate chuyển hướng sang địa chỉ riêng tư.
                 .followRedirects(HttpClient.Redirect.NEVER)
                 .build();
         JdkClientHttpRequestFactory requestFactory = new JdkClientHttpRequestFactory(httpClient);
@@ -2520,19 +3290,19 @@ Source: `SpringAiChatGateway.java:59-100`.
 @Override
 public MedicalDocumentAssessment assessMedicalDocument(String sampledContent) {
     return chatClient.prompt()
-            // Strict classifier prompt is different from answer prompt.
+            // Prompt classifier nghiêm ngặt, khác hẳn prompt trả lời thường.
             .system(MEDICAL_DOCUMENT_CLASSIFIER_PROMPT)
-            // Samples remain user data; prompt explicitly says not to obey source instructions.
+            // Mẫu vẫn là dữ liệu người dùng; prompt nói rõ không được tuân theo chỉ dẫn nằm trong đó.
             .user("Document samples:\n" + sampledContent)
             .call()
-            // Provider JSON is decoded to Boolean/Double/reason record.
+            // JSON từ provider được decode thẳng vào record Boolean/Double/reason.
             .entity(MedicalDocumentAssessment.class);
 }
 
 @Override
 public GeneratedChatAnswer answerBusiness(
         String question, String businessContext, String conversationHistory) {
-    // Only label is added here; `answer()` handles provider call/empty response/usage.
+    // Chỉ thêm nhãn ở đây; `answer()` lo phần gọi provider/response rỗng/usage.
     return answer(question, "BUSINESS DATA CONTEXT:\n" + businessContext, conversationHistory);
 }
 
@@ -2545,7 +3315,7 @@ public GeneratedChatAnswer answerMedical(
 @Override
 public GeneratedChatAnswer answerHybrid(
         String question, String businessContext, String medicalContext, String conversationHistory) {
-    // Deliberately preserves provenance instead of blending two source types in Java.
+    // Cố ý giữ nguyên nguồn gốc từng loại context thay vì trộn 2 loại nguồn lại ngay trong Java.
     return answer(question, "BUSINESS DATA CONTEXT:\n" + businessContext
             + "\n\nRETRIEVED MEDICAL CONTEXT:\n" + medicalContext, conversationHistory);
 }
@@ -2560,7 +3330,7 @@ Source: `ChatController.java:42-84`.
 @PreAuthorize(CHAT_ACCESS)
 public ResponseEntity<ChatAnswerResponse> ask(
         @Valid @RequestBody ChatQuestionRequest request, Principal principal) {
-    // @Valid checks question before service call; Principal username comes from JWT security context.
+    // @Valid kiểm tra câu hỏi trước khi gọi service; username của Principal lấy từ SecurityContext của JWT.
     return ResponseEntity.ok(chatOrchestratorService.ask(
             request.sessionId(), request.question(), principal.getName()));
 }
@@ -2569,7 +3339,7 @@ public ResponseEntity<ChatAnswerResponse> ask(
 @PreAuthorize(CHAT_ACCESS)
 public ResponseEntity<ChatSessionResponse> createSession(
         @Valid @RequestBody CreateChatSessionRequest request, Principal principal) {
-    // New resource is the only chat endpoint that returns 201.
+    // Đây là endpoint chat DUY NHẤT tạo resource mới nên trả 201.
     return ResponseEntity.status(HttpStatus.CREATED)
             .body(chatSessionService.create(request, principal.getName()));
 }
@@ -2585,7 +3355,7 @@ public ResponseEntity<PageResponse<ChatSessionResponse>> getSessions(
 @PreAuthorize(CHAT_ACCESS)
 public ResponseEntity<PageResponse<ChatMessageResponse>> getMessages(
         @PathVariable Long sessionId, @PageableDefault(size = 50) Pageable pageable, Principal principal) {
-    // Service checks ownership before it queries messages.
+    // Service tự kiểm tra quyền sở hữu TRƯỚC KHI truy vấn tin nhắn.
     return ResponseEntity.ok(chatSessionService.getMessages(sessionId, principal.getName(), pageable));
 }
 
@@ -2608,7 +3378,7 @@ Source: `KnowledgeController.java:53-163`.
 public ResponseEntity<KnowledgeDocumentResponse> upload(
         @RequestPart MultipartFile file, @RequestParam(required = false) String title,
         @RequestParam(defaultValue = "ALL") KnowledgeAccessScope accessScope, Principal principal) {
-    // Accepted means source metadata is durable; indexing may still be PENDING/FAILED later.
+    // ACCEPTED nghĩa là metadata nguồn đã được lưu bền; việc index vẫn có thể là PENDING/FAILED sau đó.
     return ResponseEntity.status(HttpStatus.ACCEPTED)
             .body(ingestionService.upload(file, title, accessScope, principal.getName()));
 }
@@ -2650,16 +3420,16 @@ Source: `ChatOrchestratorService.java:59-148`.
 ```java
 private AnswerResult businessAnswer(
         String question, String username, ChatRoutingDecision decision, String history) {
-    // The SQL service receives decision only as a typed enum/ID/date carrier.
+    // Service SQL chỉ nhận decision dưới dạng enum/ID/ngày đã đánh kiểu, không nhận gì khác.
     BusinessQueryResult result = businessDataQueryService.execute(decision, username);
-    // The model receives serialised controlled context, not JdbcTemplate or SQL text generation authority.
+    // Model chỉ nhận context đã kiểm soát và serialize sẵn, không có quyền dùng JdbcTemplate hay tự sinh SQL.
     return new AnswerResult(
             aiGateway.answerBusiness(question, result.context(), history), result.sources(), null);
 }
 
 private ChatRoutingDecision normalize(ChatRoutingDecision decision) {
     if (decision == null || decision.route() == null) {
-        // Router failure-to-structure degrades to a question rather than dereferencing null.
+        // Router thất bại không tạo được cấu trúc thì hạ xuống thành câu hỏi làm rõ, thay vì dereference null.
         return new ChatRoutingDecision(ChatRoute.CLARIFICATION, null, null, null, null,
                 "Could you clarify whether you need HealthSync data or medical information?");
     }
@@ -2667,7 +3437,7 @@ private ChatRoutingDecision normalize(ChatRoutingDecision decision) {
 }
 
 private String clarification(ChatRoutingDecision decision) {
-    // Model may omit clarification question. A local text keeps API response always nonblank.
+    // Model có thể bỏ trống câu hỏi làm rõ. Text mặc định giữ cho response API không bao giờ rỗng.
     return decision.clarificationQuestion() == null || decision.clarificationQuestion().isBlank()
             ? "Could you provide more detail about the information you need?"
             : decision.clarificationQuestion();
@@ -2677,7 +3447,7 @@ private String contextualRetrievalQuery(String question, String history) {
     if (history == null || history.isBlank()) {
         return question;
     }
-    // Retain tail because most recent turns are most relevant and cap Qdrant embedding input.
+    // Giữ lại phần đuôi vì các lượt gần nhất liên quan nhất, đồng thời giới hạn input embedding gửi Qdrant.
     int start = Math.max(0, history.length() - 2_000);
     return history.substring(start) + "\nCURRENT QUESTION: " + question;
 }
@@ -2687,9 +3457,9 @@ private ChatAnswerResponse response(
         List<ChatSourceResponse> sources, String warning) {
     return new ChatAnswerResponse(
             sessionId, messageId, route.name(), answer.content(),
-            // Prevent later mutable list changes from changing returned response.
+            // Ngăn thay đổi list mutable về sau làm đổi luôn response đã trả ra.
             List.copyOf(sources), warning,
-            // This is application response time, not model provider's time.
+            // Đây là thời điểm response của ứng dụng, không phải thời điểm của model provider.
             LocalDateTime.now(), answer.tokensUsed());
 }
 ```
@@ -2701,7 +3471,7 @@ Source: `ChatSessionService.java:46-88`, `110-178`, `215-250`.
 ```java
 @Transactional
 public ChatSessionResponse update(Long sessionId, UpdateChatSessionRequest request, String username) {
-    // JSON `{}` is invalid even though each field is individually optional.
+    // JSON `{}` không hợp lệ dù từng field riêng lẻ đều là tuỳ chọn.
     if (request == null || (request.title() == null && request.active() == null)) {
         throw new IllegalArgumentException("At least one session field must be provided");
     }
@@ -2723,7 +3493,7 @@ public ChatSessionResponse update(Long sessionId, UpdateChatSessionRequest reque
 @Transactional
 public ChatMessage saveAssistantMessage(
         ChatSession session, String route, GeneratedChatAnswer answer) {
-    // Unlike USER messages, assistant rows retain the route and provider token accounting.
+    // Khác với tin nhắn USER, row ASSISTANT còn giữ thêm route và số liệu token của provider.
     ChatMessage message = saveMessage(session, ChatMessageRole.ASSISTANT,
             answer.content(), route, answer.tokensUsed());
     touch(session);
@@ -2738,7 +3508,7 @@ private ChatSession createSession(User user, String title, Long examinationId) {
     if (examinationId != null) {
         Examination examination = examinationRepository.findById(examinationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Examination not found"));
-        // Only an assigned doctor or head can attach private clinical examination context.
+        // Chỉ bác sĩ được gán hoặc trưởng khoa mới được gắn ngữ cảnh examination lâm sàng riêng tư vào chat.
         authorizeExamination(user, examination);
         session.setExamination(examination);
     }
@@ -2761,13 +3531,13 @@ private String normalizeTitle(String title) {
 }
 
 private String titleFromQuestion(String question) {
-    // Collapse whitespace in title only; saved message preserves user's original internal spacing.
+    // Chỉ gộp khoảng trắng ở tiêu đề; tin nhắn đã lưu vẫn giữ nguyên khoảng trắng gốc bên trong của người dùng.
     String normalized = question == null ? DEFAULT_TITLE : question.trim().replaceAll("\\s+", " ");
     return normalized.isEmpty() ? DEFAULT_TITLE : truncateTitle(normalized);
 }
 
 private String truncateTitle(String title) {
-    // 157 plus `...` honors database/DTO maximum 160 characters.
+    // 157 cộng `...` để đảm bảo đúng giới hạn tối đa 160 ký tự của database/DTO.
     return title.length() <= 160 ? title : title.substring(0, 157) + "...";
 }
 ```
@@ -2984,7 +3754,7 @@ private BusinessQueryResult examinationResult(
             + (scopedDoctor ? " AND e.doctor_id = :userId" : "");
     List<Map<String, Object>> rows = jdbcTemplate.queryForList(sql, parameters);
     if (rows.isEmpty()) {
-        // Same response intentionally covers absent row and inaccessible doctor-owned row.
+        // Response GIỐNG HỆT NHAU cho cả 2 trường hợp: không có row, hoặc có row nhưng bác sĩ khác sở hữu.
         throw new ResourceNotFoundException("Examination not found or not accessible");
     }
     return result(rows.getFirst().toString(), "MySQL examination " + examinationId,
@@ -3014,7 +3784,7 @@ private DateRange dateRange(ChatRoutingDecision decision, BusinessQueryIntent in
             && (decision.dateTo() == null || decision.dateTo().isBlank());
     if (noExplicitDate && intent != BusinessQueryIntent.TODAY_EXAMINATION_COUNT
             && intent != BusinessQueryIntent.TODAY_EXAMINATION_LIST) {
-        // Non-today aggregate with no date means full known historical window.
+        // Truy vấn tổng hợp không phải "hôm nay" mà không có ngày cụ thể thì lấy trọn khung lịch sử đã biết.
         return new DateRange(LocalDate.of(1970, 1, 1).atStartOfDay(),
                 LocalDate.now().plusDays(1).atStartOfDay());
     }
@@ -3023,7 +3793,7 @@ private DateRange dateRange(ChatRoutingDecision decision, BusinessQueryIntent in
     if (to.isBefore(from)) {
         throw new IllegalArgumentException("dateTo must not be before dateFrom");
     }
-    // SQL uses [from, next-day-after-to), avoiding end-of-day nanosecond ambiguity.
+    // SQL dùng khoảng [from, ngày-sau-to), tránh mập mờ nano-giây ở cuối ngày.
     return new DateRange(from.atStartOfDay(), to.plusDays(1).atStartOfDay());
 }
 
@@ -3048,11 +3818,11 @@ Source: `KnowledgeIngestionService.java:136-198`, `200-329`.
 public KnowledgeDocumentFile getFile(Long id) {
     KnowledgeDocument document = findDocument(id);
     if (document.getStoragePath() == null || document.getStoragePath().isBlank()) {
-        // REPORT document metadata has no upload file.
+        // Metadata của document loại REPORT không có file upload nào cả.
         throw new ResourceNotFoundException("Knowledge document file not found");
     }
     try {
-        // toRealPath resolves links before prefix check, preventing symlink escape from knowledge root.
+        // toRealPath tự resolve symlink TRƯỚC khi kiểm tra prefix, ngăn symlink thoát khỏi thư mục knowledge gốc.
         Path root = Path.of(properties.knowledgeDir()).toAbsolutePath().normalize().toRealPath();
         Path path = Path.of(document.getStoragePath()).toAbsolutePath().normalize().toRealPath();
         if (!path.startsWith(root) || !Files.isRegularFile(path)) {
@@ -3071,7 +3841,7 @@ public KnowledgeDocumentFile getFile(Long id) {
         }
         return new KnowledgeDocumentFile(new FileSystemResource(path), fileName, contentType, Files.size(path));
     } catch (IOException exception) {
-        // Avoid disclosing path/existence detail to endpoint caller.
+        // Tránh tiết lộ chi tiết path/tồn-tại-hay-không cho phía gọi endpoint.
         throw new ResourceNotFoundException("Knowledge document file not found");
     }
 }
@@ -3082,7 +3852,7 @@ public KnowledgeDocumentResponse reindex(Long id) {
     document.setStatus(KnowledgeDocumentStatus.PENDING);
     document.setErrorMessage(null);
     repository.save(document);
-    // Worker removes old vectors by sourceKey before adding new vectors.
+    // Worker sẽ tự xoá vector cũ theo sourceKey trước khi thêm vector mới.
     requestIndex(id);
     return toResponse(document);
 }
@@ -3118,7 +3888,7 @@ Source: `KnowledgeIndexStateService.java:21-55`.
 ```java
 @Transactional(propagation = Propagation.REQUIRES_NEW)
 public KnowledgeDocument markProcessing(Long documentId) {
-    // New transaction means status does not wait for slow parser/Ollama/Qdrant operation.
+    // Transaction mới nghĩa là việc cập nhật status không phải chờ tác vụ parser/Ollama/Qdrant vốn chậm.
     KnowledgeDocument document = repository.findById(documentId).orElse(null);
     if (document == null) {
         return null;
@@ -3132,7 +3902,7 @@ public KnowledgeDocument markProcessing(Long documentId) {
 public boolean markIndexed(Long documentId, int chunkCount) {
     KnowledgeDocument document = repository.findById(documentId).orElse(null);
     if (document == null) {
-        // Worker uses false to remove chunks it just added for a deleted source.
+        // Worker sẽ dùng giá trị false này để xoá luôn các chunk vừa thêm cho 1 nguồn đã bị xoá.
         return false;
     }
     document.setChunkCount(chunkCount);
@@ -3147,7 +3917,7 @@ public boolean markIndexed(Long documentId, int chunkCount) {
 public void markFailedIfPresent(Long documentId, String errorMessage) {
     KnowledgeDocument document = repository.findById(documentId).orElse(null);
     if (document == null) {
-        // Do not recreate a row deleted while the async task was failing.
+        // Không tự tạo lại 1 row đã bị xoá trong lúc tác vụ async đang thất bại.
         return;
     }
     document.setStatus(KnowledgeDocumentStatus.FAILED);
@@ -3165,13 +3935,13 @@ private static final int LOCK_COUNT = 256;
 private final ReentrantLock[] locks = createLocks();
 
 public <T> T executeExclusively(Long documentId, Supplier<T> operation) {
-    // floorMod makes negative hash values valid array indexes too.
+    // floorMod giúp cả giá trị hash âm cũng thành chỉ số mảng hợp lệ.
     ReentrantLock lock = locks[Math.floorMod(Long.hashCode(documentId), LOCK_COUNT)];
     lock.lock();
     try {
         return operation.get();
     } finally {
-        // Always release, including vector-store/database exceptions.
+        // Luôn giải phóng lock, kể cả khi vector-store/database ném exception.
         lock.unlock();
     }
 }
@@ -3209,16 +3979,16 @@ public KnowledgeBatchUploadResponse upload(
     for (MultipartFile file : files) {
         String originalName = file == null ? null : file.getOriginalFilename();
         try {
-            // Reuse the complete single-file path: duplicate, validator, storage and event rules stay identical.
+            // Dùng lại nguyên vẹn luồng single-file: quy tắc duplicate, validator, lưu trữ và sự kiện giữ nguyên y hệt.
             KnowledgeDocumentResponse document = ingestionService.upload(file, null, scope, username);
             items.add(new KnowledgeBatchUploadItemResponse(originalName, true, document, null));
             accepted++;
         } catch (IllegalArgumentException exception) {
-            // Expected invalid/non-medical/duplicate outcome does not cancel next files.
+            // Kết quả không hợp lệ/không phải y khoa/trùng lặp là tình huống đã lường trước, không huỷ các file còn lại.
             items.add(new KnowledgeBatchUploadItemResponse(
                     originalName, false, null, exception.getMessage()));
         } catch (RuntimeException exception) {
-            // Hide unexpected backend internals from batch response but retain server log.
+            // Giấu chi tiết nội bộ backend không mong muốn khỏi response batch, nhưng vẫn ghi log server.
             log.error("Could not accept knowledge document {} from batch", originalName, exception);
             items.add(new KnowledgeBatchUploadItemResponse(
                     originalName, false, null, "Could not accept document"));
@@ -3247,7 +4017,7 @@ public KnowledgeDocumentResponse syncReport(Long reportId, String username) {
             && !requester.getId().equals(row.assignedDoctorUserId())) {
         throw new UnauthorizedAccessException("You can only index reports from your own examinations");
     }
-    // Despite controller response 202, this direct manual call indexes before returning.
+    // Dù controller trả response 202, lệnh gọi tay trực tiếp này vẫn index xong rồi mới return.
     return index(row);
 }
 
@@ -3256,10 +4026,10 @@ public KnowledgeDocumentResponse syncReport(Long reportId, String username) {
 @Transactional(propagation = Propagation.REQUIRES_NEW)
 public void syncGeneratedReport(ReportKnowledgeSyncRequestedEvent event) {
     try {
-        // PDF event provides only ID; fresh SQL read sees committed final report fields.
+        // Sự kiện PDF chỉ mang theo ID; đọc SQL mới sẽ thấy đúng các trường report cuối cùng đã commit.
         index(loadReport(event.reportId()));
     } catch (RuntimeException exception) {
-        // PDF generation remains successful even if vector infrastructure is temporarily unavailable.
+        // Việc tạo PDF vẫn coi là thành công dù hạ tầng vector tạm thời không sẵn sàng.
         log.error("Could not synchronize generated report {} to Qdrant", event.reportId(), exception);
     }
 }
@@ -3278,14 +4048,14 @@ public void syncNewReports() {
         try {
             index(loadReport(reportId));
         } catch (RuntimeException exception) {
-            // One bad report cannot prevent reconciliation of later candidates.
+            // 1 report lỗi không được phép chặn việc đối soát các report còn lại phía sau.
             log.error("Could not synchronize report {} to Qdrant", reportId, exception);
         }
     }
 }
 
 private ReportKnowledge loadReport(Long reportId) {
-    // Constant aggregate SQL selects only fields approved for clinical report knowledge text.
+    // SQL tổng hợp cố định, chỉ SELECT đúng những field đã được duyệt để đưa vào text knowledge của report.
     String sql = "SELECT r.id AS report_id, e.id AS examination_id, "
             + "COALESCE(r.operating_doctor_id, e.doctor_id) AS owner_user_id, "
             + "e.doctor_id AS assigned_doctor_user_id, e.study_date, "
@@ -3320,13 +4090,13 @@ complete runtime behavior.
 
 ```java
 public interface AiChatGateway {
-    // Synchronous provider classification used before a source can be stored.
+    // Phân loại đồng bộ do provider thực hiện, chạy trước khi 1 nguồn được phép lưu lại.
     MedicalDocumentAssessment assessMedicalDocument(String sampledContent);
 
-    // Returns structured route/intent/IDs, not a natural-language answer.
+    // Trả về route/intent/ID có cấu trúc, không phải câu trả lời dạng ngôn ngữ tự nhiên.
     ChatRoutingDecision route(String question, String roleCode, String conversationHistory);
 
-    // Three context-provenance variants, all implemented by SpringAiChatGateway.
+    // 3 biến thể theo nguồn gốc context khác nhau, đều do SpringAiChatGateway triển khai.
     GeneratedChatAnswer answerBusiness(String question, String businessContext, String conversationHistory);
     GeneratedChatAnswer answerMedical(String question, String medicalContext, String conversationHistory);
     GeneratedChatAnswer answerHybrid(
@@ -3334,50 +4104,50 @@ public interface AiChatGateway {
 }
 
 public enum ChatRoute {
-    BUSINESS_DATA,  // fixed MySQL query then natural-language rendering
-    MEDICAL_RAG,   // vector evidence then clinical answer
-    HYBRID,         // controlled MySQL facts plus vector evidence
-    CLARIFICATION   // local follow-up question; no data fetch required
+    BUSINESS_DATA,  // query MySQL cố định rồi diễn giải thành ngôn ngữ tự nhiên
+    MEDICAL_RAG,   // evidence từ vector rồi trả lời lâm sàng
+    HYBRID,         // dữ liệu MySQL đã kiểm soát cộng thêm evidence từ vector
+    CLARIFICATION   // câu hỏi follow-up cục bộ; không cần lấy dữ liệu gì cả
 }
 
 public record ChatRoutingDecision(
-        ChatRoute route,                 // selects switch branch in ChatOrchestratorService
-        BusinessQueryIntent businessIntent, // selects fixed SQL method when business is needed
-        Long entityId,                   // report/examination ID, never an arbitrary SQL fragment
-        String dateFrom,                 // expected ISO yyyy-MM-dd
-        String dateTo,                   // expected ISO yyyy-MM-dd
-        String clarificationQuestion) {  // used only for CLARIFICATION
+        ChatRoute route,                 // chọn nhánh switch trong ChatOrchestratorService
+        BusinessQueryIntent businessIntent, // chọn method SQL cố định khi cần dữ liệu nghiệp vụ
+        Long entityId,                   // ID report/examination, không bao giờ là 1 mảnh SQL tuỳ ý
+        String dateFrom,                 // kỳ vọng định dạng ISO yyyy-MM-dd
+        String dateTo,                   // kỳ vọng định dạng ISO yyyy-MM-dd
+        String clarificationQuestion) {  // chỉ dùng cho CLARIFICATION
 }
 
 public record GeneratedChatAnswer(
-        String content,      // assistant text stored in chat_messages.content
-        Integer tokensUsed) {// nullable provider total token count
+        String content,      // text của assistant, lưu vào chat_messages.content
+        Integer tokensUsed) {// tổng số token của provider, có thể null
 }
 
 public record MedicalDocumentAssessment(
-        Boolean medical,    // must be Boolean.TRUE to accept a source
-        Double confidence,  // must meet configured threshold
-        String reason) {    // returned in rejection message when available
+        Boolean medical,    // phải đúng Boolean.TRUE mới chấp nhận 1 nguồn
+        Double confidence,  // phải đạt ngưỡng đã cấu hình
+        String reason) {    // trả kèm trong thông báo từ chối nếu có
 }
 
 public record BusinessQueryResult(
-        String context,                 // backend-created text provided to answer model
+        String context,                 // text do backend tự tạo, đưa cho model trả lời
         List<ChatSourceResponse> sources) { }
 
 public record MedicalRetrievalResult(
-        String context,                 // concatenated, role-filtered Qdrant chunk text
+        String context,                 // text các chunk Qdrant đã lọc theo role, nối lại với nhau
         List<ChatSourceResponse> sources) {
     public boolean isEmpty() {
-        // Orchestrator uses sources, not just blank text, to decide evidence availability.
+        // Orchestrator dựa vào sources (không chỉ text rỗng) để quyết định có đủ evidence hay không.
         return sources == null || sources.isEmpty();
     }
 }
 
 public record KnowledgeIndexRequestedEvent(Long documentId) { }
-// Carries database ID only; worker reloads current state rather than receiving stale entity.
+// Chỉ mang theo ID trong database; worker tự đọc lại trạng thái mới nhất thay vì nhận entity đã cũ.
 
 public record ReportKnowledgeSyncRequestedEvent(Long reportId) { }
-// Same event pattern for generated/returned report PDFs.
+// Cùng 1 kiểu sự kiện dùng cho cả report PDF vừa tạo lẫn report được trả lại (reuse).
 ```
 
 `BusinessQueryIntent` has eight enum constants: two today operations, general
@@ -3471,16 +4241,16 @@ while multipart file constraints are enforced manually in `validateFile()`.
 
 ```java
 public enum ChatMessageRole { USER, ASSISTANT, SYSTEM }
-// USER and ASSISTANT are persisted today. SYSTEM currently appears only in prompt history string.
+// Hiện tại chỉ USER và ASSISTANT được lưu vào DB. SYSTEM hiện chỉ xuất hiện trong chuỗi lịch sử prompt.
 
 public enum KnowledgeAccessScope { ALL, DOCTOR, ADMIN, OWNER }
-// Values are copied literally into Qdrant metadata/filter expressions.
+// Các giá trị này được copy nguyên văn vào metadata/filter expression của Qdrant.
 
 public enum KnowledgeDocumentStatus { PENDING, PROCESSING, INDEXED, FAILED }
-// Async indexing state machine visible through metadata listing.
+// State machine của việc index bất đồng bộ, quan sát được qua danh sách metadata.
 
 public enum KnowledgeSourceType { FILE, URL, REPORT }
-// REPORT means relationally generated text; therefore no original uploaded file is guaranteed.
+// REPORT nghĩa là text được tạo ra từ dữ liệu quan hệ; do đó không đảm bảo có file gốc đã upload.
 ```
 
 ```java
@@ -3488,15 +4258,15 @@ public enum KnowledgeSourceType { FILE, URL, REPORT }
 @Table(name = "chat_sessions")
 public class ChatSession {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id; // database-generated primary key
+    private Long id; // khoá chính do database tự sinh
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_id", nullable = false)
-    private User user; // required owner; repository queries always scope by this ID
+    private User user; // chủ sở hữu bắt buộc; mọi query repository luôn giới hạn theo ID này
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "examination_id")
-    private Examination examination; // optional clinical conversation link
+    private Examination examination; // liên kết ca khám lâm sàng, không bắt buộc
 
     @Column(name = "title", nullable = false, length = 160)
     private String title;
@@ -3522,14 +4292,14 @@ public class ChatMessage {
     private Long id;
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "session_id", nullable = false)
-    private ChatSession session; // cascade deletion is defined in SQL migration FK
+    private ChatSession session; // cascade delete được định nghĩa ở FK trong migration SQL
     @Enumerated(EnumType.STRING)
     @Column(name = "role", nullable = false, length = 20)
     private ChatMessageRole role;
     @Column(name = "content", nullable = false, columnDefinition = "TEXT")
     private String content;
     @Column(name = "route", length = 30)
-    private String route; // null for USER, route enum name for ASSISTANT
+    private String route; // null với USER, là tên enum route với ASSISTANT
     @Column(name = "tokens_used")
     private Integer tokensUsed;
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -3553,22 +4323,22 @@ public class KnowledgeDocument {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     @Column(name = "source_key", nullable = false, unique = true, length = 160)
-    private String sourceKey; // shared Qdrant filter/deletion identity
+    private String sourceKey; // danh tính dùng chung để filter/xoá trong Qdrant
     @Column(name = "title", nullable = false, length = 255)
-    private String title; // safe display/prompt source label
+    private String title; // nhãn nguồn an toàn để hiển thị/đưa vào prompt
     @Enumerated(EnumType.STRING)
     @Column(name = "source_type", nullable = false, length = 20)
     private KnowledgeSourceType sourceType;
     @Column(name = "source_url", length = 2048)
-    private String sourceUrl; // original public URL; null for FILE/REPORT
+    private String sourceUrl; // URL công khai gốc; null với FILE/REPORT
     @Column(name = "original_name", length = 255)
-    private String originalName; // basename only, never trusted storage path
+    private String originalName; // chỉ tên file, không bao giờ dùng làm storage path đáng tin
     @Column(name = "content_type", length = 150)
     private String contentType;
     @Column(name = "storage_path", length = 512)
-    private String storagePath; // server-only physical path; null for REPORT
+    private String storagePath; // path vật lý chỉ server biết; null với REPORT
     @Column(name = "checksum", length = 64)
-    private String checksum; // SHA-256 for file bytes or report metadata-version marker
+    private String checksum; // SHA-256 của byte file, hoặc marker phiên bản metadata với report
     @Enumerated(EnumType.STRING)
     @Column(name = "access_scope", nullable = false, length = 20)
     private KnowledgeAccessScope accessScope = KnowledgeAccessScope.ALL;
@@ -3577,7 +4347,7 @@ public class KnowledgeDocument {
     private KnowledgeDocumentStatus status = KnowledgeDocumentStatus.PENDING;
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "uploaded_by_user_id")
-    private User uploadedBy; // OWNER metadata source when file/URL is private
+    private User uploadedBy; // nguồn metadata OWNER khi file/URL ở chế độ riêng tư
     @Column(name = "chunk_count")
     private Integer chunkCount;
     @Column(name = "error_message", length = 1000)
@@ -3602,22 +4372,22 @@ public class KnowledgeDocument {
 
 ```java
 public interface ChatSessionRepository extends JpaRepository<ChatSession, Long> {
-    // Spring Data generates WHERE id = ? AND user_id = ?, the session ownership boundary.
+    // Spring Data tự sinh WHERE id = ? AND user_id = ?, đây chính là ranh giới sở hữu của session.
     Optional<ChatSession> findByIdAndUserId(Long id, Long userId);
-    // Page results ordered newest activity first, ID breaks equal timestamp ties.
+    // Kết quả phân trang sắp xếp hoạt động mới nhất lên trước, ID phá thế bằng nhau khi trùng timestamp.
     Page<ChatSession> findByUserIdOrderByUpdatedAtDescIdDesc(Long userId, Pageable pageable);
 }
 
 public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> {
-    // Paginated API history is chronological.
+    // Lịch sử phân trang trả về cho API theo đúng thứ tự thời gian thuận.
     Page<ChatMessage> findBySessionIdOrderByCreatedAtAscIdAsc(Long sessionId, Pageable pageable);
-    // Prompt history gets newest 20 first so Java can trim most relevant messages by character limit.
+    // Lịch sử cho prompt lấy 20 tin mới nhất trước, để Java tự cắt bớt theo giới hạn ký tự cho phù hợp.
     List<ChatMessage> findTop20BySessionIdOrderByCreatedAtDescIdDesc(Long sessionId);
 }
 
 public interface KnowledgeDocumentRepository extends JpaRepository<KnowledgeDocument, Long> {
     Optional<KnowledgeDocument> findBySourceKey(String sourceKey);
-    boolean existsBySourceKey(String sourceKey); // exact duplicate file/URL identity guard
+    boolean existsBySourceKey(String sourceKey); // chặn trùng lặp chính xác cùng 1 danh tính file/URL
     List<KnowledgeDocument> findAllByOrderByCreatedAtDesc();
 
     @Query("""
@@ -3643,10 +4413,10 @@ public interface KnowledgeDocumentRepository extends JpaRepository<KnowledgeDocu
 are essential. Their complete RAG-relevant behavior is this sequence:
 
 ```java
-// JwtAuthenticationFilter.doFilterInternal, simplified only to remove unrelated imports.
+// JwtAuthenticationFilter.doFilterInternal, rút gọn chỉ để bỏ bớt import không liên quan.
 String authHeader = request.getHeader("Authorization");
 if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-    filterChain.doFilter(request, response); // controller will be blocked later if protected
+    filterChain.doFilter(request, response); // controller sẽ tự chặn sau nếu endpoint có bảo vệ
     return;
 }
 String jwt = authHeader.substring(7);

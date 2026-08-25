@@ -356,21 +356,21 @@ public class ExaminationServiceImpl implements ExaminationService {
         }
 
         String roleCode = user.getRole().getCode();
-        ExaminationStatus verifiedStatus = ExaminationStatus.VERIFIED;
+        ExaminationStatus needVerifyStatus = ExaminationStatus.NEED_VERIFY;
 
         if ("DOCTOR".equalsIgnoreCase(roleCode)) {
-            return examinationRepository.countByDoctorIdAndStatusNot(userId, verifiedStatus);
+            return examinationRepository.countByDoctorIdAndStatus(userId, needVerifyStatus);
         } else if ("HEAD_OF_DEPARTMENT".equalsIgnoreCase(roleCode) || "DEPARTMENT_HEAD".equalsIgnoreCase(roleCode)) {
             if (Boolean.TRUE.equals(isPersonal)) {
-                return examinationRepository.countByDoctorIdAndStatusNot(userId, verifiedStatus);
+                return examinationRepository.countByDoctorIdAndStatus(userId, needVerifyStatus);
             } else {
-                return examinationRepository.countByStatusNot(verifiedStatus);
+                return examinationRepository.countByStatus(needVerifyStatus);
             }
         } else if ("ADMIN".equalsIgnoreCase(roleCode)) {
             if (Boolean.TRUE.equals(isPersonal)) {
                 return 0L; // Admin doesn't have personal exams
             } else {
-                return examinationRepository.countByStatusNot(verifiedStatus);
+                return examinationRepository.countByStatus(needVerifyStatus);
             }
         }
 

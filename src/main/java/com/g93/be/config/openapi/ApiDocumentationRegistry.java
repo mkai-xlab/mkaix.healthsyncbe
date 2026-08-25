@@ -226,8 +226,8 @@ final class ApiDocumentationRegistry {
                 add("ExaminationController", "getTotalVerifiedExaminations", "Ca khám", "Đếm ca đã xác nhận",
                                 "Đếm ca có trạng thái VERIFIED theo userId.", "200", "Số ca đã xác nhận", "LONG", null,
                                 ResponseKind.JSON);
-                add("ExaminationController", "getTotalUnverifiedExaminations", "Ca khám", "Đếm ca chưa xác nhận",
-                                "Đếm ca chưa ở trạng thái VERIFIED theo userId.", "200", "Số ca chưa xác nhận", "LONG",
+                add("ExaminationController", "getTotalUnverifiedExaminations", "Ca khám", "Đếm ca chờ xác nhận",
+                                "Đếm ca có trạng thái NEED_VERIFY theo userId.", "200", "Số ca chờ xác nhận", "LONG",
                                 null, ResponseKind.JSON);
                 add("ExaminationController", "getMyTotalExaminations", "Ca khám", "Đếm tổng ca của tôi",
                                 "Đếm toàn bộ ca khám của người dùng đang đăng nhập.", "200", "Tổng ca khám của tôi",
@@ -242,9 +242,9 @@ final class ApiDocumentationRegistry {
                                 "Đếm ca VERIFIED của người dùng đang đăng nhập.", "200", "Số ca đã xác nhận của tôi",
                                 "LONG", null, ResponseKind.JSON);
                 add("ExaminationController", "getMyTotalUnverifiedExaminations", "Ca khám",
-                                "Đếm ca chưa xác nhận của tôi",
-                                "Đếm ca chưa VERIFIED của người dùng đang đăng nhập.", "200",
-                                "Số ca chưa xác nhận của tôi", "LONG", null, ResponseKind.JSON);
+                                "Đếm ca chờ xác nhận của tôi",
+                                "Đếm ca NEED_VERIFY của người dùng đang đăng nhập.", "200",
+                                "Số ca chờ xác nhận của tôi", "LONG", null, ResponseKind.JSON);
                 add("ExaminationController", "getDailyExaminationsInLast7Days", "Ca khám",
                                 "Thống kê 7 ngày",
                                 "Đếm số ca khám của 7 ngày gần nhất, có thể truyền isPersonal theo quy tắc phân quyền.", "200",

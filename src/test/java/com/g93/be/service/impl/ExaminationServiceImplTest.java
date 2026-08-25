@@ -616,12 +616,12 @@ class ExaminationServiceImplTest {
         mockRole.setCode("DOCTOR");
         Boolean isPersonal = null;
         when(userRepository.findById(1L)).thenReturn(Optional.of(mockUser));
-        when(examinationRepository.countByDoctorIdAndStatusNot(1L, ExaminationStatus.VERIFIED)).thenReturn(5L);
+        when(examinationRepository.countByDoctorIdAndStatus(1L, ExaminationStatus.NEED_VERIFY)).thenReturn(5L);
 
         long res = examinationService.getTotalUnverifiedExaminations(1L, isPersonal);
 
         assertEquals(5L, res);
-        verify(examinationRepository).countByDoctorIdAndStatusNot(1L, ExaminationStatus.VERIFIED);
+        verify(examinationRepository).countByDoctorIdAndStatus(1L, ExaminationStatus.NEED_VERIFY);
     }
 
     /**
@@ -635,12 +635,12 @@ class ExaminationServiceImplTest {
         mockRole.setCode("HEAD_OF_DEPARTMENT");
         Boolean isPersonal = true;
         when(userRepository.findById(1L)).thenReturn(Optional.of(mockUser));
-        when(examinationRepository.countByDoctorIdAndStatusNot(1L, ExaminationStatus.VERIFIED)).thenReturn(5L);
+        when(examinationRepository.countByDoctorIdAndStatus(1L, ExaminationStatus.NEED_VERIFY)).thenReturn(5L);
 
         long res = examinationService.getTotalUnverifiedExaminations(1L, isPersonal);
 
         assertEquals(5L, res);
-        verify(examinationRepository).countByDoctorIdAndStatusNot(1L, ExaminationStatus.VERIFIED);
+        verify(examinationRepository).countByDoctorIdAndStatus(1L, ExaminationStatus.NEED_VERIFY);
     }
 
     /**
@@ -654,12 +654,12 @@ class ExaminationServiceImplTest {
         mockRole.setCode("HEAD_OF_DEPARTMENT");
         Boolean isPersonal = false;
         when(userRepository.findById(1L)).thenReturn(Optional.of(mockUser));
-        when(examinationRepository.countByStatusNot(ExaminationStatus.VERIFIED)).thenReturn(10L);
+        when(examinationRepository.countByStatus(ExaminationStatus.NEED_VERIFY)).thenReturn(10L);
 
         long res = examinationService.getTotalUnverifiedExaminations(1L, isPersonal);
 
         assertEquals(10L, res);
-        verify(examinationRepository).countByStatusNot(ExaminationStatus.VERIFIED);
+        verify(examinationRepository).countByStatus(ExaminationStatus.NEED_VERIFY);
     }
 
     /**
@@ -673,12 +673,12 @@ class ExaminationServiceImplTest {
         mockRole.setCode("ADMIN");
         Boolean isPersonal = false;
         when(userRepository.findById(1L)).thenReturn(Optional.of(mockUser));
-        when(examinationRepository.countByStatusNot(ExaminationStatus.VERIFIED)).thenReturn(15L);
+        when(examinationRepository.countByStatus(ExaminationStatus.NEED_VERIFY)).thenReturn(15L);
 
         long res = examinationService.getTotalUnverifiedExaminations(1L, isPersonal);
 
         assertEquals(15L, res);
-        verify(examinationRepository).countByStatusNot(ExaminationStatus.VERIFIED);
+        verify(examinationRepository).countByStatus(ExaminationStatus.NEED_VERIFY);
     }
 
     /**

@@ -314,10 +314,11 @@ public class ExaminationController {
     }
 
     /**
-     * Retrieves total unverified examinations based on user role.
+     * Retrieves total examinations pending verification (status NEED_VERIFY)
+     * based on user role.
      *
      * @param userId The ID of the user requesting the total.
-     * @return The total number of unverified examinations.
+     * @return The total number of examinations pending verification.
      */
     @GetMapping("/total-unverified")
     @PreAuthorize("@accessControl.canAccessUser(#p0, authentication)")
@@ -375,8 +376,8 @@ public class ExaminationController {
     }
 
     /**
-     * Retrieves total unverified examinations based on user role (from access
-     * token).
+     * Retrieves total examinations pending verification (status NEED_VERIFY)
+     * based on user role (from access token).
      */
     @GetMapping("/my-total-unverified")
     @PreAuthorize("hasAnyRole('ADMIN', 'DOCTOR', 'DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT')")
