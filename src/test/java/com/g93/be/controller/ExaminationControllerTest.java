@@ -62,7 +62,7 @@ class ExaminationControllerTest {
         Authentication authentication = Mockito.mock(Authentication.class);
         SecurityContext securityContext = Mockito.mock(SecurityContext.class);
         Mockito.when(securityContext.getAuthentication()).thenReturn(authentication);
-        Mockito.when(authentication.getPrincipal()).thenReturn(username);
+        Mockito.when(authentication.getName()).thenReturn(username);
         SecurityContextHolder.setContext(securityContext);
     }
 
