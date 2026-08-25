@@ -66,7 +66,7 @@ spring:
         chat:
           model: ${GEMINI_CHAT_MODEL:gemini-3.5-flash}
           temperature: 0.2
-          max-output-tokens: 2048
+          max-output-tokens: 8192
     ollama:
       base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
       embedding:
