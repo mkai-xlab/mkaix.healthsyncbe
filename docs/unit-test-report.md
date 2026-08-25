@@ -1,5 +1,67 @@
 # UNIT TEST REPORT - HEALTHSYNC BACKEND
 
+## X-ray report form with a doctor-confirmed preview (24/08/2026)
+
+| Thuộc tính | Giá trị |
+|---|---|
+| Executed By | Claude |
+| Executed Date | 24/08/2026 |
+| Framework | JUnit Jupiter, Mockito, PDFBox, OpenHTMLToPDF, Thymeleaf |
+| Java | 21 (Temurin 21.0.12), Apache Maven 3.9.9 |
+| Phạm vi | "PHIEU CHUP XQUANG" template render, letterhead logo embedding, Kellgren-Lawrence-only result text, report-draft preview with examination-level persistence and a one-time-only lock once generated, doctor-confirmed form overlay, authenticated-doctor signature, endpoint authorization, and OpenAPI registration |
+
+Command:
+
+```bash
+mvn -o test -Dtest=PdfExportServiceTest,XrayReportTemplateTest,XrayReportContentComposerTest,ReportControllerTest,ControllerRbacTest,ReportListServiceTest,ReportKnowledgeSyncServiceTest,OpenApiDocumentationTest
+```
+
+| Test Class | Passed | Failed | Errors | Skipped | Covered behavior |
+|---|---:|---:|---:|---:|---|
+| `PdfExportServiceTest` | 29 | 0 | 0 | 0 | Generation, access, and error paths; whole-form pre-fill; doctor-confirmed field overlay; signature always naming the authenticated doctor; logo embedding; persisting and reusing the doctor's saved result text on the examination; the draft endpoint refusing to reopen once a report has been generated |
+| `XrayReportTemplateTest` | 6 | 0 | 0 | 0 | Real PDF render of every form block, doctor-edited result text, blank fields, dropped request rows and lab branding, embedded hospital crest, and graceful degradation when the crest is absent |
+| `XrayReportContentComposerTest` | 10 | 0 | 0 | 0 | Grade-only findings and conclusion for every Kellgren-Lawrence grade, single/both knees, and out-of-range input |
+| `ReportControllerTest` | 4 | 0 | 0 | 0 | Inline preview, attachment download, and forwarding of an absent versus confirmed request body |
+| `ControllerRbacTest` | 31 | 0 | 0 | 0 | Role/permission enforcement across controllers, including the report-draft and generate endpoints |
+| `ReportListServiceTest` | 3 | 0 | 0 | 0 | Generated-report listing scoped by doctor and department head |
+| `ReportKnowledgeSyncServiceTest` | 2 | 0 | 0 | 0 | RAG indexing still reads `report.clinical_summary` correctly now that it reflects the examination's final diagnosis again |
+| `OpenApiDocumentationTest` | 4 | 0 | 0 | 0 | Every controller method is registered with a documented request, response, and error contract |
+| **TOTAL** | **89** | **0** | **0** | **0** | **100% pass** |
+
+| UTCID | Classification | Test case | Expected/Actual result | Result |
+|---|:---:|---|---|:---:|
+| UTC-XRAY-TPL-01 | N | Render every block of the X-ray form | Title, letterhead, patient block, result, conclusion, and signature all appear in the PDF text | P |
+| UTC-XRAY-TPL-02 | N | Doctor-edited result text replaces the draft | Only the doctor's lines are printed; auto-filled findings are gone | P |
+| UTC-XRAY-TPL-03 | B | Blank address/attempt/referring-physician fields | Labels still render as empty dotted lines instead of failing | P |
+| UTC-XRAY-TPL-04 | N | Dropped rows, referral block, lab branding | Buồng/PK, Giường, Yêu cầu kiểm tra, the Bác sĩ điều trị block, and any MKAI mark no longer print | P |
+| UTC-XRAY-LOGO-01 | N | Packaged hospital crest | The crest is embedded as the single image object in the PDF | P |
+| UTC-XRAY-LOGO-02 | A | Logo asset missing | Letterhead renders without images and the hospital name still prints | P |
+| UTC-XRAY-KL-01 | N | Compose findings for both graded knees | One grade line per knee, right knee first | P |
+| UTC-XRAY-KL-02 | N | Findings state only the grade | No osteophyte, joint-space, or soft-tissue wording is auto-written | P |
+| UTC-XRAY-KL-03 | B | Only one knee graded | The ungraded knee is skipped rather than printed blank | P |
+| UTC-XRAY-KL-04 | B | Grade 0 | Worded as no degeneration instead of "degree 0 degeneration" | P |
+| UTC-XRAY-KL-05 | A | Grade outside the 0-4 scale | Ignored; falls back to the no-finding wording | P |
+| UTC-XRAY-DRAFT-01 | N | Report draft pre-fills the whole form | Patient, letterhead, fixed Khoa, dates, and result text arrive filled; `attemptNumber` arrives blank | P |
+| UTC-XRAY-DRAFT-02 | A | Draft for an unverified examination | Rejected with "Examination must be verified before drafting its report" | P |
+| UTC-XRAY-DRAFT-03 | A | Draft requested by an unassigned doctor | Rejected with `AccessDeniedException` | P |
+| UTC-XRAY-DRAFT-04 | N | Draft for an examination with a previously saved result | Returns the doctor's own saved `findings`/`conclusion` instead of the grade-only auto-composed text | P |
+| UTC-XRAY-DRAFT-05 | A | Draft requested after the report is already generated | Rejected with "Report has already been generated for this examination; view the confirmed result via the report preview or download endpoint"; no AI/grade lookup happens | P |
+| UTC-XRAY-GEN-01 | N | Confirm step prints every submitted field | All 10 editable fields reach the rendered view model; Khoa stays the configured one | P |
+| UTC-XRAY-GEN-05 | A | Department head generates another doctor's report | The signature names the head who generated it, never a submitted name | P |
+| UTC-XRAY-GEN-02 | B | Only the conclusion is edited | Auto-filled findings are kept and the conclusion is replaced | P |
+| UTC-XRAY-GEN-03 | B | Blank line inside submitted findings | Dropped rather than printed as an empty bullet | P |
+| UTC-XRAY-GEN-04 | N | Confirm on an already generated report | A fresh PDF is rendered instead of returning the old file | P |
+| UTC-XRAY-GEN-06 | N | Confirm persists the result block on the examination | `examinations.findings`/`examinations.conclusion` hold the doctor's confirmed text; `report.clinical_summary` keeps the examination's final diagnosis, unchanged | P |
+| UTC-XRAY-RBAC-01 | A | Report-draft endpoint authorization | Requires a clinical role with `GENERATE_PDF_REPORT`; admin is rejected | P |
+
+> Note: the 150 `@SpringBootTest` integration-test errors in a full `mvn test` run are unrelated to
+> this change. They reproduce unchanged on `HEAD` (`5bcc6bb`): `AiUsageTrackingService` requires the
+> `ChatProperties` bean, which only `ChatAiConfiguration` registers and only when
+> `app.chat.enabled=true`, so the application context cannot start with chat disabled.
+
+---
+
+
 ## Knowledge document reading and PDF report presentation update (20/08/2026)
 
 | Thuộc tính | Giá trị |

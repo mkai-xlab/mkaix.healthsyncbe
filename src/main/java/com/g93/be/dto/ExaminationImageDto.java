@@ -18,6 +18,7 @@ public class ExaminationImageDto {
     private Long examinationId;
     private String encounterCode;
     private String status;
+    @com.fasterxml.jackson.annotation.JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "UTC")
     private LocalDateTime visitTime;
     private String imageUrl;
     private String annotatedImageUrl;

@@ -1,0 +1,23 @@
+meta {
+  name: Preview Knowledge Document (query token, no header)
+  type: http
+  seq: 16
+}
+
+get {
+  url: {{baseUrl}}/knowledge-documents/{{documentId}}/preview?token={{accessToken}}
+  body: none
+  auth: none
+}
+
+vars:pre-request {
+  documentId: 2
+}
+
+tests {
+  test("works with the token in the query string instead of the Authorization header", function() {
+    expect(res.status).to.equal(200);
+    expect(res.headers["content-disposition"]).to.include("inline");
+    expect(res.headers["content-security-policy"]).to.include("frame-ancestors");
+  });
+}

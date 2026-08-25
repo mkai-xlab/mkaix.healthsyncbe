@@ -92,6 +92,13 @@ app:
     storage-dir: ${APP_AVATAR_STORAGE_DIR:${app.storage.base-dir}/avatars}
   pdf:
     export-dir: ${APP_PDF_EXPORT_DIR:${app.storage.base-dir}/reports}
+  report:
+    ministry-name: ${APP_REPORT_MINISTRY_NAME:BỘ QUỐC PHÒNG}
+    hospital-name: ${APP_REPORT_HOSPITAL_NAME:VIỆN Y HỌC CỔ TRUYỀN QUÂN ĐỘI}
+    department-name: ${APP_REPORT_DEPARTMENT_NAME:KHOA CHẨN ĐOÁN HÌNH ẢNH}
+    form-code: ${APP_REPORT_FORM_CODE:08/BV-02}
+    clinical-department: ${APP_REPORT_CLINICAL_DEPARTMENT:Khoa Chẩn đoán hình ảnh}
+    signature-place: ${APP_REPORT_SIGNATURE_PLACE:Hà Nội}
   ai:
     api-url: ${APP_AI_API_URL:http://localhost:8005/api/v1/predict}
   chat:
@@ -100,10 +107,14 @@ app:
     max-document-bytes: ${CHAT_MAX_DOCUMENT_BYTES:52428800}
     max-url-bytes: ${CHAT_MAX_URL_BYTES:5242880}
     retrieval-top-k: ${CHAT_RETRIEVAL_TOP_K:12}
-    similarity-threshold: ${CHAT_SIMILARITY_THRESHOLD:0.4}
+    similarity-threshold: ${CHAT_SIMILARITY_THRESHOLD:0.35}
     medical-validation-sample-chars: ${CHAT_MEDICAL_VALIDATION_SAMPLE_CHARS:6000}
     medical-validation-min-confidence: ${CHAT_MEDICAL_VALIDATION_MIN_CONFIDENCE:0.7}
     report-sync-delay-ms: ${CHAT_REPORT_SYNC_DELAY_MS:300000}
+    pricing:
+      # gemini-3.5-flash list price, USD per 1,000,000 tokens.
+      input-price-per-million-tokens: ${CHAT_PRICING_INPUT_PER_MILLION_USD:1.5}
+      output-price-per-million-tokens: ${CHAT_PRICING_OUTPUT_PER_MILLION_USD:9.0}
 
 logging:
   level:

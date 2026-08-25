@@ -18,4 +18,10 @@ public interface AiResultRepository extends JpaRepository<AiResult, Long> {
                         + "where roiImage.id = :imageId or gradcamImage.id = :imageId")
         Optional<Long> findAssignedDoctorIdByImageId(
                         @Param("imageId") Long imageId);
+
+        @Query("select r.aiAnalysis.dicomInstance.examination.patient.id from AiResult r "
+                        + "left join r.roiImage roiImage left join r.gradcamImage gradcamImage "
+                        + "where roiImage.id = :imageId or gradcamImage.id = :imageId")
+        Optional<Long> findPatientIdByImageId(
+                        @Param("imageId") Long imageId);
 }

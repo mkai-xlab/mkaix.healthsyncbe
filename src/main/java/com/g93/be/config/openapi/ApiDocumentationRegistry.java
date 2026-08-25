@@ -159,6 +159,11 @@ final class ApiDocumentationRegistry {
                 add("PatientController", "deletePatient", "Bệnh nhân", "Xóa bệnh nhân",
                                 "Trưởng khoa xóa bệnh nhân theo ID khi quy tắc dữ liệu cho phép.",
                                 "200", "Xóa thành công, không có response body", null, null, ResponseKind.VOID);
+                addNotFound("PatientController", "deletePatientCompletely", "Bệnh nhân", "Xóa toàn bộ bệnh nhân",
+                                "Xóa vĩnh viễn bệnh nhân theo mã cùng toàn bộ ca khám, DICOM, kết quả AI, "
+                                                + "báo cáo và chỉ mục RAG liên quan; không thể hoàn tác và "
+                                                + "không giới hạn theo vai trò, chỉ cần đăng nhập hợp lệ.",
+                                "200", "Xóa thành công, không có response body", null, null, ResponseKind.VOID);
                 add("PatientController", "getPatientDetailsWithImages", "Bệnh nhân", "Xem chi tiết bệnh nhân",
                                 "Trả hồ sơ bệnh nhân cùng các ca khám gần đây và URL hình ảnh liên quan.",
                                 "200", "Chi tiết bệnh nhân", "PATIENT_DETAILS", null, ResponseKind.JSON);
@@ -203,6 +208,9 @@ final class ApiDocumentationRegistry {
                 add("ExaminationController", "getExaminationsByGrade", "Ca khám", "Lọc ca khám theo KL grade",
                                 "Lọc theo maxPredictedGrade từ 0 đến 4 trong phạm vi được phép.", "200",
                                 "Trang ca khám theo KL grade", "EXAMINATION_PAGE", null, ResponseKind.JSON);
+                add("ExaminationController", "filterExaminations", "Ca khám", "Lọc ca khám động theo nhiều điều kiện",
+                                "Lọc ca khám kết hợp theo mảng trạng thái (statuses) và mảng mức độ KL (grades). Tự động đẩy KL4 lên đầu nếu không chọn sắp xếp ngày.", "200",
+                                "Trang ca khám đã được lọc và sắp xếp", "EXAMINATION_PAGE", null, ResponseKind.JSON);
                 add("ExaminationController", "getPatientGradeStatistics", "Ca khám", "Thống kê bệnh nhân theo KL grade",
                                 "Đếm bệnh nhân theo kết quả KL mới nhất, hỗ trợ lọc khoảng ngày.", "200",
                                 "Số bệnh nhân theo từng grade", "GRADE_STATS", null, ResponseKind.JSON);
@@ -294,9 +302,13 @@ final class ApiDocumentationRegistry {
                 add("ReportController", "getGeneratedReports", "Báo cáo PDF", "Danh sách báo cáo đã tạo",
                                 "Bác sĩ chỉ xem report của các ca được gán cho mình; trưởng khoa xem toàn bộ report trong khoa.",
                                 "200", "Trang danh sách report", "REPORT_PAGE", null, ResponseKind.JSON);
+                add("ReportController", "getReportDraft", "Báo cáo PDF", "Lấy nháp kết quả báo cáo",
+                                "Trả phần KẾT QUẢ và KẾT LUẬN được điền sẵn từ độ KL bác sĩ đã xác nhận, để bác sĩ sửa trước khi tạo PDF.",
+                                "200", "Nháp kết quả có thể chỉnh sửa", "REPORT_DRAFT", null, ResponseKind.JSON);
                 add("ReportController", "generatePdfReport", "Báo cáo PDF", "Tạo báo cáo PDF",
-                                "Tạo và lưu PDF từ kết quả cuối cùng của ca đã VERIFIED.", "200",
-                                "Metadata và URL báo cáo", "REPORT", null, ResponseKind.JSON);
+                                "Tạo và lưu PDF từ kết quả cuối cùng của ca đã VERIFIED. Body không bắt buộc: gửi kèm phần kết quả bác sĩ tự nhập để in và lưu theo lời văn của bác sĩ.",
+                                "200", "Metadata và URL báo cáo", "REPORT", "GENERATE_REPORT_REQUEST",
+                                ResponseKind.JSON);
                 add("ReportController", "previewReport", "Báo cáo PDF", "Xem trước báo cáo PDF",
                                 "Trả PDF dạng inline để frontend hiển thị mà không ép tải xuống.", "200",
                                 "Nội dung PDF inline", null, null, ResponseKind.PDF);
@@ -412,6 +424,11 @@ final class ApiDocumentationRegistry {
                 add("AuditLogController", "getAuditLogs", "Nhật ký hệ thống", "Lấy audit log",
                                 "Admin xem nhật ký thao tác có phân trang, mới nhất trước.", "200", "Trang audit log",
                                 "AUDIT_PAGE", null, ResponseKind.JSON);
+                add("AiUsageController", "summary", "Nhật ký hệ thống", "Thống kê chi phí sử dụng AI",
+                                "Admin xem tổng số lượt gọi, token, và chi phí ước tính (USD) theo loại lời gọi AI"
+                                                + " trong khoảng thời gian; mặc định 30 ngày gần nhất khi không truyền"
+                                                + " from/to.",
+                                "200", "Tổng hợp chi phí AI", "AI_USAGE_SUMMARY", null, ResponseKind.JSON);
                 addMultipart("FileUploadController", "uploadAvatar", "Tệp", "Tải tệp avatar",
                                 "Lưu ảnh avatar và trả URL nội bộ; endpoint không tự gán ảnh vào profile.", "200",
                                 "URL tệp đã lưu", "FILE_URL", ResponseKind.JSON);

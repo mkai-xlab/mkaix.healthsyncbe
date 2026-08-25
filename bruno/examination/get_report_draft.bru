@@ -1,0 +1,50 @@
+meta {
+  name: Get Report Preview Draft
+  type: http
+  seq: 35
+}
+
+get {
+  url: {{baseUrl}}/examinations/{{examinationId}}/report-draft
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+vars:pre-request {
+  examinationId: 9
+}
+
+tests {
+  test("returns a pre-filled form", function() {
+    expect(res.status).to.equal(200);
+    expect(res.body.examinationId).to.be.a("number");
+    expect(res.body.hospitalName).to.be.a("string");
+    expect(res.body.findings).to.be.an("array");
+    expect(res.body.findings.length).to.be.above(0);
+    expect(res.body.conclusion).to.be.a("string");
+    expect(res.body.signatureDate).to.match(/^\d{2}\/\d{2}\/\d{4}$/);
+    expect(res.body.doctorName).to.be.a("string");
+  });
+}
+
+docs {
+  Step 1 of the report flow. Returns the whole X-ray form pre-filled for the preview screen:
+  patient details from the examination record, the configured letterhead and Khoa, and a
+  KẾT QUẢ / KẾT LUẬN block stating the Kellgren-Lawrence grades confirmed during verification.
+  The doctor edits any editable field on screen - including both result blocks - then posts the
+  confirmed form back to POST /examinations/{id}/generate-report. No PDF is created by this call.
+
+  doctorName is read-only: it is the account calling this endpoint, and that is the name printed
+  on the signature line.
+
+  Only serves a draft while the examination is still VERIFIED. Once a report has been generated
+  (status REPORT_GENERATED), this call returns 400 instead - see
+  "Get Report Preview Draft Rejects Already Generated Report" - and the confirmed content is
+  viewed via Preview/Download PDF Report instead. examinationId below must point at a VERIFIED
+  examination that has not been confirmed yet.
+}
+​

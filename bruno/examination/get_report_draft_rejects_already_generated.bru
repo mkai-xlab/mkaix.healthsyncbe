@@ -1,0 +1,36 @@
+meta {
+  name: Get Report Preview Draft Rejects Already Generated Report
+  type: http
+  seq: 38
+}
+
+get {
+  url: {{baseUrl}}/examinations/{{examinationId}}/report-draft
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+vars:pre-request {
+  examinationId: 9
+}
+
+tests {
+  test("rejects a draft once the report is already generated", function() {
+    expect(res.status).to.equal(400);
+    expect(res.body.message).to.equal(
+      "Report has already been generated for this examination; " +
+      "view the confirmed result via the report preview or download endpoint"
+    );
+  });
+}
+
+docs {
+  A report is final once generated: this examination is expected to already be in status
+  REPORT_GENERATED (e.g. after running "Confirm And Generate PDF Report" on it once), so the
+  draft preview must refuse to reopen and point to the preview/download endpoints instead of
+  re-composing a form no longer used by anything.
+}

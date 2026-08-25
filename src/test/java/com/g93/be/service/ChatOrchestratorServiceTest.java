@@ -52,7 +52,7 @@ class ChatOrchestratorServiceTest {
         User doctor = user(7L, "DOCTOR");
         ChatRoutingDecision decision = new ChatRoutingDecision(
                 ChatRoute.BUSINESS_DATA, BusinessQueryIntent.TODAY_EXAMINATION_COUNT,
-                null, null, null, null);
+                null, null, null, null, null, null);
         BusinessQueryResult data = new BusinessQueryResult("examination_count=3", List.of(
                 new ChatSourceResponse("db", "Examinations", "BUSINESS_DATA",
                         "database:examinations", null)));
@@ -79,7 +79,7 @@ class ChatOrchestratorServiceTest {
     void medicalQuestionUsesOwnerAwareRetrievalAndReturnsWarning() {
         User doctor = user(7L, "DOCTOR");
         ChatRoutingDecision decision = new ChatRoutingDecision(
-                ChatRoute.MEDICAL_RAG, BusinessQueryIntent.UNKNOWN, null, null, null, null);
+                ChatRoute.MEDICAL_RAG, BusinessQueryIntent.UNKNOWN, null, null, null, null, null, null);
         MedicalRetrievalResult retrieval = new MedicalRetrievalResult("KL grade evidence", List.of(
                 new ChatSourceResponse("guideline", "OA guideline", "FILE",
                         "knowledge-document:1", 0.92)));
@@ -103,10 +103,37 @@ class ChatOrchestratorServiceTest {
     }
 
     @Test
+    void medicalQuestionPrefersRoutersStandaloneRetrievalQueryOverRawHistory() {
+        User doctor = user(7L, "DOCTOR");
+        ChatRoutingDecision decision = new ChatRoutingDecision(
+                ChatRoute.MEDICAL_RAG, BusinessQueryIntent.UNKNOWN, null, null, null, null,
+                "Kellgren-Lawrence grade 3 knee osteoarthritis", null);
+        MedicalRetrievalResult retrieval = new MedicalRetrievalResult("KL grade evidence", List.of(
+                new ChatSourceResponse("guideline", "OA guideline", "FILE", "guideline.pdf, tr. 12", 0.9)));
+        prepareConversation(doctor, "USER: What is KL grading?");
+        when(aiGateway.route("Explain grade 3", "DOCTOR", "USER: What is KL grading?"))
+                .thenReturn(decision);
+        when(medicalRagService.retrieve(
+                "Kellgren-Lawrence grade 3 knee osteoarthritis", "DOCTOR", 7L))
+                .thenReturn(retrieval);
+        when(aiGateway.answerMedical("Explain grade 3", retrieval.context(), "USER: What is KL grading?"))
+                .thenReturn(new GeneratedChatAnswer("Grade 3 explanation.", 50));
+
+        service.ask(12L, "Explain grade 3", "doctor");
+
+        verify(medicalRagService).retrieve(
+                "Kellgren-Lawrence grade 3 knee osteoarthritis", "DOCTOR", 7L);
+        verify(medicalRagService, never()).retrieve(
+                org.mockito.ArgumentMatchers.contains("CURRENT QUESTION"),
+                org.mockito.ArgumentMatchers.anyString(),
+                org.mockito.ArgumentMatchers.anyLong());
+    }
+
+    @Test
     void missingMedicalEvidenceDoesNotAskGeminiToInventAnswer() {
         User doctor = user(7L, "DOCTOR");
         ChatRoutingDecision decision = new ChatRoutingDecision(
-                ChatRoute.MEDICAL_RAG, BusinessQueryIntent.UNKNOWN, null, null, null, null);
+                ChatRoute.MEDICAL_RAG, BusinessQueryIntent.UNKNOWN, null, null, null, null, null, null);
         prepareConversation(doctor, "");
         when(aiGateway.route("Unknown medical topic", "DOCTOR", "")).thenReturn(decision);
         when(medicalRagService.retrieve("Unknown medical topic", "DOCTOR", 7L))
@@ -125,7 +152,7 @@ class ChatOrchestratorServiceTest {
     void hybridReportQuestionUsesReportDataToRetrieveMedicalEvidence() {
         User doctor = user(7L, "DOCTOR");
         ChatRoutingDecision decision = new ChatRoutingDecision(
-                ChatRoute.HYBRID, BusinessQueryIntent.REPORT_SUMMARY, 31L, null, null, null);
+                ChatRoute.HYBRID, BusinessQueryIntent.REPORT_SUMMARY, 31L, null, null, null, null, null);
         BusinessQueryResult business = new BusinessQueryResult(
                 "{id=31, examination_id=21, final_diagnosis=Knee osteoarthritis}", List.of());
         MedicalRetrievalResult medical = new MedicalRetrievalResult("Clinical guideline", List.of(

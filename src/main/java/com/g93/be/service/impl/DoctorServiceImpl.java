@@ -269,6 +269,9 @@ public class DoctorServiceImpl implements DoctorService {
         if (request.getFullName() == null || request.getFullName().isBlank()) {
             throw new IllegalArgumentException("Full name is required");
         }
+        if (request.getPhone() == null || request.getPhone().isBlank()) {
+            throw new IllegalArgumentException("Phone number is required");
+        }
 
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
             throw new IllegalArgumentException("Email '" + request.getEmail() + "' is already registered");

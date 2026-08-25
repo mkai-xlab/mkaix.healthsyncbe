@@ -85,7 +85,7 @@ public class DicomServiceImplTest {
      * Kỳ vọng: Trả về chuỗi JSON trạng thái hợp lệ "PROCESSING".
      */
     @Test
-    void testGetUploadSession_Normal_Exists() {
+    void testGetUploadSession_UTCID01_Normal_Exists() {
         // Arrange
         String sessionId = "sess-123";
         String expectedStatus = "{\"status\":\"PROCESSING\"}";
@@ -107,7 +107,7 @@ public class DicomServiceImplTest {
      * Kỳ vọng: Trả về null.
      */
     @Test
-    void testGetUploadSession_Abnormal_NotFound() {
+    void testGetUploadSession_UTCID02_Abnormal_NotFound() {
         // Arrange
         String sessionId = "sess-404";
         when(stringRedisTemplate.opsForValue()).thenReturn(valueOperations);
@@ -127,7 +127,7 @@ public class DicomServiceImplTest {
      * Kỳ vọng: Resource trả về khác null, tồn tại và có thể đọc được.
      */
     @Test
-    void testGetInstanceImageResource_Normal_Readable() throws IOException {
+    void testGetInstanceImageResource_UTCID01_Normal_Readable() throws IOException {
         // Arrange
         Long id = 1L;
         DicomInstance instance = new DicomInstance();
@@ -158,7 +158,7 @@ public class DicomServiceImplTest {
      * Kỳ vọng: Trả về null.
      */
     @Test
-    void testGetInstanceImageResource_Abnormal_NotFound() {
+    void testGetInstanceImageResource_UTCID03_Abnormal_NotFound() {
         // Arrange
         Long id = 2L;
         when(dicomInstanceRepository.findById(id)).thenReturn(Optional.empty());
@@ -177,7 +177,7 @@ public class DicomServiceImplTest {
      * Kỳ vọng: Trả về null (do URLResource existence check thất bại).
      */
     @Test
-    void testGetInstanceImageResource_Abnormal_FileMissing() {
+    void testGetInstanceImageResource_UTCID02_Abnormal_FileMissing() {
         // Arrange
         Long id = 3L;
         DicomInstance instance = new DicomInstance();
@@ -202,7 +202,7 @@ public class DicomServiceImplTest {
      * Kỳ vọng: Resource trả về khác null và tồn tại.
      */
     @Test
-    void testGetInstanceRawResource_Normal_Readable() throws IOException {
+    void testGetInstanceRawResource_UTCID01_Normal_Readable() throws IOException {
         // Arrange
         Long id = 1L;
         DicomInstance instance = new DicomInstance();
@@ -231,7 +231,7 @@ public class DicomServiceImplTest {
      * Kỳ vọng: Trả về null.
      */
     @Test
-    void testGetInstanceRawResource_Abnormal_NotFound() {
+    void testGetInstanceRawResource_UTCID03_Abnormal_NotFound() {
         // Arrange
         Long id = 2L;
         when(dicomInstanceRepository.findById(id)).thenReturn(Optional.empty());
@@ -267,7 +267,7 @@ public class DicomServiceImplTest {
      * Kỳ vọng: Thông báo trả về "Success" và uploadBatch được gọi đúng 1 lần.
      */
     @Test
-    void testUploadBatchFiles_Normal() {
+    void testUploadBatchFiles_UTCID01_Normal() {
         // Arrange
         String username = "doctor1";
         User user = new User();
@@ -301,7 +301,7 @@ public class DicomServiceImplTest {
      * Kỳ vọng: Ném ngoại lệ IllegalArgumentException với thông báo "Uploaded files list is empty".
      */
     @Test
-    void testUploadBatchFiles_Abnormal_EmptyFiles() {
+    void testUploadBatchFiles_UTCID02_Abnormal_EmptyFiles() {
         // Arrange
         List<MultipartFile> files = new ArrayList<>();
         String username = "doctor1";
@@ -320,7 +320,7 @@ public class DicomServiceImplTest {
      * Kỳ vọng: Dùng user ID mặc định (1L) thay vì ID thật, hàm uploadBatch vẫn được gọi.
      */
     @Test
-    void testUploadBatchFiles_Abnormal_UserNotFound_Fallback() {
+    void testUploadBatchFiles_UTCID03_Abnormal_UserNotFound_Fallback() {
         // Arrange
         String username = "unknown_doc";
         when(userRepository.findByUsername(username)).thenReturn(Optional.empty());
@@ -352,7 +352,7 @@ public class DicomServiceImplTest {
      * Kỳ vọng: Xử lý thành công, không có file lỗi, lưu auditLog, và processBatchPaths được gọi.
      */
     @Test
-    void testUploadBatch_Normal() throws Exception {
+    void testUploadBatch_UTCID01_Normal() throws Exception {
         // Arrange
         Long userId = 1L;
         List<MultipartFile> files = new ArrayList<>();
@@ -391,7 +391,7 @@ public class DicomServiceImplTest {
      * Kỳ vọng: Hàm trả về danh sách lỗi chứa tên file "invalid.txt".
      */
     @Test
-    void testUploadBatch_Abnormal_InvalidExtension() throws Exception {
+    void testUploadBatch_UTCID02_Abnormal_InvalidExtension() throws Exception {
         // Arrange
         Long userId = 1L;
         List<MultipartFile> files = new ArrayList<>();
@@ -461,7 +461,7 @@ public class DicomServiceImplTest {
      * Kỳ vọng: Xử lý thành công, processMultipleZipBatches được gọi đúng 1 lần.
      */
     @Test
-    void testUploadZipBatchFiles_Normal() throws Exception {
+    void testUploadZipBatchFiles_UTCID01_Normal() throws Exception {
         // Arrange
         String username = "doctor1";
         Long userId = 1L;
@@ -503,7 +503,7 @@ public class DicomServiceImplTest {
      * Kỳ vọng: Bắn ra ngoại lệ IllegalArgumentException báo lỗi "Uploaded files are empty".
      */
     @Test
-    void testUploadZipBatchFiles_Abnormal_EmptyFiles() {
+    void testUploadZipBatchFiles_UTCID02_Abnormal_EmptyFiles() {
         // Arrange
         String username = "doctor1";
         List<MultipartFile> files = new ArrayList<>();
@@ -526,7 +526,7 @@ public class DicomServiceImplTest {
      * Kỳ vọng: Trả về lỗi định dạng tệp "Tệp tin không đúng định dạng DICOM".
      */
     @Test
-    void testUploadBatch_Abnormal_InvalidMagicBytes() throws Exception {
+    void testUploadBatch_UTCID03_Abnormal_InvalidMagicBytes() throws Exception {
         Long userId = 1L;
         List<MultipartFile> files = new ArrayList<>();
         
@@ -559,10 +559,10 @@ public class DicomServiceImplTest {
      
      * Kịch bản Test Design: UTCID01 (Dự kiến) */
     @Test
-    void testProcessBatchPaths_Normal() throws Exception {
+    void testProcessBatchPaths_UTCID01_Normal() throws Exception {
         java.util.Map<String, Path> filePaths = new java.util.LinkedHashMap<>();
         Path tempFile = Files.createTempFile("test_", ".dcm");
-        filePaths.put("test.dcm", tempFile);
+        filePaths.put("valid.dcm", tempFile);
 
         doReturn(valueOperations).when(stringRedisTemplate).opsForValue();
         doReturn(mock(org.springframework.data.redis.core.ZSetOperations.class)).when(stringRedisTemplate).opsForZSet();
@@ -579,10 +579,38 @@ public class DicomServiceImplTest {
      
      * Kịch bản Test Design: UTCID01 (Dự kiến) */
     @Test
-    void testProcessBatchPaths_Abnormal_MissingSOP() throws Exception {
+    void testProcessBatchPaths_UTCID02_Abnormal_MissingSOP() throws Exception {
         java.util.Map<String, Path> filePaths = new java.util.LinkedHashMap<>();
-        Path tempFile = Files.createTempFile("test_", ".dcm");
-        filePaths.put("test.dcm", tempFile);
+        Path tempFile = Files.createTempFile("missing_sop_", ".dcm");
+        filePaths.put("missing_sop.dcm", tempFile);
+
+        doReturn(valueOperations).when(stringRedisTemplate).opsForValue();
+        doReturn(mock(org.springframework.data.redis.core.ZSetOperations.class)).when(stringRedisTemplate).opsForZSet();
+
+        BatchDicomUploadResponse result = dicomService.processBatchPaths(filePaths, 1L, "sess-123");
+        assertNotNull(result);
+    }
+
+    @Test
+    void testProcessBatchPaths_UTCID03_Abnormal_DuplicateDicom() throws Exception {
+        java.util.Map<String, Path> filePaths = new java.util.LinkedHashMap<>();
+        Path tempFile = Files.createTempFile("duplicate_", ".dcm");
+        filePaths.put("duplicate.dcm", tempFile);
+
+        doReturn(valueOperations).when(stringRedisTemplate).opsForValue();
+        doReturn(mock(org.springframework.data.redis.core.ZSetOperations.class)).when(stringRedisTemplate).opsForZSet();
+        org.mockito.Mockito.lenient().when(dicomInstanceRepository.existsBySopInstanceUid(anyString())).thenReturn(true);
+
+        BatchDicomUploadResponse result = dicomService.processBatchPaths(filePaths, 1L, "sess-123");
+        assertNotNull(result);
+    }
+
+    @Test
+    void testProcessBatchPaths_UTCID04_Abnormal_CorruptDicom() throws Exception {
+        java.util.Map<String, Path> filePaths = new java.util.LinkedHashMap<>();
+        Path tempFile = Files.createTempFile("corrupt_", ".dcm");
+        Files.writeString(tempFile, "random_garbage_not_dicom");
+        filePaths.put("corrupt.dcm", tempFile);
 
         doReturn(valueOperations).when(stringRedisTemplate).opsForValue();
         doReturn(mock(org.springframework.data.redis.core.ZSetOperations.class)).when(stringRedisTemplate).opsForZSet();
@@ -599,7 +627,7 @@ public class DicomServiceImplTest {
      
      * Kịch bản Test Design: UTCID01 (Dự kiến) */
     @Test
-    void testProcessMultipleZipBatches_Normal() throws Exception {
+    void testProcessMultipleZipBatches_UTCID01_Normal() throws Exception {
         List<Path> zipFiles = new ArrayList<>();
         
         BatchDicomUploadResponse mockResponse = new BatchDicomUploadResponse();
@@ -619,7 +647,7 @@ public class DicomServiceImplTest {
      
      * Kịch bản Test Design: UTCID01 (Dự kiến) */
     @Test
-    void testProcessMultipleZipBatches_Abnormal_StrangeFiles() throws Exception {
+    void testProcessMultipleZipBatches_UTCID03_Abnormal_StrangeFiles() throws Exception {
         List<Path> zipFiles = new ArrayList<>();
         
         BatchDicomUploadResponse mockResponse = new BatchDicomUploadResponse();
@@ -668,7 +696,7 @@ public class DicomServiceImplTest {
      * Kỳ vọng: Ném ra DataAccessException.
      */
     @Test
-    void testGetInstanceImageResource_Abnormal_DBFail() {
+    void testGetInstanceImageResource_UTCID04_Abnormal_DBFail() {
         when(dicomInstanceRepository.findById(anyLong())).thenThrow(new org.springframework.dao.DataRetrievalFailureException("DB Error"));
         assertThrows(org.springframework.dao.DataAccessException.class, () -> dicomService.getInstanceImageResource(1L));
     }
@@ -680,7 +708,7 @@ public class DicomServiceImplTest {
      * Kỳ vọng: Trả về null.
      */
     @Test
-    void testGetInstanceRawResource_Abnormal_FileMissing() {
+    void testGetInstanceRawResource_UTCID02_Abnormal_FileMissing() {
         Long id = 3L;
         DicomInstance instance = new DicomInstance();
         DicomRaw raw = new DicomRaw();
@@ -698,7 +726,7 @@ public class DicomServiceImplTest {
      * Kỳ vọng: Ném ra DataAccessException.
      */
     @Test
-    void testGetInstanceRawResource_Abnormal_DBFail() {
+    void testGetInstanceRawResource_UTCID04_Abnormal_DBFail() {
         when(dicomInstanceRepository.findById(anyLong())).thenThrow(new org.springframework.dao.DataRetrievalFailureException("DB Error"));
         assertThrows(org.springframework.dao.DataAccessException.class, () -> dicomService.getInstanceRawResource(1L));
     }
@@ -710,7 +738,7 @@ public class DicomServiceImplTest {
      * Kỳ vọng: Trả về null, không gọi tới Redis hoặc gọi với key null sẽ trả về an toàn.
      */
     @Test
-    void testGetUploadSession_Boundary_NullSession() {
+    void testGetUploadSession_UTCID03_Boundary_NullSession() {
         when(stringRedisTemplate.opsForValue()).thenReturn(valueOperations);
         String result = dicomService.getUploadSession(null);
         assertNull(result);
@@ -723,7 +751,7 @@ public class DicomServiceImplTest {
      * Kỳ vọng: Bắt và ném lại RedisConnectionFailureException để controller xử lý.
      */
     @Test
-    void testGetUploadSession_Abnormal_RedisFail() {
+    void testGetUploadSession_UTCID04_Abnormal_RedisFail() {
         when(stringRedisTemplate.opsForValue()).thenThrow(new org.springframework.data.redis.RedisConnectionFailureException("Redis Error"));
         assertThrows(org.springframework.data.redis.RedisConnectionFailureException.class, () -> {
             dicomService.getUploadSession("sess-123");
@@ -737,7 +765,7 @@ public class DicomServiceImplTest {
      * Kỳ vọng: Quá trình bỏ qua, trả về kết quả rỗng thay vì bị crash.
      */
     @Test
-    void testUploadBatch_Boundary_EmptyList() {
+    void testUploadBatch_UTCID04_Boundary_EmptyList() {
         doReturn(valueOperations).when(stringRedisTemplate).opsForValue();
         doReturn(mock(org.springframework.data.redis.core.ZSetOperations.class)).when(stringRedisTemplate).opsForZSet();
         List<MultipartFile> files = new ArrayList<>();
@@ -753,7 +781,7 @@ public class DicomServiceImplTest {
      * Kỳ vọng: Ném ra RuntimeException và dừng quá trình.
      */
     @Test
-    void testUploadBatch_Abnormal_TempUnwritable() throws Exception {
+    void testUploadBatch_UTCID05_Abnormal_TempUnwritable() throws Exception {
         Long userId = 1L;
         List<MultipartFile> files = new ArrayList<>();
         MultipartFile mockFile = mock(MultipartFile.class);
@@ -775,7 +803,7 @@ public class DicomServiceImplTest {
      * Kỳ vọng: Ném ra DataAccessException.
      */
     @Test
-    void testUploadBatchFiles_Abnormal_DBFail() {
+    void testUploadBatchFiles_UTCID04_Abnormal_DBFail() {
         String username = "doctor1";
         when(userRepository.findByUsername(username)).thenThrow(new org.springframework.dao.DataRetrievalFailureException("DB Error"));
         List<MultipartFile> files = new ArrayList<>();
@@ -792,7 +820,7 @@ public class DicomServiceImplTest {
      * Kỳ vọng: Ném ra DataAccessException.
      */
     @Test
-    void testUploadZipBatchFiles_Abnormal_DBFail() {
+    void testUploadZipBatchFiles_UTCID03_Abnormal_DBFail() {
         String username = "doctor1";
         when(userRepository.findByUsername(username)).thenThrow(new org.springframework.dao.DataRetrievalFailureException("DB Error"));
         List<MultipartFile> files = new ArrayList<>();
@@ -809,7 +837,7 @@ public class DicomServiceImplTest {
      * Kỳ vọng: Bắn ra RuntimeException do lỗi I/O.
      */
     @Test
-    void testUploadZipBatchFiles_Abnormal_TempUnwritable() throws Exception {
+    void testUploadZipBatchFiles_UTCID04_Abnormal_TempUnwritable() throws Exception {
         String username = "doctor1";
         User user = new User();
         user.setId(1L);
@@ -838,7 +866,7 @@ public class DicomServiceImplTest {
      
      * Kịch bản Test Design: N/A (Extra Test Case) */
     @Test
-    void testProcessBatchPaths_Boundary_EmptyMap() throws Exception {
+    void testProcessBatchPaths_UTCID05_Boundary_EmptyMap() throws Exception {
         java.util.Map<String, Path> filePaths = new java.util.LinkedHashMap<>();
         doReturn(valueOperations).when(stringRedisTemplate).opsForValue();
         doReturn(mock(org.springframework.data.redis.core.ZSetOperations.class)).when(stringRedisTemplate).opsForZSet();
@@ -855,7 +883,7 @@ public class DicomServiceImplTest {
      
      * Kịch bản Test Design: UTCID01 (Dự kiến) */
     @Test
-    void testProcessBatchPaths_Abnormal_RedisUnwritable() throws Exception {
+    void testProcessBatchPaths_UTCID07_Abnormal_RedisUnwritable() throws Exception {
         java.util.Map<String, Path> filePaths = new java.util.LinkedHashMap<>();
         doThrow(new RuntimeException("Redis down")).when(stringRedisTemplate).opsForValue();
         
@@ -872,7 +900,7 @@ public class DicomServiceImplTest {
      
      * Kịch bản Test Design: UTCID01 (Dự kiến) */
     @Test
-    void testProcessBatchPaths_Abnormal_FSUnwritable() throws Exception {
+    void testProcessBatchPaths_UTCID06_Abnormal_FSUnwritable() throws Exception {
         // Force the storageBaseDir to be an invalid path to trigger IOException
         org.springframework.test.util.ReflectionTestUtils.setField(dicomService, "storageBaseDir", "Z:\\invalid\\path\\/:*?");
         java.util.Map<String, Path> filePaths = new java.util.LinkedHashMap<>();
@@ -884,71 +912,91 @@ public class DicomServiceImplTest {
     }
 
 
-    // --- AUTO-GENERATED MISSING TESTS FROM EXCEL ---
+
+    // ==========================================
+    // MISSING TESTS IMPLEMENTATION
+    // ==========================================
+
     /**
-     * Mục đích: Verify metadata extraction from MultipartFile
-     * Kịch bản Test Design: UTCID04
-     * Ghi chú: Được bổ sung tự động để khớp với Report5.1_Unit Test.xlsx
+     * Mục đích test: Kiểm tra lỗi file zip lồng nhau (nested zip).
+     * Đầu vào: File zip chứa file zip khác bên trong (nested.zip).
+     * Hành động: Gọi hàm processMultipleZipBatches().
+     * Kỳ vọng: Trả về BatchDicomUploadResponse với errors (vẫn thành công nhưng có cảnh báo).
      */
+    // ==============================================================================
+    // UTCID02: Process multiple zip batches - Nested Zip (Abnormal)
+    // ==============================================================================
     @Test
-    @org.junit.jupiter.api.Disabled("Need manual implementation for specific mock setup based on Excel matrix")
-    void testExtractMetadata_UTCID04() {
-        // TODO: Implement mock setup and assertion for UTCID04
-        org.junit.jupiter.api.Assertions.assertTrue(true, "Test scaffold generated");
+    void testProcessMultipleZipBatches_UTCID02_Abnormal_NestedZip() throws Exception {
+        // Setup a real nested zip
+        Path innerZip = tempStorageDir.resolve("inner.zip");
+        try (java.util.zip.ZipOutputStream zos = new java.util.zip.ZipOutputStream(Files.newOutputStream(innerZip))) {
+        }
+        
+        Path outerZip = tempStorageDir.resolve("nested.zip");
+        try (java.util.zip.ZipOutputStream zos = new java.util.zip.ZipOutputStream(Files.newOutputStream(outerZip))) {
+            zos.putNextEntry(new java.util.zip.ZipEntry("inner.zip"));
+            Files.copy(innerZip, zos);
+            zos.closeEntry();
+        }
+        
+        List<Path> zipPaths = List.of(outerZip);
+        
+        BatchDicomUploadResponse mockResponse = new BatchDicomUploadResponse();
+        mockResponse.setErrors(new java.util.ArrayList<>());
+        mockResponse.setSuccessfulPatients(new java.util.ArrayList<>());
+        doReturn(mockResponse).when(dicomService).processBatchPaths(any(), any(), any());
+        
+        BatchDicomUploadResponse response = dicomService.processMultipleZipBatches(zipPaths, 1L, "sess-123");
+        
+        assertNotNull(response);
     }
+
     /**
-     * Mục đích: Verify core logic
-     * Kịch bản Test Design: UTCID06
-     * Ghi chú: Được bổ sung tự động để khớp với Report5.1_Unit Test.xlsx
+     * Mục đích test: Kiểm tra lỗi khi file zip trống (không có file dicom).
+     * Đầu vào: File zip không có nội dung.
+     * Hành động: Gọi hàm processMultipleZipBatches().
+     * Kỳ vọng: Trả về BatchDicomUploadResponse với errors, log "No DICOM files found...".
      */
+    // ==============================================================================
+    // UTCID04: Process multiple zip batches - Empty Zip (Boundary)
+    // ==============================================================================
     @Test
-    @org.junit.jupiter.api.Disabled("Need manual implementation for specific mock setup based on Excel matrix")
-    void testProcessBatchPaths_UTCID06() {
-        // TODO: Implement mock setup and assertion for UTCID06
-        org.junit.jupiter.api.Assertions.assertTrue(true, "Test scaffold generated");
+    void testProcessMultipleZipBatches_UTCID04_Boundary_EmptyZip() throws Exception {
+        Path emptyZip = tempStorageDir.resolve("empty.zip");
+        try (java.util.zip.ZipOutputStream zos = new java.util.zip.ZipOutputStream(Files.newOutputStream(emptyZip))) {
+        }
+        List<Path> zipPaths = List.of(emptyZip);
+        
+        BatchDicomUploadResponse mockResponse = new BatchDicomUploadResponse();
+        mockResponse.setErrors(new java.util.ArrayList<>());
+        mockResponse.setSuccessfulPatients(new java.util.ArrayList<>());
+        doReturn(mockResponse).when(dicomService).processBatchPaths(any(), any(), any());
+        
+        BatchDicomUploadResponse response = dicomService.processMultipleZipBatches(zipPaths, 1L, "sess-123");
+        
+        assertNotNull(response);
+        assertTrue(response.getSuccessfulPatients().isEmpty());
     }
+
     /**
-     * Mục đích: Verify core logic
-     * Kịch bản Test Design: UTCID07
-     * Ghi chú: Được bổ sung tự động để khớp với Report5.1_Unit Test.xlsx
+     * Mục đích test: Kiểm tra bắt lỗi RuntimeException trong quá trình xử lý zip ngầm.
+     * Đầu vào: File zip hợp lệ nhưng xảy ra lỗi RuntimeException bất ngờ.
+     * Hành động: Gọi hàm processMultipleZipBatches().
+     * Kỳ vọng: Ném ra ngoại lệ hoặc trả về status FAILED, log "Error processing background ZIP batches".
      */
+    // ==============================================================================
+    // UTCID05: Process multiple zip batches - Runtime Exception (Abnormal)
+    // ==============================================================================
     @Test
-    @org.junit.jupiter.api.Disabled("Need manual implementation for specific mock setup based on Excel matrix")
-    void testProcessBatchPaths_UTCID07() {
-        // TODO: Implement mock setup and assertion for UTCID07
-        org.junit.jupiter.api.Assertions.assertTrue(true, "Test scaffold generated");
+    void testProcessMultipleZipBatches_UTCID05_Abnormal_Exception() throws Exception {
+        // Passing a non-existent file will throw an IOException when unzipFile tries to open it,
+        // which processMultipleZipBatches will catch and wrap in a RuntimeException.
+        List<Path> zipPaths = List.of(tempStorageDir.resolve("non_existent.zip"));
+        
+        assertThrows(RuntimeException.class, () -> {
+            dicomService.processMultipleZipBatches(zipPaths, 1L, "sess-123");
+        });
     }
-    /**
-     * Mục đích: Verify recursive zip traversal
-     * Kịch bản Test Design: UTCID03
-     * Ghi chú: Được bổ sung tự động để khớp với Report5.1_Unit Test.xlsx
-     */
-    @Test
-    @org.junit.jupiter.api.Disabled("Need manual implementation for specific mock setup based on Excel matrix")
-    void testProcessMultipleZipBatches_UTCID03() {
-        // TODO: Implement mock setup and assertion for UTCID03
-        org.junit.jupiter.api.Assertions.assertTrue(true, "Test scaffold generated");
-    }
-    /**
-     * Mục đích: Verify recursive zip traversal
-     * Kịch bản Test Design: UTCID04
-     * Ghi chú: Được bổ sung tự động để khớp với Report5.1_Unit Test.xlsx
-     */
-    @Test
-    @org.junit.jupiter.api.Disabled("Need manual implementation for specific mock setup based on Excel matrix")
-    void testProcessMultipleZipBatches_UTCID04() {
-        // TODO: Implement mock setup and assertion for UTCID04
-        org.junit.jupiter.api.Assertions.assertTrue(true, "Test scaffold generated");
-    }
-    /**
-     * Mục đích: Verify recursive zip traversal
-     * Kịch bản Test Design: UTCID05
-     * Ghi chú: Được bổ sung tự động để khớp với Report5.1_Unit Test.xlsx
-     */
-    @Test
-    @org.junit.jupiter.api.Disabled("Need manual implementation for specific mock setup based on Excel matrix")
-    void testProcessMultipleZipBatches_UTCID05() {
-        // TODO: Implement mock setup and assertion for UTCID05
-        org.junit.jupiter.api.Assertions.assertTrue(true, "Test scaffold generated");
-    }
+
 }

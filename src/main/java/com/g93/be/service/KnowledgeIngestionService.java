@@ -37,6 +37,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
@@ -49,6 +50,18 @@ public class KnowledgeIngestionService {
 
     private static final Set<String> ALLOWED_EXTENSIONS = Set.of("pdf", "doc", "docx", "txt");
 
+    /**
+     * DB/OS content-type detection (client-supplied header, Files.probeContentType) is
+     * unreliable across environments (e.g. returns null on slim Docker/Linux images) — this
+     * fixed extension map guarantees browsers get a real MIME type instead of octet-stream,
+     * which is required for inline preview to render instead of forcing a download.
+     */
+    private static final Map<String, String> EXTENSION_CONTENT_TYPES = Map.of(
+            "pdf", "application/pdf",
+            "doc", "application/msword",
+            "docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "txt", "text/plain");
+
     private final KnowledgeDocumentRepository repository;
     private final UserRepository userRepository;
     private final RestClient knowledgeRestClient;
@@ -59,7 +72,10 @@ public class KnowledgeIngestionService {
     private final KnowledgeDocumentDeletionService deletionService;
     private final ApplicationEventPublisher eventPublisher;
 
-    @Transactional
+    // Deliberately not @Transactional: validate() below makes a synchronous
+    // Gemini call, and addUrl()'s download() makes a synchronous HTTP call.
+    // Neither should hold a DB transaction open for the duration of an external
+    // network call. repository.save() still commits atomically on its own.
     public KnowledgeDocumentResponse upload(
             MultipartFile file, String title, KnowledgeAccessScope scope, String username) {
         validateFile(file);
@@ -87,7 +103,6 @@ public class KnowledgeIngestionService {
         return toResponse(document);
     }
 
-    @Transactional
     public KnowledgeDocumentResponse addUrl(KnowledgeUrlRequest request, String username) {
         URI uri = validatePublicUrl(request.url());
         String sourceKey = "url:" + sha256(uri.normalize().toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
@@ -146,17 +161,11 @@ public class KnowledgeIngestionService {
             if (!path.startsWith(root) || !Files.isRegularFile(path)) {
                 throw new ResourceNotFoundException("Knowledge document file not found");
             }
-            String contentType = document.getContentType();
-            if (contentType == null || contentType.isBlank()) {
-                contentType = Files.probeContentType(path);
-            }
-            if (contentType == null || contentType.isBlank()) {
-                contentType = "application/octet-stream";
-            }
             String fileName = safeFileName(document.getOriginalName());
             if (fileName == null || fileName.isBlank()) {
                 fileName = path.getFileName().toString();
             }
+            String contentType = resolveContentType(document.getContentType(), fileName, path);
             return new KnowledgeDocumentFile(new FileSystemResource(path), fileName, contentType, Files.size(path));
         } catch (IOException exception) {
             throw new ResourceNotFoundException("Knowledge document file not found");
@@ -318,6 +327,26 @@ public class KnowledgeIngestionService {
         }
         int index = safe.lastIndexOf('.');
         return index < 0 ? "" : safe.substring(index + 1).toLowerCase(Locale.ROOT);
+    }
+
+    private String resolveContentType(String storedContentType, String fileName, Path path) throws IOException {
+        if (isMeaningfulContentType(storedContentType)) {
+            return storedContentType;
+        }
+        String guessed = EXTENSION_CONTENT_TYPES.get(extension(fileName));
+        if (guessed != null) {
+            return guessed;
+        }
+        String probed = Files.probeContentType(path);
+        if (isMeaningfulContentType(probed)) {
+            return probed;
+        }
+        return "application/octet-stream";
+    }
+
+    private boolean isMeaningfulContentType(String contentType) {
+        return contentType != null && !contentType.isBlank()
+                && !contentType.equalsIgnoreCase("application/octet-stream");
     }
 
     private String sha256(byte[] bytes) {

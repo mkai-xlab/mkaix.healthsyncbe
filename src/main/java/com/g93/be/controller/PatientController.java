@@ -91,6 +91,21 @@ public class PatientController {
     }
 
     /**
+     * Permanently deletes a patient by patient code, along with every
+     * examination, DICOM instance, AI result, report, and RAG index entry that
+     * exists only because of that patient. Any authenticated account may call
+     * this - there is no role/permission check beyond a valid JWT.
+     *
+     * @param patientCode The patient code to purge (e.g. 2600055967).
+     */
+    @DeleteMapping("/code/{patientCode}/full-delete")
+    public ResponseEntity<Void> deletePatientCompletely(@PathVariable String patientCode) {
+        log.warn("Received request to permanently delete patient with code: {}", patientCode);
+        patientService.deletePatientCompletelyByCode(patientCode);
+        return ResponseEntity.ok().build();
+    }
+
+    /**
      * Retrieves a patient's details and their examination images.
      *
      * @param patientId The patient code.

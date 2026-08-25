@@ -6,6 +6,137 @@ All paths below are relative to the configured `/api/v1` context path.
 
 ## Recent API Updates
 
+### X-ray report form with a doctor-confirmed preview
+
+Generated reports now use the "PHIEU CHUP XQUANG" hospital form, printed with the hospital crest
+on the letterhead. Patient details print as a closed label/value grid rather than dotted fill-in
+rules, so a downloaded report reads as a finished record instead of a blank form. The letterhead text, form code, imaging department, and
+signature place come from the `app.report.*` configuration keys, so a different site can rebrand
+the form without a code change. The report is signed by the authenticated doctor: the name on the
+signature line is always taken from the account that generated it, never from the request.
+
+Reporting is a two-step flow, and it happens once per examination. The doctor opens the report
+preview, which arrives pre-filled — the result block stating the Kellgren-Lawrence grades
+confirmed during verification — edits any field by hand, and only then presses confirm, which is
+the single step that renders a PDF. A report is final once generated: neither endpoint can be used
+again afterward. `GET report-draft` returns `400 Bad Request` once the examination's status is
+`REPORT_GENERATED`, and `POST generate-report` likewise returns the existing report untouched
+rather than rendering a new one, even if a body is sent. The confirmed content lives on afterward
+via the report preview/download endpoints, not through either of these two.
+
+The result block states the grade and nothing else; the radiographic signs behind it are the
+doctor's to write. Both `findings` and `conclusion` are editable, and confirming a report saves them
+onto the examination (`examinations.findings`, `examinations.conclusion`), not just into the PDF —
+so the confirmed wording is queryable even without opening the file.
+
+Both endpoints reject `ADMIN` by design: they require `DEPARTMENT_HEAD`/`HEAD_OF_DEPARTMENT`,
+or `DOCTOR` holding `GENERATE_PDF_REPORT`, and a doctor only reaches examinations assigned to
+them. When testing with Bruno, run "Login Doctor" rather than "Login Success", which signs in as
+admin.
+
+#### `GET /examinations/{id}/report-draft`
+
+Returns the whole form pre-filled for the preview screen. No PDF is created. Requires
+`DEPARTMENT_HEAD`/`HEAD_OF_DEPARTMENT`, or `DOCTOR` with the `GENERATE_PDF_REPORT` permission; a
+doctor only sees examinations assigned to them.
+
+A report is final once generated: this endpoint only serves a draft while the examination's
+status is `VERIFIED`. Once `POST generate-report` has produced a report (status
+`REPORT_GENERATED`), calling this endpoint returns `400 Bad Request` — the confirmed content is
+viewed via the report preview/download endpoints instead, never re-drafted.
+
+```json
+{
+  "examinationId": 7,
+  "patientCode": "PAT-001",
+  "ministryName": "BO QUOC PHONG",
+  "hospitalName": "VIEN Y HOC CO TRUYEN QUAN DOI",
+  "departmentName": "KHOA CHAN DOAN HINH ANH",
+  "formCode": "08/BV-02",
+  "clinicalDepartment": "Khoa Chan doan hinh anh",
+  "doctorName": "Ha Cong Thoa",
+  "leftKlGrade": "2",
+  "rightKlGrade": "3",
+  "documentNumber": "ENC-2026-0007",
+  "attemptNumber": "",
+  "patientName": "Ha Huy Doan",
+  "age": "48",
+  "gender": "Nam",
+  "address": "Xa Quang Bi, Thanh pho Ha Noi",
+  "findings": [
+    "Goi phai: Thoai hoa khop goi do 3 (Kellgren-Lawrence).",
+    "Goi trai: Thoai hoa khop goi do 2 (Kellgren-Lawrence)."
+  ],
+  "conclusion": "Hinh anh thoai hoa khop goi: goi phai do 3, goi trai do 2 theo phan loai Kellgren-Lawrence.",
+  "signaturePlace": "Ha Noi",
+  "signatureDate": "07/05/2026"
+}
+```
+
+The four letterhead fields, `clinicalDepartment`, `doctorName`, `patientCode`, `leftKlGrade`, and
+`rightKlGrade` are read-only context — the imaging department is always the configured one, and
+the signature line always names the authenticated doctor. Everything else is editable on the
+preview screen. `attemptNumber` has no source record and arrives blank for the doctor to type in.
+`signatureDate` uses `dd/MM/yyyy`.
+
+Status codes: `200 OK`; `400 Bad Request` when the examination is not verified, has no confirmed AI
+result, or already has a generated report; `403 Forbidden` for a doctor not assigned to the
+examination.
+
+#### `POST /examinations/{id}/generate-report`
+
+The confirm step: renders the PDF from the values the doctor approved. The request body is
+**optional** — omitting it keeps every pre-filled value. A report can only be generated once per
+examination: once the status is `REPORT_GENERATED`, this endpoint always returns that same report
+untouched, with or without a body, rather than rendering a new one. The one exception is recovery —
+if the stored PDF file has gone missing from disk, the next call re-renders it (applying any body
+sent at that point) instead of failing.
+
+```json
+{
+  "documentNumber": "SO-2026-0077",
+  "attemptNumber": "1",
+  "patientName": "HA HUY DOAN",
+  "age": "48",
+  "gender": "Nam",
+  "address": "Xa Quang Bi, Thanh pho Ha Noi",
+  "findings": [
+    "Goi phai: Thoai hoa khop goi do 3 (Kellgren-Lawrence).",
+    "Goi trai: Khong thoai hoa khop goi (Kellgren-Lawrence do 0)."
+  ],
+  "conclusion": "Hinh anh thoai hoa khop goi phai do 3 theo phan loai Kellgren-Lawrence.",
+  "signaturePlace": "Ha Noi",
+  "signatureDate": "07/05/2026"
+}
+```
+
+Every field is optional and falls back independently to the pre-filled value, so the frontend may
+send only what the doctor actually changed. Blank lines in `findings` are dropped rather than
+printed as empty bullets. The letterhead, the imaging department, and the signing doctor's name are
+not accepted here.
+
+Validation returns `400 Bad Request` with the standard `ErrorResponse` before any PDF is rendered.
+Length caps: `conclusion` 2000; each `findings` entry 1000; `address` 255; `patientName` 150;
+`documentNumber`, `signaturePlace` 100; `age`, `gender`, `attemptNumber` 20.
+
+The response is unchanged:
+
+```json
+{
+  "reportId": 31,
+  "examinationId": 7,
+  "fileName": "report_ENC-123_1a2b3c4d.pdf",
+  "fileSize": 28454,
+  "contentType": "application/pdf",
+  "generatedAt": "2026-05-07T09:30:00.000Z",
+  "previewUrl": "/api/v1/reports/7/preview",
+  "downloadUrl": "/api/v1/reports/7/download"
+}
+```
+
+Status codes: `200 OK`; `400 Bad Request` for an unverified examination, missing or unconfirmed AI
+results, or a validation failure; `403 Forbidden` for a doctor not assigned to the examination.
+
 ### Today's examination selection and report-aware RAG
 
 `POST /chat/ask` now recognizes requests such as `Cho toi xem cac ca kham hom nay`

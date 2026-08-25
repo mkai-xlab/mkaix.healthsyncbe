@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
@@ -21,6 +22,14 @@ import java.util.Set;
 @Component
 @RequiredArgsConstructor
 public class DataInitializer implements CommandLineRunner {
+
+    private static final Map<String, String> ROLE_VIETNAMESE_NAMES = Map.of(
+            "ADMIN", "Quản trị viên hệ thống",
+            "DOCTOR", "Bác sĩ",
+            "HEAD_OF_DEPARTMENT", "Trưởng khoa");
+
+    private static final String CHAT_FEATURE_NAME = "AI Chatbox & Medical Knowledge";
+    private static final String CHAT_FEATURE_DESCRIPTION = "Trợ lý AI và kho tri thức y khoa";
 
     private final UserRepository userRepository;
     private final AdminRepository adminRepository;
@@ -36,9 +45,10 @@ public class DataInitializer implements CommandLineRunner {
     public void run(String... args) throws Exception {
         // 1. Initialize Dynamic Roles and Permissions FIRST
         if (roleRepository.findByCode("ADMIN").isEmpty()) {
-            Role adminRole = new Role(null, "ADMIN", "System Administrator", null, null);
-            Role doctorRole = new Role(null, "DOCTOR", "Medical Doctor", null, null);
-            Role headOfDepartmentRole = new Role(null, "HEAD_OF_DEPARTMENT", "Head of Department", null, null);
+            Role adminRole = new Role(null, "ADMIN", ROLE_VIETNAMESE_NAMES.get("ADMIN"), null, null);
+            Role doctorRole = new Role(null, "DOCTOR", ROLE_VIETNAMESE_NAMES.get("DOCTOR"), null, null);
+            Role headOfDepartmentRole = new Role(
+                    null, "HEAD_OF_DEPARTMENT", ROLE_VIETNAMESE_NAMES.get("HEAD_OF_DEPARTMENT"), null, null);
             roleRepository.saveAll(java.util.List.of(adminRole, doctorRole, headOfDepartmentRole));
 
             // Create Features
@@ -123,6 +133,7 @@ public class DataInitializer implements CommandLineRunner {
 
         synchronizeChatPermissions();
         synchronizePermissionNames();
+        synchronizeRoleNames();
         synchronizeAdminPermissions();
         ensureHeadOfDepartmentRole();
 
@@ -131,7 +142,7 @@ public class DataInitializer implements CommandLineRunner {
             Admin admin = new Admin();
             admin.setUsername("admin");
             admin.setPassword(passwordEncoder.encode("admin12345"));
-            admin.setFullName("System Administrator");
+            admin.setFullName("Quản trị viên hệ thống");
             admin.setEmail("admin@healthsync.com");
             admin.setPhone("0123456789");
 
@@ -145,16 +156,6 @@ public class DataInitializer implements CommandLineRunner {
             adminRepository.save(admin);
             System.out.println(">>> Đã khởi tạo tài khoản admin mặc định (admin/admin)");
         }
-    }
-
-    private Role getOrCreateRole(String name) {
-        return roleRepository.findByCode(name)
-                .orElseGet(() -> {
-                    Role r = new Role();
-                    r.setCode(name);
-                    r.setName(name);
-                    return roleRepository.save(r);
-                });
     }
 
     private String permissionName(String code) {
@@ -175,10 +176,24 @@ public class DataInitializer implements CommandLineRunner {
         }
     }
 
+    private void synchronizeRoleNames() {
+        List<Role> changedRoles = new ArrayList<>();
+        for (Role role : roleRepository.findAll()) {
+            String vietnameseName = ROLE_VIETNAMESE_NAMES.get(role.getCode());
+            if (vietnameseName != null && !Objects.equals(vietnameseName, role.getName())) {
+                role.setName(vietnameseName);
+                changedRoles.add(role);
+            }
+        }
+        if (!changedRoles.isEmpty()) {
+            roleRepository.saveAll(changedRoles);
+        }
+    }
+
     private void synchronizeChatPermissions() {
-        Feature feature = nullable(featureRepository.findByName("AI Chatbox & Medical Knowledge"))
-                .orElseGet(() -> saveFeature(new Feature(
-                        null, "AI Chatbox & Medical Knowledge", "Tro ly AI va kho tri thuc y khoa")));
+        Feature feature = nullable(featureRepository.findByName(CHAT_FEATURE_NAME))
+                .map(existing -> withDescription(existing, CHAT_FEATURE_DESCRIPTION))
+                .orElseGet(() -> saveFeature(new Feature(null, CHAT_FEATURE_NAME, CHAT_FEATURE_DESCRIPTION)));
         Permission useChat = nullable(permissionRepository.findByCode("USE_AI_CHAT"))
                 .orElseGet(() -> savePermission(new Permission(
                         null, "USE_AI_CHAT", permissionName("USE_AI_CHAT"), 23, null, feature, null)));
@@ -212,6 +227,14 @@ public class DataInitializer implements CommandLineRunner {
     private Feature saveFeature(Feature feature) {
         Feature saved = featureRepository.save(feature);
         return saved == null ? feature : saved;
+    }
+
+    private Feature withDescription(Feature feature, String description) {
+        if (Objects.equals(description, feature.getDescription())) {
+            return feature;
+        }
+        feature.setDescription(description);
+        return saveFeature(feature);
     }
 
     private Permission savePermission(Permission permission) {
@@ -251,8 +274,8 @@ public class DataInitializer implements CommandLineRunner {
 
     private void ensureHeadOfDepartmentRole() {
         Role headOfDepartmentRole = roleRepository.findByCode("HEAD_OF_DEPARTMENT")
-                .orElseGet(() -> roleRepository.save(
-                        new Role(null, "HEAD_OF_DEPARTMENT", "Head of Department", null, null)));
+                .orElseGet(() -> roleRepository.save(new Role(
+                        null, "HEAD_OF_DEPARTMENT", ROLE_VIETNAMESE_NAMES.get("HEAD_OF_DEPARTMENT"), null, null)));
 
         if (rolePermissionRepository.findByRoleId(headOfDepartmentRole.getId()).isEmpty()) {
             Role doctorRole = roleRepository.findByCode("DOCTOR").orElse(null);

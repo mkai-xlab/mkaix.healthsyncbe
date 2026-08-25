@@ -52,5 +52,9 @@ public class PendingDicomUploadDTO implements Serializable {
         private String filePath; // for DICOM raw
         private String bodyPart;
         private Integer instanceNumber;
+        private String imageLaterality;
+        private Integer imageRows;
+        private Integer imageColumns;
+        private String modality;
     }
 }
