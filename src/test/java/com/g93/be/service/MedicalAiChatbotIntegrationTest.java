@@ -168,7 +168,7 @@ public class MedicalAiChatbotIntegrationTest {
 
         // Mock AI gateway routing to CLARIFICATION
         ChatRoutingDecision decision = new ChatRoutingDecision(
-                ChatRoute.CLARIFICATION, null, null, null, null, "Could you specify the timeframe?");
+                ChatRoute.CLARIFICATION, null, null, null, null, null, null, "Could you specify the timeframe?");
         when(aiChatGateway.route(anyString(), anyString(), anyString())).thenReturn(decision);
 
         ChatQuestionRequest request = new ChatQuestionRequest(session.getId(), "How many cases today?");
