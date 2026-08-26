@@ -1,0 +1,42 @@
+meta {
+  name: Generate PDF Report Rejects Oversized Conclusion
+  type: http
+  seq: 37
+}
+
+post {
+  url: {{baseUrl}}/examinations/{{examinationId}}/generate-report
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+script:pre-request {
+  bru.setVar("oversizedConclusion", "a".repeat(2001));
+}
+
+body:json {
+  {
+    "conclusion": "{{oversizedConclusion}}"
+  }
+}
+
+vars:pre-request {
+  examinationId: 7
+}
+
+docs {
+  Every editable field is length-capped so a pasted document cannot overflow the printed form.
+  The conclusion caps at 2000 characters and the request must be rejected before any PDF is
+  rendered.
+}
+
+tests {
+  test("rejects a conclusion longer than 2000 characters", function() {
+    expect(res.status).to.equal(400);
+    expect(res.body.message).to.be.a("string");
+  });
+}

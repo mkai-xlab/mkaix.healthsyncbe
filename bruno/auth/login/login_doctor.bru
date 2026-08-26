@@ -1,0 +1,38 @@
+meta {
+  name: Login Doctor
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/auth/login
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "username": "doctor.e",
+    "password": "Test@123"
+  }
+}
+
+vars:post-response {
+  accessToken: res.body.accessToken
+  refreshToken: res.body.refreshToken
+}
+
+tests {
+  test("doctor receives a token", function() {
+    expect(res.status).to.equal(200);
+    expect(res.body.accessToken).to.be.a("string");
+  });
+}
+
+docs {
+  Logs in as a DOCTOR and stores the token in {{accessToken}}.
+  
+  Run this before the report requests: "Login Success" signs in as admin, and the report
+  endpoints reject ADMIN by design (they require DEPARTMENT_HEAD/HEAD_OF_DEPARTMENT, or DOCTOR
+  holding GENERATE_PDF_REPORT). A doctor also only sees examinations assigned to them.
+}

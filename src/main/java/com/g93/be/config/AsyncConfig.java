@@ -14,9 +14,11 @@ public class AsyncConfig {
     @Bean(name = "taskExecutor")
     public Executor taskExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-        // Keep indexing serialized so a small deployment is not overwhelmed by Ollama calls.
-        executor.setCorePoolSize(1);
-        executor.setMaxPoolSize(1);
+        // A single worker made ingestion fully serial (a 300-page PDF took minutes).
+        // 2 keeps Ollama embedding load bounded while no longer forcing every
+        // document to wait behind every other one.
+        executor.setCorePoolSize(2);
+        executor.setMaxPoolSize(2);
         executor.setQueueCapacity(20);
         executor.setThreadNamePrefix("healthsync-async-");
         executor.setWaitForTasksToCompleteOnShutdown(true);

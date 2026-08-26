@@ -13,6 +13,7 @@ final class ApiExamples {
             Map.entry("LOGIN_REQUEST", json("""
                     {"username":"doctor01","password":"Doctor@123"}
                     """)),
+            Map.entry("KNOWLEDGE_TEXT", "Kellgren-Lawrence grade 4 indicates severe joint-space narrowing and marked osteophyte formation."),
             Map.entry("LOGIN", json("""
                     {
                       "accessToken":"eyJhbGciOiJIUzI1NiJ9.<access-token>",
@@ -96,10 +97,10 @@ final class ApiExamples {
                     {"roleId":3}
                     """)),
             Map.entry("USER", json("""
-                    {"id":12,"username":"staff01","fullName":"Nguyễn Hải Yến","email":"staff01@healthsync.vn","phone":"0987654321","role":{"id":2,"code":"DOCTOR","name":"Medical Doctor"},"status":"ACTIVE","userType":"DOCTOR","createdAt":"2026-08-02T08:00:00","updatedAt":null}
+                    {"id":12,"username":"staff01","fullName":"Nguyễn Hải Yến","email":"staff01@healthsync.vn","phone":"0987654321","role":{"id":2,"code":"DOCTOR","name":"Bác sĩ"},"status":"ACTIVE","userType":"DOCTOR","createdAt":"2026-08-02T08:00:00","updatedAt":null}
                     """)),
             Map.entry("USER_LIST", json("""
-                    [{"id":7,"username":"doctor01","fullName":"BS. Nguyễn Minh An","email":"doctor01@healthsync.vn","role":{"id":2,"code":"DOCTOR","name":"Medical Doctor"},"status":"ACTIVE","userType":"DOCTOR","createdAt":"2026-07-20T08:30:00"}]
+                    [{"id":7,"username":"doctor01","fullName":"BS. Nguyễn Minh An","email":"doctor01@healthsync.vn","role":{"id":2,"code":"DOCTOR","name":"Bác sĩ"},"status":"ACTIVE","userType":"DOCTOR","createdAt":"2026-07-20T08:30:00"}]
                     """)),
             Map.entry("CREATE_PATIENT_REQUEST", json("""
                     {
@@ -179,6 +180,12 @@ final class ApiExamples {
             Map.entry("REPORT", json("""
                     {"reportId":9,"examinationId":42,"fileName":"report_ENC-2026-0042_a1b2c3d4.pdf","fileSize":38832,"contentType":"application/pdf","generatedAt":"2026-08-02T10:30:00","previewUrl":"/api/v1/reports/42/preview","downloadUrl":"/api/v1/reports/42/download"}
                     """)),
+            Map.entry("REPORT_DRAFT", json("""
+                    {"examinationId":42,"patientCode":"PAT_A12B34CD","ministryName":"Bộ Quốc phòng","hospitalName":"Viện Y học cổ truyền Quân đội","departmentName":"Khoa Chẩn đoán hình ảnh","formCode":"08/BV-02","clinicalDepartment":"Khoa Chẩn đoán hình ảnh","doctorName":"BS. Hà Công Thỏa","leftKlGrade":"2","rightKlGrade":"3","documentNumber":"ENC-2026-0042","attemptNumber":"","patientName":"Nguyễn Văn A","age":"48","gender":"Nam","address":"Xã Quang Bị, Thành phố Hà Nội","findings":["Gối phải: Thoái hóa khớp gối độ 3 (Kellgren-Lawrence).","Gối trái: Thoái hóa khớp gối độ 2 (Kellgren-Lawrence)."],"conclusion":"Hình ảnh thoái hóa khớp gối: gối phải độ 3, gối trái độ 2 theo phân loại Kellgren-Lawrence.","signaturePlace":"Hà Nội","signatureDate":"07/05/2026"}
+                    """)),
+            Map.entry("GENERATE_REPORT_REQUEST", json("""
+                    {"documentNumber":"SO-2026-0077","attemptNumber":"1","patientName":"Nguyễn Văn A","age":"48","gender":"Nam","address":"Xã Quang Bị, Thành phố Hà Nội","findings":["Gối phải: Thoái hóa khớp gối độ 3 (Kellgren-Lawrence).","Gối trái: Không thoái hóa khớp gối (Kellgren-Lawrence độ 0)."],"conclusion":"Hình ảnh thoái hóa khớp gối phải độ 3 theo phân loại Kellgren-Lawrence.","signaturePlace":"Hà Nội","signatureDate":"07/05/2026"}
+                    """)),
             Map.entry("REPORT_PAGE", json("""
                     {"content":[{"reportId":9,"examinationId":42,"encounterCode":"ENC-2026-0042","visitTime":"2026-08-02T09:30:00","patientCode":"PAT_A12B34CD","patientName":"Nguyễn Văn A","doctorId":7,"doctorName":"BS. Nguyễn Minh An","fileName":"report_ENC-2026-0042_a1b2c3d4.pdf","fileSize":38832,"contentType":"application/pdf","generatedAt":"2026-08-02T10:30:00","previewUrl":"/api/v1/reports/42/preview","downloadUrl":"/api/v1/reports/42/download"}],"pageNumber":0,"pageSize":10,"totalElements":1,"totalPages":1,"isLast":true}
                     """)),
@@ -201,13 +208,13 @@ final class ApiExamples {
                     [{"id":7,"name":"Reporting & Export","description":"Lập báo cáo kết quả","permissions":[{"id":12,"code":"GENERATE_PDF_REPORT","name":"Tạo báo cáo PDF","priority":12,"requiresPermissionId":null}]}]
                     """)),
             Map.entry("KNOWLEDGE_DOCUMENT", json("""
-                    {"id":8,"title":"Knee osteoarthritis guideline","sourceType":"FILE","sourceUrl":null,"originalName":"knee-guideline.pdf","accessScope":"ALL","status":"INDEXED","chunkCount":12,"errorMessage":null,"createdAt":"2026-08-08T09:00:00","indexedAt":"2026-08-08T09:02:00"}
+                    {"id":8,"title":"Knee osteoarthritis guideline","sourceType":"FILE","sourceUrl":null,"originalName":"knee-guideline.pdf","contentUrl":"/api/v1/knowledge-documents/8/content","previewUrl":"/api/v1/knowledge-documents/8/preview","downloadUrl":"/api/v1/knowledge-documents/8/download","accessScope":"ALL","status":"INDEXED","chunkCount":12,"errorMessage":null,"createdAt":"2026-08-08T09:00:00","indexedAt":"2026-08-08T09:02:00"}
                     """)),
             Map.entry("KNOWLEDGE_BATCH", json("""
                     {"totalFiles":2,"acceptedCount":2,"rejectedCount":0,"items":[{"originalName":"knee-guideline.pdf","accepted":true,"documentId":8,"message":"Accepted"},{"originalName":"classification.pdf","accepted":true,"documentId":9,"message":"Accepted"}]}
                     """)),
             Map.entry("KNOWLEDGE_LIST", json("""
-                    [{"id":8,"title":"Knee osteoarthritis guideline","sourceType":"FILE","sourceUrl":null,"originalName":"knee-guideline.pdf","accessScope":"ALL","status":"INDEXED","chunkCount":12,"errorMessage":null,"createdAt":"2026-08-08T09:00:00","indexedAt":"2026-08-08T09:02:00"}]
+                    {"content":[{"id":8,"title":"Knee osteoarthritis guideline","sourceType":"FILE","sourceUrl":null,"originalName":"knee-guideline.pdf","contentUrl":"/api/v1/knowledge-documents/8/content","previewUrl":"/api/v1/knowledge-documents/8/preview","downloadUrl":"/api/v1/knowledge-documents/8/download","accessScope":"ALL","status":"INDEXED","chunkCount":12,"errorMessage":null,"createdAt":"2026-08-08T09:00:00","indexedAt":"2026-08-08T09:02:00"}],"pageNumber":0,"pageSize":20,"totalElements":1,"totalPages":1,"isLast":true}
                     """)),
             Map.entry("CHAT_ANSWER", json("""
                     {"sessionId":12,"messageId":84,"route":"MEDICAL_RAG","answer":"The answer is based on the approved knowledge base.","sources":[],"warning":null,"generatedAt":"2026-08-08T09:03:00","tokensUsed":176}
@@ -231,7 +238,7 @@ final class ApiExamples {
                     {"content":[{"id":83,"sessionId":12,"role":"USER","content":"Explain KL grade 3","route":null,"tokensUsed":null,"createdAt":"2026-08-08T09:02:55"},{"id":84,"sessionId":12,"role":"ASSISTANT","content":"KL grade 3 indicates definite narrowing.","route":"MEDICAL_RAG","tokensUsed":176,"createdAt":"2026-08-08T09:03:00"}],"pageNumber":0,"pageSize":50,"totalElements":2,"totalPages":1,"isLast":true}
                     """)),
             Map.entry("ROLE_LIST", json("""
-                    [{"id":1,"code":"ADMIN","name":"Administrator"},{"id":2,"code":"DOCTOR","name":"Medical Doctor"},{"id":3,"code":"PATIENT","name":"Patient"}]
+                    [{"id":1,"code":"ADMIN","name":"Quản trị viên hệ thống"},{"id":2,"code":"DOCTOR","name":"Bác sĩ"},{"id":3,"code":"HEAD_OF_DEPARTMENT","name":"Trưởng khoa"}]
                     """)),
             Map.entry("ROLE_PERMISSIONS_REQUEST", json("""
                     {"permissionIds":[1,2,3,14,15,22]}
@@ -250,6 +257,9 @@ final class ApiExamples {
                     """)),
             Map.entry("AUDIT_PAGE", json("""
                     {"content":[{"id":81,"username":"admin","title":"UPDATE_ROLE_PERMISSIONS","description":"Cập nhật quyền cho role DOCTOR","ipAddress":"127.0.0.1","userAgent":"Swagger UI","timeStamp":"2026-08-02T11:00:00"}],"pageNumber":0,"pageSize":20,"totalElements":1,"totalPages":1,"isLast":true}
+                    """)),
+            Map.entry("AI_USAGE_SUMMARY", json("""
+                    {"from":"2026-07-26","to":"2026-08-24","totalCalls":340,"totalPromptTokens":512000,"totalCompletionTokens":128000,"totalTokens":640000,"totalCostUsd":1.9200,"byCallType":[{"callType":"CHAT_ANSWER","calls":210,"promptTokens":380000,"completionTokens":96000,"totalTokens":476000,"costUsd":1.4340},{"callType":"ROUTE","calls":130,"promptTokens":132000,"completionTokens":32000,"totalTokens":164000,"costUsd":0.4860}]}
                     """)),
             Map.entry("GRADE_STATS", json("""
                     [{"grade":0,"patientCount":8},{"grade":1,"patientCount":5},{"grade":2,"patientCount":4},{"grade":3,"patientCount":3},{"grade":4,"patientCount":1}]

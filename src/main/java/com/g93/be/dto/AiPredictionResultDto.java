@@ -29,5 +29,6 @@ public class AiPredictionResultDto {
     private String annotatedImageUrl;
     private String reviewNote;
     private Long reviewedByDoctorId;
+    @com.fasterxml.jackson.annotation.JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "UTC")
     private LocalDateTime reviewedAt;
 }

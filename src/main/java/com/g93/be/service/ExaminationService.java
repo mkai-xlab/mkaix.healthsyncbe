@@ -56,4 +56,6 @@ public interface ExaminationService {
 
     PageResponse<ExaminationDto> getExaminationsByPatientIdAndStudyMonth(Long patientId, int year, int month,
             Pageable pageable);
+
+    PageResponse<ExaminationDto> getExaminationsFiltered(java.util.List<ExaminationStatus> statuses, java.util.List<Integer> grades, String username, Boolean isPersonal, Pageable pageable);
 }

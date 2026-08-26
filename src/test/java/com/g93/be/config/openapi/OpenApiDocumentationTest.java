@@ -1,6 +1,7 @@
 package com.g93.be.config.openapi;
 
 import com.g93.be.controller.AiController;
+import com.g93.be.controller.AiUsageController;
 import com.g93.be.controller.ChatController;
 import com.g93.be.controller.AuditLogController;
 import com.g93.be.controller.AuthController;
@@ -53,6 +54,7 @@ class OpenApiDocumentationTest {
 
     private static final List<Class<?>> CONTROLLERS = List.of(
             AiController.class,
+            AiUsageController.class,
             ChatController.class,
             AuditLogController.class,
             AuthController.class,

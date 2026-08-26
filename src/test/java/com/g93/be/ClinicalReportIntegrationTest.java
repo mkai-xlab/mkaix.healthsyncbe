@@ -415,7 +415,7 @@ public class ClinicalReportIntegrationTest {
         registerGeneratedReportFileForCleanup(report.fileName());
 
         // Request preview
-        mockMvc.perform(get("/reports/" + report.reportId() + "/preview")
+        mockMvc.perform(get("/reports/" + report.examinationId() + "/preview")
                         .header("Authorization", "Bearer " + assignedDoctorToken))
                 .andExpect(status().isOk())
                 .andExpect(header().string("Content-Type", is("application/pdf")))
@@ -435,7 +435,7 @@ public class ClinicalReportIntegrationTest {
         registerGeneratedReportFileForCleanup(report.fileName());
 
         // Unassigned doctor is blocked from previewing
-        mockMvc.perform(get("/reports/" + report.reportId() + "/preview")
+        mockMvc.perform(get("/reports/" + report.examinationId() + "/preview")
                         .header("Authorization", "Bearer " + unassignedDoctorToken))
                 .andExpect(status().isForbidden());
     }
@@ -455,7 +455,7 @@ public class ClinicalReportIntegrationTest {
         Files.deleteIfExists(pdfPath);
 
         // Preview should return 500 since file is missing from storage
-        mockMvc.perform(get("/reports/" + report.reportId() + "/preview")
+        mockMvc.perform(get("/reports/" + report.examinationId() + "/preview")
                         .header("Authorization", "Bearer " + assignedDoctorToken))
                 .andExpect(status().isInternalServerError());
     }
@@ -472,7 +472,7 @@ public class ClinicalReportIntegrationTest {
         registerGeneratedReportFileForCleanup(report.fileName());
 
         // Request download
-        mockMvc.perform(get("/reports/" + report.reportId() + "/download")
+        mockMvc.perform(get("/reports/" + report.examinationId() + "/download")
                         .header("Authorization", "Bearer " + assignedDoctorToken))
                 .andExpect(status().isOk())
                 .andExpect(header().string("Content-Type", is("application/pdf")))
@@ -492,7 +492,7 @@ public class ClinicalReportIntegrationTest {
         registerGeneratedReportFileForCleanup(report.fileName());
 
         // Unassigned doctor cannot download report
-        mockMvc.perform(get("/reports/" + report.reportId() + "/download")
+        mockMvc.perform(get("/reports/" + report.examinationId() + "/download")
                         .header("Authorization", "Bearer " + unassignedDoctorToken))
                 .andExpect(status().isForbidden());
     }
@@ -509,7 +509,7 @@ public class ClinicalReportIntegrationTest {
         registerGeneratedReportFileForCleanup(report.fileName());
 
         // Doctor with no authorities is forbidden from downloading
-        mockMvc.perform(get("/reports/" + report.reportId() + "/download")
+        mockMvc.perform(get("/reports/" + report.examinationId() + "/download")
                         .header("Authorization", "Bearer " + doctorNoPermsToken))
                 .andExpect(status().isForbidden());
     }
@@ -526,7 +526,7 @@ public class ClinicalReportIntegrationTest {
         registerGeneratedReportFileForCleanup(report.fileName());
 
         // HOD Doctor can download any report
-        mockMvc.perform(get("/reports/" + report.reportId() + "/download")
+        mockMvc.perform(get("/reports/" + report.examinationId() + "/download")
                         .header("Authorization", "Bearer " + hodDoctorToken))
                 .andExpect(status().isOk())
                 .andExpect(header().string("Content-Disposition", containsString("attachment")));

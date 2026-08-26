@@ -42,10 +42,81 @@ still checks the clinical role and the `USE_AI_CHAT` permission.
 | `POST /knowledge-documents/upload` | `MANAGE_MEDICAL_KNOWLEDGE` | Validate and upload a medical PDF, DOC, DOCX, or TXT. |
 | `POST /knowledge-documents/upload/batch` | `MANAGE_MEDICAL_KNOWLEDGE` | Upload up to 10 documents with per-file results. |
 | `POST /knowledge-documents/url` | `MANAGE_MEDICAL_KNOWLEDGE` | Ingest an approved public HTTP(S) URL. |
-| `GET /knowledge-documents` | `MANAGE_MEDICAL_KNOWLEDGE` | Check indexing state and errors. |
+| `GET /knowledge-documents` | `MANAGE_MEDICAL_KNOWLEDGE` | List uploaded documents with metadata, indexing state, and errors. |
+| `GET /knowledge-documents/{id}/preview` | `MANAGE_MEDICAL_KNOWLEDGE` | Read the original stored document inline when the browser supports its media type. Also accepts the token via `?token=` (see below). |
+| `GET /knowledge-documents/{id}/content` | `MANAGE_MEDICAL_KNOWLEDGE` | Extract readable plain text from the stored PDF, DOC, DOCX, TXT, or URL source. Also accepts the token via `?token=`. |
+| `GET /knowledge-documents/{id}/download` | `MANAGE_MEDICAL_KNOWLEDGE` | Download the original stored document as an attachment. Also accepts the token via `?token=`. |
 | `POST /knowledge-documents/{id}/reindex` | `MANAGE_MEDICAL_KNOWLEDGE` | Reindex a stored source. |
 | `DELETE /knowledge-documents/{id}` | `MANAGE_MEDICAL_KNOWLEDGE` | Delete metadata, file, and vectors. |
 | `POST /knowledge-documents/reports/{reportId}/sync` | `USE_AI_CHAT` and clinical role | Index one approved report. |
+
+### Listing and reading uploaded knowledge
+
+`GET /knowledge-documents` supports `keyword`, `sourceType`, `status`,
+`accessScope`, `page`, `size`, and `sort`. The default page size is 20 and the
+default sort is `createdAt,desc`. The response intentionally excludes internal
+`storagePath` and `checksum` values. File and URL sources expose authenticated
+links that the frontend can use without constructing paths itself:
+
+```json
+{
+  "content": [
+    {
+      "id": 8,
+      "title": "Knee osteoarthritis guideline",
+      "sourceType": "FILE",
+      "sourceUrl": null,
+      "originalName": "knee-guideline.pdf",
+      "contentUrl": "/api/v1/knowledge-documents/8/content",
+      "previewUrl": "/api/v1/knowledge-documents/8/preview",
+      "downloadUrl": "/api/v1/knowledge-documents/8/download",
+      "accessScope": "ALL",
+      "status": "INDEXED",
+      "chunkCount": 12,
+      "errorMessage": null,
+      "createdAt": "2026-08-20T09:00:00",
+      "indexedAt": "2026-08-20T09:02:00"
+    }
+  ],
+  "pageNumber": 0,
+  "pageSize": 20,
+  "totalElements": 1,
+  "totalPages": 1,
+  "isLast": true
+}
+```
+
+`contentUrl` extracts plain text through the same PDF/TXT/Tika readers used by
+ingestion. `previewUrl` streams the original file with
+`Content-Disposition: inline`; PDF, text, and HTML normally render in the browser,
+while DOC/DOCX behavior depends on browser support. `downloadUrl` returns the same
+file with `Content-Disposition: attachment`. All three responses use
+`Cache-Control: no-store`. A missing database row, missing stored file, or path
+outside the configured knowledge directory returns `404 Not Found`. Content type is
+resolved from the stored upload metadata first, then a fixed extension map
+(`pdf`/`doc`/`docx`/`txt`), then OS-level detection; it only falls back to
+`application/octet-stream` when none of those identify the file, so browsers
+reliably get a real MIME type instead of forcing a download.
+
+`REPORT` sources are generated from approved relational report data and do not have
+a stored knowledge source file. Their `contentUrl`, `previewUrl`, and `downloadUrl`
+are therefore `null`; use the report preview/download APIs for the generated PDF.
+
+#### Embedding preview/content/download in the frontend
+
+`<iframe src>`, `<img src>`, and a plain browser tab cannot attach an
+`Authorization` header, so all three endpoints also accept the access token as a
+`token` query parameter, e.g. `GET {previewUrl}?token={accessToken}`. This is an
+additive fallback scoped to exactly these three routes — the header-based flow is
+unchanged and every other endpoint still requires the `Authorization: Bearer`
+header. The query-string token is visible in browser history and server access
+logs for these URLs, so treat it the same as any bearer token: don't persist or
+share the resulting link long-term.
+
+These responses also send `Content-Security-Policy: frame-ancestors *`, which
+modern browsers honor over Spring Security's default `X-Frame-Options: DENY`, so
+the frontend can render `previewUrl` directly inside an `<iframe>` instead of
+fetching the bytes with JS and building a blob URL.
 
 Example question request:
 
@@ -116,6 +187,16 @@ Deleting `DELETE /knowledge-documents/{id}` removes the relational metadata, sto
 source file, and every Qdrant chunk matching its `sourceKey`. The indexing worker also
 removes chunks produced by an in-flight job if the document is deleted concurrently.
 
+### Bruno verification flow
+
+1. Run `bruno/auth/login/login_success.bru` and keep the returned `accessToken`.
+2. Run `bruno/chat/upload_medical_document.bru` with a medical PDF, DOC, DOCX, or TXT.
+3. Run `bruno/chat/get_knowledge_documents.bru` and copy the returned document `id`.
+4. Put that ID into `read_knowledge_document_content.bru`,
+   `preview_knowledge_document.bru`, and `download_knowledge_document.bru`.
+5. Use `get_indexed_knowledge_documents.bru` to verify that asynchronous indexing
+   reached `INDEXED` and populated `indexedAt` and `chunkCount`.
+
 ## Database and Report Ingestion
 
 The migration creates `knowledge_documents`, `chat_sessions`, and `chat_messages`.
@@ -143,6 +224,54 @@ also republishes that event, and the scheduled reconciliation retries missing,
 older report vectors to metadata version 2 so the assigned-doctor access field is
 present. The manual recovery endpoint remains
 `POST /knowledge-documents/reports/{reportId}/sync`.
+
+## AI Usage and Cost Tracking
+
+Every Gemini call — router classification, chat answers, and document-upload
+medical validation — is logged to `ai_usage_logs` with prompt tokens, completion
+tokens, total tokens, and a computed USD cost. Completion tokens are derived as
+`totalTokens - promptTokens` rather than read directly from the provider, because
+Gemini's "thinking" tokens are billed and included in `totalTokens` but excluded
+from its reported completion-token count; deriving keeps the split accurate for
+billing and keeps `promptTokens + completionTokens == totalTokens` for every
+provider. Recording is best-effort: a failure to write the log never fails the
+underlying AI call.
+
+Cost is priced from `app.chat.pricing` (`CHAT_PRICING_INPUT_PER_MILLION_USD` /
+`CHAT_PRICING_OUTPUT_PER_MILLION_USD`, USD per 1,000,000 tokens), matching the
+Gemini model configured in `GEMINI_CHAT_MODEL`. Update these whenever the
+provider's list price changes; there is no API to read it automatically.
+Embedding calls (Ollama `bge-m3`) are not tracked — they run on self-hosted
+infrastructure and have no per-token provider cost.
+
+Known gap: when the router or the document classifier replies with unparsable
+JSON (rare, handled by falling back to a clarification/rejection), that call's
+usage is not recorded — Spring AI's `responseEntity()` throws before returning
+the raw `ChatResponse`, so there is nothing to log even though the call was
+already billed. Only the successful-parse path is under-counted; every
+successful call and every `answer()` call (chat replies) is recorded exactly.
+
+`GET /ai-usage/summary?from=yyyy-MM-dd&to=yyyy-MM-dd` (`ADMIN` role only)
+returns totals for that date range plus a breakdown by call type
+(`ROUTE`, `CHAT_ANSWER`, `DOCUMENT_VALIDATION`). Both `from` and `to` are
+optional and default to the trailing 30 days.
+
+```json
+{
+  "from": "2026-07-25",
+  "to": "2026-08-23",
+  "totalCalls": 5,
+  "totalPromptTokens": 12610,
+  "totalCompletionTokens": 3630,
+  "totalTokens": 16240,
+  "totalCostUsd": 0.051586,
+  "byCallType": [
+    { "callType": "ROUTE", "calls": 2, "promptTokens": 2599, "completionTokens": 1128, "totalTokens": 3727, "costUsd": 0.014051 },
+    { "callType": "CHAT_ANSWER", "calls": 2, "promptTokens": 4795, "completionTokens": 2090, "totalTokens": 6885, "costUsd": 0.026003 },
+    { "callType": "DOCUMENT_VALIDATION", "calls": 1, "promptTokens": 5216, "completionTokens": 412, "totalTokens": 5628, "costUsd": 0.011532 }
+  ]
+}
+```
 
 ## Local Startup
 

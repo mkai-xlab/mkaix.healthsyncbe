@@ -14,6 +14,7 @@ public interface PatientService {
     PatientResponse createPatient(CreatePatientRequest request);
     PageResponse<PatientResponse> getAllPatients(PatientFilterRequest filter, Pageable pageable, String username);
     void deletePatient(Long id);
+    void deletePatientCompletelyByCode(String patientCode);
     PatientResponse editPatient(Long id, EditPatientRequest request);
     PatientDetailsResponse getPatientDetailsWithImages(String patientId, String username);
     PageResponse<PatientResponse> getPatientsByUploadDate(LocalDate date, Pageable pageable, String username);

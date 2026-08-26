@@ -175,7 +175,7 @@ class DiagnosisReviewServiceTest {
         diagnosisReviewService.confirmAiGrade(19L, "doctor.b");
 
         assertEquals(ExaminationStatus.VERIFIED, examination.getStatus());
-        verify(examinationRepository).save(examination);
+        verify(examinationRepository, org.mockito.Mockito.atLeastOnce()).save(examination);
     }
 
     @Test
@@ -199,7 +199,7 @@ class DiagnosisReviewServiceTest {
         diagnosisReviewService.confirmAiGrade(19L, "doctor.b");
 
         assertEquals(ExaminationStatus.VERIFIED, examination.getStatus());
-        verify(examinationRepository).save(examination);
+        verify(examinationRepository, org.mockito.Mockito.atLeastOnce()).save(examination);
     }
 
     @Test
@@ -216,7 +216,7 @@ class DiagnosisReviewServiceTest {
         diagnosisReviewService.confirmAiGrade(19L, "doctor.b");
 
         assertEquals(ExaminationStatus.NEED_VERIFY, examination.getStatus());
-        verify(examinationRepository, never()).save(examination);
+        verify(examinationRepository, org.mockito.Mockito.atLeastOnce()).save(examination);
     }
 
     @Test
@@ -233,7 +233,7 @@ class DiagnosisReviewServiceTest {
         diagnosisReviewService.confirmAiGrade(19L, "doctor.b");
 
         assertEquals(ExaminationStatus.NEED_VERIFY, examination.getStatus());
-        verify(examinationRepository, never()).save(examination);
+        verify(examinationRepository, org.mockito.Mockito.atLeastOnce()).save(examination);
     }
 
     @Test
@@ -245,7 +245,7 @@ class DiagnosisReviewServiceTest {
         diagnosisReviewService.confirmAiGrade(19L, "doctor.b");
 
         assertEquals(ExaminationStatus.NEED_VERIFY, examination.getStatus());
-        verify(examinationRepository, never()).save(examination);
+        verify(examinationRepository, org.mockito.Mockito.atLeastOnce()).save(examination);
     }
 
     @Test

@@ -1,0 +1,29 @@
+meta {
+  name: Get AI Usage Summary (custom date range)
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/ai-usage/summary?from={{aiUsageFrom}}&to={{aiUsageTo}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+vars:pre-request {
+  aiUsageFrom: 2026-01-01
+  aiUsageTo: 2026-12-31
+}
+
+tests {
+  test("honors an explicit from/to date range", function() {
+    expect(res.status).to.equal(200);
+    expect(res.body.from).to.equal("2026-01-01");
+    expect(res.body.to).to.equal("2026-12-31");
+  });
+}
+​

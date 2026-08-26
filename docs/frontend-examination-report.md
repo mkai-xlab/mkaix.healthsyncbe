@@ -92,6 +92,26 @@ Successful response:
 
 Generation stores the PDF on the backend and report metadata in MySQL. It does not download the file to the doctor's device. Repeating the request returns the existing report while its stored file is available.
 
+### Generated PDF content
+
+Every newly generated page contains a large, pale-blue `HealthSync` watermark
+rotated diagonally behind the clinical content. A smaller line below it states:
+
+```text
+đây là sản phẩm AI, chỉ là công cụ hỗ trợ, AI có thể sai sót
+```
+
+The report's general-information section also displays `Ngày giờ chụp`, sourced
+from `Examination.studyDate` and `Examination.studyTime`. When both values are
+available the format is `dd/MM/yyyy HH:mm:ss`; when the DICOM metadata contains a
+date but no time, only `dd/MM/yyyy` is displayed. The backend does not invent a
+midnight time for missing metadata.
+
+The generation endpoint reuses an existing stored PDF for an examination already
+in `REPORT_GENERATED`. Consequently, reports created before this template update do
+not gain the watermark or acquisition timestamp automatically. Verify the new
+layout with a newly `VERIFIED` examination and a newly generated report.
+
 The numeric segment in `previewUrl` and `downloadUrl` is the `examinationId`, not the `reportId`. Both endpoints resolve the latest report generated for that examination.
 
 ```http
@@ -212,4 +232,6 @@ Before treating a preview/download response as PDF, always verify both `response
 - Swagger UI: `http://localhost:8080/api/v1/swagger-ui/index.html`
 - OpenAPI JSON: `http://localhost:8080/api/v1/v3/api-docs`
 - Bruno sequence: login, get examination, confirm/adjust every AI result, generate report, preview report, download report.
-
+- `generate_report.bru`, `preview_report.bru`, and `download_report.bru` must use the
+  same `examinationId`. Use `{{accessToken}}` from the login request rather than a
+  previously copied JWT, which may be expired.

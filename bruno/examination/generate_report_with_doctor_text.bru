@@ -1,0 +1,59 @@
+meta {
+  name: Confirm And Generate PDF Report
+  type: http
+  seq: 36
+}
+
+post {
+  url: {{baseUrl}}/examinations/{{examinationId}}/generate-report
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "findings": [
+      "Gối phải: Hẹp khe khớp đùi chày trong, gai xương bờ mâm chày.",
+      "Gối trái: Chưa thấy hình ảnh bất thường."
+    ],
+    "conclusion": "Thoái hóa khớp gối phải giai đoạn sớm, theo dõi thêm.",
+    "signaturePlace": "Hà Nội",
+    "signatureDate": "07/05/2026"
+  }
+}
+
+vars:pre-request {
+  examinationId: 9
+}
+
+tests {
+  test("renders the confirmed form", function() {
+    expect(res.status).to.equal(200);
+    expect(res.body.reportId).to.be.a("number");
+    expect(res.body.fileName).to.match(/\.pdf$/);
+    expect(res.body.previewUrl).to.equal(`/api/v1/reports/${res.body.examinationId}/preview`);
+  });
+}
+
+docs {
+  Step 2 of the report flow: the doctor presses confirm on the preview and the PDF is rendered
+  from the values below. Every field is optional and falls back to the pre-filled value, so the
+  frontend may send only what the doctor actually changed - typically just findings and
+  conclusion.
+
+  A report can only be generated once per examination: this only actually renders a new PDF when
+  examinationId is still VERIFIED. If the examination already has a report (status
+  REPORT_GENERATED), the body below is ignored and the existing report is returned untouched -
+  there is no way to edit a confirmed report through this endpoint by design; see
+  "Get Report Preview Draft Rejects Already Generated Report" for the matching GET-side lock.
+
+  The letterhead and Khoa are fixed by app.report.* configuration, and the name on the signature
+  line is always the authenticated doctor, so none of them are accepted here.
+
+  Confirming here saves findings/conclusion onto the examination
+  (examinations.findings/examinations.conclusion).
+}

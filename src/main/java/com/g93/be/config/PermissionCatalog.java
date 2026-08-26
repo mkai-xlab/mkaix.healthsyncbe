@@ -70,8 +70,8 @@ public final class PermissionCatalog {
         names.put("CONFIRM_CONCLUSION", "Xác nhận kết luận");
         names.put("EXPORT_DOWNLOAD_PDF", "Xuất và tải xuống PDF");
         names.put("GENERATE_OPERATIONAL_REP", "Tạo báo cáo vận hành");
-        names.put("USE_AI_CHAT", "Su dung tro ly AI");
-        names.put("MANAGE_MEDICAL_KNOWLEDGE", "Quan ly kho tri thuc y khoa");
+        names.put("USE_AI_CHAT", "Sử dụng trợ lý AI");
+        names.put("MANAGE_MEDICAL_KNOWLEDGE", "Quản lý kho tri thức y khoa");
         return Map.copyOf(names);
     }
 }

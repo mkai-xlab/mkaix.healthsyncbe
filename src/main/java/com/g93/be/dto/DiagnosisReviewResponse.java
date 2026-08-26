@@ -14,6 +14,7 @@ public record DiagnosisReviewResponse(
         String decision,
         String reviewNote,
         Long reviewedByDoctorId,
+        @com.fasterxml.jackson.annotation.JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "UTC")
         LocalDateTime reviewedAt
 ) {
 }

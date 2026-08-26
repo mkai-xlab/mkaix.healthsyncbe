@@ -21,7 +21,9 @@ import java.util.Map;
 @ConditionalOnProperty(name = "app.chat.enabled", havingValue = "true")
 public class MedicalRagService {
 
-    private static final int MAX_CONTEXT_CHARS = 16_000;
+    // topK (12) * ~700-token chunks was letting roughly half of retrieved evidence
+    // never reach Gemini; raised to fit the full topK budget with headroom.
+    private static final int MAX_CONTEXT_CHARS = 60_000;
 
     private final VectorStore vectorStore;
     private final ChatProperties properties;
@@ -42,20 +44,24 @@ public class MedicalRagService {
         StringBuilder context = new StringBuilder();
         Map<String, ChatSourceResponse> uniqueSources = new LinkedHashMap<>();
         for (Document document : matches) {
-            if (context.length() >= MAX_CONTEXT_CHARS) {
-                break;
-            }
             Map<String, Object> metadata = document.getMetadata();
             String title = stringValue(metadata.get("title"), "Medical knowledge source");
-            String reference = stringValue(metadata.get("reference"), stringValue(metadata.get("sourceKey"), null));
+            String baseReference =
+                    stringValue(metadata.get("reference"), stringValue(metadata.get("sourceKey"), null));
+            String page = pageValue(metadata.get("page"));
+            String reference = page == null || baseReference == null
+                    ? baseReference : baseReference + ", tr. " + page;
             Double score = document.getScore();
             String text = document.getText();
             if (text != null && !text.isBlank()) {
                 int remaining = MAX_CONTEXT_CHARS - context.length();
-                context.append("[SOURCE: ").append(title).append("]\n")
-                        .append(text, 0, Math.min(text.length(), remaining)).append("\n\n");
+                if (text.length() > remaining) {
+                    // Never truncate a chunk mid-sentence; drop it whole and stop.
+                    break;
+                }
+                context.append("[SOURCE: ").append(title).append("]\n").append(text).append("\n\n");
             }
-            String key = reference == null ? title : reference;
+            String key = (baseReference == null ? title : baseReference) + (page == null ? "" : "#p" + page);
             uniqueSources.putIfAbsent(key,
                     new ChatSourceResponse(key, title,
                             stringValue(metadata.get("sourceType"), "MEDICAL_DOCUMENT"), reference, score));
@@ -86,5 +92,14 @@ public class MedicalRagService {
 
     private String stringValue(Object value, String fallback) {
         return value == null ? fallback : value.toString();
+    }
+
+    // Qdrant round-trips numeric metadata as a Double (e.g. "12.0"); normalize
+    // page numbers back to a plain integer for citation display.
+    private String pageValue(Object value) {
+        if (value == null) {
+            return null;
+        }
+        return value instanceof Number number ? String.valueOf(number.intValue()) : value.toString();
     }
 }

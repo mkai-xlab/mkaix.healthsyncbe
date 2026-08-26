@@ -1,10 +1,13 @@
 package com.g93.be.controller;
 
 import com.g93.be.aspect.LogAction;
+import com.g93.be.dto.GenerateReportRequest;
 import com.g93.be.dto.PageResponse;
+import com.g93.be.dto.ReportDraftResponse;
 import com.g93.be.dto.ReportListItemResponse;
 import com.g93.be.dto.ReportResponse;
 import com.g93.be.service.PdfExportService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -19,6 +22,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.nio.charset.StandardCharsets;
@@ -38,13 +42,30 @@ public class ReportController {
         return ResponseEntity.ok(pdfExportService.getGeneratedReports(pageable, principal.getName()));
     }
 
+    /**
+     * Returns the editable result text for an examination, pre-filled from the verified
+     * Kellgren-Lawrence grades, so the doctor can review it before the PDF is rendered.
+     */
+    @GetMapping("/examinations/{id}/report-draft")
+    @PreAuthorize("hasAnyRole('DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT') or (hasRole('DOCTOR') and hasAuthority('GENERATE_PDF_REPORT'))")
+    public ResponseEntity<ReportDraftResponse> getReportDraft(
+            @PathVariable Long id,
+            Principal principal) {
+        return ResponseEntity.ok(pdfExportService.getReportDraft(id, principal.getName()));
+    }
+
+    /**
+     * Generates the X-ray report PDF. The body is optional: omitting it keeps the auto-filled
+     * result text, while sending it prints the doctor's own wording and re-renders the file.
+     */
     @PostMapping("/examinations/{id}/generate-report")
     @PreAuthorize("hasAnyRole('DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT') or (hasRole('DOCTOR') and hasAuthority('GENERATE_PDF_REPORT'))")
     public ResponseEntity<ReportResponse> generatePdfReport(
             @PathVariable Long id,
+            @Valid @RequestBody(required = false) GenerateReportRequest request,
             Principal principal) {
         return ResponseEntity.ok(
-                pdfExportService.generateAndSavePdfReport(id, principal.getName()));
+                pdfExportService.generateAndSavePdfReport(id, principal.getName(), request));
     }
 
     @GetMapping("/reports/{examinationId}/preview")

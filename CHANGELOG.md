@@ -6,8 +6,21 @@ This project can follow semantic versioning when formal releases start.
 
 ## Unreleased
 
+### Removed
+
+- Removed the `PHIEU THU THAP SO LIEU CA NHAN` research data-collection PDF template and its `PdfReportDataDto` view model; report generation now renders the clinical X-ray form only.
+
 ### Added
 
+- Replaced the research data-collection PDF template with the "PHIEU CHUP XQUANG" hospital report form, printed with the hospital crest on the letterhead and with the letterhead text, form code, imaging department, and signature place configurable through `app.report.*`. Patient details are laid out as a closed label/value grid rather than dotted fill-in rules, so a downloaded report reads as a finished record instead of a blank form.
+- Added `GET /examinations/{id}/report-draft`, returning the whole report form pre-filled for the preview screen, with an editable result block stating the Kellgren-Lawrence grades confirmed during verification and nothing further about radiographic signs.
+- Added an optional request body to `POST /examinations/{id}/generate-report` carrying the form fields the doctor confirmed on the preview; every field falls back independently to the pre-filled value.
+- Reports are now signed by the authenticated doctor: the name on the signature line comes from the account that generated the report and cannot be supplied in the request.
+- Added `findings` and `conclusion` columns to `examinations`, so the doctor-confirmed report result block persists with the examination instead of living only inside the generated PDF; the next report preview for the same examination offers that saved wording back instead of resetting to the grade-only auto-composed draft.
+- Added paginated medical-knowledge listing with keyword, source type, indexing status, access scope, pagination, and sorting filters.
+- Added authenticated knowledge-source text extraction, inline preview, and original-file download endpoints with safe storage-path validation.
+- Added `contentUrl`, `previewUrl`, and `downloadUrl` to file and URL knowledge-document responses and matching Bruno requests.
+- Added a large diagonal `HealthSync` watermark, AI-assistance disclaimer, and DICOM study date/time to newly generated PDF reports.
 - Added `TODAY_EXAMINATION_LIST` chat routing and a controlled query returning up to 10 newest examinations from today for backend selection flows.
 - Added report-aware HYBRID retrieval that uses stored report context to locate relevant approved medical evidence.
 - Added synchronous AI medical-content validation for uploaded files and public URL knowledge sources using large samples from the beginning, middle, and end.
@@ -43,6 +56,9 @@ This project can follow semantic versioning when formal releases start.
 
 ### Changed
 
+- A generated X-ray report is now final: `POST /examinations/{id}/generate-report` renders a PDF only once per examination, always returning the existing report untouched afterward (a body is ignored once generated) unless the stored file has gone missing, and `GET /examinations/{id}/report-draft` now returns `400 Bad Request` once the examination's status is `REPORT_GENERATED` instead of reopening an editable-looking form whose submissions would silently do nothing.
+- Knowledge-document list responses are now paginated instead of returning an unbounded array.
+- PDF report template tests now render the PDF and verify that watermark-colored pixels are visible on every generated page.
 - Report vectors now authorize both the report creator and the examination's assigned doctor, while remaining owner-scoped for other users.
 - Report reconciliation now retries incomplete indexing, upgrades legacy report metadata, and resynchronizes when an existing PDF is returned.
 - Increased the default medical RAG retrieval size from 5 to 12 chunks.

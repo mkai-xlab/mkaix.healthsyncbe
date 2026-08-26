@@ -70,7 +70,8 @@ class MedicalDocumentValidatorTest {
 
     private MedicalDocumentValidator validator(double confidence) {
         ChatProperties properties = new ChatProperties(
-                true, "knowledge", 1000, 1000, 12, 0.6, 6000, confidence, 1000);
+                true, "knowledge", 1000, 1000, 12, 0.6, 6000, confidence, 1000,
+                new ChatProperties.Pricing(1.5, 9.0));
         return new MedicalDocumentValidator(new KnowledgeDocumentReader(), aiChatGateway, properties);
     }
 }

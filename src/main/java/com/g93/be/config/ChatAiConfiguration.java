@@ -1,9 +1,9 @@
 package com.g93.be.config;
 
+import com.g93.be.service.OverlappingTokenTextSplitter;
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.transformer.splitter.TokenTextSplitter;
+import org.springframework.ai.transformer.splitter.TextSplitter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
@@ -13,7 +13,6 @@ import java.net.http.HttpClient;
 import java.time.Duration;
 
 @Configuration
-@EnableConfigurationProperties(ChatProperties.class)
 @ConditionalOnProperty(name = "app.chat.enabled", havingValue = "true")
 public class ChatAiConfiguration {
 
@@ -23,13 +22,16 @@ public class ChatAiConfiguration {
     }
 
     @Bean
-    TokenTextSplitter medicalKnowledgeSplitter() {
-        return TokenTextSplitter.builder()
-                .withChunkSize(700)
-                .withMinChunkSizeChars(250)
-                .withMinChunkLengthToEmbed(20)
-                .withMaxNumChunks(10_000)
-                .withKeepSeparator(true)
+    TextSplitter medicalKnowledgeSplitter() {
+        // 120-token overlap (~17% of chunk size) so a sentence or table row that
+        // lands on a chunk boundary still survives whole in at least one chunk.
+        return OverlappingTokenTextSplitter.builder()
+                .chunkSize(700)
+                .chunkOverlap(120)
+                .minChunkSizeChars(250)
+                .minChunkLengthToEmbed(20)
+                .maxNumChunks(10_000)
+                .keepSeparator(true)
                 .build();
     }
 

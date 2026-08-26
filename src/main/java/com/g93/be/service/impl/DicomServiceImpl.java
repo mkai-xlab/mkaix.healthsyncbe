@@ -564,6 +564,7 @@ public class DicomServiceImpl implements DicomService {
                     String imageLaterality = null;
                     int imageRows = 0;
                     int imageColumns = 0;
+                    String modality = null;
 
                     // Mở và đọc nội dung file DICOM bằng thư viện dcm4che3
                     try (DicomInputStream dis = new DicomInputStream(tempFile.toFile())) {
@@ -578,13 +579,50 @@ public class DicomServiceImpl implements DicomService {
                         // Lấy thông tin Ca Chụp (Study Level) - Dùng làm căn cứ tạo Examination
                         studyInstanceUid = attrs.getString(Tag.StudyInstanceUID, "");
                         studyDate = attrs.getDate(Tag.StudyDate);
+                        if (studyDate == null) {
+                            studyDate = attrs.getDate(Tag.SeriesDate);
+                        }
+                        if (studyDate == null) {
+                            studyDate = attrs.getDate(Tag.AcquisitionDate);
+                        }
+                        if (studyDate == null) {
+                            studyDate = attrs.getDate(Tag.ContentDate);
+                        }
+
                         studyTime = attrs.getDate(Tag.StudyTime);
+                        if (studyTime == null) {
+                            studyTime = attrs.getDate(Tag.SeriesTime);
+                        }
+                        if (studyTime == null) {
+                            studyTime = attrs.getDate(Tag.AcquisitionTime);
+                        }
+                        if (studyTime == null) {
+                            studyTime = attrs.getDate(Tag.ContentTime);
+                        }
                         description = attrs.getString(Tag.StudyDescription, "");
                         bodyPart = attrs.getString(Tag.BodyPartExamined, "");
                         referringPhysician = attrs.getString(Tag.ReferringPhysicianName, "");
 
                         // Lấy SOP Instance UID (Định danh duy nhất của Từng Tấm Ảnh/Slice)
                         sopInstanceUid = attrs.getString(Tag.SOPInstanceUID, "");
+
+                        // Lấy Image Laterality (Bên trái/phải)
+                        imageLaterality = attrs.getString(Tag.Laterality, "");
+                        if (imageLaterality == null || imageLaterality.trim().isEmpty()) {
+                            imageLaterality = attrs.getString(Tag.ImageLaterality, "");
+                        }
+                        if (imageLaterality != null && !imageLaterality.trim().isEmpty()) {
+                            String normalized = imageLaterality.trim().toUpperCase();
+                            if (normalized.equals("L") || normalized.equals("LEFT") || normalized.equals("TRAI") || normalized.equals("GOI TRAI")) {
+                                imageLaterality = "left";
+                            } else if (normalized.equals("R") || normalized.equals("RIGHT") || normalized.equals("PHAI") || normalized.equals("GOI PHAI")) {
+                                imageLaterality = "right";
+                            }
+                        }
+                        
+                        imageRows = attrs.getInt(Tag.Rows, 0);
+                        imageColumns = attrs.getInt(Tag.Columns, 0);
+                        modality = attrs.getString(Tag.Modality, "");
                     }
 
                     // Bắt buộc mỗi ảnh DICOM phải có SOPInstanceUID, nếu không coi như file hỏng
@@ -690,6 +728,10 @@ public class DicomServiceImpl implements DicomService {
                             .sopInstanceUid(sopInstanceUid)
                             .filePath(dbDcmPath)
                             .bodyPart(bodyPart)
+                            .imageLaterality(imageLaterality)
+                            .imageRows(imageRows)
+                            .imageColumns(imageColumns)
+                            .modality(modality)
                             .build());
 
                 } catch (Exception e) {

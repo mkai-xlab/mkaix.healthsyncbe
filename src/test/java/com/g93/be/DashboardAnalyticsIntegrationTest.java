@@ -1,6 +1,8 @@
 package com.g93.be;
 
 import com.g93.be.entity.*;
+import java.util.List;
+import com.g93.be.dto.PermissionResponse;
 import com.g93.be.repository.*;
 import com.g93.be.security.CustomUserDetails;
 import com.g93.be.security.JwtTokenProvider;
@@ -23,6 +25,9 @@ import static org.springframework.security.test.web.servlet.setup.SecurityMockMv
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 
 @SpringBootTest
 @Transactional
@@ -143,11 +148,14 @@ public class DashboardAnalyticsIntegrationTest {
         hodDoctor.setYearsOfExperience(15);
         hodDoctor = userRepository.save(hodDoctor);
 
+        PermissionResponse viewPendingPerm = new com.g93.be.dto.PermissionResponse(1L, "VIEW_PENDING_DIAGNOSIS", "View Pending", 1, "VIEW_PENDING_DIAGNOSIS", null);
+        PermissionResponse viewAnalyticPerm = new com.g93.be.dto.PermissionResponse(2L, "VIEW_ANALYTIC_HISTORY", "View Analytic", 1, "VIEW_ANALYTIC_HISTORY", null);
+
         // Generate tokens
         doctor1Token = jwtTokenProvider.generateAccessToken(
-                new CustomUserDetails(doctorUser1, Collections.emptyList()));
+                new CustomUserDetails(doctorUser1, List.of(viewPendingPerm, viewAnalyticPerm)));
         doctor2Token = jwtTokenProvider.generateAccessToken(
-                new CustomUserDetails(doctorUser2, Collections.emptyList()));
+                new CustomUserDetails(doctorUser2, List.of(viewPendingPerm, viewAnalyticPerm)));
         hodToken = jwtTokenProvider.generateAccessToken(
                 new CustomUserDetails(hodDoctor, Collections.emptyList()));
 
@@ -215,24 +223,34 @@ public class DashboardAnalyticsIntegrationTest {
 
     @Test
     void testViewDoctorDashboard_Success() throws Exception {
+        UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
+                "doc_1", 
+                null, 
+                List.of(
+                        new SimpleGrantedAuthority("ROLE_DOCTOR"),
+                        new SimpleGrantedAuthority("VIEW_PENDING_DIAGNOSIS"),
+                        new SimpleGrantedAuthority("VIEW_ANALYTIC_HISTORY")
+                )
+        );
+
         // doctorUser1 has 2 exams: 1 severe, 1 verified, 1 unverified 
         mockMvc.perform(get("/examinations/my-total")
-                        .header("Authorization", "Bearer " + doctor1Token))
+                        .with(authentication(auth)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", is(2)));
 
         mockMvc.perform(get("/examinations/my-total-severe")
-                        .header("Authorization", "Bearer " + doctor1Token))
+                        .with(authentication(auth)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", is(1)));
 
         mockMvc.perform(get("/examinations/my-total-verified")
-                        .header("Authorization", "Bearer " + doctor1Token))
+                        .with(authentication(auth)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", is(1)));
 
         mockMvc.perform(get("/examinations/my-total-unverified")
-                        .header("Authorization", "Bearer " + doctor1Token))
+                        .with(authentication(auth)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", is(1)));
     }

@@ -206,6 +206,21 @@ public class ExaminationController {
     }
 
     /**
+     * Retrieves examinations filtered by dynamic criteria.
+     */
+    @GetMapping("/filter")
+    @PreAuthorize("hasAnyRole('ADMIN', 'DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT') or (hasRole('DOCTOR') and hasAuthority('VIEW_PENDING_DIAGNOSIS'))")
+    public ResponseEntity<PageResponse<ExaminationDto>> filterExaminations(
+            @RequestParam(required = false) java.util.List<ExaminationStatus> statuses,
+            @RequestParam(required = false) java.util.List<Integer> grades,
+            java.security.Principal principal,
+            @RequestParam(defaultValue = "false", required = false) Boolean isPersonal,
+            @PageableDefault(size = 10) Pageable pageable) {
+        log.info("Received request to filter examinations dynamically for user: {}", principal.getName());
+        return ResponseEntity.ok(examinationService.getExaminationsFiltered(statuses, grades, principal.getName(), isPersonal, pageable));
+    }
+
+    /**
      * Retrieves patient statistics grouped by max predicted grade based on user
      * role.
      *
@@ -299,10 +314,11 @@ public class ExaminationController {
     }
 
     /**
-     * Retrieves total unverified examinations based on user role.
+     * Retrieves total examinations pending verification (status NEED_VERIFY)
+     * based on user role.
      *
      * @param userId The ID of the user requesting the total.
-     * @return The total number of unverified examinations.
+     * @return The total number of examinations pending verification.
      */
     @GetMapping("/total-unverified")
     @PreAuthorize("@accessControl.canAccessUser(#p0, authentication)")
@@ -317,9 +333,7 @@ public class ExaminationController {
     @GetMapping("/my-total")
     @PreAuthorize("hasAnyRole('ADMIN', 'DOCTOR', 'DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT')")
     public ResponseEntity<Long> getMyTotalExaminations(@RequestParam(defaultValue = "false", required = false) Boolean isPersonal) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String userEmail = (String) authentication.getPrincipal();
-        User user = userRepository.findByUsername(userEmail).orElseThrow(() -> new com.g93.be.exception.ResourceNotFoundException("User not found"));
+        User user = resolveCurrentUser();
         Long userId = user.getId();
         log.info("Received request to get total examinations for my token, user id: {}", userId);
         return ResponseEntity.ok(examinationService.getTotalExaminations(userId, isPersonal));
@@ -331,9 +345,7 @@ public class ExaminationController {
     @GetMapping("/my-total-last-7-days")
     @PreAuthorize("hasAnyRole('ADMIN', 'DOCTOR', 'DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT')")
     public ResponseEntity<Long> getMyTotalLast7Days(@RequestParam(defaultValue = "false", required = false) Boolean isPersonal) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String userEmail = (String) authentication.getPrincipal();
-        User user = userRepository.findByUsername(userEmail).orElseThrow(() -> new com.g93.be.exception.ResourceNotFoundException("User not found"));
+        User user = resolveCurrentUser();
         Long userId = user.getId();
         log.info("Received request to get total examinations in the last 7 days for my token, user id: {}", userId);
         return ResponseEntity.ok(examinationService.getTotalExaminationsInLast7Days(userId, isPersonal));
@@ -345,9 +357,7 @@ public class ExaminationController {
     @GetMapping("/my-total-severe")
     @PreAuthorize("hasAnyRole('ADMIN', 'DOCTOR', 'DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT')")
     public ResponseEntity<Long> getMyTotalSevereExaminations(@RequestParam(defaultValue = "false", required = false) Boolean isPersonal) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String userEmail = (String) authentication.getPrincipal();
-        User user = userRepository.findByUsername(userEmail).orElseThrow(() -> new com.g93.be.exception.ResourceNotFoundException("User not found"));
+        User user = resolveCurrentUser();
         Long userId = user.getId();
         log.info("Received request to get total severe examinations for my token, user id: {}", userId);
         return ResponseEntity.ok(examinationService.getTotalSevereExaminations(userId, isPersonal));
@@ -359,26 +369,36 @@ public class ExaminationController {
     @GetMapping("/my-total-verified")
     @PreAuthorize("hasAnyRole('ADMIN', 'DOCTOR', 'DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT')")
     public ResponseEntity<Long> getMyTotalVerifiedExaminations(@RequestParam(defaultValue = "false", required = false) Boolean isPersonal) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String userEmail = (String) authentication.getPrincipal();
-        User user = userRepository.findByUsername(userEmail).orElseThrow(() -> new com.g93.be.exception.ResourceNotFoundException("User not found"));
+        User user = resolveCurrentUser();
         Long userId = user.getId();
         log.info("Received request to get total verified examinations for my token, user id: {}", userId);
         return ResponseEntity.ok(examinationService.getTotalVerifiedExaminations(userId, isPersonal));
     }
 
     /**
-     * Retrieves total unverified examinations based on user role (from access
-     * token).
+     * Retrieves total examinations pending verification (status NEED_VERIFY)
+     * based on user role (from access token).
      */
     @GetMapping("/my-total-unverified")
     @PreAuthorize("hasAnyRole('ADMIN', 'DOCTOR', 'DEPARTMENT_HEAD', 'HEAD_OF_DEPARTMENT')")
     public ResponseEntity<Long> getMyTotalUnverifiedExaminations(@RequestParam(defaultValue = "false", required = false) Boolean isPersonal) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String userEmail = (String) authentication.getPrincipal();
-        User user = userRepository.findByUsername(userEmail).orElseThrow(() -> new com.g93.be.exception.ResourceNotFoundException("User not found"));
+        User user = resolveCurrentUser();
         Long userId = user.getId();
         log.info("Received request to get total unverified examinations for my token, user id: {}", userId);
         return ResponseEntity.ok(examinationService.getTotalUnverifiedExaminations(userId, isPersonal));
+    }
+
+    /**
+     * Resolves the authenticated user from the security context. Uses
+     * {@link Authentication#getName()} rather than casting {@code getPrincipal()}
+     * directly, since the principal type is not guaranteed to be a plain
+     * {@code String} (it is a {@code String} for stateless JWT-only requests, but
+     * a {@code CustomUserDetails} elsewhere, e.g. right after login).
+     */
+    private User resolveCurrentUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = authentication.getName();
+        return userRepository.findByUsername(username)
+                .orElseThrow(() -> new com.g93.be.exception.ResourceNotFoundException("User not found"));
     }
 }

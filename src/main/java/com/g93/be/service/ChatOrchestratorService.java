@@ -41,7 +41,7 @@ public class ChatOrchestratorService {
             case CLARIFICATION -> new AnswerResult(
                     new GeneratedChatAnswer(clarification(decision), null), List.of(), null);
             case BUSINESS_DATA -> businessAnswer(question, username, decision, history);
-            case MEDICAL_RAG -> medicalAnswer(question, roleCode, conversation.user().getId(), history);
+            case MEDICAL_RAG -> medicalAnswer(question, roleCode, conversation.user().getId(), decision, history);
             case HYBRID -> hybridAnswer(
                     question, username, roleCode, conversation.user().getId(), decision, history);
         };
@@ -66,9 +66,10 @@ public class ChatOrchestratorService {
                 aiGateway.answerBusiness(question, result.context(), history), result.sources(), null);
     }
 
-    private AnswerResult medicalAnswer(String question, String roleCode, Long userId, String history) {
+    private AnswerResult medicalAnswer(
+            String question, String roleCode, Long userId, ChatRoutingDecision decision, String history) {
         MedicalRetrievalResult result = medicalRagService.retrieve(
-                contextualRetrievalQuery(question, history), roleCode, userId);
+                retrievalQuery(decision, question, history), roleCode, userId);
         if (result.isEmpty()) {
             return new AnswerResult(new GeneratedChatAnswer(
                     "I could not find sufficient approved medical evidence in the knowledge base.", null),
@@ -87,7 +88,7 @@ public class ChatOrchestratorService {
             String history) {
         BusinessQueryResult business = businessDataQueryService.execute(decision, username);
         MedicalRetrievalResult medical = medicalRagService.retrieve(
-                contextualRetrievalQuery(question + "\nHEALTHSYNC DATA:\n" + business.context(), history),
+                retrievalQuery(decision, question, history) + "\nHEALTHSYNC DATA:\n" + business.context(),
                 roleCode, userId);
         if (medical.isEmpty()) {
             return new AnswerResult(
@@ -103,7 +104,7 @@ public class ChatOrchestratorService {
 
     private ChatRoutingDecision normalize(ChatRoutingDecision decision) {
         if (decision == null || decision.route() == null) {
-            return new ChatRoutingDecision(ChatRoute.CLARIFICATION, null, null, null, null,
+            return new ChatRoutingDecision(ChatRoute.CLARIFICATION, null, null, null, null, null, null,
                     "Could you clarify whether you need HealthSync data or medical information?");
         }
         return decision;
@@ -113,6 +114,18 @@ public class ChatOrchestratorService {
         return decision.clarificationQuestion() == null || decision.clarificationQuestion().isBlank()
                 ? "Could you provide more detail about the information you need?"
                 : decision.clarificationQuestion();
+    }
+
+    /**
+     * Prefers the router's own follow-up-resolved search query (built with full
+     * knowledge of conversation history) over dumping raw history text into the
+     * embedding call. Falls back to the old behavior when the router omits it.
+     */
+    private String retrievalQuery(ChatRoutingDecision decision, String question, String history) {
+        if (decision.retrievalQuery() != null && !decision.retrievalQuery().isBlank()) {
+            return decision.retrievalQuery();
+        }
+        return contextualRetrievalQuery(question, history);
     }
 
     private String contextualRetrievalQuery(String question, String history) {

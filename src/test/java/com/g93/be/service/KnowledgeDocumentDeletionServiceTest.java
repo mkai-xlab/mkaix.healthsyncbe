@@ -52,6 +52,6 @@ class KnowledgeDocumentDeletionServiceTest {
 
     private ChatProperties properties() {
         return new ChatProperties(true, knowledgeDir.toString(), 1000, 1000,
-                12, 0.6, 6000, 0.7, 1000);
+                12, 0.6, 6000, 0.7, 1000, new ChatProperties.Pricing(1.5, 9.0));
     }
 }

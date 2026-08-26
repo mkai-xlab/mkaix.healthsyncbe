@@ -89,6 +89,7 @@ public class DiagnosisReviewServiceImpl implements DiagnosisReviewService {
         DiagnosisReview savedReview = diagnosisReviewRepository.save(review);
         context.aiResult().setDiagnosisReview(savedReview);
         markVerifiedWhenAllLatestResultsAreReviewed(context.examination());
+        recalculateMaxPredictedGrade(context.examination());
         return toResponse(savedReview);
     }
 
@@ -147,6 +148,29 @@ public class DiagnosisReviewServiceImpl implements DiagnosisReviewService {
 
         examination.setStatus(ExaminationStatus.VERIFIED);
         examinationRepository.save(examination);
+    }
+
+    private void recalculateMaxPredictedGrade(Examination examination) {
+        List<DicomInstance> instances = dicomInstanceRepository.findByExaminationId(examination.getId());
+        int maxGrade = -1;
+        for (DicomInstance instance : instances) {
+            AiAnalysis aiAnalysis = instance.getAiAnalysis();
+            if (aiAnalysis != null && aiAnalysis.getAiResults() != null) {
+                for (AiResult aiResult : aiAnalysis.getAiResults()) {
+                    int gradeToConsider = aiResult.getPredictedGrade() != null ? aiResult.getPredictedGrade() : -1;
+                    if (aiResult.getDiagnosisReview() != null && aiResult.getDiagnosisReview().getConfirmedKlGrade() != null) {
+                        gradeToConsider = aiResult.getDiagnosisReview().getConfirmedKlGrade();
+                    }
+                    if (gradeToConsider > maxGrade) {
+                        maxGrade = gradeToConsider;
+                    }
+                }
+            }
+        }
+        if (maxGrade >= 0 && !java.util.Objects.equals(examination.getMaxPredictedGrade(), maxGrade)) {
+            examination.setMaxPredictedGrade(maxGrade);
+            examinationRepository.save(examination);
+        }
     }
 
     private boolean isDepartmentHead(Doctor reviewer) {

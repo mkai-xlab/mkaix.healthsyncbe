@@ -8,6 +8,7 @@ public record ReportResponse(
         String fileName,
         Long fileSize,
         String contentType,
+        @com.fasterxml.jackson.annotation.JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "UTC")
         LocalDateTime generatedAt,
         String previewUrl,
         String downloadUrl) {
